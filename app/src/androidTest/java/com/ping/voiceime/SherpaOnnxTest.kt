@@ -1,4 +1,4 @@
-﻿package com.ping.voiceime
+package com.ping.voiceime
 
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -42,6 +42,16 @@ class SherpaOnnxTest {
         com.k2fsa.sherpa.onnx.OfflineRecognizer.prependAdspLibraryPath("")
         com.k2fsa.sherpa.onnx.OnlineRecognizer.prependAdspLibraryPath("")
         Log.i(TAG, "sherpa-onnx 1.13.8 JNI libraries loaded successfully!")
+    }
+
+    @Test
+    fun testOnnxRuntimeAndSherpaCoexistence() {
+        Log.i(TAG, "Testing JNI loading of sherpa-onnx...")
+        com.k2fsa.sherpa.onnx.OnlineRecognizer.prependAdspLibraryPath("")
+        Log.i(TAG, "Testing OrtEnvironment initialization...")
+        val env = ai.onnxruntime.OrtEnvironment.getEnvironment()
+        assertNotNull(env)
+        Log.i(TAG, "OrtEnvironment and Sherpa-ONNX both loaded successfully!")
     }
 
     @Test

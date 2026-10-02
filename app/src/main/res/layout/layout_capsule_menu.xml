@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/capsule_menu_root"
+    android:layout_width="60dp"
+    android:layout_height="192dp"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
+
+    <!-- The continuous vertical capsule pill (56dp wide, 168dp tall) -->
+    <LinearLayout
+        android:id="@+id/layout_capsule_pill"
+        android:layout_width="56dp"
+        android:layout_height="168dp"
+        android:layout_gravity="center_horizontal"
+        android:orientation="vertical"
+        android:background="@drawable/bg_capsule_menu"
+        android:elevation="12dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- Item 0: Voice Mode (語音模式) -->
+        <FrameLayout
+            android:id="@+id/item_capsule_voice"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:id="@+id/indicator_capsule_voice"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_capsule_indicator"
+                android:alpha="0" />
+
+            <ImageView
+                android:id="@+id/iv_capsule_voice"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_mic"
+                android:contentDescription="語音模式" />
+        </FrameLayout>
+
+        <!-- Item 1: Barcode Scanner (條碼辨識) -->
+        <FrameLayout
+            android:id="@+id/item_capsule_barcode"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:id="@+id/indicator_capsule_barcode"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_capsule_indicator"
+                android:alpha="0" />
+
+            <ImageView
+                android:id="@+id/iv_capsule_barcode"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_barcode"
+                android:contentDescription="條碼辨識" />
+        </FrameLayout>
+
+        <!-- Item 2: OCR (文字辨識) -->
+        <FrameLayout
+            android:id="@+id/item_capsule_ocr"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:id="@+id/indicator_capsule_ocr"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_capsule_indicator"
+                android:alpha="0" />
+
+            <ImageView
+                android:id="@+id/iv_capsule_ocr"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_ocr"
+                android:contentDescription="文字辨識" />
+        </FrameLayout>
+
+    </LinearLayout>
+</FrameLayout>

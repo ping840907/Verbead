@@ -45,6 +45,31 @@ object ModelDownloadSpec {
         ),
     )
 
-    fun forEngine(engine: String): DownloadTarget =
-        if (engine == ModelConfig.ENGINE_X_ASR) xAsr() else qwen3()
+    fun ocr(model: String = ModelConfig.OCR_MODEL_TINY): DownloadTarget {
+        val detModel = if (model == ModelConfig.OCR_MODEL_SMALL) "PP-OCRv6_small_det_onnx" else "PP-OCRv6_tiny_det_onnx"
+        val recModel = if (model == ModelConfig.OCR_MODEL_SMALL) "PP-OCRv6_small_rec_onnx" else "PP-OCRv6_tiny_rec_onnx"
+        return DownloadTarget(
+            engine = model,
+            files = listOf(
+                RemoteFile(
+                    "https://huggingface.co/PaddlePaddle/$detModel/resolve/main/inference.onnx",
+                    "${model}_det.onnx"
+                ),
+                RemoteFile(
+                    "https://huggingface.co/PaddlePaddle/$recModel/resolve/main/inference.onnx",
+                    "${model}_rec.onnx"
+                ),
+                RemoteFile(
+                    "https://huggingface.co/PaddlePaddle/$recModel/resolve/main/inference.yml",
+                    "${model}_dict.txt"
+                )
+            )
+        )
+    }
+
+    fun forEngine(engine: String): DownloadTarget = when (engine) {
+        ModelConfig.ENGINE_X_ASR -> xAsr()
+        ModelConfig.OCR_MODEL_TINY, ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
+        else -> qwen3()
+    }
 }

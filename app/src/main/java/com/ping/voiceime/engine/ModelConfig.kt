@@ -1,7 +1,7 @@
 package com.ping.voiceime.engine
 
 import android.content.Context
-import com.github.houbb.opencc4j.util.ZhTwConverterUtil
+import com.github.houbb.opencc4j.util.ZhConverterUtil
 
 object ModelConfig {
 
@@ -130,17 +130,15 @@ object ModelConfig {
     fun filterChinesePunctuation(text: String): String =
         text.replace(CHINESE_PUNCTUATION_REGEX, "")
 
-    // ── Traditional Chinese (Taiwan MOE Standard) ────────────────────────────
+    // ── Traditional Chinese (Taiwan MOE Standard & Pure Character Conversion) ──
     /**
-     * Converts text to Taiwan Traditional Chinese (s2tw) using ZhTwConverterUtil,
-     * then applies Taiwan MOE standard normalization:
-     * - 纔 -> 才 (e.g. 剛纔 -> 剛才, 纔會 -> 才會, 方纔 -> 方才)
-     * - 裏 -> 裡 (e.g. 家裏 -> 家裡, 心裏 -> 心裡, 這裏 -> 這裡, 那裏 -> 那裡, 裏面 -> 裡面)
-     * - 着 -> 著 (e.g. 看着 -> 看著, 着火 -> 著火, 跟着 -> 跟著)
+     * Converts text to Traditional Chinese using pure character-level conversion (s2t)
+     * without vocabulary substitution, preserving the speaker's exact original phrasing.
+     * Then applies point-to-point correction for archaic, rare, and non-standard variants.
      */
     fun toTaiwanTraditional(raw: String): String {
         val converted = try {
-            ZhTwConverterUtil.toTraditional(raw)
+            ZhConverterUtil.toTraditional(raw)
         } catch (_: Exception) {
             raw
         }
@@ -148,14 +146,116 @@ object ModelConfig {
     }
 
     /**
-     * Normalizes non-Taiwan-standard variants (like 纔, 裏, 着) into standard Taiwan characters (才, 裡, 著).
+     * Point-to-point correction table for archaic / rare variant characters output by s2t,
+     * converting them to modern standard Traditional Chinese characters.
      */
+    private val VARIANT_REPLACEMENTS = mapOf(
+        '纔' to '才',
+        '裏' to '裡',
+        '着' to '著',
+        '麪' to '麵',
+        '靣' to '麵',
+        '衹' to '只',
+        '喫' to '吃',
+        '綫' to '線',
+        '銹' to '鏽',
+        '擡' to '抬',
+        '粧' to '妝',
+        '鑒' to '鑑',
+        '讃' to '讚',
+        '盃' to '杯',
+        '牀' to '床',
+        '佔' to '占',
+        '剋' to '克',
+        '樑' to '梁',
+        '羣' to '群',
+        '峯' to '峰',
+        '綉' to '繡',
+        '祕' to '秘',
+        '獃' to '呆',
+        '豔' to '艷',
+        '踊' to '踴',
+        '洩' to '洩',
+        '昇' to '升'
+    )
+
+    // ── Word & Character Normalization ────────────────────────────────────────
+    /**
+     * 正則表達式字詞替換規則：
+     * 除古舊典故用詞（如「蘸甲」、「蘸火」）外，全面以正則表達式將「蘸」替換為「沾」。
+     */
+    private val ZHAN_REGEX = Regex("""(?!(?:蘸甲|蘸火))蘸""")
+
+    fun replaceZhan(text: String): String {
+        if (text.isEmpty() || !text.contains('蘸')) return text
+        return text.replace(ZHAN_REGEX, "沾")
+    }
+
     fun normalizeTaiwanVariants(text: String): String {
         if (text.isEmpty()) return text
-        return text
-            .replace('纔', '才')
-            .replace('裏', '裡')
-            .replace('着', '著')
+        val sb = java.lang.StringBuilder(text.length)
+        for (ch in text) {
+            sb.append(VARIANT_REPLACEMENTS[ch] ?: ch)
+        }
+        return replaceZhan(sb.toString())
+    }
+
+    // ── PP-OCRv6 (Det & Rec) ────────────────────────────────────────────────
+    const val OCR_DIR = "ocr"
+    const val OCR_MODEL_TINY = "pp_ocrv6_tiny"
+    const val OCR_MODEL_SMALL = "pp_ocrv6_small"
+    const val ENGINE_PP_OCR_TINY = OCR_MODEL_TINY
+    const val ENGINE_PP_OCR_SMALL = OCR_MODEL_SMALL
+
+    const val PREF_OCR = "ocr_settings"
+    const val KEY_OCR_MODEL_SELECTION = "ocr_model_selection"
+    const val KEY_OCR_AUTO_ENTER = "ocr_auto_enter"
+    const val KEY_OCR_TRADITIONAL = "ocr_auto_traditional"
+    const val KEY_OCR_SEPARATOR = "ocr_separator"
+
+    fun selectedOcrModel(context: Context): String =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getString(KEY_OCR_MODEL_SELECTION, OCR_MODEL_TINY) ?: OCR_MODEL_TINY
+
+    fun setSelectedOcrModel(context: Context, model: String) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putString(KEY_OCR_MODEL_SELECTION, model).apply()
+
+    fun isOcrAutoEnterEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_AUTO_ENTER, false)
+
+    fun setOcrAutoEnterEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_AUTO_ENTER, enabled).apply()
+
+    fun isOcrTraditionalEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_TRADITIONAL, true)
+
+    fun setOcrTraditionalEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_TRADITIONAL, enabled).apply()
+
+    fun ocrSeparator(context: Context): String =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getString(KEY_OCR_SEPARATOR, "\n") ?: "\n"
+
+    fun setOcrSeparator(context: Context, sep: String) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putString(KEY_OCR_SEPARATOR, sep).apply()
+
+    fun ocrDir(context: Context): String = "${modelsDir(context)}/$OCR_DIR"
+    fun ocrDetPath(context: Context, model: String = selectedOcrModel(context)): String =
+        "${ocrDir(context)}/${model}_det.onnx"
+    fun ocrRecPath(context: Context, model: String = selectedOcrModel(context)): String =
+        "${ocrDir(context)}/${model}_rec.onnx"
+    fun ocrDictPath(context: Context, model: String = selectedOcrModel(context)): String =
+        "${ocrDir(context)}/${model}_dict.txt"
+
+    fun isOcrReady(context: Context, model: String = selectedOcrModel(context)): Boolean {
+        return java.io.File(ocrDetPath(context, model)).exists() &&
+               java.io.File(ocrRecPath(context, model)).exists()
     }
 
     // ── Model Readiness Checks ────────────────────────────────────────────────
@@ -179,12 +279,14 @@ object ModelConfig {
     }
 
     fun isModelReady(context: Context, engine: String): Boolean =
-        if (engine == ENGINE_X_ASR) isXAsrReady(context) else isQwen3Ready(context)
+        when (engine) {
+            ENGINE_X_ASR -> isXAsrReady(context)
+            OCR_MODEL_TINY, OCR_MODEL_SMALL -> isOcrReady(context, engine)
+            else -> isQwen3Ready(context)
+        }
 
     // ── Onboarding / Setup Wizard ─────────────────────────────────────────────
     const val MODE_BUBBLE = "bubble"
-    const val MODE_KEYBOARD = "keyboard"
-    const val MODE_BOTH = "both"
 
     private const val PREF_ONBOARDING = "onboarding_settings"
     private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
@@ -200,9 +302,9 @@ object ModelConfig {
 
     fun getOnboardingMode(context: Context): String =
         context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
-            .getString(KEY_ONBOARDING_MODE, MODE_BOTH) ?: MODE_BOTH
+            .getString(KEY_ONBOARDING_MODE, MODE_BUBBLE) ?: MODE_BUBBLE
 
-    fun setOnboardingMode(context: Context, mode: String) =
+    fun setOnboardingMode(context: Context, mode: String = MODE_BUBBLE) =
         context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
             .edit().putString(KEY_ONBOARDING_MODE, mode).apply()
 }

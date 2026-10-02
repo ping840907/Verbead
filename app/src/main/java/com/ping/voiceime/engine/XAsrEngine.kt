@@ -78,7 +78,7 @@ class XAsrEngine(private val context: Context) {
                             ),
                             endpointConfig = EndpointConfig(
                                 rule1 = EndpointRule(false, 2.4f, 0f),
-                                rule2 = EndpointRule(true,  1.2f, 10f),
+                                rule2 = EndpointRule(true,  ModelConfig.vadSilenceSeconds(context), 10f),
                                 rule3 = EndpointRule(false, 0f,   20f),
                             ),
                             enableEndpoint = true,

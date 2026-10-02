@@ -7,6 +7,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -70,16 +71,36 @@ class VoiceAccessibilityService : AccessibilityService() {
     fun isInputFocused(): Boolean = currentInputState == true
     fun getKeyboardInfo(): KeyboardInfo = currentKeyboardInfo
 
+    private var isKeyboardCheckScheduled = false
+    private val keyboardCheckRunnable = Runnable {
+        isKeyboardCheckScheduled = false
+        checkKeyboardState()
+    }
+
+    fun scheduleKeyboardCheck(delayMs: Long = 0) {
+        if (delayMs <= 0) {
+            mainHandler.removeCallbacks(keyboardCheckRunnable)
+            isKeyboardCheckScheduled = false
+            checkKeyboardState()
+        } else if (!isKeyboardCheckScheduled) {
+            isKeyboardCheckScheduled = true
+            mainHandler.postDelayed(keyboardCheckRunnable, delayMs)
+        }
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         Log.i(TAG, "VoiceAccessibilityService connected")
         checkKeyboardState()
-        checkActiveWindowInputState()
+        if (android.provider.Settings.canDrawOverlays(this)) {
+            FloatingBubbleService.start(this)
+        }
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         instance = null
+        mainHandler.removeCallbacks(keyboardCheckRunnable)
         onKeyboardStateChanged = null
         onInputFocusStateChanged = null
         onManualTypingDetected = null
@@ -100,19 +121,16 @@ class VoiceAccessibilityService : AccessibilityService() {
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOWS_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
-                checkKeyboardState()
-                mainHandler.postDelayed({ checkKeyboardState() }, 150)
-                checkActiveWindowInputState()
+                // Coalesce / debounce rapid window change bursts (30ms) to avoid IPC congestion
+                scheduleKeyboardCheck(30)
             }
             AccessibilityEvent.TYPE_VIEW_FOCUSED,
             AccessibilityEvent.TYPE_VIEW_CLICKED -> {
-                checkKeyboardState()
+                scheduleKeyboardCheck(30)
                 val source = event.source
                 if (source != null && isEditableNode(source)) {
                     lastFocusedNode = source
                     notifyInputState(true)
-                } else {
-                    checkActiveWindowInputState()
                 }
             }
             AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
@@ -371,5 +389,21 @@ class VoiceAccessibilityService : AccessibilityService() {
         } finally {
             mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 250)
         }
+    }
+
+    /**
+     * Dispatches Enter / IME Action to the active editable field.
+     */
+    fun sendEnterKey(): Boolean {
+        val target = findActiveEditableNode() ?: return false
+        val imeAction = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            runCatching {
+                target.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
+            }.getOrDefault(false)
+        } else {
+            false
+        }
+        if (imeAction) return true
+        return inputText("\n")
     }
 }

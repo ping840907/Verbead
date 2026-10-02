@@ -198,229 +198,284 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 相機權限卡片 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_camera_root"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/surface_card_stroke"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surface_card"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="相機鏡頭權限"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+
+                    <TextView
+                        android:id="@+id/tv_camera_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="相機文字辨識與條碼掃描所需，完全在裝置本機端執行"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_grant_camera"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="授予權限"
+                    android:textSize="13sp"
+                    app:cornerRadius="19dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- SECTION 2: 輸入方式 (並排: 鍵盤 | 懸浮泡泡)                   -->
+        <!-- SECTION 2: 懸浮語音球設定                                     -->
         <!-- ══════════════════════════════════════════════════════════════ -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="輸入方式"
+            android:text="懸浮語音球設定"
             android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="@color/text_secondary"
             android:letterSpacing="0.04"
             android:layout_marginBottom="8dp" />
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_bubble_module"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/surface_card_stroke"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surface_card"
             android:layout_marginBottom="20dp">
 
-            <!-- LEFT: 語音輸入法 -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_keyboard_module"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/surface_card_stroke"
-                app:strokeWidth="1dp"
-                app:cardBackgroundColor="@color/surface_card">
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="8dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="語音輸入法"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
-
-                        <TextView
-                            android:id="@+id/tv_keyboard_badge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="未就緒"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/status_warning_text"
-                            android:background="@drawable/bg_status_badge_warning"
-                            android:paddingStart="6dp"
-                            android:paddingEnd="6dp"
-                            android:paddingTop="2dp"
-                            android:paddingBottom="2dp" />
-                    </LinearLayout>
-
-                    <!-- Step 1: 系統啟用 -->
-                    <TextView
-                        android:id="@+id/tv_ime_enable_status"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="請在系統虛擬鍵盤清單中啟用"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="4dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_enable_ime"
-                        android:layout_width="match_parent"
-                        android:layout_height="34dp"
-                        android:text="前往啟用"
-                        android:textSize="12sp"
-                        app:cornerRadius="17dp"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_marginBottom="8dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
-
-                    <!-- Step 2: 切換預設 -->
-                    <TextView
-                        android:id="@+id/tv_ime_switch_status"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="選取 VoiceIME 為目前鍵盤"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="4dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_switch_ime"
-                        android:layout_width="match_parent"
-                        android:layout_height="34dp"
-                        android:text="切換輸入法"
-                        android:textSize="12sp"
-                        app:cornerRadius="17dp"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- RIGHT: 懸浮語音泡泡 -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_bubble_module"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/surface_card_stroke"
-                app:strokeWidth="1dp"
-                app:cardBackgroundColor="@color/surface_card">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="8dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="懸浮語音泡泡"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
-
-                        <TextView
-                            android:id="@+id/tv_bubble_badge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="未就緒"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/status_warning_text"
-                            android:background="@drawable/bg_status_badge_warning"
-                            android:paddingStart="6dp"
-                            android:paddingEnd="6dp"
-                            android:paddingTop="2dp"
-                            android:paddingBottom="2dp" />
-                    </LinearLayout>
-
-                    <!-- Step 1: 懸浮視窗權限 -->
-                    <TextView
-                        android:id="@+id/tv_overlay_status"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="允許顯示在其他應用程式上層"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="4dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_grant_overlay"
-                        android:layout_width="match_parent"
-                        android:layout_height="34dp"
-                        android:text="前往授權"
-                        android:textSize="12sp"
-                        app:cornerRadius="17dp"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_marginBottom="8dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
-
-                    <!-- Step 2: 無障礙自動貼上 -->
-                    <TextView
-                        android:id="@+id/tv_accessibility_status"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="將辨識文字直接填入焦點欄位"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="4dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_grant_accessibility"
-                        android:layout_width="match_parent"
-                        android:layout_height="34dp"
-                        android:text="前往開啟"
-                        android:textSize="12sp"
-                        app:cornerRadius="17dp"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_marginBottom="4dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
                     <TextView
-                        android:id="@+id/tv_restricted_settings_help"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="懸浮語音泡泡"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+
+                    <TextView
+                        android:id="@+id/tv_bubble_badge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="無法開啟無障礙服務？點此查看指引"
+                        android:text="未就緒"
                         android:textSize="10sp"
-                        android:textColor="@color/md_theme_light_primary"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:visibility="gone"
-                        android:layout_marginTop="2dp" />
+                        android:textStyle="bold"
+                        android:textColor="@color/status_warning_text"
+                        android:background="@drawable/bg_status_badge_warning"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
+
+                <!-- Step 1: 懸浮視窗權限 -->
+                <TextView
+                    android:id="@+id/tv_overlay_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="允許顯示在其他應用程式上層"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="6dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_grant_overlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:text="前往授權"
+                    android:textSize="13sp"
+                    app:cornerRadius="19dp"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_marginBottom="12dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+
+                <!-- Step 2: 無障礙自動貼上 -->
+                <TextView
+                    android:id="@+id/tv_accessibility_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="將辨識文字直接填入焦點欄位"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="6dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_grant_accessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:text="前往開啟"
+                    android:textSize="13sp"
+                    app:cornerRadius="19dp"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_marginBottom="4dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+
+                <TextView
+                    android:id="@+id/tv_restricted_settings_help"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="無法開啟無障礙服務？點此查看指引"
+                    android:textSize="11sp"
+                    android:textColor="@color/md_theme_light_primary"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 懸浮球操作手勢與多模式提示卡片 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_bubble_guide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/surface_card_stroke"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surface_card"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💡 懸浮球手勢與多模式操作指南"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Feature 1: 切換模式 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="top"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔄"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="長按膠囊切換：長按懸浮球展開固定結構垂直膠囊選單，項目依序為「語音模式」、「條碼辨識」與「文字辨識」，跟手滑動即可即時切換。"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="2dp" />
+                </LinearLayout>
+
+                <!-- Feature 2: 自然慣性貼邊 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="top"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🧲"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="真實物理慣性：拖曳鬆手具備自然減速動量拋擲與平滑貼邊效果，不會反彈或突兀跳動。"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="2dp" />
+                </LinearLayout>
+
+                <!-- Feature 3: 鍵盤聯動 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="top">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⌨️"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="輸入法聯動顯示：懸浮球預設僅於需要輸入（鍵盤開啟）時貼心顯現，關閉鍵盤自動隱藏不遮擋畫面。"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="2dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- SECTION 3: 辨識引擎 (並排: X-ASR | Qwen3-ASR)                -->
@@ -833,9 +888,337 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- SECTION: 條碼掃描與 PP-OCR 文字辨識模組                        -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="掃描與 OCR 文字辨識"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:letterSpacing="0.04"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_ocr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/surface_card_stroke"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surface_card"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PP-OCRv6 端側文字辨識模組"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="於懸浮掃描器中點選相機畫面文字即可定格辨識並自動填入"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp" />
+
+                <TextView
+                    android:id="@+id/tv_ocr_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="檢查中…"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_tertiary"
+                    android:layout_marginTop="8dp" />
+
+                <!-- Model Selection: Tiny vs Small -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_select_ocr_tiny"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="Tiny 輕量版 (11MB)"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="4dp"
+                        app:cornerRadius="18dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_select_ocr_small"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="Small 高精版 (22MB)"
+                        android:textSize="11sp"
+                        android:layout_marginStart="4dp"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        app:cornerRadius="18dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+                </LinearLayout>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progress_download_ocr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:trackCornerRadius="4dp"
+                    app:trackThickness="6dp"
+                    app:indicatorColor="@color/md_theme_light_primary"
+                    app:trackColor="@color/background"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_download_status_ocr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="10sp"
+                    android:textColor="@color/md_theme_light_primary"
+                    android:layout_marginTop="2dp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_download_ocr"
+                    android:layout_width="match_parent"
+                    android:layout_height="36dp"
+                    android:text="下載模型"
+                    android:textSize="12sp"
+                    app:cornerRadius="18dp"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_marginTop="8dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+
+                <!-- Feature Guide: Vertical text & Multi-selection -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_info_neutral"
+                    android:padding="12dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🀄 支援直排文字自動展開"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="書籍、菜單、春聯等中文直排文字，系統自動分析字元筆畫波谷並正立展開，精準辨識不顛倒。"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="2dp"
+                        android:lineSpacingExtra="1dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔢 支援多選區塊依序組合"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginTop="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="點選文字區塊顯示①②③序號標籤，可依自訂順序拼接文章；支援全選自然閱讀排定；雙擊任一區塊立即確認貼入。"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="2dp"
+                        android:lineSpacingExtra="1dp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/surface_card_stroke"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Setting: Auto Enter after Scan / OCR -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="辨識與掃描後自動換行"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="填入條碼或選取文字後自動送出 Enter 鍵"
+                            android:textSize="11sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="1dp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_ocr_auto_enter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/surface_card_stroke"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Setting: Auto Convert to Taiwan Traditional -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="自動轉為台灣繁體"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="將辨識結果標準化為台灣繁體正字（如體、台、裡）"
+                            android:textSize="11sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="1dp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_ocr_traditional"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/surface_card_stroke"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Setting: Multi-selection separator -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="多選區塊拼接間隔"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="同時選取多個文字框時，組合字串之間的間隔方式"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="1dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_ocr_sep_newline"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:text="換行 (\\n)"
+                            android:textSize="11sp"
+                            android:layout_marginEnd="4dp"
+                            app:cornerRadius="18dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_ocr_sep_space"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:text="空格"
+                            android:textSize="11sp"
+                            android:layout_marginEnd="4dp"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            app:cornerRadius="18dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_ocr_sep_none"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:text="無間隔"
+                            android:textSize="11sp"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            app:cornerRadius="18dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- SECTION 4: 詞彙管理                                           -->
+        <!-- SECTION 5: 詞彙管理                                           -->
         <!-- ══════════════════════════════════════════════════════════════ -->
         <TextView
             android:layout_width="wrap_content"

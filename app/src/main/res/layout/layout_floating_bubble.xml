@@ -1,40 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/layout_bubble_mic_column"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layout_bubble_root"
     android:layout_width="60dp"
-    android:layout_height="106dp"
-    android:orientation="vertical"
-    android:gravity="center_horizontal|bottom"
+    android:layout_height="60dp"
     android:clipChildren="false"
     android:clipToPadding="false"
     android:padding="2dp">
-
-    <!-- Contextual Cancel / Undo X Button (38dp circular) -->
-    <FrameLayout
-        android:id="@+id/btn_bubble_x"
-        android:layout_width="38dp"
-        android:layout_height="38dp"
-        android:layout_marginBottom="6dp"
-        android:background="@drawable/bubble_x_background"
-        android:elevation="8dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:visibility="invisible">
-
-        <ImageView
-            android:id="@+id/iv_bubble_x_icon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_gravity="center"
-            android:src="@drawable/ic_close"
-            android:contentDescription="取消或復原" />
-    </FrameLayout>
 
     <!-- Mic Button Container (56dp circular) -->
     <FrameLayout
         android:id="@+id/btn_bubble_mic"
         android:layout_width="56dp"
         android:layout_height="56dp"
+        android:layout_gravity="center"
         android:background="@drawable/bubble_background"
         android:elevation="8dp"
         android:clickable="true"
@@ -57,4 +35,4 @@
             android:indeterminateTint="#FFFFFF"
             android:visibility="gone" />
     </FrameLayout>
-</LinearLayout>
+</FrameLayout>

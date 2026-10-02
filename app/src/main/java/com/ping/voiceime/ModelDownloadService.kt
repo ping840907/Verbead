@@ -61,7 +61,12 @@ class ModelDownloadService : Service() {
 
     private fun startDownload(engine: String) {
         val target = ModelDownloadSpec.forEngine(engine)
-        val engineLabel = if (engine == ModelConfig.ENGINE_X_ASR) "X-ASR" else "Qwen3-ASR"
+        val engineLabel = when (engine) {
+            ModelConfig.ENGINE_X_ASR -> "X-ASR"
+            ModelConfig.OCR_MODEL_TINY -> "PP-OCRv6 Tiny"
+            ModelConfig.OCR_MODEL_SMALL -> "PP-OCRv6 Small"
+            else -> "Qwen3-ASR"
+        }
         startForeground(NOTIF_ID, buildNotification("準備下載 $engineLabel 模型…", -1))
         acquireWakeLock()
 

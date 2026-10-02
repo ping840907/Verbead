@@ -257,6 +257,84 @@
                             android:layout_marginTop="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
+                <!-- 相機鏡頭權限卡片 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_onboarding_camera"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/surface_card_stroke"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/surface_card"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:src="@drawable/ic_scan"
+                                app:tint="@color/md_theme_light_primary"
+                                android:layout_marginEnd="12dp" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="相機鏡頭權限"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary" />
+
+                                <TextView
+                                    android:id="@+id/tv_onboarding_camera_status"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="相機文字辨識 (OCR) 必備權限，完全在裝置端運算"
+                                    android:textSize="12sp"
+                                    android:textColor="@color/text_secondary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- 權限詳細透明說明 -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="權限使用說明與安全承諾：\n• 何時啟動：僅在長按懸浮球切換至相機掃描視窗時開啟。\n• 何時停止：關閉相機視窗或辨識完成填入時立即釋放硬體。\n• 100% 端側運算：畫面影像直接在晶片上即時推論，絕不上傳或保存任何照片影像。"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="3dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_onboarding_grant_camera"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:text="授予相機權限"
+                            android:textSize="14sp"
+                            app:cornerRadius="22dp"
+                            android:layout_marginTop="14dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
             <!-- ══════════════════════════════════════════════════════════ -->
@@ -272,7 +350,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="選擇你喜歡的使用方式"
+                    android:text="體驗全新桌面懸浮球"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
@@ -280,7 +358,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="VoiceIME 支援兩種截然不同的輸入方式。請選擇最貼近您使用習慣的模式，後續步驟將依據您的選擇引導完成必要的系統設置："
+                    android:text="VoiceIME 採用純粹專注的桌面懸浮球架構，無須替換您原本習慣的鍵盤，即可在任何 App 中隨心所欲進行語音輸入、條碼掃描與文字辨識："
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="6dp"
@@ -401,9 +479,9 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- 模式 B：獨立系統鍵盤 -->
+                <!-- 懸浮球操作手勢與多模式提示卡片 -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_mode_keyboard"
+                    android:id="@+id/card_onboarding_bubble_guide"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="16dp"
@@ -411,8 +489,7 @@
                     app:strokeColor="@color/surface_card_stroke"
                     app:strokeWidth="1dp"
                     app:cardBackgroundColor="@color/surface_card"
-                    android:clickable="true"
-                    android:focusable="true"
+                    android:layout_marginTop="4dp"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -421,169 +498,89 @@
                         android:orientation="vertical"
                         android:padding="16dp">
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="專屬鍵盤介面"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/tag_recommend"
-                                android:background="@drawable/bg_status_badge_recommend"
-                                android:paddingStart="8dp"
-                                android:paddingEnd="8dp"
-                                android:paddingTop="2dp"
-                                android:paddingBottom="2dp" />
-
-                            <View
-                                android:layout_width="0dp"
-                                android:layout_height="1dp"
-                                android:layout_weight="1" />
-
-                            <ImageView
-                                android:id="@+id/iv_mode_keyboard_check"
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:src="@drawable/ic_check"
-                                app:tint="@color/md_theme_light_primary"
-                                android:visibility="gone" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginTop="10dp">
-
-                            <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:src="@drawable/ic_keyboard"
-                                app:tint="@color/md_theme_light_primary"
-                                android:layout_marginEnd="12dp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="獨立系統鍵盤模式"
-                                android:textSize="17sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="直接作為系統鍵盤使用，打字時可隨時存取自定義詞彙庫進行文字替換與修正，並享有即時音波反饋與直覺的手勢游標移動。"
-                            android:textSize="13sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="6dp"
-                            android:lineSpacingExtra="2dp" />
-
-                        <!-- 充足空間：詳細情境與特性 -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:background="@drawable/bg_scenario_box"
-                            android:padding="12dp"
-                            android:layout_marginTop="10dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="日常使用情境："
-                                android:textSize="12sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="特別適合在自定義詞彙庫深度設置的使用者，能在鍵盤介面隨時調用專屬詞庫進行即時文字替換；同時適合長篇文字聽寫、或偏好乾淨螢幕不希望邊緣有浮動圖示的使用者。可隨時透過右下角圖示在多個輸入法間快速切換。"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="2dp"
-                                android:lineSpacingExtra="2dp" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- 模式 C：全面體驗 -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_mode_both"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/surface_card_stroke"
-                    app:strokeWidth="1dp"
-                    app:cardBackgroundColor="@color/surface_card"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="兩者兼備 · 最完整"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/status_warning_text"
-                                android:background="@drawable/bg_status_badge_warning"
-                                android:paddingStart="8dp"
-                                android:paddingEnd="8dp"
-                                android:paddingTop="2dp"
-                                android:paddingBottom="2dp" />
-
-                            <View
-                                android:layout_width="0dp"
-                                android:layout_height="1dp"
-                                android:layout_weight="1" />
-
-                            <ImageView
-                                android:id="@+id/iv_mode_both_check"
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:src="@drawable/ic_check"
-                                app:tint="@color/md_theme_light_primary"
-                                android:visibility="gone" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="全面體驗（兩者皆開啟）"
-                            android:textSize="17sp"
+                            android:text="💡 懸浮球手勢與多模式全新體驗"
+                            android:textSize="15sp"
                             android:textStyle="bold"
                             android:textColor="@color/text_primary"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginBottom="10dp" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <!-- Feature 1: 切換模式 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="同時啟用桌面懸浮球與系統鍵盤。在社群傳訊時用懸浮球快速回話，在專注文稿撰寫時切換至專屬大鍵盤，隨心所欲暢快輸入。"
-                            android:textSize="13sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="6dp"
-                            android:lineSpacingExtra="2dp" />
+                            android:orientation="horizontal"
+                            android:gravity="top"
+                            android:layout_marginBottom="10dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🔄"
+                                android:textSize="15sp"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="長按膠囊切換：長按懸浮球展開固定結構之垂直膠囊選單，項目依序為「語音模式」、「條碼辨識」與「文字辨識」，跟手滑動即可即時切換。"
+                                android:textSize="12sp"
+                                android:textColor="@color/text_secondary"
+                                android:lineSpacingExtra="2dp" />
+                        </LinearLayout>
+
+                        <!-- Feature 2: 自然慣性貼邊 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="top"
+                            android:layout_marginBottom="10dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🧲"
+                                android:textSize="15sp"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="自然物理慣性：拖曳鬆手具備符合物理原則的動量減速拋擲與邊緣吸附，比照 Messenger/Pixel 氣泡手感，不生硬回彈。"
+                                android:textSize="12sp"
+                                android:textColor="@color/text_secondary"
+                                android:lineSpacingExtra="2dp" />
+                        </LinearLayout>
+
+                        <!-- Feature 3: 鍵盤聯動 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="top">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="⌨️"
+                                android:textSize="15sp"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="輸入法鍵盤連動：懸浮球智慧偵測系統軟體鍵盤，僅在需要輸入（鍵盤開啟）時貼心出現，關閉鍵盤自動隱藏不遮擋瀏覽視野。"
+                                android:textSize="12sp"
+                                android:textColor="@color/text_secondary"
+                                android:lineSpacingExtra="2dp" />
+                        </LinearLayout>
+
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
@@ -609,192 +606,14 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="根據您在步驟 2 的選擇，以下是啟用該功能所需的核心設定。本頁已為您列出可能遇到的系統提示與排除方式："
+                    android:text="懸浮球運作需要「顯示在其他應用程式上層」與「協助工具（無障礙）自動填入」權限。以下為您引導完成核心設置："
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="6dp"
                     android:layout_marginBottom="18dp"
                     android:lineSpacingExtra="2dp" />
 
-                <!-- 區塊 A：系統鍵盤設置項目 -->
-                <LinearLayout
-                    android:id="@+id/layout_step3_keyboard_group"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="系統鍵盤設定"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/md_theme_light_primary"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- 啟用輸入法 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="@color/surface_card_stroke"
-                        app:strokeWidth="1dp"
-                        app:cardBackgroundColor="@color/surface_card"
-                        android:layout_marginBottom="12dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="16dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="1. 在系統中啟用 VoiceIME 鍵盤"
-                                android:textSize="15sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_onboarding_ime_enable_status"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="請在系統「虛擬鍵盤」列表中勾選 VoiceIME"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="2dp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="為什麼需要此步驟？\nAndroid 系統基於安全規範，任何新安裝的輸入法必須由使用者在系統設定中手動開啟開關，系統才會允許載入該鍵盤服務。"
-                                android:textSize="11sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="8dp"
-                                android:lineSpacingExtra="2dp" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_onboarding_enable_ime"
-                                style="@style/Widget.Material3.Button"
-                                android:layout_width="match_parent"
-                                android:layout_height="42dp"
-                                android:text="前往系統啟用"
-                                android:textSize="14sp"
-                                app:cornerRadius="21dp"
-                                android:layout_marginTop="12dp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- 切換輸入法 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="@color/surface_card_stroke"
-                        app:strokeWidth="1dp"
-                        app:cardBackgroundColor="@color/surface_card"
-                        android:layout_marginBottom="12dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="16dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="2. 切換為目前輸入法"
-                                android:textSize="15sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_onboarding_ime_switch_status"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="將當前使用之輸入法切換為 VoiceIME"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="2dp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="使用小撇步：\n若您平時只想偶爾使用，無須強制設為預設輸入法。您只需在平時打字時點擊畫面右下角的鍵盤圖示，即可隨時在 VoiceIME 與原有輸入法之間自由切換。"
-                                android:textSize="11sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="8dp"
-                                android:lineSpacingExtra="2dp" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_onboarding_switch_ime"
-                                style="@style/Widget.Material3.Button.TonalButton"
-                                android:layout_width="match_parent"
-                                android:layout_height="42dp"
-                                android:text="切換輸入法"
-                                android:textSize="14sp"
-                                app:cornerRadius="21dp"
-                                android:layout_marginTop="12dp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- 鍵盤卡點解說卡片 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:cardCornerRadius="14dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="@color/tag_recommend"
-                        app:strokeWidth="1dp"
-                        app:cardBackgroundColor="@color/tag_recommend_container"
-                        android:layout_marginBottom="20dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:padding="14dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_info"
-                                app:tint="@color/tag_recommend"
-                                android:layout_marginTop="1dp"
-                                android:layout_marginEnd="10dp" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="常見疑問：為什麼系統提示「可能收集個人資料」？"
-                                    android:textSize="13sp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/tag_recommend" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="這是 Android 原生系統對所有第三方輸入法一視同仁顯示的固定安全警告（自 Android 1.0 沿用至今）。因為系統無法預先得知各家輸入法是否有連網上傳伺服器，所以採最高安全免責提示。\n\nVoiceIME 的語音模型全部在手機本機記憶體中執行，不傳送任何網路封包，絕不記錄密碼或收集個資，請安心開啟。"
-                                    android:textSize="12sp"
-                                    android:textColor="@color/text_primary"
-                                    android:layout_marginTop="4dp"
-                                    android:lineSpacingExtra="2dp" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-
-                <!-- 區塊 B：桌面懸浮球設置項目 -->
+                <!-- 桌面懸浮球設置項目 -->
                 <LinearLayout
                     android:id="@+id/layout_step3_bubble_group"
                     android:layout_width="match_parent"
@@ -1220,6 +1039,148 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- PP-OCRv6 文字辨識模型卡片 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_onboarding_ocr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/surface_card_stroke"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/surface_card"
+                    android:layout_marginBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="相機拍字 · 100% 端側離線"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/tag_recommend"
+                                android:background="@drawable/bg_status_badge_recommend"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp"
+                                android:paddingTop="2dp"
+                                android:paddingBottom="2dp" />
+
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1" />
+
+                            <TextView
+                                android:id="@+id/tv_onboarding_ocr_badge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="未下載"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_secondary" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="PP-OCRv6 端側文字辨識模型"
+                            android:textSize="17sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="• 原理架構：PaddleOCR v6 端側超輕量偵測與辨識神經網路。\n• 使用感受：懸浮球長按切換至相機模式，對準文件、螢幕即可毫秒級框選文字。\n• 直排文字支援：自動解析字跡筆畫波谷，直排中文亦能精準轉為水平閱讀流並輸出。\n• 多區塊選取：點選文字框依序標註 ①②③，支援自訂分隔符號一次拼接輸入。"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="6dp"
+                            android:lineSpacingExtra="3dp" />
+
+                        <!-- 模型版本選擇（Tiny vs Small） -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="選擇模型規格："
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginTop="10dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="6dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_onboarding_ocr_tiny"
+                                android:layout_width="0dp"
+                                android:layout_height="38dp"
+                                android:layout_weight="1"
+                                android:text="Tiny 輕量版 (約 11MB)"
+                                android:textSize="12sp"
+                                android:layout_marginEnd="6dp"
+                                app:cornerRadius="19dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_onboarding_ocr_small"
+                                android:layout_width="0dp"
+                                android:layout_height="38dp"
+                                android:layout_weight="1"
+                                android:text="Small 高精版 (約 22MB)"
+                                android:textSize="12sp"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                app:cornerRadius="19dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp" />
+                        </LinearLayout>
+
+                        <!-- 下載進度條與狀態 -->
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/progress_onboarding_ocr"
+                            android:layout_width="match_parent"
+                            android:layout_height="6dp"
+                            app:trackCornerRadius="3dp"
+                            android:layout_marginTop="12dp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tv_onboarding_status_ocr"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="準備中…"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="4dp"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_onboarding_download_ocr"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="match_parent"
+                            android:layout_height="42dp"
+                            android:text="下載 PP-OCRv6 模型"
+                            android:textSize="14sp"
+                            app:cornerRadius="21dp"
+                            android:layout_marginTop="12dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- 雙引擎極致體驗提示 -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
@@ -1533,6 +1494,116 @@
                                 android:textColor="@color/text_primary"
                                 android:layout_marginTop="4dp"
                                 android:lineSpacingExtra="2dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 文字辨識 (OCR) 偏好與進階功能導覽 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_onboarding_ocr_settings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/surface_card_stroke"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/surface_card"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="相機文字辨識 (OCR) 偏好設定"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="強大離線端側辨識功能已為您全面就緒："
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="2dp"
+                            android:layout_marginBottom="10dp" />
+
+                        <!-- 功能提示清單 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:background="@drawable/bg_scenario_box"
+                            android:padding="12dp"
+                            android:layout_marginBottom="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="✦ 直排文字自動展開：支援古籍、菜單或招牌直排中文，演算法自動偵測筆畫波谷展開識別。"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_primary"
+                                android:lineSpacingExtra="2dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="✦ 多區塊選取拼接：單擊文字框標註序號 ①②③，雙擊快速確認，自動依序拼接填入。"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_primary"
+                                android:layout_marginTop="4dp"
+                                android:lineSpacingExtra="2dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="✦ 自動繁體轉換：支援簡繁中文自動轉換為台灣標準正體字。"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_primary"
+                                android:layout_marginTop="4dp"
+                                android:lineSpacingExtra="2dp" />
+                        </LinearLayout>
+
+                        <!-- 自動送出 (Auto Enter) 開關 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="辨識完成後自動送出 (Enter)"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="填入辨識文字後自動輸入 Enter 鍵，省去手動點擊送出的步驟"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switch_onboarding_ocr_auto_enter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

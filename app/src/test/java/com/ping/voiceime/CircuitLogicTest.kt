@@ -46,12 +46,27 @@ class CircuitLogicTest {
     }
 
     @Test
+    fun testZhanRegexReplacement() {
+        val input = "吃火鍋蘸醬、蘸料、蘸醋，蘸著吃，蘸一下，不蘸鍋。古人行蘸甲禮，傳統打鐵有蘸火工藝。"
+        val expected = "吃火鍋沾醬、沾料、沾醋，沾著吃，沾一下，不沾鍋。古人行蘸甲禮，傳統打鐵有蘸火工藝。"
+        val actual = ModelConfig.replaceZhan(input)
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun testPipelineWithZhanReplacement() {
+        // 透過完整 toTaiwanTraditional 管線測試
+        val input = "吃火锅蘸酱蘸着吃"
+        val expected = "吃火鍋沾醬沾著吃"
+        val actual = ModelConfig.toTaiwanTraditional(input)
+        assertEquals(expected, actual)
+    }
+
+    @Test
     fun testCircuitLogicScenarioA() {
         // 情境 A:
-        // mic=true, IME ok, Bubble ok, X_ASR ok, QWEN3 ok, selected=X_ASR
+        // mic=true, Bubble ok, X_ASR ok, QWEN3 ok, selected=X_ASR
         val micGranted = true
-        val imeEnabled = true
-        val imeDefault = true
         val overlayGranted = true
         val accessibilityEnabled = true
         val xAsrDownloaded = true
@@ -59,9 +74,8 @@ class CircuitLogicTest {
         val selectedEngine = ModelConfig.ENGINE_X_ASR
         var dualEngineToggle = false
 
-        val keyboardModuleLine = micGranted && imeEnabled && imeDefault
         val bubbleModuleLine = micGranted && overlayGranted && accessibilityEnabled
-        val inputPathReady = keyboardModuleLine || bubbleModuleLine
+        val inputPathReady = bubbleModuleLine
 
         val xAsrReadyLine = xAsrDownloaded
         val qwen3ReadyLine = qwen3Downloaded
@@ -76,7 +90,6 @@ class CircuitLogicTest {
                 (selectedEngine == ModelConfig.ENGINE_QWEN3 && qwen3Downloaded)
         val vocabularyLine = inputPathReady && currentEngineReady
 
-        assertTrue(keyboardModuleLine)
         assertTrue(bubbleModuleLine)
         assertTrue(xAsrReadyLine)
         assertTrue(qwen3ReadyLine)
@@ -91,8 +104,6 @@ class CircuitLogicTest {
         // 情境 B:
         // 同情境 A，但 selected_engine=QWEN3_ASR，且使用者開啟 dual_engine_toggle=true
         val micGranted = true
-        val imeEnabled = true
-        val imeDefault = true
         val overlayGranted = true
         val accessibilityEnabled = true
         val xAsrDownloaded = true
@@ -100,9 +111,8 @@ class CircuitLogicTest {
         val selectedEngine = ModelConfig.ENGINE_QWEN3
         var dualEngineToggle = true
 
-        val keyboardModuleLine = micGranted && imeEnabled && imeDefault
         val bubbleModuleLine = micGranted && overlayGranted && accessibilityEnabled
-        val inputPathReady = keyboardModuleLine || bubbleModuleLine
+        val inputPathReady = bubbleModuleLine
 
         val dualEngineSelectable = xAsrDownloaded && qwen3Downloaded && (selectedEngine == ModelConfig.ENGINE_QWEN3)
         val dualEngineLine = dualEngineSelectable && dualEngineToggle
@@ -122,17 +132,14 @@ class CircuitLogicTest {
         // 情境 C:
         // 使用者僅下載 Qwen3，但 selected_engine=X_ASR
         val micGranted = true
-        val imeEnabled = true
-        val imeDefault = true
         val overlayGranted = true
         val accessibilityEnabled = true
         val xAsrDownloaded = false
         val qwen3Downloaded = true
         val selectedEngine = ModelConfig.ENGINE_X_ASR
 
-        val keyboardModuleLine = micGranted && imeEnabled && imeDefault
         val bubbleModuleLine = micGranted && overlayGranted && accessibilityEnabled
-        val inputPathReady = keyboardModuleLine || bubbleModuleLine
+        val inputPathReady = bubbleModuleLine
 
         val xAsrReadyLine = xAsrDownloaded
         val qwen3ReadyLine = qwen3Downloaded
@@ -152,25 +159,45 @@ class CircuitLogicTest {
         // 情境 D:
         // mic_permission_granted=false
         val micGranted = false
-        val imeEnabled = true
-        val imeDefault = true
         val overlayGranted = true
         val accessibilityEnabled = true
         val xAsrDownloaded = true
         val qwen3Downloaded = true
         val selectedEngine = ModelConfig.ENGINE_X_ASR
 
-        val keyboardModuleLine = micGranted && imeEnabled && imeDefault
         val bubbleModuleLine = micGranted && overlayGranted && accessibilityEnabled
-        val inputPathReady = keyboardModuleLine || bubbleModuleLine
+        val inputPathReady = bubbleModuleLine
 
         val currentEngineReady = (selectedEngine == ModelConfig.ENGINE_X_ASR && xAsrDownloaded) ||
                 (selectedEngine == ModelConfig.ENGINE_QWEN3 && qwen3Downloaded)
         val vocabularyLine = inputPathReady && currentEngineReady
 
-        assertFalse(keyboardModuleLine)
         assertFalse(bubbleModuleLine)
         assertFalse(inputPathReady)
         assertFalse(vocabularyLine)
+    }
+
+    @Test
+    fun testPureCharConversionPreservesOriginalVocabulary() {
+        // 純字符通用繁體轉換：確認不會擅自將使用者原詞做兩岸用語置換
+        val input = "开发软件和计算机网络系统"
+        val converted = ModelConfig.toTaiwanTraditional(input)
+        // 應保留「軟件」、「計算機」、「網絡」，而非被強制置換為「軟體」、「電腦」、「網路」
+        assertEquals("開發軟件和計算機網絡系統", converted)
+    }
+
+    @Test
+    fun testRareVariantReplacements() {
+        // 定向修正常見古體字與生僻字
+        val input = "剛纔心裏吃麪，衹有喫茶，拉開毛綫和生銹的門，擡頭看大樑上的羣山峯"
+        val result = ModelConfig.normalizeTaiwanVariants(input)
+        assertEquals("剛才心裡吃麵，只有吃茶，拉開毛線和生鏽的門，抬頭看大梁上的群山峰", result)
+    }
+
+    @Test
+    fun testCombinedPipelineConversionAndVariantFix() {
+        val input = "刚纔看着心裏吃靣"
+        val converted = ModelConfig.toTaiwanTraditional(input)
+        assertEquals("剛才看著心裡吃麵", converted)
     }
 }

@@ -24,14 +24,17 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.cardview.widget.CardView
 import androidx.core.app.NotificationCompat
 import com.google.android.material.card.MaterialCardView
 import com.k2fsa.sherpa.onnx.OnlineStream
@@ -48,13 +51,53 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.hypot
 
-class FloatingBubbleService : Service() {
+import android.content.res.Configuration
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Rect
+import android.graphics.RectF
+import android.net.Uri
+import android.view.VelocityTracker
+import android.widget.ImageButton
+import android.widget.SeekBar
+import androidx.camera.core.Camera
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import com.ping.voiceime.camera.FrameMetrics
+import com.ping.voiceime.camera.setCovered
+import com.ping.voiceime.camera.setFrameRoi
+import com.ping.voiceime.engine.AudioRoutingManager
+import com.ping.voiceime.ocr.OcrBoxesOverlayView
+import com.ping.voiceime.ocr.PpOcrEngine
+import com.ping.voiceime.util.HapticUtil
+import de.markusfisch.android.zxingcpp.ZxingCpp
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+
+class FloatingBubbleService : Service(), LifecycleOwner {
 
     companion object {
         private const val TAG = "FloatingBubbleService"
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "floating_bubble_channel"
         private const val ACTION_STOP = "com.ping.voiceime.ACTION_STOP_BUBBLE"
+        const val MODE_VOICE = 0
+        const val MODE_OCR = 1
+        const val MODE_BARCODE = 2
+        const val MODE_SCANNER = 2
+        private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
+        private const val KEY_MODE = "current_mode"
 
         @Volatile
         var isRunning = false
@@ -79,11 +122,16 @@ class FloatingBubbleService : Service() {
         }
     }
 
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    override val lifecycle: Lifecycle get() = lifecycleRegistry
+
     private val themedCtx by lazy { ContextThemeWrapper(this, R.style.Theme_VoiceIME) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val qwen3Asr by lazy { Qwen3AsrEngine(this) }
     private val xAsr by lazy { XAsrEngine(this) }
-    private val recorder = AudioRecorder()
+    private val recorder = AudioRecorder(this)
+    private val routingManager by lazy { AudioRoutingManager.getInstance(this) }
+    private val ppOcrEngine by lazy { PpOcrEngine(this) }
 
     private lateinit var windowManager: WindowManager
     private lateinit var windowLayoutParams: WindowManager.LayoutParams
@@ -92,13 +140,97 @@ class FloatingBubbleService : Service() {
     private lateinit var previewLayoutParams: WindowManager.LayoutParams
     private lateinit var previewView: View
 
-    private lateinit var layoutBubbleMicColumn: LinearLayout
-    private lateinit var btnBubbleX: FrameLayout
     private lateinit var btnBubbleMic: FrameLayout
     private lateinit var ivBubbleIcon: ImageView
     private lateinit var progressBubble: ProgressBar
     private lateinit var cardBubblePreview: MaterialCardView
     private lateinit var tvBubblePreview: TextView
+
+    // Standalone floating X button overlay window
+    private var xButtonView: View? = null
+    private var xButtonLayoutParams: WindowManager.LayoutParams? = null
+
+    // Capsule menu & mode
+    private var capsuleMenuView: View? = null
+    private var capsuleLayoutParams: WindowManager.LayoutParams? = null
+    private var isCapsuleMenuShowing = false
+    private var currentMode = MODE_VOICE
+    private var capsuleInitialY = 0f
+    private var capsuleTouchStartY = 0f
+    private var capsuleCurrentHoveredIndex = 0
+
+    // Barcode scanner
+    private var scannerView: View? = null
+    private var scannerLayoutParams: WindowManager.LayoutParams? = null
+    private var isScannerModeActive = false
+    private var cameraExecutor: ExecutorService? = null
+    private var cameraProvider: ProcessCameraProvider? = null
+    private var camera: Camera? = null
+    private var isFlashOn = false
+    @Volatile private var isProcessingBarcode = false
+    private var useLocalAverage = false
+    private val readerOptions = ZxingCpp.ReaderOptions(
+        tryHarder = true,
+        tryRotate = true,
+        tryInvert = true,
+        tryDownscale = true,
+        maxNumberOfSymbols = 1,
+        textMode = ZxingCpp.TextMode.PLAIN
+    )
+
+    // Dedicated OCR floating window
+    private var ocrWindowView: View? = null
+    private var ocrWindowLayoutParams: WindowManager.LayoutParams? = null
+    private var isOcrModeActive = false
+    private var isOcrEnlarged = false
+
+    // PP-OCR snapshot
+    private var ocrSnapshotView: View? = null
+    private var ocrSnapshotLayoutParams: WindowManager.LayoutParams? = null
+    private var isOcrSnapshotActive = false
+
+    // Touch sampling & screen-space velocity tracking
+    private data class TouchPoint(val time: Long, val rawX: Float, val rawY: Float)
+    private val recentTouchSamples = ArrayList<TouchPoint>()
+    private var dragDistanceSinceTick = 0f
+
+    private fun recordTouchSample(rawX: Float, rawY: Float) {
+        val now = android.os.SystemClock.uptimeMillis()
+        recentTouchSamples.add(TouchPoint(now, rawX, rawY))
+        val cutoff = now - 120
+        while (recentTouchSamples.isNotEmpty() && recentTouchSamples.first().time < cutoff) {
+            recentTouchSamples.removeAt(0)
+        }
+    }
+
+    private fun computeScreenVelocity(): Pair<Float, Float> {
+        val now = android.os.SystemClock.uptimeMillis()
+        val cutoff = now - 120
+        while (recentTouchSamples.isNotEmpty() && recentTouchSamples.first().time < cutoff) {
+            recentTouchSamples.removeAt(0)
+        }
+        if (recentTouchSamples.size < 2) return 0f to 0f
+
+        val oldest = recentTouchSamples.first()
+        val newest = recentTouchSamples.last()
+        val dtMs = newest.time - oldest.time
+        if (dtMs < 15) return 0f to 0f
+
+        val dtSec = dtMs / 1000f
+        val vx = (newest.rawX - oldest.rawX) / dtSec
+        val vy = (newest.rawY - oldest.rawY) / dtSec
+        return vx to vy
+    }
+
+    private fun updateSystemGestureExclusion() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && ::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
+            val w = bubbleView.width
+            val h = bubbleView.height
+            if (w > 0 && h > 0) {
+                bubbleView.systemGestureExclusionRects = listOf(Rect(0, 0, w, h))
+            }
+        }
+    }
 
     private var activeStream: OnlineStream? = null
     private var recordingJob: Job? = null
@@ -111,9 +243,12 @@ class FloatingBubbleService : Service() {
     private var dynamicKeyboardTop: Int = 0
     private var isDockedOnRight = true
     private var isXButtonShowing = false
+    private var isBubbleMoving = false
+    private var cachedMicCenterY = 0f
+    private var cachedMicCenterX = 0f
 
-    // §6 狀態機: RECORDING, TRANSCRIBING, PASTED
-    private enum class State { IDLE, LOADING, RECORDING, TRANSCRIBING, PASTED }
+    // §6 狀態機: RECORDING, TRANSCRIBING, PASTED, SCANNING
+    private enum class State { IDLE, LOADING, RECORDING, TRANSCRIBING, PASTED, SCANNING }
     private var state = State.IDLE
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -122,6 +257,14 @@ class FloatingBubbleService : Service() {
         super.onCreate()
         instance = this
         isRunning = true
+        lifecycleRegistry.currentState = Lifecycle.State.CREATED
+        lifecycleRegistry.currentState = Lifecycle.State.STARTED
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+        routingManager.start()
+        currentMode = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).getInt(KEY_MODE, MODE_VOICE)
+        if (currentMode !in listOf(MODE_VOICE, MODE_OCR, MODE_BARCODE)) {
+            currentMode = MODE_VOICE
+        }
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         createNotificationChannel()
         startForegroundWithNotification()
@@ -178,14 +321,23 @@ class FloatingBubbleService : Service() {
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to startForeground with MICROPHONE type: ${e.message}", e)
+            try {
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (e2: Exception) {
+                Log.e(TAG, "Failed to startForeground: ${e2.message}", e2)
+            }
         }
     }
 
@@ -193,11 +345,10 @@ class FloatingBubbleService : Service() {
     private fun setupBubbleView() {
         bubbleView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
 
-        layoutBubbleMicColumn = bubbleView.findViewById(R.id.layout_bubble_mic_column)
-        btnBubbleX            = bubbleView.findViewById(R.id.btn_bubble_x)
         btnBubbleMic          = bubbleView.findViewById(R.id.btn_bubble_mic)
         ivBubbleIcon          = bubbleView.findViewById(R.id.iv_bubble_icon)
         progressBubble        = bubbleView.findViewById(R.id.progress_bubble)
+        updateBubbleIconForMode(currentMode)
 
         previewView           = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_preview, null)
         cardBubblePreview     = previewView.findViewById(R.id.card_bubble_preview)
@@ -214,22 +365,25 @@ class FloatingBubbleService : Service() {
         val density = displayMetrics.density
         val edgeMargin = (16 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
-        val bubbleHeightPx = (106 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
 
         val minY = getMinY()
         val maxY = getMaxY()
         val initialY = ((minY + maxY) / 2).coerceIn(minY, maxY)
 
-        // Fixed-size window for mic bubble: prevents any Surface buffer resize or jitter
+        val screenWidth = getScreenWidth()
+        val rightX = screenWidth - bubbleWidthPx
+
+        // Fixed-size window for mic bubble: start flush to right screen edge
         windowLayoutParams = WindowManager.LayoutParams(
             bubbleWidthPx,
             bubbleHeightPx,
             layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.RIGHT
-            x = edgeMargin
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = rightX
             y = initialY
         }
 
@@ -238,82 +392,135 @@ class FloatingBubbleService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.RIGHT
-            x = edgeMargin + bubbleWidthPx + (8 * density).toInt()
-            y = initialY + ((106 - 56) * density).toInt()
+            x = bubbleWidthPx + (8 * density).toInt()
+            y = initialY + (12 * density).toInt()
         }
 
         isDockedOnRight = true
-
-        btnBubbleX.setOnClickListener {
-            onXButtonClick()
-        }
 
         var initialX = 0
         var initialYPos = 0
         var touchStartX = 0f
         var touchStartY = 0f
         var isDragging = false
+        var isLongPressTriggered = false
+        val longPressHandler = Handler(Looper.getMainLooper())
+        val longPressRunnable = Runnable {
+            isLongPressTriggered = true
+            HapticUtil.heavyClick(this)
+            showCapsuleMenu(touchStartY)
+        }
 
-        btnBubbleMic.setOnTouchListener { _, event ->
+        btnBubbleMic.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                    updateSystemGestureExclusion()
                     snapAnimator?.cancel()
+                    isBubbleMoving = true
+                    bubbleView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
                     initialX = windowLayoutParams.x
                     initialYPos = windowLayoutParams.y
                     touchStartX = event.rawX
                     touchStartY = event.rawY
                     isDragging = false
+                    isLongPressTriggered = false
+                    recentTouchSamples.clear()
+                    recordTouchSample(event.rawX, event.rawY)
+                    longPressHandler.removeCallbacks(longPressRunnable)
+                    longPressHandler.postDelayed(longPressRunnable, 350)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                    recordTouchSample(event.rawX, event.rawY)
                     val dx = event.rawX - touchStartX
                     val dy = event.rawY - touchStartY
-                    if (!isDragging && hypot(dx, dy) > 16) {
+                    val dist = hypot(dx, dy)
+
+                    if (isLongPressTriggered || isCapsuleMenuShowing) {
+                        updateCapsuleDrag(event.rawX, event.rawY)
+                        return@setOnTouchListener true
+                    }
+
+                    val touchSlop = ViewConfiguration.get(this@FloatingBubbleService).scaledTouchSlop.toFloat().coerceAtMost(8 * density)
+                    if (!isDragging && dist > touchSlop) {
+                        longPressHandler.removeCallbacks(longPressRunnable)
                         isDragging = true
                         hidePreviewText()
-                        val screenWidth = getScreenWidth()
-                        if (isDockedOnRight) {
-                            val currentLeft = screenWidth - windowLayoutParams.x - bubbleWidthPx
-                            windowLayoutParams.gravity = Gravity.TOP or Gravity.LEFT
-                            windowLayoutParams.x = currentLeft
-                            windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-                        }
+                        hideXButtonImmediately()
                         initialX = windowLayoutParams.x
                         initialYPos = windowLayoutParams.y
                     }
                     if (isDragging) {
                         val screenWidth = getScreenWidth()
                         val screenHeight = getScreenHeight()
-                        val minDragX = (-bubbleWidthPx + (20 * density)).toInt()
-                        val maxDragX = (screenWidth - (20 * density)).toInt()
+                        val minDragX = 0
+                        val maxDragX = screenWidth - bubbleWidthPx
                         val minDragY = 0
-                        val maxDragY = (screenHeight - (20 * density)).toInt()
+                        val maxDragY = screenHeight - bubbleHeightPx
 
-                        windowLayoutParams.x = (initialX + (event.rawX - touchStartX)).toInt().coerceIn(minDragX, maxDragX)
-                        windowLayoutParams.y = (initialYPos + (event.rawY - touchStartY)).toInt().coerceIn(minDragY, maxDragY)
-                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        val newX = (initialX + (event.rawX - touchStartX)).toInt().coerceIn(minDragX, maxDragX)
+                        val newY = (initialYPos + (event.rawY - touchStartY)).toInt().coerceIn(minDragY, maxDragY)
+                        if (windowLayoutParams.x != newX || windowLayoutParams.y != newY) {
+                            windowLayoutParams.x = newX
+                            windowLayoutParams.y = newY
+                            windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        }
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (!isDragging) {
-                        onBubbleClick()
+                    recordTouchSample(event.rawX, event.rawY)
+                    longPressHandler.removeCallbacks(longPressRunnable)
+                    if (isLongPressTriggered || isCapsuleMenuShowing) {
+                        finishCapsuleDrag(event.rawX, event.rawY)
+                        isLongPressTriggered = false
+                        isBubbleMoving = false
+                        bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
                     } else {
-                        snapToSafeBounds()
+                        val (vx, vy) = computeScreenVelocity()
+
+                        if (!isDragging) {
+                            isBubbleMoving = false
+                            bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
+                            HapticUtil.click(this)
+                            onBubbleClick()
+                        } else {
+                            snapToSafeBoundsWithInertia(vx, vy)
+                        }
                     }
+                    recentTouchSamples.clear()
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
-                    if (isDragging) {
-                        snapToSafeBounds()
+                    longPressHandler.removeCallbacks(longPressRunnable)
+                    if (isLongPressTriggered || isCapsuleMenuShowing) {
+                        dismissCapsuleMenu()
+                        isLongPressTriggered = false
+                        isBubbleMoving = false
+                        bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
+                    } else if (isDragging) {
+                        val (vx, vy) = computeScreenVelocity()
+                        snapToSafeBoundsWithInertia(vx, vy)
+                    } else {
+                        isBubbleMoving = false
+                        bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
                     }
+                    recentTouchSamples.clear()
                     true
                 }
                 else -> false
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            bubbleView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                updateSystemGestureExclusion()
             }
         }
 
@@ -326,20 +533,27 @@ class FloatingBubbleService : Service() {
         VoiceAccessibilityService.onKeyboardStateChanged = { info ->
             Handler(Looper.getMainLooper()).post {
                 dynamicKeyboardTop = if (info.isVisible) info.keyboardTop else 0
-                setBubbleVisible(info.isVisible)
+                setBubbleVisible(info.isVisible, animate = true)
 
                 if (info.isVisible && ::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
+                    if (isBubbleMoving || snapAnimator?.isRunning == true) {
+                        return@post
+                    }
                     val safeMax = getMaxY()
                     if (windowLayoutParams.y > safeMax) {
                         snapAnimator?.cancel()
                         val startY = windowLayoutParams.y
                         ValueAnimator.ofInt(startY, safeMax).apply {
-                            duration = 220
+                            duration = 200
                             interpolator = DecelerateInterpolator()
                             addUpdateListener { anim ->
                                 if (bubbleView.isAttachedToWindow) {
-                                    windowLayoutParams.y = anim.animatedValue as Int
-                                    windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                                    val newY = anim.animatedValue as Int
+                                    if (windowLayoutParams.y != newY) {
+                                        windowLayoutParams.y = newY
+                                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                                        updateXButtonPosition()
+                                    }
                                 }
                             }
                             start()
@@ -355,6 +569,10 @@ class FloatingBubbleService : Service() {
                 if (state == State.PASTED) {
                     hideXButton()
                     setState(State.IDLE)
+                    val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                    if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
+                        setBubbleVisible(false, animate = true)
+                    }
                 }
             }
         }
@@ -363,6 +581,10 @@ class FloatingBubbleService : Service() {
                 if (state == State.PASTED) {
                     hideXButton()
                     setState(State.IDLE)
+                    val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                    if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
+                        setBubbleVisible(false, animate = true)
+                    }
                 }
             }
         }
@@ -371,19 +593,20 @@ class FloatingBubbleService : Service() {
                 if (state == State.PASTED) {
                     hideXButton()
                     setState(State.IDLE)
+                    val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                    if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
+                        setBubbleVisible(false, animate = true)
+                    }
                 }
             }
         }
 
         val initialKeyboard = VoiceAccessibilityService.instance?.checkKeyboardState()
-        if (initialKeyboard != null && initialKeyboard.isVisible) {
+        val isKeyboardOpen = initialKeyboard?.isVisible == true
+        if (isKeyboardOpen) {
             dynamicKeyboardTop = initialKeyboard.keyboardTop
-            setBubbleVisible(true, animate = false)
-        } else if (VoiceAccessibilityService.isServiceRunning()) {
-            setBubbleVisible(false, animate = false)
-        } else {
-            setBubbleVisible(true, animate = false)
         }
+        setBubbleVisible(isKeyboardOpen, animate = false)
     }
 
     private fun getStatusBarHeight(): Int {
@@ -399,7 +622,7 @@ class FloatingBubbleService : Service() {
     private fun getMaxY(): Int {
         val density = resources.displayMetrics.density
         val screenHeight = getScreenHeight()
-        val bubbleHeight = if (::bubbleView.isInitialized && bubbleView.height > 0) bubbleView.height else (60 * density).toInt()
+        val bubbleHeight = (60 * density).toInt()
         val margin = (8 * density).toInt()
 
         val keyboardTop = if (dynamicKeyboardTop in 1 until screenHeight) {
@@ -412,26 +635,48 @@ class FloatingBubbleService : Service() {
         return maxOf(getMinY(), calculatedMax)
     }
 
-    private fun getScreenWidth(): Int = resources.displayMetrics.widthPixels
-    private fun getScreenHeight(): Int = resources.displayMetrics.heightPixels
+    private fun getScreenWidth(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager.currentWindowMetrics.bounds.width()
+        } else {
+            resources.displayMetrics.widthPixels
+        }
+    }
+
+    private fun getScreenHeight(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager.currentWindowMetrics.bounds.height()
+        } else {
+            resources.displayMetrics.heightPixels
+        }
+    }
 
     fun setBubbleVisible(visible: Boolean, animate: Boolean = true) {
         if (!::bubbleView.isInitialized) return
-        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING)) {
+        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isCapsuleMenuShowing)) {
             return
         }
+        val isCurrentlyShowing = bubbleView.visibility == View.VISIBLE && bubbleView.alpha > 0.99f
+        if (visible && isCurrentlyShowing) return
+        val isCurrentlyHidden = bubbleView.visibility == View.GONE || (bubbleView.visibility == View.VISIBLE && bubbleView.alpha < 0.01f)
+        if (!visible && isCurrentlyHidden) return
+
         bubbleView.animate().cancel()
         if (visible) {
             bubbleView.visibility = View.VISIBLE
             if (animate) {
-                bubbleView.animate().alpha(1f).setDuration(180).start()
+                bubbleView.animate().alpha(1f).setDuration(180).withEndAction {
+                    updateSystemGestureExclusion()
+                }.start()
             } else {
                 bubbleView.alpha = 1f
+                bubbleView.post { updateSystemGestureExclusion() }
             }
         } else {
+            hideXButtonImmediately()
             if (animate) {
                 bubbleView.animate().alpha(0f).setDuration(180).withEndAction {
-                    if (state != State.RECORDING && state != State.TRANSCRIBING) {
+                    if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive) {
                         bubbleView.visibility = View.GONE
                     } else {
                         bubbleView.alpha = 1f
@@ -449,66 +694,107 @@ class FloatingBubbleService : Service() {
         updatePreviewPosition()
     }
 
-    private fun snapToSafeBounds() {
+    private fun snapToSafeBoundsWithInertia(vx: Float = 0f, vy: Float = 0f) {
         if (!bubbleView.isAttachedToWindow) return
         snapAnimator?.cancel()
+        isBubbleMoving = true
+        bubbleView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
         val screenWidth = getScreenWidth()
         val density = resources.displayMetrics.density
-        val edgeMargin = (16 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
 
-        val currentLeft = if (isDockedOnRight && (windowLayoutParams.gravity and Gravity.RIGHT == Gravity.RIGHT)) {
-            screenWidth - windowLayoutParams.x - bubbleWidthPx
-        } else {
-            windowLayoutParams.x
-        }
-        val currentCenterX = currentLeft + bubbleWidthPx / 2
-        val targetOnRight = currentCenterX >= screenWidth / 2
+        val startX = windowLayoutParams.x.toFloat()
+        val startY = windowLayoutParams.y.toFloat()
+
+        // 1. Friction coasting model to determine projected rest coordinate
+        val tau = 0.22f // Effective friction deceleration coasting time constant (tau = 1 / beta)
+        val currentCenterX = startX + bubbleWidthPx / 2f
+        val projectedCenterX = currentCenterX + vx * tau
+
+        // Target edge is determined strictly by whether the projected rest position crosses the screen midpoint
+        val targetOnRight = projectedCenterX >= screenWidth / 2f
         isDockedOnRight = targetOnRight
+        val targetX = if (targetOnRight) (screenWidth - bubbleWidthPx).toFloat() else 0f
 
-        val curMinY = getMinY()
-        val curMaxY = getMaxY()
-        val targetY = windowLayoutParams.y.coerceIn(curMinY, curMaxY)
+        val curMinY = getMinY().toFloat()
+        val curMaxY = getMaxY().toFloat()
+        val projectedY = startY + vy * tau
+        val targetY = projectedY.coerceIn(curMinY, curMaxY)
 
-        val targetX = if (targetOnRight) {
-            screenWidth - bubbleWidthPx - edgeMargin
-        } else {
-            edgeMargin
-        }
+        // 2. Facebook Messenger / AOSP Damped Harmonic Oscillator (Spring) Physics
+        // Natural frequency and damping ratio:
+        val omegaN = 16.0f // rad/s
+        val zeta = 0.82f // Slightly underdamped for snappy response with subtle organic edge cushion
+        val gamma = zeta * omegaN
+        val omegaD = (omegaN * kotlin.math.sqrt(1.0 - (zeta * zeta))).toFloat()
 
-        val startX = currentLeft
-        val startY = windowLayoutParams.y
+        val c1x = startX - targetX
+        val c2x = if (omegaD > 0.001f) (vx + gamma * c1x) / omegaD else 0f
 
-        // Normalize to TOP | LEFT for smooth interpolation
-        windowLayoutParams.gravity = Gravity.TOP or Gravity.LEFT
-        windowLayoutParams.x = startX
+        val c1y = startY - targetY
+        val c2y = if (omegaD > 0.001f) (vy + gamma * c1y) / omegaD else 0f
+
+        val durationMs = 380L
+        val minX = 0
+        val maxX = screenWidth - bubbleWidthPx
 
         snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 260
-            interpolator = DecelerateInterpolator(1.6f)
+            duration = durationMs
+            interpolator = android.view.animation.LinearInterpolator()
             addUpdateListener { anim ->
                 if (bubbleView.isAttachedToWindow) {
                     val f = anim.animatedFraction
-                    windowLayoutParams.x = (startX + (targetX - startX) * f).toInt()
-                    windowLayoutParams.y = (startY + (targetY - startY) * f).toInt()
-                    windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                    val t = f * (durationMs / 1000f) // time in seconds
+                    val exp = kotlin.math.exp((-gamma * t).toDouble()).toFloat()
+                    val cos = kotlin.math.cos((omegaD * t).toDouble()).toFloat()
+                    val sin = kotlin.math.sin((omegaD * t).toDouble()).toFloat()
+
+                    val currentX = targetX + exp * (c1x * cos + c2x * sin)
+                    val currentY = targetY + exp * (c1y * cos + c2y * sin)
+
+                    val newX = currentX.toInt().coerceIn(minX, maxX)
+                    val newY = currentY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
+
+                    // Early exit when settled within subpixel threshold to eliminate tail micro-jitter
+                    if (t > 0.20f && kotlin.math.abs(currentX - targetX) < 0.75f && kotlin.math.abs(currentY - targetY) < 0.75f) {
+                        val finalX = targetX.toInt().coerceIn(minX, maxX)
+                        val finalY = targetY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
+                        if (windowLayoutParams.x != finalX || windowLayoutParams.y != finalY) {
+                            windowLayoutParams.x = finalX
+                            windowLayoutParams.y = finalY
+                            windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        }
+                        anim.cancel()
+                        return@addUpdateListener
+                    }
+
+                    if (windowLayoutParams.x != newX || windowLayoutParams.y != newY) {
+                        windowLayoutParams.x = newX
+                        windowLayoutParams.y = newY
+                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                    }
                 }
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
+                    isBubbleMoving = false
                     if (!bubbleView.isAttachedToWindow) return
+                    bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
                     isDockedOnRight = targetOnRight
-                    if (targetOnRight) {
-                        windowLayoutParams.gravity = Gravity.TOP or Gravity.RIGHT
-                        windowLayoutParams.x = edgeMargin
-                    } else {
-                        windowLayoutParams.gravity = Gravity.TOP or Gravity.LEFT
-                        windowLayoutParams.x = edgeMargin
+                    val finalX = targetX.toInt().coerceIn(minX, maxX)
+                    val finalY = targetY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
+                    if (windowLayoutParams.x != finalX || windowLayoutParams.y != finalY) {
+                        windowLayoutParams.x = finalX
+                        windowLayoutParams.y = finalY
+                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
                     }
-                    windowLayoutParams.y = targetY
-                    windowManager.updateViewLayout(bubbleView, windowLayoutParams)
                     updatePreviewPosition()
+                    updateSystemGestureExclusion()
+                    if (isScannerModeActive || isOcrModeActive || state == State.PASTED || state == State.RECORDING || state == State.TRANSCRIBING) {
+                        showXButton()
+                    }
+                    HapticUtil.click(this@FloatingBubbleService)
                 }
             })
             start()
@@ -517,8 +803,34 @@ class FloatingBubbleService : Service() {
 
     // 懸浮按鈕 X 鍵點擊事件
     private fun onXButtonClick() {
-        when (state) {
-            State.RECORDING -> {
+        HapticUtil.click(this)
+        when {
+            state == State.PASTED -> {
+                // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
+                val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
+                if (restored) {
+                    showPreviewText("已復原", autoHide = true)
+                }
+                setState(State.IDLE)
+                hideXButton()
+            }
+            isOcrSnapshotActive -> {
+                // 關閉文字辨識快照與視窗
+                dismissOcrSnapshot()
+                stopOcrMode()
+                hideXButton()
+            }
+            isOcrModeActive -> {
+                // 關閉文字辨識相機視窗
+                stopOcrMode()
+                hideXButton()
+            }
+            isScannerModeActive -> {
+                // 關閉條碼掃描相機視窗
+                stopScannerMode()
+                hideXButton()
+            }
+            state == State.RECORDING -> {
                 // 中止錄音：停止 AudioRecord、丟棄音訊 buffer、關閉預覽氣泡、state → IDLE
                 isAborted = true
                 isRecording = false
@@ -530,20 +842,11 @@ class FloatingBubbleService : Service() {
                 setState(State.IDLE)
                 hideXButton()
             }
-            State.TRANSCRIBING -> {
+            state == State.TRANSCRIBING -> {
                 // 中斷模型推論 (Abort)：Cancel 背景轉譯協程、設置 isAborted 旗標阻止後續貼上、state → IDLE
                 isAborted = true
                 recordingJob?.cancel()
                 hidePreviewText()
-                setState(State.IDLE)
-                hideXButton()
-            }
-            State.PASTED -> {
-                // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
-                val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
-                if (restored) {
-                    showPreviewText("已復原", autoHide = true)
-                }
                 setState(State.IDLE)
                 hideXButton()
             }
@@ -553,19 +856,82 @@ class FloatingBubbleService : Service() {
         }
     }
 
-    // X 鍵向上浮現與退場動效（固定高度視窗內純透明度與位移動畫，零視窗大小變更、零錄音鍵位移）
+    private fun updateXButtonPosition() {
+        val view = xButtonView ?: return
+        if (!isXButtonShowing || !view.isAttachedToWindow) return
+        val lp = xButtonLayoutParams ?: return
+        val density = resources.displayMetrics.density
+        val btnSize = (44 * density).toInt()
+        val bubbleWidthPx = (60 * density).toInt()
+        lp.x = windowLayoutParams.x + ((bubbleWidthPx - btnSize) / 2)
+        lp.y = windowLayoutParams.y - (48 * density).toInt()
+        try {
+            windowManager.updateViewLayout(view, lp)
+        } catch (_: Exception) {}
+    }
+
+    // 獨立懸浮 X 鍵視窗（完全獨立 WindowManager 視窗，徹底消除氣泡視窗高度變更產生的任何擠壓或閃爍）
     private fun showXButton() {
         xButtonAutoHideJob?.cancel()
-        if (isXButtonShowing) return
+        if (isXButtonShowing) {
+            updateXButtonPosition()
+            return
+        }
         isXButtonShowing = true
 
-        btnBubbleX.visibility = View.VISIBLE
-        btnBubbleX.alpha = 0f
-        btnBubbleX.translationY = dpToPx(16f)
-        btnBubbleX.animate()
+        if (xButtonView == null) {
+            xButtonView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_bubble_x, null).apply {
+                setOnClickListener { onXButtonClick() }
+            }
+        }
+        val view = xButtonView ?: return
+        val density = resources.displayMetrics.density
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val btnSize = (44 * density).toInt()
+        val bubbleWidthPx = (60 * density).toInt()
+        val xOffset = windowLayoutParams.x + ((bubbleWidthPx - btnSize) / 2)
+        val targetY = windowLayoutParams.y - (48 * density).toInt()
+
+        xButtonLayoutParams = WindowManager.LayoutParams(
+            btnSize,
+            btnSize,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = xOffset
+            y = targetY
+        }
+
+        view.animate().cancel()
+        if (view.isAttachedToWindow) {
+            try {
+                windowManager.removeView(view)
+            } catch (_: Exception) {}
+        }
+        view.alpha = 0f
+        view.translationY = dpToPx(12f)
+        view.scaleX = 0.6f
+        view.scaleY = 0.6f
+        windowManager.addView(view, xButtonLayoutParams)
+
+        view.animate()
             .alpha(1f)
             .translationY(0f)
+            .scaleX(1f)
+            .scaleY(1f)
             .setDuration(200)
+            .setInterpolator(OvershootInterpolator(1.2f))
             .start()
     }
 
@@ -573,33 +939,54 @@ class FloatingBubbleService : Service() {
         xButtonAutoHideJob?.cancel()
         if (!isXButtonShowing) return
         isXButtonShowing = false
+        val view = xButtonView ?: return
+        view.animate().cancel()
 
-        btnBubbleX.animate()
+        view.animate()
             .alpha(0f)
-            .translationY(dpToPx(16f))
-            .setDuration(180)
+            .translationY(dpToPx(10f))
+            .scaleX(0.6f)
+            .scaleY(0.6f)
+            .setDuration(160)
             .withEndAction {
-                btnBubbleX.visibility = View.INVISIBLE
+                if (view.isAttachedToWindow) {
+                    try {
+                        windowManager.removeView(view)
+                    } catch (_: Exception) {}
+                }
             }
             .start()
+    }
+
+    private fun hideXButtonImmediately() {
+        xButtonAutoHideJob?.cancel()
+        if (!isXButtonShowing) return
+        isXButtonShowing = false
+        val view = xButtonView ?: return
+        view.animate().cancel()
+        if (view.isAttachedToWindow) {
+            try {
+                windowManager.removeView(view)
+            } catch (_: Exception) {}
+        }
     }
 
     private fun updatePreviewPosition() {
         if (!::previewView.isInitialized || !::bubbleView.isInitialized) return
         val density = resources.displayMetrics.density
-        val gap = (8 * density).toInt()
+        val padding = (14 * density).toInt()
+        val visualGap = (8 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
-        val edgeMargin = (16 * density).toInt()
-        val micOffset = ((106 - 56) * density).toInt()
+        val windowX = bubbleWidthPx + visualGap - padding
 
         if (isDockedOnRight) {
             previewLayoutParams.gravity = Gravity.TOP or Gravity.RIGHT
-            previewLayoutParams.x = edgeMargin + bubbleWidthPx + gap
+            previewLayoutParams.x = windowX
         } else {
             previewLayoutParams.gravity = Gravity.TOP or Gravity.LEFT
-            previewLayoutParams.x = edgeMargin + bubbleWidthPx + gap
+            previewLayoutParams.x = windowX
         }
-        previewLayoutParams.y = windowLayoutParams.y + micOffset + (6 * density).toInt()
+        previewLayoutParams.y = windowLayoutParams.y + (12 * density).toInt() - padding
 
         if (previewView.isAttachedToWindow) {
             windowManager.updateViewLayout(previewView, previewLayoutParams)
@@ -626,16 +1013,24 @@ class FloatingBubbleService : Service() {
                 delay(2600)
                 if (state == State.IDLE || state == State.PASTED) {
                     hidePreviewText()
-                    val keyboardVisible = VoiceAccessibilityService.instance?.getKeyboardInfo()?.isVisible == true
-                    if (!keyboardVisible && VoiceAccessibilityService.isServiceRunning()) {
-                        setBubbleVisible(false)
-                    }
                 }
             }
         }
     }
 
     private fun onBubbleClick() {
+        if (state == State.PASTED) {
+            hideXButton()
+            setState(State.IDLE)
+        }
+        if (currentMode == MODE_OCR || isOcrModeActive) {
+            toggleOcrMode()
+            return
+        }
+        if (currentMode == MODE_BARCODE || isScannerModeActive || state == State.SCANNING) {
+            toggleScannerMode()
+            return
+        }
         when (state) {
             State.RECORDING -> {
                 recorder.stopEarly()
@@ -650,36 +1045,53 @@ class FloatingBubbleService : Service() {
                 hideXButton()
                 startRecording()
             }
+            State.SCANNING -> {
+                toggleScannerMode()
+            }
         }
     }
 
     private fun isDualEngineActive(): Boolean = ModelConfig.isDualEngineActive(this)
 
-
     private fun startRecording() {
         isAborted = false
-        if (isDualEngineActive()) {
-            if (!xAsr.isLoaded() || !qwen3Asr.isLoaded() || qwen3NeedsReload()) {
-                preloadDualEngineAndStart()
-                return
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "請先授權麥克風權限以進行語音輸入", Toast.LENGTH_LONG).show()
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
-            startDualEngineRecording()
+            startActivity(intent)
             return
         }
 
-        val engine = ModelConfig.selectedEngine(this)
-        if (engine == ModelConfig.ENGINE_X_ASR) {
-            if (!xAsr.isLoaded()) {
-                preloadAndStart(engine)
+        try {
+            if (isDualEngineActive()) {
+                if (!xAsr.isLoaded() || !qwen3Asr.isLoaded() || qwen3NeedsReload()) {
+                    preloadDualEngineAndStart()
+                    return
+                }
+                startDualEngineRecording()
                 return
             }
-            startStreamingRecording()
-        } else {
-            if (!qwen3Asr.isLoaded() || qwen3NeedsReload()) {
-                preloadAndStart(engine)
-                return
+
+            val engine = ModelConfig.selectedEngine(this)
+            if (engine == ModelConfig.ENGINE_X_ASR) {
+                if (!xAsr.isLoaded()) {
+                    preloadAndStart(engine)
+                    return
+                }
+                startStreamingRecording()
+            } else {
+                if (!qwen3Asr.isLoaded() || qwen3NeedsReload()) {
+                    preloadAndStart(engine)
+                    return
+                }
+                startOfflineRecording()
             }
-            startOfflineRecording()
+        } catch (e: Throwable) {
+            Log.e(TAG, "startRecording failed: ${e.message}", e)
+            setState(State.IDLE)
+            showPreviewText("語音輸入啟動失敗: ${e.localizedMessage ?: "未知錯誤"}", autoHide = true)
         }
     }
 
@@ -980,13 +1392,15 @@ class FloatingBubbleService : Service() {
             if (state == State.PASTED) {
                 hideXButton()
                 setState(State.IDLE)
+                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
+                    setBubbleVisible(false, animate = true)
+                }
             }
         }
 
-        if (injected) {
-            showPreviewText("已貼入：$text", autoHide = true)
-        } else {
-            showPreviewText("已複製：$text", autoHide = true)
+        if (!injected) {
+            showPreviewText("已複製", autoHide = true)
         }
     }
 
@@ -996,7 +1410,7 @@ class FloatingBubbleService : Service() {
         when (state) {
             State.IDLE -> {
                 btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                ivBubbleIcon.setImageResource(R.drawable.ic_mic)
+                updateBubbleIconForMode(currentMode)
                 ivBubbleIcon.visibility = View.VISIBLE
                 progressBubble.visibility = View.GONE
             }
@@ -1018,11 +1432,53 @@ class FloatingBubbleService : Service() {
             }
             State.PASTED -> {
                 btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                ivBubbleIcon.setImageResource(R.drawable.ic_mic)
+                updateBubbleIconForMode(currentMode)
+                ivBubbleIcon.visibility = View.VISIBLE
+                progressBubble.visibility = View.GONE
+            }
+            State.SCANNING -> {
+                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
+                updateBubbleIconForMode(currentMode)
                 ivBubbleIcon.visibility = View.VISIBLE
                 progressBubble.visibility = View.GONE
             }
         }
+    }
+
+    private fun getIconAndDescForMode(mode: Int): Pair<Int, String> {
+        return when (mode) {
+            MODE_OCR -> R.drawable.ic_ocr to "懸浮文字辨識"
+            MODE_BARCODE -> R.drawable.ic_barcode to "懸浮條碼掃描"
+            else -> R.drawable.ic_mic to "懸浮語音輸入"
+        }
+    }
+
+    private fun updateBubbleIconForMode(mode: Int) {
+        if (!::ivBubbleIcon.isInitialized) return
+        val (iconRes, desc) = getIconAndDescForMode(mode)
+        ivBubbleIcon.setImageResource(iconRes)
+        ivBubbleIcon.contentDescription = desc
+    }
+
+    private fun animateModeIconIntoBubble(mode: Int) {
+        if (!::ivBubbleIcon.isInitialized) return
+        updateBubbleIconForMode(mode)
+        ivBubbleIcon.scaleX = 0.3f
+        ivBubbleIcon.scaleY = 0.3f
+        ivBubbleIcon.alpha = 0.6f
+        ivBubbleIcon.animate()
+            .scaleX(1.2f)
+            .scaleY(1.2f)
+            .alpha(1f)
+            .setDuration(160)
+            .withEndAction {
+                ivBubbleIcon.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(100)
+                    .start()
+            }
+            .start()
     }
 
     private fun qwen3NeedsReload(): Boolean =
@@ -1038,14 +1494,1165 @@ class FloatingBubbleService : Service() {
             ModelConfig.toTaiwanTraditional(raw)
         }
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
+        val postReplaced = ModelConfig.replaceZhan(userReplaced)
         return if (ModelConfig.isFilterPunctuationEnabled(this)) {
-            ModelConfig.filterChinesePunctuation(userReplaced)
+            ModelConfig.filterChinesePunctuation(postReplaced)
         } else {
-            userReplaced
+            postReplaced
         }
     }
 
     private fun dpToPx(dp: Float): Float = dp * resources.displayMetrics.density
+
+    // ══════════════════════════════════════════════════════════════════
+    // Capsule Menu Methods
+    // ══════════════════════════════════════════════════════════════════
+    private fun modeToIndex(mode: Int): Int = when (mode) {
+        MODE_VOICE -> 0
+        MODE_BARCODE -> 1
+        MODE_OCR -> 2
+        else -> 0
+    }
+
+    private fun indexToMode(index: Int): Int = when (index) {
+        0 -> MODE_VOICE
+        1 -> MODE_BARCODE
+        2 -> MODE_OCR
+        else -> MODE_VOICE
+    }
+
+    private fun showCapsuleMenu(startRawY: Float = 0f) {
+        if (isCapsuleMenuShowing) return
+        hideXButtonImmediately()
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
+
+        if (capsuleMenuView == null) {
+            capsuleMenuView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_capsule_menu, null)
+        }
+        val menu = capsuleMenuView ?: return
+
+        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill) ?: return
+        val itemVoice = menu.findViewById<FrameLayout>(R.id.item_capsule_voice)
+        val itemBarcode = menu.findViewById<FrameLayout>(R.id.item_capsule_barcode)
+        val itemOcr = menu.findViewById<FrameLayout>(R.id.item_capsule_ocr)
+
+        itemVoice?.setOnClickListener { selectModeFromCapsule(MODE_VOICE) }
+        itemBarcode?.setOnClickListener { selectModeFromCapsule(MODE_BARCODE) }
+        itemOcr?.setOnClickListener { selectModeFromCapsule(MODE_OCR) }
+
+        val bubbleCenterX = windowLayoutParams.x + (bubbleWidthPx / 2f)
+        val bubbleCenterY = windowLayoutParams.y + (bubbleHeightPx / 2f)
+        cachedMicCenterX = bubbleCenterX
+        cachedMicCenterY = bubbleCenterY
+
+        val currentIndex = modeToIndex(currentMode)
+        capsuleCurrentHoveredIndex = currentIndex
+
+        val windowWidth = bubbleWidthPx
+        val windowHeight = (192 * density).toInt()
+
+        // In layout_capsule_menu.xml:
+        // Window padding top is 12dp. Pill height is 168dp (3 items * 56dp).
+        // Center of item i within window: (12dp + 28dp + i * 56dp) = (40dp + i * 56dp)
+        // Center of btnBubbleMic within bubbleView: (30dp)
+        // To align item currentIndex directly over the bubble:
+        // initialY + itemWinCenterY = bubbleCenterY
+        // initialY = bubbleCenterY - itemWinCenterY
+        val itemWinCenterY = (40f + currentIndex * 56f) * density
+        val initialY = (bubbleCenterY - itemWinCenterY).toInt()
+        capsuleInitialY = initialY.toFloat()
+        capsuleTouchStartY = if (startRawY > 0f) startRawY else bubbleCenterY
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        capsuleLayoutParams = WindowManager.LayoutParams(
+            windowWidth,
+            windowHeight,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = windowLayoutParams.x
+            y = initialY
+        }
+
+        updateCapsuleItemHighlights(currentIndex, animate = false)
+
+        if (menu.isAttachedToWindow) {
+            windowManager.removeView(menu)
+        }
+        windowManager.addView(menu, capsuleLayoutParams)
+        isCapsuleMenuShowing = true
+
+        // Hide bubble mic while capsule is open to avoid showing underneath during drag
+        btnBubbleMic.alpha = 0f
+
+        pill.animate().cancel()
+        pill.pivotX = 28f * density
+        pill.pivotY = (28f + currentIndex * 56f) * density
+        pill.scaleX = 0.5f
+        pill.scaleY = 0.5f
+        pill.alpha = 0f
+        pill.animate()
+            .scaleX(1.0f)
+            .scaleY(1.0f)
+            .alpha(1.0f)
+            .setDuration(220)
+            .setInterpolator(OvershootInterpolator(1.2f))
+            .start()
+    }
+
+    private fun updateCapsuleItemHighlights(selectedIndex: Int, animate: Boolean) {
+        val menu = capsuleMenuView ?: return
+        val indicators = arrayOf(
+            menu.findViewById<View>(R.id.indicator_capsule_voice),
+            menu.findViewById<View>(R.id.indicator_capsule_barcode),
+            menu.findViewById<View>(R.id.indicator_capsule_ocr)
+        )
+        val icons = arrayOf(
+            menu.findViewById<ImageView>(R.id.iv_capsule_voice),
+            menu.findViewById<ImageView>(R.id.iv_capsule_barcode),
+            menu.findViewById<ImageView>(R.id.iv_capsule_ocr)
+        )
+
+        for (i in 0..2) {
+            val isSelected = (i == selectedIndex)
+            val targetIndAlpha = if (isSelected) 1.0f else 0.0f
+            val targetIconAlpha = if (isSelected) 1.0f else 0.65f
+            val targetIconScale = if (isSelected) 1.15f else 0.95f
+
+            val ind = indicators[i]
+            val iv = icons[i]
+
+            if (animate) {
+                ind?.animate()?.alpha(targetIndAlpha)?.setDuration(120)?.start()
+                iv?.animate()?.alpha(targetIconAlpha)?.scaleX(targetIconScale)?.scaleY(targetIconScale)?.setDuration(120)?.start()
+            } else {
+                ind?.alpha = targetIndAlpha
+                iv?.alpha = targetIconAlpha
+                iv?.scaleX = targetIconScale
+                iv?.scaleY = targetIconScale
+            }
+        }
+    }
+
+    private fun updateCapsuleDrag(rawX: Float, rawY: Float) {
+        val menu = capsuleMenuView ?: return
+        if (!isCapsuleMenuShowing || !menu.isAttachedToWindow) return
+        val lp = capsuleLayoutParams ?: return
+
+        val density = resources.displayMetrics.density
+        val itemPitchPx = 56f * density
+        val currentIndex = modeToIndex(currentMode)
+
+        val dy = rawY - capsuleTouchStartY
+
+        // When dragging up (dy < 0), items below (higher index) move up toward bubble
+        // When dragging down (dy > 0), items above (lower index) move down toward bubble
+        val maxUpDrag = -(2 - currentIndex) * itemPitchPx
+        val maxDownDrag = currentIndex * itemPitchPx
+
+        val effectiveDy = when {
+            dy < maxUpDrag -> maxUpDrag + (dy - maxUpDrag) * 0.25f
+            dy > maxDownDrag -> maxDownDrag + (dy - maxDownDrag) * 0.25f
+            else -> dy
+        }
+
+        lp.y = (capsuleInitialY + effectiveDy).toInt()
+        try {
+            windowManager.updateViewLayout(menu, lp)
+        } catch (_: Exception) {}
+
+        // Find which item's screen center is closest to bubble center
+        var closestIndex = currentIndex
+        var minDistance = Float.MAX_VALUE
+        for (i in 0..2) {
+            val itemCenterOnScreen = lp.y + (40f + i * 56f) * density
+            val dist = kotlin.math.abs(itemCenterOnScreen - cachedMicCenterY)
+            if (dist < minDistance) {
+                minDistance = dist
+                closestIndex = i
+            }
+        }
+
+        if (closestIndex != capsuleCurrentHoveredIndex) {
+            capsuleCurrentHoveredIndex = closestIndex
+            HapticUtil.tick(this)
+            updateCapsuleItemHighlights(closestIndex, animate = true)
+        }
+    }
+
+    private fun finishCapsuleDrag(rawX: Float, rawY: Float) {
+        val menu = capsuleMenuView ?: return
+        if (!isCapsuleMenuShowing) return
+
+        val targetMode = indexToMode(capsuleCurrentHoveredIndex)
+        val isModeChanged = (targetMode != currentMode)
+
+        if (isModeChanged) {
+            applyCapsuleSelection(targetMode)
+        }
+
+        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill)
+        if (pill != null) {
+            val density = resources.displayMetrics.density
+            pill.pivotX = 28f * density
+            pill.pivotY = (28f + capsuleCurrentHoveredIndex * 56f) * density
+            pill.animate()
+                .scaleX(0.2f)
+                .scaleY(0.2f)
+                .alpha(0f)
+                .setDuration(180)
+                .setInterpolator(DecelerateInterpolator(1.5f))
+                .withEndAction {
+                    dismissCapsuleMenu()
+                    if (isModeChanged) {
+                        animateModeIconIntoBubble(targetMode)
+                    }
+                }
+                .start()
+        } else {
+            dismissCapsuleMenu()
+            if (isModeChanged) {
+                animateModeIconIntoBubble(targetMode)
+            }
+        }
+    }
+
+    private fun selectModeFromCapsule(mode: Int) {
+        val targetIndex = modeToIndex(mode)
+        val isModeChanged = (mode != currentMode)
+        if (isModeChanged) {
+            applyCapsuleSelection(mode)
+        }
+        val menu = capsuleMenuView ?: run {
+            dismissCapsuleMenu()
+            if (isModeChanged) {
+                animateModeIconIntoBubble(mode)
+            }
+            return
+        }
+        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill)
+        if (pill != null) {
+            val density = resources.displayMetrics.density
+            pill.pivotX = 28f * density
+            pill.pivotY = (28f + targetIndex * 56f) * density
+            pill.animate()
+                .scaleX(0.2f)
+                .scaleY(0.2f)
+                .alpha(0f)
+                .setDuration(180)
+                .setInterpolator(DecelerateInterpolator(1.5f))
+                .withEndAction {
+                    dismissCapsuleMenu()
+                    if (isModeChanged) {
+                        animateModeIconIntoBubble(mode)
+                    }
+                }
+                .start()
+        } else {
+            dismissCapsuleMenu()
+            if (isModeChanged) {
+                animateModeIconIntoBubble(mode)
+            }
+        }
+    }
+
+    private fun applyCapsuleSelection(mode: Int) {
+        currentMode = mode
+        getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, mode).apply()
+        HapticUtil.click(this)
+        when (mode) {
+            MODE_VOICE -> {
+                setState(State.IDLE)
+                showPreviewText("語音模式", autoHide = true)
+                stopScannerMode()
+                stopOcrMode()
+            }
+            MODE_OCR -> {
+                setState(State.IDLE)
+                showPreviewText("文字辨識 (OCR)", autoHide = true)
+                stopScannerMode()
+            }
+            MODE_BARCODE -> {
+                setState(State.SCANNING)
+                showPreviewText("條碼掃描", autoHide = true)
+                stopOcrMode()
+            }
+        }
+    }
+
+    private fun dismissCapsuleMenu() {
+        if (::btnBubbleMic.isInitialized) {
+            btnBubbleMic.alpha = 1f
+        }
+        val menu = capsuleMenuView ?: return
+        if (!isCapsuleMenuShowing) return
+        isCapsuleMenuShowing = false
+
+        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill)
+        pill?.animate()?.cancel()
+
+        if (menu.isAttachedToWindow) {
+            try {
+                windowManager.removeView(menu)
+            } catch (_: Exception) {}
+        }
+        pill?.scaleX = 1f
+        pill?.scaleY = 1f
+        pill?.alpha = 1f
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Scanner Mode Methods
+    // ══════════════════════════════════════════════════════════════════
+    private fun toggleScannerMode() {
+        if (isScannerModeActive) {
+            stopScannerMode()
+        } else {
+            startScannerMode()
+        }
+    }
+
+    private fun startScannerMode() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "請先授權相機權限以使用掃描功能", Toast.LENGTH_LONG).show()
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+            return
+        }
+
+        if (isOcrModeActive) {
+            stopOcrMode()
+        }
+
+        if (scannerView == null) {
+            scannerView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_scanner, null)
+        }
+        val scanner = scannerView ?: return
+
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val scannerWidth = (250 * density).toInt()
+        val screenHeight = getScreenHeight()
+        val gap = (10 * density).toInt()
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        // Align vertically adjacent to bubble, keeping fully on screen
+        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val targetY = (micY - (120 * density).toInt()).coerceIn(
+            getMinY(),
+            maxOf(getMinY(), screenHeight - (360 * density).toInt())
+        )
+
+        scannerLayoutParams = WindowManager.LayoutParams(
+            scannerWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            if (isDockedOnRight) {
+                gravity = Gravity.TOP or Gravity.RIGHT
+                x = bubbleWidthPx + gap
+            } else {
+                gravity = Gravity.TOP or Gravity.LEFT
+                x = bubbleWidthPx + gap
+            }
+            y = targetY
+        }
+
+        val btnClose = scanner.findViewById<ImageButton>(R.id.btn_close_scanner)
+        val btnFlash = scanner.findViewById<ImageButton>(R.id.btn_scanner_flash)
+        val btnAutoEnter = scanner.findViewById<ImageButton>(R.id.btn_scanner_auto_enter)
+        val sliderZoom = scanner.findViewById<SeekBar>(R.id.slider_scanner_zoom)
+        val viewFinder = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
+
+        btnClose.setOnClickListener {
+            HapticUtil.click(this)
+            stopScannerMode()
+        }
+
+        btnFlash.setOnClickListener {
+            HapticUtil.click(this)
+            isFlashOn = !isFlashOn
+            camera?.cameraControl?.enableTorch(isFlashOn)
+            btnFlash.setImageResource(if (isFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off)
+        }
+
+        val isAutoEnter = ModelConfig.isOcrAutoEnterEnabled(this)
+        btnAutoEnter.setImageResource(if (isAutoEnter) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
+        btnAutoEnter.setOnClickListener {
+            HapticUtil.click(this)
+            val nextState = !ModelConfig.isOcrAutoEnterEnabled(this)
+            ModelConfig.setOcrAutoEnterEnabled(this, nextState)
+            btnAutoEnter.setImageResource(if (nextState) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
+            Toast.makeText(this, if (nextState) "已開啟自動換行" else "已關閉自動換行", Toast.LENGTH_SHORT).show()
+        }
+
+        sliderZoom.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    camera?.cameraControl?.setLinearZoom(progress / 100f)
+                    HapticUtil.tick(this@FloatingBubbleService)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Float out smoothly from the side of the bubble
+        if (isDockedOnRight) {
+            scanner.pivotX = scannerWidth.toFloat()
+            scanner.translationX = (40 * density)
+        } else {
+            scanner.pivotX = 0f
+            scanner.translationX = -(40 * density)
+        }
+        scanner.pivotY = (140 * density)
+        scanner.alpha = 0f
+        scanner.scaleX = 0.7f
+        scanner.scaleY = 0.7f
+
+        windowManager.addView(scanner, scannerLayoutParams)
+        isScannerModeActive = true
+        showXButton()
+
+        scanner.animate()
+            .alpha(1f)
+            .translationX(0f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(240)
+            .setInterpolator(DecelerateInterpolator(1.5f))
+            .start()
+
+        startCameraForScanner(viewFinder)
+    }
+
+    private fun startCameraForScanner(viewFinder: PreviewView) {
+        if (cameraExecutor == null || cameraExecutor?.isShutdown == true) {
+            cameraExecutor = Executors.newSingleThreadExecutor()
+        }
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            try {
+                cameraProvider = cameraProviderFuture.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(viewFinder.surfaceProvider)
+                }
+
+                val resolutionSelector = ResolutionSelector.Builder()
+                    .setResolutionStrategy(
+                        ResolutionStrategy(
+                            android.util.Size(1280, 720),
+                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                        )
+                    )
+                    .build()
+
+                val imageAnalysis = ImageAnalysis.Builder()
+                    .setResolutionSelector(resolutionSelector)
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+
+                imageAnalysis.setAnalyzer(cameraExecutor!!) { imageProxy ->
+                    analyzeBarcodeImage(imageProxy)
+                }
+
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                cameraProvider?.unbindAll()
+                camera = cameraProvider?.bindToLifecycle(
+                    this@FloatingBubbleService,
+                    cameraSelector,
+                    preview,
+                    imageAnalysis
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Camera initialization failed: ${e.message}", e)
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun stopScannerMode(hideX: Boolean = true) {
+        val scanner = scannerView ?: return
+        if (!isScannerModeActive) return
+        isScannerModeActive = false
+        isFlashOn = false
+
+        if (hideX && state != State.PASTED) {
+            hideXButton()
+        }
+
+        try {
+            cameraProvider?.unbindAll()
+        } catch (_: Exception) {}
+
+        val density = resources.displayMetrics.density
+        val targetTranslationX = if (isDockedOnRight) (40 * density) else -(40 * density)
+        scanner.animate()
+            .alpha(0f)
+            .translationX(targetTranslationX)
+            .scaleX(0.7f)
+            .scaleY(0.7f)
+            .setDuration(180)
+            .withEndAction {
+                if (scanner.isAttachedToWindow) {
+                    try {
+                        windowManager.removeView(scanner)
+                    } catch (_: Exception) {}
+                }
+                scannerView = null
+                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                if (!isKeyboardOpen && !isOcrModeActive && !isOcrSnapshotActive && state != State.PASTED) {
+                    setBubbleVisible(false, animate = true)
+                }
+            }
+            .start()
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Dedicated OCR Mode Window Methods
+    // ══════════════════════════════════════════════════════════════════
+    private fun toggleOcrMode() {
+        if (isOcrModeActive) {
+            stopOcrMode()
+        } else {
+            startOcrMode()
+        }
+    }
+
+    private fun startOcrMode() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "請先授權相機權限以使用文字辨識功能", Toast.LENGTH_LONG).show()
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+            return
+        }
+
+        if (isScannerModeActive) {
+            stopScannerMode()
+        }
+
+        if (ocrWindowView == null) {
+            ocrWindowView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_ocr, null)
+        }
+        val ocr = ocrWindowView ?: return
+
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+        val screenHeight = getScreenHeight()
+        val screenWidth = getScreenWidth()
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val ocrWidth = if (isOcrEnlarged) {
+            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+        } else {
+            (250 * density).toInt()
+        }
+
+        val cardSize = ocrWidth - (16 * density).toInt()
+        val estimatedHeight = cardSize + (120 * density).toInt()
+        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val targetY = (micY - (estimatedHeight / 2)).coerceIn(
+            getMinY(),
+            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
+        )
+
+        ocrWindowLayoutParams = WindowManager.LayoutParams(
+            ocrWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            if (isDockedOnRight) {
+                gravity = Gravity.TOP or Gravity.RIGHT
+                x = bubbleWidthPx + gap
+            } else {
+                gravity = Gravity.TOP or Gravity.LEFT
+                x = bubbleWidthPx + gap
+            }
+            y = targetY
+        }
+
+        val btnClose = ocr.findViewById<ImageButton>(R.id.btn_close_ocr)
+        val btnScale = ocr.findViewById<ImageButton>(R.id.btn_ocr_scale)
+        val btnFlash = ocr.findViewById<ImageButton>(R.id.btn_ocr_flash)
+        val btnAutoEnter = ocr.findViewById<ImageButton>(R.id.btn_ocr_auto_enter)
+        val btnShutter = ocr.findViewById<FrameLayout>(R.id.btn_ocr_shutter)
+        val sliderZoom = ocr.findViewById<SeekBar>(R.id.slider_ocr_zoom)
+        val viewFinder = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
+        val cardPreview = ocr.findViewById<CardView>(R.id.card_ocr_preview)
+
+        btnScale.setImageResource(if (isOcrEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+        cardPreview.layoutParams = cardPreview.layoutParams.apply {
+            width = cardSize
+            height = cardSize
+        }
+
+        btnClose.setOnClickListener {
+            HapticUtil.click(this)
+            stopOcrMode()
+        }
+
+        btnScale.setOnClickListener {
+            HapticUtil.click(this)
+            setOcrEnlarged(!isOcrEnlarged)
+        }
+
+        btnFlash.setOnClickListener {
+            HapticUtil.click(this)
+            isFlashOn = !isFlashOn
+            camera?.cameraControl?.enableTorch(isFlashOn)
+            btnFlash.setImageResource(if (isFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off)
+        }
+
+        val isAutoEnter = ModelConfig.isOcrAutoEnterEnabled(this)
+        btnAutoEnter.setImageResource(if (isAutoEnter) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
+        btnAutoEnter.setOnClickListener {
+            HapticUtil.click(this)
+            val nextState = !ModelConfig.isOcrAutoEnterEnabled(this)
+            ModelConfig.setOcrAutoEnterEnabled(this, nextState)
+            btnAutoEnter.setImageResource(if (nextState) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
+            Toast.makeText(this, if (nextState) "已開啟自動換行" else "已關閉自動換行", Toast.LENGTH_SHORT).show()
+        }
+
+        sliderZoom.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    camera?.cameraControl?.setLinearZoom(progress / 100f)
+                    HapticUtil.tick(this@FloatingBubbleService)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        btnShutter.setOnClickListener {
+            HapticUtil.heavyClick(this)
+            if (!isOcrEnlarged) {
+                setOcrEnlarged(true)
+            }
+            triggerOcrSnapshot()
+        }
+
+        if (isDockedOnRight) {
+            ocr.pivotX = ocrWidth.toFloat()
+            ocr.translationX = (40 * density)
+        } else {
+            ocr.pivotX = 0f
+            ocr.translationX = -(40 * density)
+        }
+        ocr.pivotY = (140 * density)
+        ocr.alpha = 0f
+        ocr.scaleX = 0.7f
+        ocr.scaleY = 0.7f
+
+        windowManager.addView(ocr, ocrWindowLayoutParams)
+        isOcrModeActive = true
+        showXButton()
+
+        ocr.animate()
+            .alpha(1f)
+            .translationX(0f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(240)
+            .setInterpolator(DecelerateInterpolator(1.5f))
+            .start()
+
+        startCameraForOcr(viewFinder)
+    }
+
+    private fun setOcrEnlarged(enlarged: Boolean) {
+        isOcrEnlarged = enlarged
+        val ocr = ocrWindowView ?: return
+        val lp = ocrWindowLayoutParams ?: return
+        val density = resources.displayMetrics.density
+        val screenWidth = getScreenWidth()
+        val screenHeight = getScreenHeight()
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+
+        val targetWidth = if (enlarged) {
+            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+        } else {
+            (250 * density).toInt()
+        }
+
+        val cardSize = targetWidth - (16 * density).toInt()
+        val cardPreview = ocr.findViewById<CardView>(R.id.card_ocr_preview)
+        cardPreview?.layoutParams?.apply {
+            width = cardSize
+            height = cardSize
+        }
+        cardPreview?.requestLayout()
+
+        lp.width = targetWidth
+        val btnScale = ocr.findViewById<ImageButton>(R.id.btn_ocr_scale)
+        btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+
+        val estimatedHeight = cardSize + (120 * density).toInt()
+        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val targetY = (micY - (estimatedHeight / 2)).coerceIn(
+            getMinY(),
+            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
+        )
+        lp.y = targetY
+
+        if (ocr.isAttachedToWindow) {
+            windowManager.updateViewLayout(ocr, lp)
+        }
+    }
+
+    private fun stopOcrMode(hideX: Boolean = true) {
+        val ocr = ocrWindowView ?: return
+        if (!isOcrModeActive) return
+        isOcrModeActive = false
+        isFlashOn = false
+
+        if (hideX && state != State.PASTED) {
+            hideXButton()
+        }
+
+        try {
+            cameraProvider?.unbindAll()
+        } catch (_: Exception) {}
+
+        val density = resources.displayMetrics.density
+        val targetTranslationX = if (isDockedOnRight) (40 * density) else -(40 * density)
+        ocr.animate()
+            .alpha(0f)
+            .translationX(targetTranslationX)
+            .scaleX(0.7f)
+            .scaleY(0.7f)
+            .setDuration(180)
+            .withEndAction {
+                if (ocr.isAttachedToWindow) {
+                    try {
+                        windowManager.removeView(ocr)
+                    } catch (_: Exception) {}
+                }
+                ocrWindowView = null
+                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                if (!isKeyboardOpen && !isScannerModeActive && !isOcrSnapshotActive && state != State.PASTED) {
+                    setBubbleVisible(false, animate = true)
+                }
+            }
+            .start()
+    }
+
+    private fun startCameraForOcr(viewFinder: PreviewView) {
+        if (cameraExecutor == null || cameraExecutor?.isShutdown == true) {
+            cameraExecutor = Executors.newSingleThreadExecutor()
+        }
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            try {
+                cameraProvider = cameraProviderFuture.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(viewFinder.surfaceProvider)
+                }
+
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                cameraProvider?.unbindAll()
+                camera = cameraProvider?.bindToLifecycle(
+                    this@FloatingBubbleService,
+                    cameraSelector,
+                    preview
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Camera initialization for OCR failed: ${e.message}", e)
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun analyzeBarcodeImage(imageProxy: ImageProxy) {
+        if (isProcessingBarcode || isOcrSnapshotActive || !isScannerModeActive) {
+            imageProxy.close()
+            return
+        }
+
+        try {
+            val yPlane = imageProxy.planes[0]
+            val yBuffer = yPlane.buffer
+            val rowStride = yPlane.rowStride
+            val rotation = imageProxy.imageInfo.rotationDegrees
+            val cropRect = Rect(0, 0, imageProxy.width, imageProxy.height)
+
+            val results = ZxingCpp.readYBuffer(yBuffer, rowStride, cropRect, rotation, readerOptions)
+            val result = results?.firstOrNull()
+            if (result != null && result.text.isNotBlank()) {
+                isProcessingBarcode = true
+                Handler(Looper.getMainLooper()).post {
+                    onBarcodeDetected(result.text)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Barcode decode error: ${e.message}", e)
+        } finally {
+            imageProxy.close()
+        }
+    }
+
+    private fun onBarcodeDetected(code: String) {
+        HapticUtil.heavyClick(this)
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("barcode_result", code))
+
+        val injected = VoiceAccessibilityService.instance?.inputText(code) ?: false
+        if (ModelConfig.isOcrAutoEnterEnabled(this)) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                VoiceAccessibilityService.instance?.sendEnterKey()
+            }, 100)
+        }
+        stopScannerMode(hideX = false)
+
+        // 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo 復原
+        setState(State.PASTED)
+        showXButton()
+        xButtonAutoHideJob?.cancel()
+        xButtonAutoHideJob = scope.launch {
+            delay(10_000)
+            if (state == State.PASTED) {
+                hideXButton()
+                setState(State.IDLE)
+                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
+                    setBubbleVisible(false, animate = true)
+                }
+            }
+        }
+
+        if (!injected) {
+            showPreviewText("已複製條碼", autoHide = true)
+        }
+        Handler(Looper.getMainLooper()).postDelayed({
+            isProcessingBarcode = false
+        }, 800)
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // PP-OCR Snapshot Methods
+    // ══════════════════════════════════════════════════════════════════
+    private fun triggerOcrSnapshot() {
+        if (!ModelConfig.isOcrReady(this)) {
+            Toast.makeText(this, "尚未下載 PP-OCR 模型，請先至設定頁面下載", Toast.LENGTH_LONG).show()
+            val intent = Intent(this, ImeSettingsActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+            return
+        }
+
+        val viewFinder = ocrWindowView?.findViewById<PreviewView>(R.id.ocr_view_finder)
+            ?: scannerView?.findViewById<PreviewView>(R.id.scanner_view_finder)
+            ?: return
+        val bitmap = viewFinder.bitmap ?: run {
+            Toast.makeText(this, "無法截取目前相機畫面", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        showOcrSnapshotView(bitmap)
+    }
+
+    private fun showOcrSnapshotView(bitmap: Bitmap) {
+        if (ocrSnapshotView == null) {
+            ocrSnapshotView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_ocr_snapshot, null)
+        }
+        val ocrView = ocrSnapshotView ?: return
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        ocrSnapshotLayoutParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            PixelFormat.TRANSLUCENT
+        )
+
+        val ivSnapshot = ocrView.findViewById<ImageView>(R.id.iv_ocr_snapshot)
+        val boxesOverlay = ocrView.findViewById<OcrBoxesOverlayView>(R.id.view_ocr_boxes)
+        val btnCloseOcr = ocrView.findViewById<ImageButton>(R.id.btn_close_ocr)
+        val tvStatus = ocrView.findViewById<TextView>(R.id.tv_ocr_status)
+        val progress = ocrView.findViewById<ProgressBar>(R.id.progress_ocr)
+        val frameContainer = ocrView.findViewById<View>(R.id.container_snapshot_frame)
+        val bottomBar = ocrView.findViewById<LinearLayout>(R.id.layout_ocr_bottom_bar)
+        val btnSelectAll = ocrView.findViewById<TextView>(R.id.btn_ocr_select_all)
+        val btnClear = ocrView.findViewById<TextView>(R.id.btn_ocr_clear)
+        val btnConfirm = ocrView.findViewById<TextView>(R.id.btn_ocr_confirm)
+
+        ivSnapshot.setImageBitmap(bitmap)
+        boxesOverlay.clearBoxes()
+        bottomBar.visibility = View.GONE
+        tvStatus.text = "正在偵測文字區塊…"
+        progress.visibility = View.VISIBLE
+
+        btnCloseOcr.setOnClickListener {
+            HapticUtil.click(this)
+            dismissOcrSnapshot()
+        }
+
+        frameContainer.alpha = 0f
+        frameContainer.scaleX = 0.6f
+        frameContainer.scaleY = 0.6f
+
+        windowManager.addView(ocrView, ocrSnapshotLayoutParams)
+        isOcrSnapshotActive = true
+
+        frameContainer.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(240)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        scope.launch {
+            try {
+                if (!ppOcrEngine.isReady) {
+                    val loaded = ppOcrEngine.load()
+                    if (!loaded) {
+                        progress.visibility = View.GONE
+                        tvStatus.text = "PP-OCR 模型載入失敗，請確認模型檔案完整"
+                        return@launch
+                    }
+                }
+
+                val detectedRects = withContext(Dispatchers.Default) {
+                    ppOcrEngine.detectText(bitmap)
+                }
+
+                progress.visibility = View.GONE
+                if (detectedRects.isEmpty()) {
+                    tvStatus.text = "未偵測到清晰文字，點擊關閉重試"
+                } else {
+                    tvStatus.text = "點選欲輸入之文字區塊 (可多選，共 ${detectedRects.size} 處)"
+                    boxesOverlay.setDetectedBoxes(detectedRects, bitmap.width, bitmap.height)
+
+                    boxesOverlay.onSelectionChanged = { selectedIndices ->
+                        val count = selectedIndices.size
+                        if (count > 0) {
+                            if (bottomBar.visibility != View.VISIBLE) {
+                                bottomBar.visibility = View.VISIBLE
+                                bottomBar.alpha = 0f
+                                bottomBar.translationY = 30f
+                                bottomBar.animate()
+                                    .alpha(1f)
+                                    .translationY(0f)
+                                    .setDuration(160)
+                                    .start()
+                            }
+                            tvStatus.text = "已選取 $count 個區塊 (按序號組合)，點「辨識並輸入」"
+                            btnConfirm.text = if (count == 1) "辨識並輸入" else "辨識並輸入 ($count)"
+                        } else {
+                            if (bottomBar.visibility == View.VISIBLE) {
+                                bottomBar.animate()
+                                    .alpha(0f)
+                                    .translationY(30f)
+                                    .setDuration(140)
+                                    .withEndAction { bottomBar.visibility = View.GONE }
+                                    .start()
+                            }
+                            tvStatus.text = "點選欲輸入之文字區塊 (可多選，共 ${detectedRects.size} 處)"
+                        }
+                    }
+
+                    boxesOverlay.onQuickConfirm = { selectedBox, _ ->
+                        HapticUtil.click(this@FloatingBubbleService)
+                        onOcrBoxesSelected(bitmap, listOf(selectedBox), tvStatus, progress)
+                    }
+
+                    btnSelectAll.setOnClickListener {
+                        HapticUtil.click(this@FloatingBubbleService)
+                        boxesOverlay.selectAll()
+                    }
+
+                    btnClear.setOnClickListener {
+                        HapticUtil.click(this@FloatingBubbleService)
+                        boxesOverlay.clearSelection()
+                    }
+
+                    btnConfirm.setOnClickListener {
+                        HapticUtil.click(this@FloatingBubbleService)
+                        val selectedBoxes = boxesOverlay.getSelectedBoxes()
+                        if (selectedBoxes.isNotEmpty()) {
+                            onOcrBoxesSelected(bitmap, selectedBoxes, tvStatus, progress)
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "OCR detection error: ${e.message}", e)
+                progress.visibility = View.GONE
+                tvStatus.text = "OCR 處理發生錯誤: ${e.localizedMessage ?: "未知錯誤"}"
+            }
+        }
+    }
+
+    private fun onOcrBoxesSelected(
+        bitmap: Bitmap,
+        boxes: List<OcrBoxesOverlayView.TextBoundingBox>,
+        tvStatus: TextView,
+        progress: ProgressBar
+    ) {
+        if (boxes.isEmpty()) return
+
+        tvStatus.text = if (boxes.size == 1) "正在辨識選取文字…" else "正在辨識選取的 ${boxes.size} 個區塊…"
+        progress.visibility = View.VISIBLE
+
+        scope.launch {
+            try {
+                val results = mutableListOf<String>()
+                withContext(Dispatchers.Default) {
+                    for (box in boxes) {
+                        val text = ppOcrEngine.recognizeBox(bitmap, box.originalRect)
+                        if (text.isNotBlank()) {
+                            results.add(text.trim())
+                        }
+                    }
+                }
+
+                progress.visibility = View.GONE
+                if (results.isNotEmpty()) {
+                    val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
+                    val combined = results.joinToString(sep)
+                    val processed = if (ModelConfig.isOcrTraditionalEnabled(this@FloatingBubbleService)) {
+                        ModelConfig.toTaiwanTraditional(combined)
+                    } else {
+                        combined
+                    }
+                    HapticUtil.heavyClick(this@FloatingBubbleService)
+
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("ocr_result", processed))
+
+                    val injected = VoiceAccessibilityService.instance?.inputText(processed) ?: false
+                    if (ModelConfig.isOcrAutoEnterEnabled(this@FloatingBubbleService)) {
+                        delay(100)
+                        VoiceAccessibilityService.instance?.sendEnterKey()
+                    }
+
+                    dismissOcrSnapshot(hideX = false)
+                    stopOcrMode(hideX = false)
+                    stopScannerMode(hideX = false)
+
+                    // 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo 復原
+                    setState(State.PASTED)
+                    showXButton()
+                    xButtonAutoHideJob?.cancel()
+                    xButtonAutoHideJob = scope.launch {
+                        delay(10_000)
+                        if (state == State.PASTED) {
+                            hideXButton()
+                            setState(State.IDLE)
+                            val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                            if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
+                                setBubbleVisible(false, animate = true)
+                            }
+                        }
+                    }
+
+                    if (!injected) {
+                        val previewMsg = if (processed.length > 25) "${processed.take(25)}…" else processed
+                        showPreviewText("已複製：$previewMsg", autoHide = true)
+                    }
+                } else {
+                    tvStatus.text = "未能成功辨識，請重試或選取其他文字"
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "OCR recognition error: ${e.message}", e)
+                progress.visibility = View.GONE
+                tvStatus.text = "辨識失敗: ${e.localizedMessage ?: "未知錯誤"}"
+            }
+        }
+    }
+
+    private fun dismissOcrSnapshot(hideX: Boolean = true) {
+        val ocrView = ocrSnapshotView ?: return
+        if (!isOcrSnapshotActive) return
+        isOcrSnapshotActive = false
+
+        if (hideX && !isOcrModeActive && state != State.PASTED) {
+            hideXButton()
+        }
+
+        ocrView.animate()
+            .alpha(0f)
+            .setDuration(160)
+            .withEndAction {
+                if (ocrView.isAttachedToWindow) {
+                    try {
+                        windowManager.removeView(ocrView)
+                    } catch (_: Exception) {}
+                }
+                ocrSnapshotView = null
+                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+                if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && state != State.PASTED) {
+                    setBubbleVisible(false, animate = true)
+                }
+            }
+            .start()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
+            val screenWidth = getScreenWidth()
+            val bubbleWidthPx = (60 * resources.displayMetrics.density).toInt()
+            val finalX = if (isDockedOnRight) (screenWidth - bubbleWidthPx) else 0
+            val minY = getMinY()
+            val maxY = getMaxY()
+            val finalY = windowLayoutParams.y.coerceIn(minY, maxY)
+            if (windowLayoutParams.x != finalX || windowLayoutParams.y != finalY) {
+                windowLayoutParams.x = finalX
+                windowLayoutParams.y = finalY
+                windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+            }
+            updatePreviewPosition()
+            updateSystemGestureExclusion()
+        }
+        if (isOcrModeActive) {
+            setOcrEnlarged(isOcrEnlarged)
+        }
+    }
 
     override fun onDestroy() {
         super.onDestroy()
@@ -1053,6 +2660,15 @@ class FloatingBubbleService : Service() {
             instance = null
         }
         isRunning = false
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
+        routingManager.stop()
+        stopScannerMode()
+        stopOcrMode()
+        dismissCapsuleMenu()
+        dismissOcrSnapshot()
+        cameraExecutor?.shutdown()
+        ppOcrEngine.release()
+
         VoiceAccessibilityService.onKeyboardStateChanged = null
         VoiceAccessibilityService.onInputFocusStateChanged = null
         VoiceAccessibilityService.onManualTypingDetected = null
@@ -1068,6 +2684,11 @@ class FloatingBubbleService : Service() {
 
         if (qwen3Asr.isLoaded()) qwen3Asr.release()
         if (xAsr.isLoaded()) xAsr.release()
+
+        if (xButtonView != null && xButtonView?.isAttachedToWindow == true) {
+            windowManager.removeView(xButtonView)
+        }
+        xButtonView = null
 
         if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
             windowManager.removeView(bubbleView)

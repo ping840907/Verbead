@@ -5,13 +5,14 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
 import kotlin.math.sqrt
 
-class AudioRecorder {
+class AudioRecorder(private val context: Context? = null) {
 
     companion object {
         private const val TAG          = "AudioRecorder"
@@ -44,21 +45,31 @@ class AudioRecorder {
 
         shouldStop = false
 
+        val routingManager = context?.let { AudioRoutingManager.getInstance(it) }
+        val preferredDevice = routingManager?.getPreferredInputDevice()
+
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
             CHUNK_FRAMES * 2
         )
 
-        val recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
-        )
+        val recorder = try {
+            AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
+            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "AudioRecord init failed: ${e.message}", e)
+            return@withContext Recording(FloatArray(0), 0f, StopReason.ERROR)
+        }
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.e(TAG, "AudioRecord init failed")
             recorder.release()
             return@withContext Recording(FloatArray(0), 0f, StopReason.ERROR)
         }
+
+        routingManager?.applyToAudioRecord(recorder, preferredDevice)
 
         val maxFrames             = (maxSeconds * SAMPLE_RATE).toInt()
         val minFrames             = (minSeconds * SAMPLE_RATE).toInt()
@@ -129,8 +140,11 @@ class AudioRecorder {
             }
             if (shouldStop) stopReason = StopReason.MANUAL
         } finally {
-            recorder.stop()
+            try {
+                recorder.stop()
+            } catch (_: Exception) {}
             recorder.release()
+            routingManager?.releaseAfterRecording()
         }
 
         val finalSamples = if (stopReason == StopReason.INITIAL_TIMEOUT) {
@@ -148,7 +162,7 @@ class AudioRecorder {
     suspend fun recordStreaming(
         silenceThreshold:      Float = ModelConfig.VAD_SILENCE_THRESHOLD,
         silenceSeconds:        Float = 0f,
-        minSeconds:            Float = 0.5f,
+        minSeconds:            Float = ModelConfig.MIN_RECORD_SECONDS,
         maxSeconds:            Float = ModelConfig.MAX_RECORD_SECONDS,
         initialTimeoutSeconds: Float = ModelConfig.VAD_INITIAL_TIMEOUT_SECONDS,
         speechThreshold:       Float = ModelConfig.VAD_SPEECH_THRESHOLD,
@@ -158,21 +172,31 @@ class AudioRecorder {
 
         shouldStop = false
 
+        val routingManager = context?.let { AudioRoutingManager.getInstance(it) }
+        val preferredDevice = routingManager?.getPreferredInputDevice()
+
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
             CHUNK_FRAMES * 2
         )
 
-        val recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
-        )
+        val recorder = try {
+            AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
+            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "AudioRecord init failed: ${e.message}", e)
+            return@withContext StopReason.ERROR
+        }
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.e(TAG, "AudioRecord init failed")
             recorder.release()
             return@withContext StopReason.ERROR
         }
+
+        routingManager?.applyToAudioRecord(recorder, preferredDevice)
 
         val maxFrames             = (maxSeconds * SAMPLE_RATE).toInt()
         val minFrames             = (minSeconds * SAMPLE_RATE).toInt()
@@ -191,6 +215,7 @@ class AudioRecorder {
         var initialSilenceCount = 0
 
         try {
+            routingManager?.prepareForRecording(preferredDevice)
             recorder.startRecording()
             while (coroutineContext.isActive && !shouldStop) {
                 val read = recorder.read(chunkBuffer, 0, CHUNK_FRAMES)
@@ -241,8 +266,11 @@ class AudioRecorder {
             }
             if (shouldStop) stopReason = StopReason.MANUAL
         } finally {
-            recorder.stop()
+            try {
+                recorder.stop()
+            } catch (_: Exception) {}
             recorder.release()
+            routingManager?.releaseAfterRecording()
         }
 
         stopReason

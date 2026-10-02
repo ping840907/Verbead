@@ -104,7 +104,11 @@ class ModelDownloader(private val context: Context) {
     }
 
     private fun engineDir(engine: String): File =
-        File(if (engine == ModelConfig.ENGINE_X_ASR) ModelConfig.xAsrDir(context) else ModelConfig.qwen3AsrDir(context))
+        when (engine) {
+            ModelConfig.ENGINE_X_ASR -> File(ModelConfig.xAsrDir(context))
+            ModelConfig.OCR_MODEL_TINY, ModelConfig.OCR_MODEL_SMALL -> File(ModelConfig.ocrDir(context))
+            else -> File(ModelConfig.qwen3AsrDir(context))
+        }
 
     private suspend fun headContentLength(url: String): Long = withContext(Dispatchers.IO) {
         val conn = openConnection(url, "HEAD")

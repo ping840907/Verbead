@@ -5,15 +5,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.database.ContentObserver
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.view.View
-import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -62,22 +58,14 @@ class OnboardingActivity : AppCompatActivity() {
     // Step 1 Views
     private lateinit var tvMicStatus: TextView
     private lateinit var btnGrantMic: MaterialButton
+    private lateinit var tvCameraStatus: TextView
+    private lateinit var btnGrantCamera: MaterialButton
 
     // Step 2 Views
     private lateinit var cardModeBubble: MaterialCardView
     private lateinit var ivModeBubbleCheck: ImageView
-    private lateinit var cardModeKeyboard: MaterialCardView
-    private lateinit var ivModeKeyboardCheck: ImageView
-    private lateinit var cardModeBoth: MaterialCardView
-    private lateinit var ivModeBothCheck: ImageView
 
-    // Step 3 Views
-    private lateinit var layoutStep3KeyboardGroup: LinearLayout
-    private lateinit var tvImeEnableStatus: TextView
-    private lateinit var btnEnableIme: MaterialButton
-    private lateinit var tvImeSwitchStatus: TextView
-    private lateinit var btnSwitchIme: MaterialButton
-
+    // Step 3 Bubble Views
     private lateinit var layoutStep3BubbleGroup: LinearLayout
     private lateinit var tvOverlayStatus: TextView
     private lateinit var btnGrantOverlay: MaterialButton
@@ -96,6 +84,13 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var tvStatusQwen3: TextView
     private lateinit var btnDownloadQwen3: MaterialButton
 
+    private lateinit var tvOcrBadge: TextView
+    private lateinit var btnOcrTiny: MaterialButton
+    private lateinit var btnOcrSmall: MaterialButton
+    private lateinit var progressOcr: LinearProgressIndicator
+    private lateinit var tvStatusOcr: TextView
+    private lateinit var btnDownloadOcr: MaterialButton
+
     // Step 5 Views
     private lateinit var layoutQwen3Preferences: LinearLayout
     private lateinit var cardXasrOnlyNotice: MaterialCardView
@@ -103,18 +98,17 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var btnVadNormal: MaterialButton
     private lateinit var btnVadRelaxed: MaterialButton
     private lateinit var switchPunctuation: MaterialSwitch
+    private lateinit var switchOcrAutoEnter: MaterialSwitch
     private lateinit var etTest: EditText
     private lateinit var btnFinish: MaterialButton
 
-    // Observers
-    private val imeSettingsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-        override fun onChange(selfChange: Boolean) {
-            super.onChange(selfChange)
-            updateStep3Status()
-        }
+    private val requestMic = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        updateStep1Status()
     }
 
-    private val requestMic = registerForActivityResult(
+    private val requestCamera = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
         updateStep1Status()
@@ -133,17 +127,6 @@ class OnboardingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_onboarding)
 
-        contentResolver.registerContentObserver(
-            Settings.Secure.getUriFor(Settings.Secure.DEFAULT_INPUT_METHOD),
-            false,
-            imeSettingsObserver
-        )
-        contentResolver.registerContentObserver(
-            Settings.Secure.getUriFor(Settings.Secure.ENABLED_INPUT_METHODS),
-            false,
-            imeSettingsObserver
-        )
-
         bindViews()
         setupListeners()
         updateModeSelection(ModelConfig.getOnboardingMode(this))
@@ -153,7 +136,6 @@ class OnboardingActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        contentResolver.unregisterContentObserver(imeSettingsObserver)
         observeJob?.cancel()
     }
 
@@ -184,24 +166,16 @@ class OnboardingActivity : AppCompatActivity() {
         step5Container = findViewById(R.id.step_5_container)
 
         // Step 1
-        tvMicStatus = findViewById(R.id.tv_onboarding_mic_status)
-        btnGrantMic = findViewById(R.id.btn_onboarding_grant_mic)
+        tvMicStatus     = findViewById(R.id.tv_onboarding_mic_status)
+        btnGrantMic     = findViewById(R.id.btn_onboarding_grant_mic)
+        tvCameraStatus  = findViewById(R.id.tv_onboarding_camera_status)
+        btnGrantCamera  = findViewById(R.id.btn_onboarding_grant_camera)
 
         // Step 2
         cardModeBubble      = findViewById(R.id.card_mode_bubble)
         ivModeBubbleCheck   = findViewById(R.id.iv_mode_bubble_check)
-        cardModeKeyboard    = findViewById(R.id.card_mode_keyboard)
-        ivModeKeyboardCheck = findViewById(R.id.iv_mode_keyboard_check)
-        cardModeBoth        = findViewById(R.id.card_mode_both)
-        ivModeBothCheck     = findViewById(R.id.iv_mode_both_check)
 
         // Step 3
-        layoutStep3KeyboardGroup = findViewById(R.id.layout_step3_keyboard_group)
-        tvImeEnableStatus        = findViewById(R.id.tv_onboarding_ime_enable_status)
-        btnEnableIme             = findViewById(R.id.btn_onboarding_enable_ime)
-        tvImeSwitchStatus        = findViewById(R.id.tv_onboarding_ime_switch_status)
-        btnSwitchIme             = findViewById(R.id.btn_onboarding_switch_ime)
-
         layoutStep3BubbleGroup   = findViewById(R.id.layout_step3_bubble_group)
         tvOverlayStatus          = findViewById(R.id.tv_onboarding_overlay_status)
         btnGrantOverlay          = findViewById(R.id.btn_onboarding_grant_overlay)
@@ -220,6 +194,13 @@ class OnboardingActivity : AppCompatActivity() {
         tvStatusQwen3    = findViewById(R.id.tv_onboarding_status_qwen3)
         btnDownloadQwen3 = findViewById(R.id.btn_onboarding_download_qwen3)
 
+        tvOcrBadge       = findViewById(R.id.tv_onboarding_ocr_badge)
+        btnOcrTiny       = findViewById(R.id.btn_onboarding_ocr_tiny)
+        btnOcrSmall      = findViewById(R.id.btn_onboarding_ocr_small)
+        progressOcr      = findViewById(R.id.progress_onboarding_ocr)
+        tvStatusOcr      = findViewById(R.id.tv_onboarding_status_ocr)
+        btnDownloadOcr   = findViewById(R.id.btn_onboarding_download_ocr)
+
         // Step 5
         layoutQwen3Preferences = findViewById(R.id.layout_qwen3_preferences)
         cardXasrOnlyNotice     = findViewById(R.id.card_xasr_only_notice)
@@ -227,6 +208,7 @@ class OnboardingActivity : AppCompatActivity() {
         btnVadNormal           = findViewById(R.id.btn_vad_normal)
         btnVadRelaxed          = findViewById(R.id.btn_vad_relaxed)
         switchPunctuation      = findViewById(R.id.switch_onboarding_punctuation)
+        switchOcrAutoEnter     = findViewById(R.id.switch_onboarding_ocr_auto_enter)
         etTest                 = findViewById(R.id.et_onboarding_test)
         btnFinish              = findViewById(R.id.btn_onboarding_finish)
     }
@@ -256,7 +238,7 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
 
-        // Step 1: Mic
+        // Step 1: Mic & Camera
         btnGrantMic.setOnClickListener {
             if (!hasMicPermission()) {
                 requestMic.launch(Manifest.permission.RECORD_AUDIO)
@@ -265,33 +247,17 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
 
+        btnGrantCamera.setOnClickListener {
+            if (!hasCameraPermission()) {
+                requestCamera.launch(Manifest.permission.CAMERA)
+            } else {
+                Toast.makeText(this, "相機權限已就緒", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // Step 2: Mode Selection
         cardModeBubble.setOnClickListener {
             updateModeSelection(ModelConfig.MODE_BUBBLE)
-        }
-        cardModeKeyboard.setOnClickListener {
-            updateModeSelection(ModelConfig.MODE_KEYBOARD)
-        }
-        cardModeBoth.setOnClickListener {
-            updateModeSelection(ModelConfig.MODE_BOTH)
-        }
-
-        // Step 3: Keyboard Actions
-        btnEnableIme.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
-        }
-
-        btnSwitchIme.setOnClickListener {
-            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showInputMethodPicker()
-            // 微輪詢更新狀態
-            scope.launch {
-                val intervals = listOf(300L, 600L, 1000L, 1500L, 2500L)
-                for (delayMs in intervals) {
-                    delay(delayMs)
-                    updateStep3Status()
-                }
-            }
         }
 
         // Step 3: Bubble Actions
@@ -335,6 +301,21 @@ class OnboardingActivity : AppCompatActivity() {
             handleDownloadButtonClick(ModelConfig.ENGINE_QWEN3)
         }
 
+        btnOcrTiny.setOnClickListener {
+            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_TINY)
+            updateStep4Status()
+        }
+
+        btnOcrSmall.setOnClickListener {
+            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_SMALL)
+            updateStep4Status()
+        }
+
+        btnDownloadOcr.setOnClickListener {
+            val engine = ModelConfig.selectedOcrModel(this)
+            handleDownloadButtonClick(engine)
+        }
+
         // Step 5: Preferences
         fun updateVadButtons(selected: Float) {
             ModelConfig.setVadSilenceSeconds(this@OnboardingActivity, selected)
@@ -353,6 +334,11 @@ class OnboardingActivity : AppCompatActivity() {
         switchPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
         switchPunctuation.setOnCheckedChangeListener { _, isChecked ->
             ModelConfig.setFilterPunctuationEnabled(this, isChecked)
+        }
+
+        switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
+        switchOcrAutoEnter.setOnCheckedChangeListener { _, isChecked ->
+            ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
         }
 
         btnFinish.setOnClickListener {
@@ -381,31 +367,16 @@ class OnboardingActivity : AppCompatActivity() {
         updateAllStatus()
     }
 
-    private fun updateModeSelection(mode: String) {
-        selectedMode = mode
-        ModelConfig.setOnboardingMode(this, mode)
+    private fun updateModeSelection(mode: String = ModelConfig.MODE_BUBBLE) {
+        selectedMode = ModelConfig.MODE_BUBBLE
+        ModelConfig.setOnboardingMode(this, ModelConfig.MODE_BUBBLE)
 
         val strokeSelected = ContextCompat.getColor(this, R.color.md_theme_light_primary)
-        val strokeNormal = ContextCompat.getColor(this, R.color.surface_card_stroke)
+        cardModeBubble.strokeColor = strokeSelected
+        cardModeBubble.strokeWidth = 4
+        ivModeBubbleCheck.visibility = View.VISIBLE
 
-        cardModeBubble.strokeColor = if (mode == ModelConfig.MODE_BUBBLE) strokeSelected else strokeNormal
-        cardModeBubble.strokeWidth = if (mode == ModelConfig.MODE_BUBBLE) 4 else 2
-        ivModeBubbleCheck.visibility = if (mode == ModelConfig.MODE_BUBBLE) View.VISIBLE else View.GONE
-
-        cardModeKeyboard.strokeColor = if (mode == ModelConfig.MODE_KEYBOARD) strokeSelected else strokeNormal
-        cardModeKeyboard.strokeWidth = if (mode == ModelConfig.MODE_KEYBOARD) 4 else 2
-        ivModeKeyboardCheck.visibility = if (mode == ModelConfig.MODE_KEYBOARD) View.VISIBLE else View.GONE
-
-        cardModeBoth.strokeColor = if (mode == ModelConfig.MODE_BOTH) strokeSelected else strokeNormal
-        cardModeBoth.strokeWidth = if (mode == ModelConfig.MODE_BOTH) 4 else 2
-        ivModeBothCheck.visibility = if (mode == ModelConfig.MODE_BOTH) View.VISIBLE else View.GONE
-
-        // Step 3 區塊動態呈現
-        val showKeyboard = mode == ModelConfig.MODE_KEYBOARD || mode == ModelConfig.MODE_BOTH
-        val showBubble = mode == ModelConfig.MODE_BUBBLE || mode == ModelConfig.MODE_BOTH
-
-        layoutStep3KeyboardGroup.visibility = if (showKeyboard) View.VISIBLE else View.GONE
-        layoutStep3BubbleGroup.visibility = if (showBubble) View.VISIBLE else View.GONE
+        layoutStep3BubbleGroup.visibility = View.VISIBLE
     }
 
     private fun updateAllStatus() {
@@ -441,35 +412,21 @@ class OnboardingActivity : AppCompatActivity() {
             btnGrantMic.text = "授予麥克風權限"
             btnGrantMic.isEnabled = true
         }
+
+        if (hasCameraPermission()) {
+            tvCameraStatus.text = "相機鏡頭權限已就緒"
+            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
+            btnGrantCamera.text = "已就緒"
+            btnGrantCamera.isEnabled = false
+        } else {
+            tvCameraStatus.text = "相機文字辨識 (OCR) 必備權限，完全在裝置端運算"
+            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnGrantCamera.text = "授予相機權限"
+            btnGrantCamera.isEnabled = true
+        }
     }
 
     private fun updateStep3Status() {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        val imeEnabled = imm.enabledInputMethodList.any { it.packageName == packageName }
-        val currentIme = Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
-        val imeDefault = currentIme != null && currentIme.contains(packageName)
-
-        // Keyboard Status
-        if (imeEnabled) {
-            tvImeEnableStatus.text = "系統輸入法已開啟"
-            tvImeEnableStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnEnableIme.text = "已啟用"
-        } else {
-            tvImeEnableStatus.text = "請在系統「虛擬鍵盤」列表中勾選 VoiceIME"
-            tvImeEnableStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnEnableIme.text = "前往系統啟用"
-        }
-
-        if (imeDefault) {
-            tvImeSwitchStatus.text = "VoiceIME 為目前使用中輸入法"
-            tvImeSwitchStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnSwitchIme.text = "目前使用中"
-        } else {
-            tvImeSwitchStatus.text = "尚未切換為 VoiceIME（可隨時切換）"
-            tvImeSwitchStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnSwitchIme.text = "切換輸入法"
-        }
-
         // Bubble Status
         val overlayGranted = Settings.canDrawOverlays(this)
         val accessibilityEnabled = isAccessibilityServiceEnabled()
@@ -503,6 +460,9 @@ class OnboardingActivity : AppCompatActivity() {
     private fun updateStep4Status() {
         val xAsrReady = ModelConfig.isXAsrReady(this)
         val qwen3Ready = ModelConfig.isQwen3Ready(this)
+        val ocrReady = ModelConfig.isOcrReady(this)
+        val selectedOcr = ModelConfig.selectedOcrModel(this)
+        val isTiny = selectedOcr == ModelConfig.ENGINE_PP_OCR_TINY
 
         tvXasrBadge.text = if (xAsrReady) "已就緒" else "未下載"
         tvXasrBadge.setTextColor(ContextCompat.getColor(this, if (xAsrReady) R.color.status_success else R.color.text_tertiary))
@@ -510,19 +470,26 @@ class OnboardingActivity : AppCompatActivity() {
         tvQwen3Badge.text = if (qwen3Ready) "已就緒" else "未下載"
         tvQwen3Badge.setTextColor(ContextCompat.getColor(this, if (qwen3Ready) R.color.status_success else R.color.text_tertiary))
 
+        tvOcrBadge.text = if (ocrReady) "已就緒" else "未下載"
+        tvOcrBadge.setTextColor(ContextCompat.getColor(this, if (ocrReady) R.color.status_success else R.color.text_tertiary))
+
+        if (isTiny) {
+            btnOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
+            btnOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.white))
+            btnOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
+            btnOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        } else {
+            btnOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
+            btnOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.white))
+            btnOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
+            btnOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        }
+
         val active = ModelDownloadState.active.value
         if (active == null) {
-            if (xAsrReady) {
-                btnDownloadXasr.text = "已就緒"
-            } else {
-                btnDownloadXasr.text = "下載 X-ASR 模型"
-            }
-
-            if (qwen3Ready) {
-                btnDownloadQwen3.text = "已就緒"
-            } else {
-                btnDownloadQwen3.text = "下載 Qwen3-ASR 模型"
-            }
+            btnDownloadXasr.text = if (xAsrReady) "已就緒" else "下載 X-ASR 模型"
+            btnDownloadQwen3.text = if (qwen3Ready) "已就緒" else "下載 Qwen3-ASR 模型"
+            btnDownloadOcr.text = if (ocrReady) "已就緒" else "下載 PP-OCRv6 模型 (${if (isTiny) "11MB" else "22MB"})"
         }
     }
 
@@ -554,7 +521,13 @@ class OnboardingActivity : AppCompatActivity() {
             }
             launch {
                 ModelDownloadState.results.collect { (engine, result) ->
-                    val label = if (engine == ModelConfig.ENGINE_X_ASR) "X-ASR" else "Qwen3-ASR"
+                    val label = when (engine) {
+                        ModelConfig.ENGINE_X_ASR -> "X-ASR"
+                        ModelConfig.ENGINE_QWEN3 -> "Qwen3-ASR"
+                        ModelConfig.ENGINE_PP_OCR_TINY -> "PP-OCRv6 Tiny"
+                        ModelConfig.ENGINE_PP_OCR_SMALL -> "PP-OCRv6 Small"
+                        else -> engine
+                    }
                     result.onSuccess {
                         Toast.makeText(this@OnboardingActivity, "$label 模型下載完成", Toast.LENGTH_LONG).show()
                         updateStep4Status()
@@ -573,14 +546,31 @@ class OnboardingActivity : AppCompatActivity() {
             tvStatusXasr.visibility = View.GONE
             progressQwen3.visibility = View.GONE
             tvStatusQwen3.visibility = View.GONE
+            progressOcr.visibility = View.GONE
+            tvStatusOcr.visibility = View.GONE
             updateStep4Status()
             return
         }
 
         val isXasr = active.engine == ModelConfig.ENGINE_X_ASR
-        val progressIndicator = if (isXasr) progressXasr else progressQwen3
-        val tvStatus = if (isXasr) tvStatusXasr else tvStatusQwen3
-        val btn = if (isXasr) btnDownloadXasr else btnDownloadQwen3
+        val isQwen3 = active.engine == ModelConfig.ENGINE_QWEN3
+        val isOcr = active.engine == ModelConfig.ENGINE_PP_OCR_TINY || active.engine == ModelConfig.ENGINE_PP_OCR_SMALL
+
+        val progressIndicator = when {
+            isXasr -> progressXasr
+            isQwen3 -> progressQwen3
+            else -> progressOcr
+        }
+        val tvStatus = when {
+            isXasr -> tvStatusXasr
+            isQwen3 -> tvStatusQwen3
+            else -> tvStatusOcr
+        }
+        val btn = when {
+            isXasr -> btnDownloadXasr
+            isQwen3 -> btnDownloadQwen3
+            else -> btnDownloadOcr
+        }
 
         btn.text = "取消下載"
         progressIndicator.visibility = View.VISIBLE
@@ -597,6 +587,10 @@ class OnboardingActivity : AppCompatActivity() {
 
     private fun hasMicPermission(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+
+    private fun hasCameraPermission(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
                 PackageManager.PERMISSION_GRANTED
 
     private fun isAccessibilityServiceEnabled(): Boolean {

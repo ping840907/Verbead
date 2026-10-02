@@ -5,15 +5,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.net.Uri
-import android.database.ContentObserver
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.view.View
-import android.view.inputmethod.InputMethodManager
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -48,13 +45,6 @@ class ImeSettingsActivity : AppCompatActivity() {
     private var observeJob: Job? = null
     private var pendingDownloadEngine: String? = null
 
-    private val imeSettingsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-        override fun onChange(selfChange: Boolean) {
-            super.onChange(selfChange)
-            updateAllStatus()
-        }
-    }
-
     // Header
     private lateinit var tvOverallBadge: TextView
     private lateinit var btnOpenOnboarding: MaterialButton
@@ -63,12 +53,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvMicStatus: TextView
     private lateinit var btnGrantMic: MaterialButton
 
-    // Node 2: Input Modules
-    private lateinit var tvKeyboardBadge: TextView
-    private lateinit var tvImeEnableStatus: TextView
-    private lateinit var btnEnableIme: MaterialButton
-    private lateinit var tvImeSwitchStatus: TextView
-    private lateinit var btnSwitchIme: MaterialButton
+    // Node 2: Bubble Module
 
     private lateinit var tvBubbleBadge: TextView
     private lateinit var tvOverlayStatus: TextView
@@ -102,7 +87,30 @@ class ImeSettingsActivity : AppCompatActivity() {
     // Node 4: Vocabulary
     private lateinit var btnOpenDict: MaterialButton
 
+    // Camera
+    private lateinit var tvCameraStatus: TextView
+    private lateinit var btnGrantCamera: MaterialButton
+
+    // OCR & Scanner
+    private lateinit var tvOcrStatus: TextView
+    private lateinit var btnSelectOcrTiny: MaterialButton
+    private lateinit var btnSelectOcrSmall: MaterialButton
+    private lateinit var btnDownloadOcr: MaterialButton
+    private lateinit var progressDownloadOcr: LinearProgressIndicator
+    private lateinit var tvDownloadStatusOcr: TextView
+    private lateinit var switchOcrAutoEnter: MaterialSwitch
+    private lateinit var switchOcrTraditional: MaterialSwitch
+    private lateinit var btnOcrSepNewline: MaterialButton
+    private lateinit var btnOcrSepSpace: MaterialButton
+    private lateinit var btnOcrSepNone: MaterialButton
+
     private val requestMic = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        updateAllStatus()
+    }
+
+    private val requestCamera = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
         updateAllStatus()
@@ -130,17 +138,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
 
         // 即時監聽系統預設輸入法與已啟用輸入法清單之變更
-        contentResolver.registerContentObserver(
-            Settings.Secure.getUriFor(Settings.Secure.DEFAULT_INPUT_METHOD),
-            false,
-            imeSettingsObserver
-        )
-        contentResolver.registerContentObserver(
-            Settings.Secure.getUriFor(Settings.Secure.ENABLED_INPUT_METHODS),
-            false,
-            imeSettingsObserver
-        )
-
         bindViews()
         setupListeners()
         updateAllStatus()
@@ -155,13 +152,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvMicStatus = findViewById(R.id.tv_mic_status)
         btnGrantMic = findViewById(R.id.btn_grant_mic)
 
-        // Node 2: Input Modules
-        tvKeyboardBadge    = findViewById(R.id.tv_keyboard_badge)
-        tvImeEnableStatus  = findViewById(R.id.tv_ime_enable_status)
-        btnEnableIme       = findViewById(R.id.btn_enable_ime)
-        tvImeSwitchStatus  = findViewById(R.id.tv_ime_switch_status)
-        btnSwitchIme       = findViewById(R.id.btn_switch_ime)
-
+        // Node 2: Bubble Module
         tvBubbleBadge             = findViewById(R.id.tv_bubble_badge)
         tvOverlayStatus           = findViewById(R.id.tv_overlay_status)
         btnGrantOverlay           = findViewById(R.id.btn_grant_overlay)
@@ -193,6 +184,23 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Node 4: Vocabulary
         btnOpenDict = findViewById(R.id.btn_open_dict)
+
+        // Camera
+        tvCameraStatus       = findViewById(R.id.tv_camera_status)
+        btnGrantCamera       = findViewById(R.id.btn_grant_camera)
+
+        // OCR & Scanner
+        tvOcrStatus          = findViewById(R.id.tv_ocr_status)
+        btnSelectOcrTiny     = findViewById(R.id.btn_select_ocr_tiny)
+        btnSelectOcrSmall    = findViewById(R.id.btn_select_ocr_small)
+        btnDownloadOcr       = findViewById(R.id.btn_download_ocr)
+        progressDownloadOcr  = findViewById(R.id.progress_download_ocr)
+        tvDownloadStatusOcr  = findViewById(R.id.tv_download_status_ocr)
+        switchOcrAutoEnter   = findViewById(R.id.switch_ocr_auto_enter)
+        switchOcrTraditional = findViewById(R.id.switch_ocr_traditional)
+        btnOcrSepNewline     = findViewById(R.id.btn_ocr_sep_newline)
+        btnOcrSepSpace       = findViewById(R.id.btn_ocr_sep_space)
+        btnOcrSepNone        = findViewById(R.id.btn_ocr_sep_none)
     }
 
     private fun setupListeners() {
@@ -200,28 +208,14 @@ class ImeSettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, OnboardingActivity::class.java))
         }
 
-        // Node 1: Mic
+        // Node 1: Mic & Camera Permissions
         btnGrantMic.setOnClickListener {
             requestMic.launch(Manifest.permission.RECORD_AUDIO)
         }
-
-        // Node 2: Keyboard
-        btnEnableIme.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+        btnGrantCamera.setOnClickListener {
+            requestCamera.launch(Manifest.permission.CAMERA)
         }
 
-        btnSwitchIme.setOnClickListener {
-            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showInputMethodPicker()
-            // 在點擊切換後啟動短期微輪詢（0.3s, 0.6s, 1s, 1.5s, 2.5s），確保在各品牌系統對話框關閉時即時刷新
-            scope.launch {
-                val checkDelays = listOf(300L, 600L, 1000L, 1500L, 2500L)
-                for (d in checkDelays) {
-                    delay(d)
-                    updateAllStatus()
-                }
-            }
-        }
 
         // Node 2: Bubble & §3.2.1 高亮跳轉
         btnGrantOverlay.setOnClickListener {
@@ -304,6 +298,34 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnOpenDict.setOnClickListener {
             startActivity(Intent(this, DictSettingsActivity::class.java))
         }
+
+        // OCR & Scanner
+        btnSelectOcrTiny.setOnClickListener {
+            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_TINY)
+            updateAllStatus()
+        }
+        btnSelectOcrSmall.setOnClickListener {
+            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_SMALL)
+            updateAllStatus()
+        }
+        btnDownloadOcr.setOnClickListener {
+            val engine = ModelConfig.selectedOcrModel(this)
+            handleDownloadButtonClick(engine)
+        }
+        switchOcrAutoEnter.setOnCheckedChangeListener { _, isChecked ->
+            ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
+        }
+        switchOcrTraditional.setOnCheckedChangeListener { _, isChecked ->
+            ModelConfig.setOcrTraditionalEnabled(this, isChecked)
+        }
+
+        fun updateOcrSepSelection(sep: String) {
+            ModelConfig.setOcrSeparator(this, sep)
+            updateAllStatus()
+        }
+        btnOcrSepNewline.setOnClickListener { updateOcrSepSelection("\n") }
+        btnOcrSepSpace.setOnClickListener { updateOcrSepSelection(" ") }
+        btnOcrSepNone.setOnClickListener { updateOcrSepSelection("") }
     }
 
     override fun onStart() {
@@ -316,7 +338,13 @@ class ImeSettingsActivity : AppCompatActivity() {
             }
             launch {
                 ModelDownloadState.results.collect { (engine, result) ->
-                    val label = if (engine == ModelConfig.ENGINE_X_ASR) "X-ASR" else "Qwen3-ASR"
+                    val label = when (engine) {
+                        ModelConfig.ENGINE_X_ASR -> "X-ASR"
+                        ModelConfig.ENGINE_QWEN3 -> "Qwen3-ASR"
+                        ModelConfig.ENGINE_PP_OCR_TINY -> "PP-OCRv6 Tiny"
+                        ModelConfig.ENGINE_PP_OCR_SMALL -> "PP-OCRv6 Small"
+                        else -> engine
+                    }
                     result.onSuccess {
                         Toast.makeText(this@ImeSettingsActivity, "$label 模型下載完成", Toast.LENGTH_LONG).show()
                     }.onFailure { ex ->
@@ -353,9 +381,6 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            contentResolver.unregisterContentObserver(imeSettingsObserver)
-        } catch (_: Exception) {}
         scope.coroutineContext[Job]?.cancel()
     }
 
@@ -365,11 +390,6 @@ class ImeSettingsActivity : AppCompatActivity() {
     private fun updateAllStatus() {
         val micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
-
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        val imeEnabled = imm.enabledInputMethodList.any { it.packageName == packageName }
-        val currentIme = Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
-        val imeDefault = currentIme != null && currentIme.contains(packageName)
 
         val overlayGranted = Settings.canDrawOverlays(this)
         val accessibilityEnabled = isAccessibilityServiceEnabled()
@@ -391,10 +411,9 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         var dualEngineToggle = ModelConfig.isDualEngineEnabled(this)
 
-        // 1. 輸入路徑線路
-        val keyboardModuleLineActive = micGranted && imeEnabled && imeDefault
+        // 1. 輸入路徑線路（懸浮語音球）
         val bubbleModuleLineActive = micGranted && overlayGranted && accessibilityEnabled
-        val inputPathReady = keyboardModuleLineActive || bubbleModuleLineActive
+        val inputPathReady = bubbleModuleLineActive
 
         // 自動確保懸浮泡泡服務在系統條件就緒時運行
         if (overlayGranted && accessibilityEnabled && !FloatingBubbleService.isRunning) {
@@ -422,47 +441,33 @@ class ImeSettingsActivity : AppCompatActivity() {
         // 更新 UI 元件狀態與文案
         // ══════════════════════════════════════════════════════════════════════
 
-        // Node 1: Mic
+        // Node 1: Mic & Camera
         if (micGranted) {
             tvMicStatus.text = "麥克風錄音權限已就緒"
             tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
             btnGrantMic.text = "已就緒"
+            btnGrantMic.isEnabled = false
         } else {
             tvMicStatus.text = "辨識語音必須的系統核心權限"
             tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
             btnGrantMic.text = "授予權限"
+            btnGrantMic.isEnabled = true
         }
 
-        // Node 2: Keyboard
-        if (keyboardModuleLineActive) {
-            tvKeyboardBadge.text = "就緒"
-            tvKeyboardBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
-            tvKeyboardBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
+        val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        if (cameraGranted) {
+            tvCameraStatus.text = "相機鏡頭權限已就緒"
+            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
+            btnGrantCamera.text = "已就緒"
+            btnGrantCamera.isEnabled = false
         } else {
-            tvKeyboardBadge.text = "未就緒"
-            tvKeyboardBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
-            tvKeyboardBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
+            tvCameraStatus.text = "相機文字辨識與條碼掃描所需，完全在裝置本機端執行"
+            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnGrantCamera.text = "授予權限"
+            btnGrantCamera.isEnabled = true
         }
 
-        if (imeEnabled) {
-            tvImeEnableStatus.text = "系統輸入法已開啟"
-            tvImeEnableStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnEnableIme.text = "已啟用"
-        } else {
-            tvImeEnableStatus.text = "請在系統「虛擬鍵盤」列表中勾選"
-            tvImeEnableStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnEnableIme.text = "前往啟用"
-        }
-
-        if (imeDefault) {
-            tvImeSwitchStatus.text = "目前為預設輸入法"
-            tvImeSwitchStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnSwitchIme.text = "已是預設"
-        } else {
-            tvImeSwitchStatus.text = "選取 VoiceIME 為目前鍵盤"
-            tvImeSwitchStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnSwitchIme.text = "切換輸入法"
-        }
 
         // Node 2: Bubble
         if (bubbleModuleLineActive) {
@@ -539,6 +544,47 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Dual Engine Toggle
         switchDualEngine.isChecked = dualEngineToggle
+
+        // OCR & Scanner Node
+        val selectedOcr = ModelConfig.selectedOcrModel(this)
+        val isTiny = selectedOcr == ModelConfig.ENGINE_PP_OCR_TINY
+        val ocrReady = ModelConfig.isOcrReady(this)
+
+        if (isTiny) {
+            btnSelectOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
+            btnSelectOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.white))
+            btnSelectOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
+            btnSelectOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        } else {
+            btnSelectOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
+            btnSelectOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.white))
+            btnSelectOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
+            btnSelectOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        }
+
+        if (ocrReady) {
+            tvOcrStatus.text = "已就緒 (${if (isTiny) "Tiny 輕量版" else "Small 高精版"})"
+            tvOcrStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
+            btnDownloadOcr.text = "重新下載"
+        } else {
+            val sizeStr = if (isTiny) "約 11MB" else "約 22MB"
+            tvOcrStatus.text = "未下載 ($sizeStr)"
+            tvOcrStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnDownloadOcr.text = "下載模型"
+        }
+        switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
+        switchOcrTraditional.isChecked = ModelConfig.isOcrTraditionalEnabled(this)
+
+        val currentSep = ModelConfig.ocrSeparator(this)
+        val strokeSelected = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_light_primary))
+        val strokeNormal = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surface_card_stroke))
+
+        btnOcrSepNewline.strokeWidth = if (currentSep == "\n") 4 else 1
+        btnOcrSepNewline.strokeColor = if (currentSep == "\n") strokeSelected else strokeNormal
+        btnOcrSepSpace.strokeWidth = if (currentSep == " ") 4 else 1
+        btnOcrSepSpace.strokeColor = if (currentSep == " ") strokeSelected else strokeNormal
+        btnOcrSepNone.strokeWidth = if (currentSep == "") 4 else 1
+        btnOcrSepNone.strokeColor = if (currentSep == "") strokeSelected else strokeNormal
 
         // Header Overall Badge
         if (inputPathReady && currentEngineReady) {
@@ -625,22 +671,37 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         val target = ModelDownloadSpec.forEngine(engine)
-        val engineLabel = if (engine == ModelConfig.ENGINE_X_ASR) "X-ASR (約 138MB)" else "Qwen3-ASR (約 878MB)"
-        val btn = if (engine == ModelConfig.ENGINE_X_ASR) btnDownloadXasr else btnDownloadQwen3
+        val engineLabel = when (engine) {
+            ModelConfig.ENGINE_X_ASR -> "X-ASR (約 138MB)"
+            ModelConfig.ENGINE_QWEN3 -> "Qwen3-ASR (約 878MB)"
+            ModelConfig.ENGINE_PP_OCR_TINY -> "PP-OCRv6 Tiny (約 11MB)"
+            ModelConfig.ENGINE_PP_OCR_SMALL -> "PP-OCRv6 Small (約 22MB)"
+            else -> engine
+        }
+        val btn = when (engine) {
+            ModelConfig.ENGINE_X_ASR -> btnDownloadXasr
+            ModelConfig.ENGINE_QWEN3 -> btnDownloadQwen3
+            else -> btnDownloadOcr
+        }
         btn.isEnabled = false
         btn.text = "檢查檔案大小…"
 
         scope.launch {
             val bytes = downloader.estimateTotalBytes(target)
             btn.isEnabled = true
-            btn.text = if (ModelConfig.isModelReady(this@ImeSettingsActivity, engine)) "重新下載" else "下載模型"
+            val ready = when (engine) {
+                ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this@ImeSettingsActivity)
+                ModelConfig.ENGINE_QWEN3 -> ModelConfig.isQwen3Ready(this@ImeSettingsActivity)
+                else -> ModelConfig.isOcrReady(this@ImeSettingsActivity)
+            }
+            btn.text = if (ready) "重新下載" else "下載模型"
 
             AlertDialog.Builder(this@ImeSettingsActivity)
                 .setTitle("下載 $engineLabel 模型")
                 .setMessage(
                     "即將下載約 ${ModelDownloader.formatBytes(bytes)} 的模型檔案，下載會在背景進行，" +
                             "關閉螢幕或切換應用不會中斷。\n\n" +
-                            "語音辨識全程在裝置本機執行，僅下載步驟需使用網路。\n\n是否繼續？"
+                            "文字辨識與語音轉譯全程在裝置本機執行，僅下載步驟需使用網路。\n\n是否繼續？"
                 )
                 .setPositiveButton("開始下載") { _, _ ->
                     requestNotificationPermissionThenDownload(engine)
@@ -669,14 +730,28 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (active == null) {
             hideDownloadProgress(ModelConfig.ENGINE_X_ASR)
             hideDownloadProgress(ModelConfig.ENGINE_QWEN3)
+            hideDownloadProgress(ModelConfig.ENGINE_PP_OCR_TINY)
             updateAllStatus()
             return
         }
 
         val isXasr = active.engine == ModelConfig.ENGINE_X_ASR
-        val btn = if (isXasr) btnDownloadXasr else btnDownloadQwen3
-        val progressIndicator = if (isXasr) progressDownloadXasr else progressDownloadQwen3
-        val tvStatus = if (isXasr) tvDownloadStatusXasr else tvDownloadStatusQwen3
+        val isQwen3 = active.engine == ModelConfig.ENGINE_QWEN3
+        val btn = when {
+            isXasr -> btnDownloadXasr
+            isQwen3 -> btnDownloadQwen3
+            else -> btnDownloadOcr
+        }
+        val progressIndicator = when {
+            isXasr -> progressDownloadXasr
+            isQwen3 -> progressDownloadQwen3
+            else -> progressDownloadOcr
+        }
+        val tvStatus = when {
+            isXasr -> tvDownloadStatusXasr
+            isQwen3 -> tvDownloadStatusQwen3
+            else -> tvDownloadStatusOcr
+        }
 
         btn.isEnabled = true
         btn.text = "取消下載"
@@ -693,14 +768,22 @@ class ImeSettingsActivity : AppCompatActivity() {
     }
 
     private fun hideDownloadProgress(engine: String) {
-        if (engine == ModelConfig.ENGINE_X_ASR) {
-            progressDownloadXasr.visibility = View.GONE
-            tvDownloadStatusXasr.visibility = View.GONE
-            btnDownloadXasr.text = if (ModelConfig.isXAsrReady(this)) "重新下載" else "下載模型"
-        } else {
-            progressDownloadQwen3.visibility = View.GONE
-            tvDownloadStatusQwen3.visibility = View.GONE
-            btnDownloadQwen3.text = if (ModelConfig.isQwen3Ready(this)) "重新下載" else "下載模型"
+        when (engine) {
+            ModelConfig.ENGINE_X_ASR -> {
+                progressDownloadXasr.visibility = View.GONE
+                tvDownloadStatusXasr.visibility = View.GONE
+                btnDownloadXasr.text = if (ModelConfig.isXAsrReady(this)) "重新下載" else "下載模型"
+            }
+            ModelConfig.ENGINE_QWEN3 -> {
+                progressDownloadQwen3.visibility = View.GONE
+                tvDownloadStatusQwen3.visibility = View.GONE
+                btnDownloadQwen3.text = if (ModelConfig.isQwen3Ready(this)) "重新下載" else "下載模型"
+            }
+            else -> {
+                progressDownloadOcr.visibility = View.GONE
+                tvDownloadStatusOcr.visibility = View.GONE
+                btnDownloadOcr.text = if (ModelConfig.isOcrReady(this)) "重新下載" else "下載模型"
+            }
         }
     }
 

@@ -15,16 +15,29 @@ object UserDictionary {
 
     private const val PREF_NAME = "user_dict"
     private const val KEY_ENTRIES = "entries"
+    private const val KEY_CLEANED_SEEDED = "has_cleaned_seeded_v1"
 
     fun load(context: Context): Map<String, String> {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val json = prefs.getString(KEY_ENTRIES, null) ?: return emptyMap()
-        return try {
+        val userMap = try {
             val obj = JSONObject(json)
             buildMap { obj.keys().forEach { k -> put(k, obj.getString(k)) } }
         } catch (_: Exception) {
             emptyMap()
         }
+
+        // 自動清理先前版本寫入自定義詞庫的預設蘸/沾規則，回歸純淨正則管線處理
+        if (!prefs.getBoolean(KEY_CLEANED_SEEDED, false)) {
+            val cleaned = userMap.filter { (k, v) ->
+                !(k.contains("蘸") || (k.startsWith("沾") && v.startsWith("蘸")))
+            }
+            save(context, cleaned)
+            prefs.edit().putBoolean(KEY_CLEANED_SEEDED, true).apply()
+            return cleaned
+        }
+
+        return userMap
     }
 
     fun save(context: Context, entries: Map<String, String>) {
