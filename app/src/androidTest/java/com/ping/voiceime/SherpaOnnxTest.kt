@@ -55,6 +55,21 @@ class SherpaOnnxTest {
     }
 
     @Test
+    fun testPpOcrEngineLoad() {
+        runBlocking {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            if (File(ModelConfig.ocrDetPath(context, ModelConfig.OCR_MODEL_SMALL)).exists()) {
+                ModelConfig.setSelectedOcrModel(context, ModelConfig.OCR_MODEL_SMALL)
+            }
+            val ocr = com.ping.voiceime.ocr.PpOcrEngine(context)
+            val loaded = ocr.load()
+            Log.i(TAG, "PpOcrEngine loaded: $loaded, isReady: ${ocr.isReady}")
+            assertTrue("PpOcrEngine should load successfully", loaded)
+            ocr.release()
+        }
+    }
+
+    @Test
     fun testXAsrEngineWithRealAudio() {
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -78,7 +93,18 @@ class SherpaOnnxTest {
             val stream = xAsr.createStream()
             assertNotNull("Stream should not be null", stream)
 
-            val wavFile = File(context.filesDir, "test.wav")
+            var wavFile = File(context.filesDir, "test.wav")
+            if (!wavFile.exists()) {
+                val extWav = File(context.getExternalFilesDir(null), "test.wav")
+                if (extWav.exists()) {
+                    extWav.copyTo(wavFile, overwrite = true)
+                } else {
+                    val candidateWav = File(ModelConfig.modelsDir(context), "qwen3_asr/test_wavs/qiqiu1.wav")
+                    if (candidateWav.exists()) {
+                        candidateWav.copyTo(wavFile, overwrite = true)
+                    }
+                }
+            }
             assertTrue("test.wav should exist", wavFile.exists())
 
             val samples = readWavPcm16(wavFile)
