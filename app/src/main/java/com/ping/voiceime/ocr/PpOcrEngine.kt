@@ -374,7 +374,7 @@ class PpOcrEngine(private val context: Context) {
                 recognizeHorizontalStrip(crop).first
             }
 
-            ModelConfig.toTaiwanTraditional(resultText)
+            resultText
         } catch (e: Exception) {
             Log.e(TAG, "Recognition error: ${e.message}", e)
             ""

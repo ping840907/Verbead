@@ -959,9 +959,13 @@
                         android:text="Tiny 輕量版 (11MB)"
                         android:textSize="11sp"
                         android:layout_marginEnd="4dp"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         app:cornerRadius="18dp"
                         android:insetTop="0dp"
-                        android:insetBottom="0dp" />
+                        android:insetBottom="0dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:minWidth="0dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_select_ocr_small"
@@ -974,7 +978,10 @@
                         style="@style/Widget.Material3.Button.TonalButton"
                         app:cornerRadius="18dp"
                         android:insetTop="0dp"
-                        android:insetBottom="0dp" />
+                        android:insetBottom="0dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:minWidth="0dp" />
                 </LinearLayout>
 
                 <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -1104,49 +1111,6 @@
                     android:layout_marginTop="12dp"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Setting: Auto Convert to Taiwan Traditional -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="自動轉為台灣繁體"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="將辨識結果標準化為台灣繁體正字（如體、台、裡）"
-                            android:textSize="11sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="1dp" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_ocr_traditional"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/surface_card_stroke"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="12dp" />
-
                 <!-- Setting: Multi-selection separator -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -1182,10 +1146,14 @@
                             android:layout_weight="1"
                             android:text="換行 (\\n)"
                             android:textSize="11sp"
-                            android:layout_marginEnd="4dp"
+                            android:layout_marginEnd="3dp"
+                            style="@style/Widget.Material3.Button.TonalButton"
                             app:cornerRadius="18dp"
                             android:insetTop="0dp"
-                            android:insetBottom="0dp" />
+                            android:insetBottom="0dp"
+                            android:paddingStart="4dp"
+                            android:paddingEnd="4dp"
+                            android:minWidth="0dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_ocr_sep_space"
@@ -1194,11 +1162,15 @@
                             android:layout_weight="1"
                             android:text="空格"
                             android:textSize="11sp"
-                            android:layout_marginEnd="4dp"
+                            android:layout_marginStart="3dp"
+                            android:layout_marginEnd="3dp"
                             style="@style/Widget.Material3.Button.TonalButton"
                             app:cornerRadius="18dp"
                             android:insetTop="0dp"
-                            android:insetBottom="0dp" />
+                            android:insetBottom="0dp"
+                            android:paddingStart="4dp"
+                            android:paddingEnd="4dp"
+                            android:minWidth="0dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_ocr_sep_none"
@@ -1207,10 +1179,14 @@
                             android:layout_weight="1"
                             android:text="無間隔"
                             android:textSize="11sp"
+                            android:layout_marginStart="3dp"
                             style="@style/Widget.Material3.Button.TonalButton"
                             app:cornerRadius="18dp"
                             android:insetTop="0dp"
-                            android:insetBottom="0dp" />
+                            android:insetBottom="0dp"
+                            android:paddingStart="4dp"
+                            android:paddingEnd="4dp"
+                            android:minWidth="0dp" />
                     </LinearLayout>
                 </LinearLayout>
 

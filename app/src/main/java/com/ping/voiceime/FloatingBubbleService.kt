@@ -50,6 +50,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 import android.content.res.Configuration
 import android.content.pm.PackageManager
@@ -57,6 +58,7 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.graphics.RectF
 import android.net.Uri
+import android.view.ScaleGestureDetector
 import android.view.VelocityTracker
 import android.widget.ImageButton
 import android.widget.SeekBar
@@ -163,6 +165,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var scannerView: View? = null
     private var scannerLayoutParams: WindowManager.LayoutParams? = null
     private var isScannerModeActive = false
+    private var isScannerEnlarged = false
     private var cameraExecutor: ExecutorService? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
@@ -1000,7 +1003,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
-    private fun showPreviewText(msg: String, autoHide: Boolean = false) {
+    private fun showPreviewText(msg: String, autoHide: Boolean = true) {
         if (!::previewView.isInitialized) return
         tvBubblePreview.text = msg
         updatePreviewPosition()
@@ -1010,10 +1013,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         autoHidePreviewJob?.cancel()
         if (autoHide) {
             autoHidePreviewJob = scope.launch {
-                delay(2600)
-                if (state == State.IDLE || state == State.PASTED) {
-                    hidePreviewText()
-                }
+                delay(5000L)
+                hidePreviewText()
             }
         }
     }
@@ -1097,7 +1098,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun preloadDualEngineAndStart() {
         setState(State.LOADING)
-        showPreviewText("載入雙模型中…")
+        showPreviewText("載入雙模型中…", autoHide = false)
 
         scope.launch {
             val (xOk, qOk) = withContext(Dispatchers.IO) {
@@ -1116,7 +1117,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun preloadAndStart(engine: String) {
         setState(State.LOADING)
-        showPreviewText("載入模型中…")
+        showPreviewText("載入模型中…", autoHide = false)
 
         scope.launch {
             val success = withContext(Dispatchers.IO) {
@@ -1150,7 +1151,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         isAborted = false
         setState(State.RECORDING)
         showXButton()
-        showPreviewText("聆聽中…")
+        showPreviewText("聆聽中…", autoHide = false)
 
         val audioBuffer = mutableListOf<FloatArray>()
         var accumulatedXAsr = ""
@@ -1173,7 +1174,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             lastStreamingText = combined
                             Handler(Looper.getMainLooper()).post {
                                 if (isRecording && !isAborted) {
-                                    showPreviewText(combined)
+                                    showPreviewText(combined, autoHide = false)
                                 }
                             }
                         }
@@ -1260,7 +1261,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         isAborted = false
         setState(State.RECORDING)
         showXButton()
-        showPreviewText("聆聽中…")
+        showPreviewText("聆聽中…", autoHide = false)
 
         recordingJob = scope.launch {
             val recording = withContext(Dispatchers.IO) {
@@ -1307,7 +1308,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         isAborted = false
         setState(State.RECORDING)
         showXButton()
-        showPreviewText("聆聽中…")
+        showPreviewText("聆聽中…", autoHide = false)
 
         var accumulated = ""
         var lastShown = ""
@@ -1328,7 +1329,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             lastShown = combined
                             Handler(Looper.getMainLooper()).post {
                                 if (isRecording && !isAborted) {
-                                    showPreviewText(combined)
+                                    showPreviewText(combined, autoHide = false)
                                 }
                             }
                         }
@@ -1494,7 +1495,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             ModelConfig.toTaiwanTraditional(raw)
         }
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
-        val postReplaced = ModelConfig.replaceZhan(userReplaced)
+        val postReplaced = ModelConfig.applyPostRegexReplacements(userReplaced)
         return if (ModelConfig.isFilterPunctuationEnabled(this)) {
             ModelConfig.filterChinesePunctuation(postReplaced)
         } else {
@@ -1769,6 +1770,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun applyCapsuleSelection(mode: Int) {
+        hidePreviewText()
         currentMode = mode
         getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, mode).apply()
         HapticUtil.click(this)
@@ -1825,6 +1827,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun startScannerMode() {
+        hidePreviewText()
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "請先授權相機權限以使用掃描功能", Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
@@ -1845,9 +1848,18 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         val density = resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
-        val scannerWidth = (250 * density).toInt()
-        val screenHeight = getScreenHeight()
         val gap = (10 * density).toInt()
+        val screenHeight = getScreenHeight()
+        val screenWidth = getScreenWidth()
+
+        isScannerEnlarged = ModelConfig.isCameraEnlarged(this, MODE_BARCODE)
+        val scannerWidth = if (isScannerEnlarged) {
+            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+        } else {
+            (250 * density).toInt()
+        }
+        val cardSize = scannerWidth - (16 * density).toInt()
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -1856,11 +1868,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        // Align vertically adjacent to bubble, keeping fully on screen
+        val estimatedHeight = cardSize + (120 * density).toInt()
         val micY = windowLayoutParams.y + (30 * density).toInt()
-        val targetY = (micY - (120 * density).toInt()).coerceIn(
+        val targetY = (micY - (estimatedHeight / 2)).coerceIn(
             getMinY(),
-            maxOf(getMinY(), screenHeight - (360 * density).toInt())
+            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
         )
 
         scannerLayoutParams = WindowManager.LayoutParams(
@@ -1881,14 +1893,27 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val btnClose = scanner.findViewById<ImageButton>(R.id.btn_close_scanner)
+        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
         val btnFlash = scanner.findViewById<ImageButton>(R.id.btn_scanner_flash)
         val btnAutoEnter = scanner.findViewById<ImageButton>(R.id.btn_scanner_auto_enter)
         val sliderZoom = scanner.findViewById<SeekBar>(R.id.slider_scanner_zoom)
         val viewFinder = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
+        val cardPreview = scanner.findViewById<CardView>(R.id.card_scanner_preview)
+
+        btnScale?.setImageResource(if (isScannerEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+        cardPreview?.layoutParams = cardPreview?.layoutParams?.apply {
+            width = cardSize
+            height = cardSize
+        }
 
         btnClose.setOnClickListener {
             HapticUtil.click(this)
             stopScannerMode()
+        }
+
+        btnScale?.setOnClickListener {
+            HapticUtil.click(this)
+            setScannerEnlarged(!isScannerEnlarged)
         }
 
         btnFlash.setOnClickListener {
@@ -1908,10 +1933,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             Toast.makeText(this, if (nextState) "已開啟自動換行" else "已關閉自動換行", Toast.LENGTH_SHORT).show()
         }
 
+        val savedZoom = ModelConfig.getCameraZoom(this, MODE_BARCODE)
+        sliderZoom.progress = (savedZoom * 100f).roundToInt().coerceIn(0, 100)
+
         sliderZoom.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    camera?.cameraControl?.setLinearZoom(progress / 100f)
+                    val zoom = progress / 100f
+                    camera?.cameraControl?.setLinearZoom(zoom)
+                    ModelConfig.setCameraZoom(this@FloatingBubbleService, MODE_BARCODE, zoom)
                     HapticUtil.tick(this@FloatingBubbleService)
                 }
             }
@@ -1946,6 +1976,72 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .start()
 
         startCameraForScanner(viewFinder)
+    }
+
+    private fun setScannerEnlarged(enlarged: Boolean) {
+        isScannerEnlarged = enlarged
+        ModelConfig.setCameraEnlarged(this, MODE_BARCODE, enlarged)
+        val scanner = scannerView ?: return
+        val lp = scannerLayoutParams ?: return
+        val density = resources.displayMetrics.density
+        val screenWidth = getScreenWidth()
+        val screenHeight = getScreenHeight()
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+
+        val targetWidth = if (enlarged) {
+            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+        } else {
+            (250 * density).toInt()
+        }
+
+        val cardSize = targetWidth - (16 * density).toInt()
+        val cardPreview = scanner.findViewById<CardView>(R.id.card_scanner_preview)
+        cardPreview?.layoutParams?.apply {
+            width = cardSize
+            height = cardSize
+        }
+        cardPreview?.requestLayout()
+
+        lp.width = targetWidth
+        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
+        btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+
+        val estimatedHeight = cardSize + (120 * density).toInt()
+        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val targetY = (micY - (estimatedHeight / 2)).coerceIn(
+            getMinY(),
+            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
+        )
+        lp.y = targetY
+
+        if (scanner.isAttachedToWindow) {
+            windowManager.updateViewLayout(scanner, lp)
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupPinchToZoom(viewFinder: PreviewView, sliderZoom: SeekBar, mode: Int) {
+        val scaleGestureDetector = ScaleGestureDetector(
+            this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    val currentZoom = camera?.cameraInfo?.zoomState?.value?.linearZoom
+                        ?: (sliderZoom.progress / 100f)
+                    val delta = (detector.scaleFactor - 1.0f) * 1.5f
+                    val newZoom = (currentZoom + delta).coerceIn(0f, 1f)
+                    camera?.cameraControl?.setLinearZoom(newZoom)
+                    sliderZoom.progress = (newZoom * 100f).roundToInt().coerceIn(0, 100)
+                    ModelConfig.setCameraZoom(this@FloatingBubbleService, mode, newZoom)
+                    return true
+                }
+            }
+        )
+        viewFinder.setOnTouchListener { _, event ->
+            scaleGestureDetector.onTouchEvent(event)
+            true
+        }
     }
 
     private fun startCameraForScanner(viewFinder: PreviewView) {
@@ -1987,6 +2083,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     preview,
                     imageAnalysis
                 )
+                val savedZoom = ModelConfig.getCameraZoom(this@FloatingBubbleService, MODE_BARCODE)
+                camera?.cameraControl?.setLinearZoom(savedZoom)
+                val sliderZoom = scannerView?.findViewById<SeekBar>(R.id.slider_scanner_zoom)
+                if (sliderZoom != null) {
+                    setupPinchToZoom(viewFinder, sliderZoom, MODE_BARCODE)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Camera initialization failed: ${e.message}", e)
             }
@@ -2042,6 +2144,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun startOcrMode() {
+        hidePreviewText()
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "請先授權相機權限以使用文字辨識功能", Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
@@ -2073,6 +2176,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
+        isOcrEnlarged = ModelConfig.isCameraEnlarged(this, MODE_OCR)
         val ocrWidth = if (isOcrEnlarged) {
             val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
             (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
@@ -2147,10 +2251,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             Toast.makeText(this, if (nextState) "已開啟自動換行" else "已關閉自動換行", Toast.LENGTH_SHORT).show()
         }
 
+        val savedZoom = ModelConfig.getCameraZoom(this, MODE_OCR)
+        sliderZoom.progress = (savedZoom * 100f).roundToInt().coerceIn(0, 100)
+
         sliderZoom.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    camera?.cameraControl?.setLinearZoom(progress / 100f)
+                    val zoom = progress / 100f
+                    camera?.cameraControl?.setLinearZoom(zoom)
+                    ModelConfig.setCameraZoom(this@FloatingBubbleService, MODE_OCR, zoom)
                     HapticUtil.tick(this@FloatingBubbleService)
                 }
             }
@@ -2196,6 +2305,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun setOcrEnlarged(enlarged: Boolean) {
         isOcrEnlarged = enlarged
+        ModelConfig.setCameraEnlarged(this, MODE_OCR, enlarged)
         val ocr = ocrWindowView ?: return
         val lp = ocrWindowLayoutParams ?: return
         val density = resources.displayMetrics.density
@@ -2293,6 +2403,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     cameraSelector,
                     preview
                 )
+                val savedZoom = ModelConfig.getCameraZoom(this@FloatingBubbleService, MODE_OCR)
+                camera?.cameraControl?.setLinearZoom(savedZoom)
+                val sliderZoom = ocrWindowView?.findViewById<SeekBar>(R.id.slider_ocr_zoom)
+                if (sliderZoom != null) {
+                    setupPinchToZoom(viewFinder, sliderZoom, MODE_OCR)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Camera initialization for OCR failed: ${e.message}", e)
             }
@@ -2553,12 +2669,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 progress.visibility = View.GONE
                 if (results.isNotEmpty()) {
                     val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
-                    val combined = results.joinToString(sep)
-                    val processed = if (ModelConfig.isOcrTraditionalEnabled(this@FloatingBubbleService)) {
-                        ModelConfig.toTaiwanTraditional(combined)
-                    } else {
-                        combined
-                    }
+                    val processed = results.joinToString(sep)
                     HapticUtil.heavyClick(this@FloatingBubbleService)
 
                     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -2648,6 +2759,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             updatePreviewPosition()
             updateSystemGestureExclusion()
+        }
+        if (isScannerModeActive) {
+            setScannerEnlarged(isScannerEnlarged)
         }
         if (isOcrModeActive) {
             setOcrEnlarged(isOcrEnlarged)

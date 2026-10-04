@@ -54,10 +54,24 @@ class CircuitLogicTest {
     }
 
     @Test
-    fun testPipelineWithZhanReplacement() {
-        // 透過完整 toTaiwanTraditional 管線測試
-        val input = "吃火锅蘸酱蘸着吃"
-        val expected = "吃火鍋沾醬沾著吃"
+    fun testHuiYingRegexReplacement() {
+        // 一般語境下「迴應」應校正為「回應」
+        val input1 = "對於這項質疑，官方正面迴應，他沒有任何迴應，積極迴應大眾。"
+        val expected1 = "對於這項質疑，官方正面回應，他沒有任何回應，積極回應大眾。"
+        val actual1 = ModelConfig.replaceHuiYing(input1)
+        assertEquals(expected1, actual1)
+
+        // 包含「巡迴/輪迴/迂迴/徘迴」之後綴應予以保留不被誤換
+        val input2 = "巡迴應邀演出，歷經宿命輪迴應驗，迂迴應對得宜，徘迴應接不暇。"
+        val actual2 = ModelConfig.replaceHuiYing(input2)
+        assertEquals(input2, actual2)
+    }
+
+    @Test
+    fun testPipelineWithZhanAndHuiYingReplacement() {
+        // 透過完整 toTaiwanTraditional 管線測試簡繁轉換、蘸->沾 與 迴應->回應
+        val input = "吃火锅蘸酱蘸着吃，请积极回应大众，巡回应邀出席"
+        val expected = "吃火鍋沾醬沾著吃，請積極回應大眾，巡迴應邀出席"
         val actual = ModelConfig.toTaiwanTraditional(input)
         assertEquals(expected, actual)
     }

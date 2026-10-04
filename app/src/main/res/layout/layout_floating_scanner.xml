@@ -35,21 +35,41 @@
             android:textSize="13sp"
             android:textStyle="bold" />
 
-        <ImageButton
-            android:id="@+id/btn_scanner_flash"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/bg_scanner_btn_circle"
-            android:contentDescription="閃光燈"
-            android:padding="6dp"
-            android:src="@drawable/ic_flash_off"
-            app:tint="#FFFFFFFF" />
+            android:orientation="horizontal">
+
+            <!-- 縮放鍵 (Scale/Resize Toggle) -->
+            <ImageButton
+                android:id="@+id/btn_scanner_scale"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_scanner_btn_circle"
+                android:contentDescription="縮放視窗"
+                android:padding="6dp"
+                android:src="@drawable/ic_fullscreen"
+                app:tint="#FFFFFFFF" />
+
+            <!-- 閃光燈 (Flash Toggle) -->
+            <ImageButton
+                android:id="@+id/btn_scanner_flash"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_scanner_btn_circle"
+                android:contentDescription="閃光燈"
+                android:padding="6dp"
+                android:src="@drawable/ic_flash_off"
+                app:tint="#FFFFFFFF" />
+        </LinearLayout>
     </RelativeLayout>
 
     <!-- Center Camera Preview Area (Square) -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/card_scanner_preview"
         android:layout_width="234dp"
         android:layout_height="234dp"
         android:layout_gravity="center_horizontal"

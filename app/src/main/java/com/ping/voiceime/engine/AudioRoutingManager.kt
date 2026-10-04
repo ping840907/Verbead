@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -13,6 +14,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Manages audio recording input routing.
@@ -98,6 +100,15 @@ class AudioRoutingManager(private val context: Context) {
         }
     }
 
+    fun hasBluetoothPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
     /**
      * Determines the best available recording device based on priority:
      * 1. Bluetooth SCO or BLE Headset
@@ -105,44 +116,102 @@ class AudioRoutingManager(private val context: Context) {
      * 3. Built-in microphone
      */
     fun getPreferredInputDevice(): AudioDeviceInfo? {
-        val inputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+        try {
+            // 1. Check API 31+ availableCommunicationDevices for Bluetooth
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && hasBluetoothPermission()) {
+                val commBluetooth = audioManager.availableCommunicationDevices.firstOrNull { device ->
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    device.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                }
+                if (commBluetooth != null) return commBluetooth
+            }
 
-        // 1. Bluetooth headset (SCO or BLE)
-        val bluetoothDevice = inputDevices.firstOrNull { device ->
-            device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && device.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+            val inputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+
+            // 2. Bluetooth headset (SCO or BLE) from input devices
+            if (hasBluetoothPermission()) {
+                val bluetoothDevice = inputDevices.firstOrNull { device ->
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && device.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+                }
+                if (bluetoothDevice != null) return bluetoothDevice
+            }
+
+            // 3. Wired or USB Headset
+            val wiredDevice = inputDevices.firstOrNull { device ->
+                device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                device.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && device.type == AudioDeviceInfo.TYPE_USB_DEVICE)
+            }
+            if (wiredDevice != null) return wiredDevice
+
+            // 4. Fallback: Built-in mic
+            return inputDevices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+                ?: inputDevices.firstOrNull()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error getting preferred input device: ${e.message}")
+            return null
         }
-        if (bluetoothDevice != null) return bluetoothDevice
-
-        // 2. Wired or USB Headset
-        val wiredDevice = inputDevices.firstOrNull { device ->
-            device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
-            device.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
-            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && device.type == AudioDeviceInfo.TYPE_USB_DEVICE)
-        }
-        if (wiredDevice != null) return wiredDevice
-
-        // 3. Fallback: Built-in mic
-        return inputDevices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
     }
 
     /**
      * Prepares audio routing before recording starts.
-     * 暫時維持系統預設音訊路由，後續排查 AudioRecord 來源設定、AudioManager 藍牙 SCO 連線管理（startBluetoothSco）與權限生命週期。
+     * Prioritizes Bluetooth headset by establishing communication device (Android 12+)
+     * or activating Bluetooth SCO mode (Android 11 and lower).
      */
     @SuppressLint("MissingPermission")
     fun prepareForRecording(preferredDevice: AudioDeviceInfo?) {
-        // 暫時維持系統預設音訊路由，避免 SCO 連線狀態衝突或無聲問題
-        Log.d(TAG, "Audio routing: maintaining system default audio routing")
+        if (preferredDevice == null) return
+        val isBluetooth = preferredDevice.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferredDevice.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+
+        if (isBluetooth) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (hasBluetoothPermission()) {
+                        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                        val commDevice = audioManager.availableCommunicationDevices.firstOrNull {
+                            it.id == preferredDevice.id ||
+                            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                            it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                        } ?: preferredDevice
+                        val success = audioManager.setCommunicationDevice(commDevice)
+                        isScoActive = success
+                        Log.i(TAG, "Audio routing: setCommunicationDevice to ${commDevice.productName} (success=$success)")
+                    } else {
+                        Log.w(TAG, "Audio routing: BLUETOOTH_CONNECT permission not granted, skipping setCommunicationDevice")
+                    }
+                } else {
+                    audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                    @Suppress("DEPRECATION")
+                    audioManager.startBluetoothSco()
+                    @Suppress("DEPRECATION")
+                    audioManager.isBluetoothScoOn = true
+                    isScoActive = true
+                    Log.i(TAG, "Audio routing: started Bluetooth SCO (pre-Android 12)")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to prepare Bluetooth audio routing: ${e.message}")
+            }
+        } else {
+            Log.d(TAG, "Audio routing: using non-Bluetooth device (${preferredDevice.productName})")
+        }
     }
 
     /**
      * Applies the preferred device to the initialized AudioRecord instance.
-     * 暫時維持系統預設音訊路由。
      */
     fun applyToAudioRecord(recorder: AudioRecord, preferredDevice: AudioDeviceInfo?) {
-        // 暫時維持系統預設音訊路由，由系統底層策略自動調度已連接之輸入裝置
-        Log.d(TAG, "Audio routing: maintaining system default AudioRecord routing (detected: ${preferredDevice?.productName ?: "default"})")
+        if (preferredDevice != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val success = recorder.setPreferredDevice(preferredDevice)
+                Log.i(TAG, "AudioRecord setPreferredDevice: ${preferredDevice.productName} (type=${preferredDevice.type}, success=$success)")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to setPreferredDevice on AudioRecord: ${e.message}")
+            }
+        } else {
+            Log.d(TAG, "AudioRecord: maintaining system default routing")
+        }
     }
 
     /**
@@ -154,15 +223,23 @@ class AudioRoutingManager(private val context: Context) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     audioManager.clearCommunicationDevice()
+                    Log.i(TAG, "Released communication device")
                 } else {
+                    @Suppress("DEPRECATION")
                     audioManager.isBluetoothScoOn = false
+                    @Suppress("DEPRECATION")
                     audioManager.stopBluetoothSco()
+                    Log.i(TAG, "Released Bluetooth SCO")
                 }
-                Log.i(TAG, "Released Bluetooth SCO")
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to release Bluetooth SCO: ${e.message}")
             } finally {
                 isScoActive = false
+                try {
+                    audioManager.mode = AudioManager.MODE_NORMAL
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to reset audio mode to normal: ${e.message}")
+                }
             }
         }
     }

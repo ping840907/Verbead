@@ -40,6 +40,7 @@ android {
             useLegacyPackaging = false
         }
         pickFirst 'lib/*/libonnxruntime.so'
+        pickFirst 'lib/*/libonnxruntime4j_jni.so'
     }
 }
 

@@ -89,6 +89,7 @@ class AudioRecorder(private val context: Context? = null) {
         var initialSilenceCount = 0
 
         try {
+            routingManager?.prepareForRecording(preferredDevice)
             recorder.startRecording()
             while (coroutineContext.isActive && !shouldStop) {
                 val read = recorder.read(chunkBuffer, 0, CHUNK_FRAMES)

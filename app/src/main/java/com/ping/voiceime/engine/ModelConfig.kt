@@ -176,19 +176,60 @@ object ModelConfig {
         '豔' to '艷',
         '踊' to '踴',
         '洩' to '洩',
-        '昇' to '升'
+        '昇' to '升',
+        '衆' to '眾'
     )
 
     // ── Word & Character Normalization ────────────────────────────────────────
     /**
-     * 正則表達式字詞替換規則：
-     * 除古舊典故用詞（如「蘸甲」、「蘸火」）外，全面以正則表達式將「蘸」替換為「沾」。
+     * 正則表達式字詞替換規則架構：
+     * 1. 蘸 -> 沾：除古舊典故用詞（如「蘸甲」、「蘸火」）外，全面以正則表達式將「蘸」替換為常用規範字「沾」。
+     * 2. 迴應 -> 回應：語音辨識與簡繁轉換易將「回应」過度轉為「迴應」；除「巡迴/輪迴/迂迴/徘迴」等專用複合詞後接「應」外，
+     *    全面以負向回溯正則表達式將「迴應」替換為標準繁體字詞「回應」。
      */
-    private val ZHAN_REGEX = Regex("""(?!(?:蘸甲|蘸火))蘸""")
+    data class WordReplacementRule(
+        val name: String,
+        val fastCheck: (String) -> Boolean,
+        val regex: Regex,
+        val replacement: String
+    )
+
+    private val POST_PROCESSING_RULES = listOf(
+        WordReplacementRule(
+            name = "蘸 -> 沾",
+            fastCheck = { it.contains('蘸') },
+            regex = Regex("""(?!(?:蘸甲|蘸火))蘸"""),
+            replacement = "沾"
+        ),
+        WordReplacementRule(
+            name = "迴應 -> 回應",
+            fastCheck = { it.contains("迴應") },
+            regex = Regex("""(?<![巡輪迂徘])迴應"""),
+            replacement = "回應"
+        )
+    )
 
     fun replaceZhan(text: String): String {
-        if (text.isEmpty() || !text.contains('蘸')) return text
-        return text.replace(ZHAN_REGEX, "沾")
+        val rule = POST_PROCESSING_RULES[0]
+        if (text.isEmpty() || !rule.fastCheck(text)) return text
+        return text.replace(rule.regex, rule.replacement)
+    }
+
+    fun replaceHuiYing(text: String): String {
+        val rule = POST_PROCESSING_RULES[1]
+        if (text.isEmpty() || !rule.fastCheck(text)) return text
+        return text.replace(rule.regex, rule.replacement)
+    }
+
+    fun applyPostRegexReplacements(text: String): String {
+        if (text.isEmpty()) return text
+        var result = text
+        for (rule in POST_PROCESSING_RULES) {
+            if (rule.fastCheck(result)) {
+                result = result.replace(rule.regex, rule.replacement)
+            }
+        }
+        return result
     }
 
     fun normalizeTaiwanVariants(text: String): String {
@@ -197,7 +238,7 @@ object ModelConfig {
         for (ch in text) {
             sb.append(VARIANT_REPLACEMENTS[ch] ?: ch)
         }
-        return replaceZhan(sb.toString())
+        return applyPostRegexReplacements(sb.toString())
     }
 
     // ── PP-OCRv6 (Det & Rec) ────────────────────────────────────────────────
@@ -210,7 +251,6 @@ object ModelConfig {
     const val PREF_OCR = "ocr_settings"
     const val KEY_OCR_MODEL_SELECTION = "ocr_model_selection"
     const val KEY_OCR_AUTO_ENTER = "ocr_auto_enter"
-    const val KEY_OCR_TRADITIONAL = "ocr_auto_traditional"
     const val KEY_OCR_SEPARATOR = "ocr_separator"
 
     fun selectedOcrModel(context: Context): String =
@@ -228,14 +268,6 @@ object ModelConfig {
     fun setOcrAutoEnterEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_OCR_AUTO_ENTER, enabled).apply()
-
-    fun isOcrTraditionalEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .getBoolean(KEY_OCR_TRADITIONAL, true)
-
-    fun setOcrTraditionalEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_OCR_TRADITIONAL, enabled).apply()
 
     fun ocrSeparator(context: Context): String =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
@@ -257,6 +289,43 @@ object ModelConfig {
         return java.io.File(ocrDetPath(context, model)).exists() &&
                java.io.File(ocrRecPath(context, model)).exists()
     }
+
+    // ── Camera & Scanner Settings ─────────────────────────────────────────────
+    private const val PREF_CAMERA = "camera_settings"
+    private const val KEY_CAMERA_ZOOM_RATIO = "camera_zoom_ratio"
+    private const val KEY_CAMERA_ZOOM_OCR = "camera_zoom_ocr"
+    private const val KEY_CAMERA_ZOOM_SCANNER = "camera_zoom_scanner"
+    private const val KEY_OCR_ENLARGED = "ocr_enlarged"
+    private const val KEY_SCANNER_ENLARGED = "scanner_enlarged"
+
+    fun getCameraZoom(context: Context, mode: Int): Float {
+        val prefs = context.getSharedPreferences(PREF_CAMERA, Context.MODE_PRIVATE)
+        val key = if (mode == 1) KEY_CAMERA_ZOOM_OCR else KEY_CAMERA_ZOOM_SCANNER
+        if (prefs.contains(key)) {
+            return prefs.getFloat(key, 0f).coerceIn(0f, 1f)
+        }
+        return prefs.getFloat(KEY_CAMERA_ZOOM_RATIO, 0f).coerceIn(0f, 1f)
+    }
+
+    fun setCameraZoom(context: Context, mode: Int, zoom: Float) {
+        val clamped = zoom.coerceIn(0f, 1f)
+        val key = if (mode == 1) KEY_CAMERA_ZOOM_OCR else KEY_CAMERA_ZOOM_SCANNER
+        context.getSharedPreferences(PREF_CAMERA, Context.MODE_PRIVATE)
+            .edit()
+            .putFloat(key, clamped)
+            .putFloat(KEY_CAMERA_ZOOM_RATIO, clamped)
+            .apply()
+    }
+
+    fun isCameraEnlarged(context: Context, mode: Int): Boolean =
+        context.getSharedPreferences(PREF_CAMERA, Context.MODE_PRIVATE)
+            .getBoolean(if (mode == 1) KEY_OCR_ENLARGED else KEY_SCANNER_ENLARGED, false)
+
+    fun setCameraEnlarged(context: Context, mode: Int, enlarged: Boolean) =
+        context.getSharedPreferences(PREF_CAMERA, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(if (mode == 1) KEY_OCR_ENLARGED else KEY_SCANNER_ENLARGED, enlarged)
+            .apply()
 
     // ── Model Readiness Checks ────────────────────────────────────────────────
     fun isXAsrReady(context: Context): Boolean {

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.media.AudioDeviceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -21,10 +22,12 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.ping.voiceime.engine.AudioRoutingManager
 import com.ping.voiceime.engine.ModelConfig
 import com.ping.voiceime.engine.ModelDownloadSpec
 import com.ping.voiceime.engine.ModelDownloadState
 import com.ping.voiceime.engine.ModelDownloader
+import com.ping.voiceime.util.HapticUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -99,13 +102,12 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var progressDownloadOcr: LinearProgressIndicator
     private lateinit var tvDownloadStatusOcr: TextView
     private lateinit var switchOcrAutoEnter: MaterialSwitch
-    private lateinit var switchOcrTraditional: MaterialSwitch
     private lateinit var btnOcrSepNewline: MaterialButton
     private lateinit var btnOcrSepSpace: MaterialButton
     private lateinit var btnOcrSepNone: MaterialButton
 
     private val requestMic = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestMultiplePermissions()
     ) {
         updateAllStatus()
     }
@@ -197,7 +199,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         progressDownloadOcr  = findViewById(R.id.progress_download_ocr)
         tvDownloadStatusOcr  = findViewById(R.id.tv_download_status_ocr)
         switchOcrAutoEnter   = findViewById(R.id.switch_ocr_auto_enter)
-        switchOcrTraditional = findViewById(R.id.switch_ocr_traditional)
         btnOcrSepNewline     = findViewById(R.id.btn_ocr_sep_newline)
         btnOcrSepSpace       = findViewById(R.id.btn_ocr_sep_space)
         btnOcrSepNone        = findViewById(R.id.btn_ocr_sep_none)
@@ -210,7 +211,16 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Node 1: Mic & Camera Permissions
         btnGrantMic.setOnClickListener {
-            requestMic.launch(Manifest.permission.RECORD_AUDIO)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                requestMic.launch(
+                    arrayOf(
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    )
+                )
+            } else {
+                requestMic.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
+            }
         }
         btnGrantCamera.setOnClickListener {
             requestCamera.launch(Manifest.permission.CAMERA)
@@ -283,7 +293,10 @@ class ImeSettingsActivity : AppCompatActivity() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 val seconds = ModelConfig.VAD_SILENCE_MIN + progress * 0.1f
                 tvVadValue.text = vadLabel(seconds)
-                if (fromUser) ModelConfig.setVadSilenceSeconds(this@ImeSettingsActivity, seconds)
+                if (fromUser) {
+                    ModelConfig.setVadSilenceSeconds(this@ImeSettingsActivity, seconds)
+                    HapticUtil.tick(this@ImeSettingsActivity)
+                }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
@@ -314,9 +327,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
         switchOcrAutoEnter.setOnCheckedChangeListener { _, isChecked ->
             ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
-        }
-        switchOcrTraditional.setOnCheckedChangeListener { _, isChecked ->
-            ModelConfig.setOcrTraditionalEnabled(this, isChecked)
         }
 
         fun updateOcrSepSelection(sep: String) {
@@ -443,7 +453,14 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Node 1: Mic & Camera
         if (micGranted) {
-            tvMicStatus.text = "麥克風錄音權限已就緒"
+            val preferred = AudioRoutingManager.getInstance(this).getPreferredInputDevice()
+            val isBt = preferred?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+            if (isBt) {
+                tvMicStatus.text = "已就緒（優先使用藍牙音訊：${preferred?.productName ?: "藍牙耳機"}）"
+            } else {
+                tvMicStatus.text = "麥克風錄音權限已就緒"
+            }
             tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
             btnGrantMic.text = "已就緒"
             btnGrantMic.isEnabled = false
@@ -550,16 +567,25 @@ class ImeSettingsActivity : AppCompatActivity() {
         val isTiny = selectedOcr == ModelConfig.ENGINE_PP_OCR_TINY
         val ocrReady = ModelConfig.isOcrReady(this)
 
+        val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
+        val tonalColor = ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer)
+        val whiteColor = ContextCompat.getColor(this, R.color.white)
+        val textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary)
+
         if (isTiny) {
-            btnSelectOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
-            btnSelectOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.white))
-            btnSelectOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
-            btnSelectOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            btnSelectOcrTiny.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            btnSelectOcrTiny.setTextColor(whiteColor)
+            btnSelectOcrTiny.strokeWidth = 0
+            btnSelectOcrSmall.backgroundTintList = ColorStateList.valueOf(tonalColor)
+            btnSelectOcrSmall.setTextColor(textPrimaryColor)
+            btnSelectOcrSmall.strokeWidth = 0
         } else {
-            btnSelectOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
-            btnSelectOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.white))
-            btnSelectOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
-            btnSelectOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            btnSelectOcrSmall.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            btnSelectOcrSmall.setTextColor(whiteColor)
+            btnSelectOcrSmall.strokeWidth = 0
+            btnSelectOcrTiny.backgroundTintList = ColorStateList.valueOf(tonalColor)
+            btnSelectOcrTiny.setTextColor(textPrimaryColor)
+            btnSelectOcrTiny.strokeWidth = 0
         }
 
         if (ocrReady) {
@@ -573,18 +599,21 @@ class ImeSettingsActivity : AppCompatActivity() {
             btnDownloadOcr.text = "下載模型"
         }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
-        switchOcrTraditional.isChecked = ModelConfig.isOcrTraditionalEnabled(this)
 
         val currentSep = ModelConfig.ocrSeparator(this)
-        val strokeSelected = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.md_theme_light_primary))
-        val strokeNormal = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surface_card_stroke))
-
-        btnOcrSepNewline.strokeWidth = if (currentSep == "\n") 4 else 1
-        btnOcrSepNewline.strokeColor = if (currentSep == "\n") strokeSelected else strokeNormal
-        btnOcrSepSpace.strokeWidth = if (currentSep == " ") 4 else 1
-        btnOcrSepSpace.strokeColor = if (currentSep == " ") strokeSelected else strokeNormal
-        btnOcrSepNone.strokeWidth = if (currentSep == "") 4 else 1
-        btnOcrSepNone.strokeColor = if (currentSep == "") strokeSelected else strokeNormal
+        fun styleSepButton(btn: MaterialButton, isSelected: Boolean) {
+            if (isSelected) {
+                btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
+                btn.setTextColor(whiteColor)
+            } else {
+                btn.backgroundTintList = ColorStateList.valueOf(tonalColor)
+                btn.setTextColor(textPrimaryColor)
+            }
+            btn.strokeWidth = 0
+        }
+        styleSepButton(btnOcrSepNewline, currentSep == "\n")
+        styleSepButton(btnOcrSepSpace, currentSep == " ")
+        styleSepButton(btnOcrSepNone, currentSep == "")
 
         // Header Overall Badge
         if (inputPathReady && currentEngineReady) {
@@ -633,9 +662,28 @@ class ImeSettingsActivity : AppCompatActivity() {
             ModelConfig.setDualEngineEnabled(this, nextState)
             updateAllStatus()
         } else if (!xDownloaded || !qDownloaded) {
-            Toast.makeText(this, TOAST_DUAL_ENGINE_NEED_DOWNLOAD, Toast.LENGTH_SHORT).show()
+            val missing = when {
+                !xDownloaded && !qDownloaded -> "X-ASR 即時串流模型 與 Qwen3-ASR 離線主模型"
+                !xDownloaded -> "X-ASR 即時串流模型"
+                else -> "Qwen3-ASR 離線主模型"
+            }
+            AlertDialog.Builder(this)
+                .setTitle("需要下載模型以啟用雙引擎")
+                .setMessage("雙引擎模式結合了 X-ASR 的低延遲即時預覽與 Qwen3-ASR 的高精離線轉譯。\n\n目前尚未下載：$missing。\n請先於下方對應模型卡片點選「下載模型」完成安裝後再開啟。")
+                .setPositiveButton("我知道了", null)
+                .show()
         } else if (selected != ModelConfig.ENGINE_QWEN3) {
-            Toast.makeText(this, TOAST_DUAL_ENGINE_NEED_QWEN3_SELECTED, Toast.LENGTH_SHORT).show()
+            AlertDialog.Builder(this)
+                .setTitle("切換為雙引擎模式")
+                .setMessage("雙引擎模式需以 Qwen3-ASR 作為核心辨識引擎，並由 X-ASR 提供即時文字預覽。\n\n是否立即將辨識引擎切換為 Qwen3-ASR 並開啟雙引擎模式？")
+                .setPositiveButton("切換並開啟") { _, _ ->
+                    ModelConfig.setSelectedEngine(this, ModelConfig.ENGINE_QWEN3)
+                    ModelConfig.setDualEngineEnabled(this, true)
+                    updateAllStatus()
+                    Toast.makeText(this, "已切換為 Qwen3-ASR 並啟用雙引擎模式", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("取消", null)
+                .show()
         }
     }
 
