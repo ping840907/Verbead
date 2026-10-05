@@ -20,6 +20,8 @@ app/src/main/assets/models/
 /qwen3_asr/
 /x_asr/
 *.onnx
+*.zip
+voiceime_models.zip
 
 # AAR / JAR binary libraries
 app/libs/*.aar

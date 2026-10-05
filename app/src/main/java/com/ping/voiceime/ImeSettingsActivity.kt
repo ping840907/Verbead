@@ -27,6 +27,7 @@ import com.ping.voiceime.engine.ModelConfig
 import com.ping.voiceime.engine.ModelDownloadSpec
 import com.ping.voiceime.engine.ModelDownloadState
 import com.ping.voiceime.engine.ModelDownloader
+import com.ping.voiceime.engine.ModelZipInstaller
 import com.ping.voiceime.util.HapticUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -106,6 +107,21 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnOcrSepSpace: MaterialButton
     private lateinit var btnOcrSepNone: MaterialButton
 
+    // Model Package ZIP Import
+    private lateinit var tvAllModelsBadge: TextView
+    private lateinit var progressImportModels: LinearProgressIndicator
+    private lateinit var tvImportModelsStatus: TextView
+    private lateinit var btnImportModelsZip: MaterialButton
+    private lateinit var btnQuickImportDownload: MaterialButton
+
+    private val pickZipFileLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            runModelPackageImport(uri = it)
+        }
+    }
+
     private val requestMic = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
@@ -143,6 +159,34 @@ class ImeSettingsActivity : AppCompatActivity() {
         bindViews()
         setupListeners()
         updateAllStatus()
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        android.util.Log.d("VoiceIME_Zip", "handleIntent: ${intent.extras}")
+        if (intent.getBooleanExtra("auto_import_default_zip", false)) {
+            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
+            android.util.Log.d("VoiceIME_Zip", "auto_import_default_zip -> quickFile: $quickFile")
+            if (quickFile != null) {
+                runModelPackageImport(file = quickFile)
+            }
+        } else if (intent.hasExtra("import_zip_path")) {
+            val path = intent.getStringExtra("import_zip_path")
+            android.util.Log.d("VoiceIME_Zip", "import_zip_path: $path")
+            if (!path.isNullOrEmpty()) {
+                val f = java.io.File(path)
+                if (f.exists()) {
+                    runModelPackageImport(file = f)
+                }
+            }
+        }
     }
 
     private fun bindViews() {
@@ -202,6 +246,13 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnOcrSepNewline     = findViewById(R.id.btn_ocr_sep_newline)
         btnOcrSepSpace       = findViewById(R.id.btn_ocr_sep_space)
         btnOcrSepNone        = findViewById(R.id.btn_ocr_sep_none)
+
+        // Model Package ZIP Import
+        tvAllModelsBadge        = findViewById(R.id.tv_all_models_badge)
+        progressImportModels    = findViewById(R.id.progress_import_models)
+        tvImportModelsStatus    = findViewById(R.id.tv_import_models_status)
+        btnImportModelsZip      = findViewById(R.id.btn_import_models_zip)
+        btnQuickImportDownload  = findViewById(R.id.btn_quick_import_download)
     }
 
     private fun setupListeners() {
@@ -336,6 +387,32 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnOcrSepNewline.setOnClickListener { updateOcrSepSelection("\n") }
         btnOcrSepSpace.setOnClickListener { updateOcrSepSelection(" ") }
         btnOcrSepNone.setOnClickListener { updateOcrSepSelection("") }
+
+        // Model Package ZIP Import
+        btnImportModelsZip.setOnClickListener {
+            try {
+                pickZipFileLauncher.launch(
+                    arrayOf(
+                        "application/zip",
+                        "application/x-zip-compressed",
+                        "application/octet-stream",
+                        "*/*"
+                    )
+                )
+            } catch (ex: Exception) {
+                Toast.makeText(this, "無法開啟檔案選擇器：${ex.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnQuickImportDownload.setOnClickListener {
+            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
+            if (quickFile != null) {
+                runModelPackageImport(file = quickFile)
+            } else {
+                Toast.makeText(this, "未找到 Download/voiceime_models.zip", Toast.LENGTH_SHORT).show()
+                btnQuickImportDownload.visibility = View.GONE
+            }
+        }
     }
 
     override fun onStart() {
@@ -624,6 +701,82 @@ class ImeSettingsActivity : AppCompatActivity() {
             tvOverallBadge.text = "需要設定"
             tvOverallBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
             tvOverallBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
+        }
+
+        // Offline Model Package Status
+        val allModelsReady = ModelConfig.areAllModelsReady(this)
+        if (allModelsReady) {
+            tvAllModelsBadge.text = "全部模型已就緒"
+            tvAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
+            tvAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
+        } else {
+            tvAllModelsBadge.text = "未完全就緒"
+            tvAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
+            tvAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
+        }
+
+        val quickZip = ModelZipInstaller.findDefaultZipPackage(this)
+        if (quickZip != null) {
+            btnQuickImportDownload.visibility = View.VISIBLE
+            val sizeMb = quickZip.length() / (1024 * 1024)
+            btnQuickImportDownload.text = "⚡ 快速從 Download 載入預載模型包 (${sizeMb}MB)"
+        } else {
+            btnQuickImportDownload.visibility = View.GONE
+        }
+    }
+
+    private fun runModelPackageImport(file: java.io.File? = null, uri: Uri? = null) {
+        btnImportModelsZip.isEnabled = false
+        btnQuickImportDownload.isEnabled = false
+        progressImportModels.visibility = View.VISIBLE
+        progressImportModels.progress = 0
+        tvImportModelsStatus.visibility = View.VISIBLE
+        tvImportModelsStatus.text = "正在準備解壓模型包…"
+
+        scope.launch {
+            val result = if (file != null) {
+                ModelZipInstaller.installFromFile(this@ImeSettingsActivity, file) { currentFile, pct ->
+                    runOnUiThread {
+                        progressImportModels.progress = pct
+                        tvImportModelsStatus.text = "解壓中：$currentFile ($pct%)"
+                    }
+                }
+            } else if (uri != null) {
+                ModelZipInstaller.installFromUri(this@ImeSettingsActivity, uri) { currentFile, pct ->
+                    runOnUiThread {
+                        progressImportModels.progress = pct
+                        tvImportModelsStatus.text = "解壓中：$currentFile ($pct%)"
+                    }
+                }
+            } else {
+                ModelZipInstaller.InstallResult(
+                    isSuccess = false,
+                    xAsrReady = false,
+                    qwen3Ready = false,
+                    ocrReady = false,
+                    fileCount = 0,
+                    totalBytes = 0,
+                    message = "無效的檔案來源"
+                )
+            }
+
+            btnImportModelsZip.isEnabled = true
+            btnQuickImportDownload.isEnabled = true
+            progressImportModels.visibility = View.GONE
+
+            if (result.isSuccess) {
+                tvImportModelsStatus.text = "✅ ${result.message}"
+                updateAllStatus()
+                AlertDialog.Builder(this@ImeSettingsActivity)
+                    .setTitle("離線模型一鍵復原成功")
+                    .setMessage("已成功復原共 ${result.fileCount} 個模型核心檔案！\n\n已就緒項目：\n• Qwen3-ASR 高精度離線語音\n• X-ASR 極速即時串流語音\n• PP-OCRv6 端側文字辨識\n\n所有功能均已就緒，可立即使用。")
+                    .setPositiveButton("太棒了", null)
+                    .show()
+            } else {
+                tvImportModelsStatus.text = "❌ ${result.message}"
+                Toast.makeText(this@ImeSettingsActivity, result.message, Toast.LENGTH_LONG).show()
+                updateAllStatus()
+            }
         }
     }
 

@@ -57,9 +57,13 @@ object ModelConfig {
         context.getSharedPreferences(PREF_VAD, Context.MODE_PRIVATE)
             .edit().putFloat(KEY_VAD_SILENCE, seconds.coerceIn(VAD_SILENCE_MIN, VAD_SILENCE_MAX)).apply()
 
+    fun getPrimaryModelsDir(context: Context): File {
+        return context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+    }
+
     fun modelsDir(context: Context): String {
         val primary = context.getExternalFilesDir("models")
-        if (primary != null && File(primary, OCR_DIR).exists()) {
+        if (primary != null && (File(primary, OCR_DIR).exists() || File(primary, X_ASR_DIR).exists() || File(primary, QWEN3_ASR_DIR).exists())) {
             return primary.absolutePath
         }
         val altPaths = listOf(
@@ -373,6 +377,9 @@ object ModelConfig {
             OCR_MODEL_TINY, OCR_MODEL_SMALL -> isOcrReady(context, engine)
             else -> isQwen3Ready(context)
         }
+
+    fun areAllModelsReady(context: Context): Boolean =
+        isXAsrReady(context) && isQwen3Ready(context) && isOcrReady(context)
 
     // ── Onboarding / Setup Wizard ─────────────────────────────────────────────
     const val MODE_BUBBLE = "bubble"

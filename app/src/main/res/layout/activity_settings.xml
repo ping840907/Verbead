@@ -478,6 +478,130 @@
         </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- SECTION: 離線模型包匯入與復原                                   -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="離線模型包匯入與復原"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:letterSpacing="0.04"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_import_models"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/surface_card_stroke"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surface_card"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="離線模型一鍵復原"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+
+                    <TextView
+                        android:id="@+id/tv_all_models_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="未完全就緒"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/status_warning_text"
+                        android:background="@drawable/bg_status_badge_warning"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="包含 Qwen3-ASR、X-ASR 與 PP-OCRv6 全部離線模型。載入模型包 (.zip) 將自動解壓縮並一併復原所有模型，免去逐一下載。"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="12dp"
+                    android:lineSpacingExtra="1dp" />
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progress_import_models"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:trackCornerRadius="4dp"
+                    app:trackThickness="6dp"
+                    app:indicatorColor="@color/md_theme_light_primary"
+                    app:trackColor="@color/background"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_import_models_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="@color/md_theme_light_primary"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- 按鈕 1: 從系統選取檔案 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_import_models_zip"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="選取模型包 (.zip) 並解壓復原"
+                        android:textSize="13sp"
+                        app:cornerRadius="20dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+
+                    <!-- 按鈕 2: 快捷從 Download/voiceime_models.zip 載入 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_quick_import_download"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:text="⚡ 快速從 Download 載入 voiceime_models.zip"
+                        android:textSize="12sp"
+                        app:cornerRadius="19dp"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_marginTop="8dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- SECTION 3: 辨識引擎 (並排: X-ASR | Qwen3-ASR)                -->
         <!-- ══════════════════════════════════════════════════════════════ -->
         <TextView

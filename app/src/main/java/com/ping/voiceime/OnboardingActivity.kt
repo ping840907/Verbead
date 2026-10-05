@@ -24,6 +24,7 @@ import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.voiceime.engine.ModelConfig
 import com.ping.voiceime.engine.ModelDownloadState
+import com.ping.voiceime.engine.ModelZipInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -90,6 +91,21 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var progressOcr: LinearProgressIndicator
     private lateinit var tvStatusOcr: TextView
     private lateinit var btnDownloadOcr: MaterialButton
+
+    // Step 4 Model Package ZIP Import
+    private lateinit var tvOnboardingAllModelsBadge: TextView
+    private lateinit var progressOnboardingImportModels: LinearProgressIndicator
+    private lateinit var tvOnboardingImportStatus: TextView
+    private lateinit var btnOnboardingQuickImportDownload: MaterialButton
+    private lateinit var btnOnboardingImportZip: MaterialButton
+
+    private val pickZipFileLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            runModelPackageImport(uri = it)
+        }
+    }
 
     // Step 5 Views
     private lateinit var layoutQwen3Preferences: LinearLayout
@@ -200,6 +216,13 @@ class OnboardingActivity : AppCompatActivity() {
         progressOcr      = findViewById(R.id.progress_onboarding_ocr)
         tvStatusOcr      = findViewById(R.id.tv_onboarding_status_ocr)
         btnDownloadOcr   = findViewById(R.id.btn_onboarding_download_ocr)
+
+        // Step 4 Model Package ZIP Import
+        tvOnboardingAllModelsBadge        = findViewById(R.id.tv_onboarding_all_models_badge)
+        progressOnboardingImportModels    = findViewById(R.id.progress_onboarding_import_models)
+        tvOnboardingImportStatus          = findViewById(R.id.tv_onboarding_import_status)
+        btnOnboardingQuickImportDownload  = findViewById(R.id.btn_onboarding_quick_import_download)
+        btnOnboardingImportZip            = findViewById(R.id.btn_onboarding_import_zip)
 
         // Step 5
         layoutQwen3Preferences = findViewById(R.id.layout_qwen3_preferences)
@@ -314,6 +337,32 @@ class OnboardingActivity : AppCompatActivity() {
         btnDownloadOcr.setOnClickListener {
             val engine = ModelConfig.selectedOcrModel(this)
             handleDownloadButtonClick(engine)
+        }
+
+        // Step 4: Model Package ZIP Import
+        btnOnboardingImportZip.setOnClickListener {
+            try {
+                pickZipFileLauncher.launch(
+                    arrayOf(
+                        "application/zip",
+                        "application/x-zip-compressed",
+                        "application/octet-stream",
+                        "*/*"
+                    )
+                )
+            } catch (ex: Exception) {
+                Toast.makeText(this, "無法開啟檔案選擇器: ${ex.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnOnboardingQuickImportDownload.setOnClickListener {
+            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
+            if (quickFile != null) {
+                runModelPackageImport(file = quickFile)
+            } else {
+                Toast.makeText(this, "未找到 Download/voiceime_models.zip", Toast.LENGTH_SHORT).show()
+                btnOnboardingQuickImportDownload.visibility = View.GONE
+            }
         }
 
         // Step 5: Preferences
@@ -490,6 +539,77 @@ class OnboardingActivity : AppCompatActivity() {
             btnDownloadXasr.text = if (xAsrReady) "已就緒" else "下載 X-ASR 模型"
             btnDownloadQwen3.text = if (qwen3Ready) "已就緒" else "下載 Qwen3-ASR 模型"
             btnDownloadOcr.text = if (ocrReady) "已就緒" else "下載 PP-OCRv6 模型 (${if (isTiny) "11MB" else "22MB"})"
+        }
+
+        val allModelsReady = ModelConfig.areAllModelsReady(this)
+        if (allModelsReady) {
+            tvOnboardingAllModelsBadge.text = "全部模型已就緒"
+            tvOnboardingAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
+            tvOnboardingAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
+        } else {
+            tvOnboardingAllModelsBadge.text = "推薦離線復原"
+            tvOnboardingAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.tag_recommend))
+            tvOnboardingAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_recommend)
+        }
+
+        val quickZip = ModelZipInstaller.findDefaultZipPackage(this)
+        if (quickZip != null) {
+            btnOnboardingQuickImportDownload.visibility = View.VISIBLE
+            val sizeMb = quickZip.length() / (1024 * 1024)
+            btnOnboardingQuickImportDownload.text = "⚡ 快速從 Download 載入模型包 (${sizeMb}MB)"
+        } else {
+            btnOnboardingQuickImportDownload.visibility = View.GONE
+        }
+    }
+
+    private fun runModelPackageImport(file: java.io.File? = null, uri: Uri? = null) {
+        btnOnboardingImportZip.isEnabled = false
+        btnOnboardingQuickImportDownload.isEnabled = false
+        progressOnboardingImportModels.visibility = View.VISIBLE
+        progressOnboardingImportModels.progress = 0
+        tvOnboardingImportStatus.visibility = View.VISIBLE
+        tvOnboardingImportStatus.text = "正在準備解壓模型包…"
+
+        scope.launch {
+            val result = if (file != null) {
+                ModelZipInstaller.installFromFile(this@OnboardingActivity, file) { currentFile, pct ->
+                    runOnUiThread {
+                        progressOnboardingImportModels.progress = pct
+                        tvOnboardingImportStatus.text = "解壓中：$currentFile ($pct%)"
+                    }
+                }
+            } else if (uri != null) {
+                ModelZipInstaller.installFromUri(this@OnboardingActivity, uri) { currentFile, pct ->
+                    runOnUiThread {
+                        progressOnboardingImportModels.progress = pct
+                        tvOnboardingImportStatus.text = "解壓中：$currentFile ($pct%)"
+                    }
+                }
+            } else {
+                ModelZipInstaller.InstallResult(
+                    isSuccess = false,
+                    xAsrReady = false,
+                    qwen3Ready = false,
+                    ocrReady = false,
+                    fileCount = 0,
+                    totalBytes = 0,
+                    message = "無效的檔案來源"
+                )
+            }
+
+            btnOnboardingImportZip.isEnabled = true
+            btnOnboardingQuickImportDownload.isEnabled = true
+            progressOnboardingImportModels.visibility = View.GONE
+
+            if (result.isSuccess) {
+                tvOnboardingImportStatus.text = "✅ ${result.message}"
+                updateStep4Status()
+                Toast.makeText(this@OnboardingActivity, "所有模型已成功解壓並復原！", Toast.LENGTH_LONG).show()
+            } else {
+                tvOnboardingImportStatus.text = "❌ ${result.message}"
+                Toast.makeText(this@OnboardingActivity, result.message, Toast.LENGTH_LONG).show()
+                updateStep4Status()
+            }
         }
     }
 
