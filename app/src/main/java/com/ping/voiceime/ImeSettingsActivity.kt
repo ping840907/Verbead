@@ -20,6 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.voiceime.engine.AudioRoutingManager
@@ -56,6 +57,11 @@ class ImeSettingsActivity : AppCompatActivity() {
     // Node 1: Mic Root
     private lateinit var tvMicStatus: TextView
     private lateinit var btnGrantMic: MaterialButton
+
+    // Nearby Devices
+    private lateinit var cardNearbyDevicesRoot: MaterialCardView
+    private lateinit var tvNearbyDevicesStatus: TextView
+    private lateinit var btnGrantNearbyDevices: MaterialButton
 
     // Node 2: Bubble Module
 
@@ -134,6 +140,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         updateAllStatus()
     }
 
+    private val requestNearbyDevices = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        updateAllStatus()
+    }
+
     private val requestNotifications = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
@@ -197,6 +209,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         // Node 1: Mic
         tvMicStatus = findViewById(R.id.tv_mic_status)
         btnGrantMic = findViewById(R.id.btn_grant_mic)
+
+        // Nearby Devices
+        cardNearbyDevicesRoot  = findViewById(R.id.card_nearby_devices_root)
+        tvNearbyDevicesStatus  = findViewById(R.id.tv_nearby_devices_status)
+        btnGrantNearbyDevices  = findViewById(R.id.btn_grant_nearby_devices)
 
         // Node 2: Bubble Module
         tvBubbleBadge             = findViewById(R.id.tv_bubble_badge)
@@ -276,6 +293,42 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnGrantCamera.setOnClickListener {
             requestCamera.launch(Manifest.permission.CAMERA)
         }
+
+        // Nearby Devices Shortcut
+        fun performNearbyDevicesShortcut() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val hasConnect = ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) == PackageManager.PERMISSION_GRANTED
+                if (!hasConnect) {
+                    requestNearbyDevices.launch(
+                        arrayOf(
+                            Manifest.permission.BLUETOOTH_CONNECT,
+                            Manifest.permission.BLUETOOTH_SCAN
+                        )
+                    )
+                } else {
+                    // 已就緒時點擊作為捷徑直接跳轉至系統應用程式權限或藍牙設定
+                    try {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                        startActivity(intent)
+                    } catch (_: Exception) {
+                        startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                    }
+                }
+            } else {
+                try {
+                    startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                } catch (_: Exception) {
+                    Toast.makeText(this, "此 Android 版本已預設允許藍牙耳機", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        btnGrantNearbyDevices.setOnClickListener { performNearbyDevicesShortcut() }
+        cardNearbyDevicesRoot.setOnClickListener { performNearbyDevicesShortcut() }
 
 
         // Node 2: Bubble & §3.2.1 高亮跳轉
@@ -546,6 +599,33 @@ class ImeSettingsActivity : AppCompatActivity() {
             tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
             btnGrantMic.text = "授予權限"
             btnGrantMic.isEnabled = true
+        }
+
+        // Nearby Devices Status
+        val nearbyGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+                    PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        if (nearbyGranted) {
+            val preferred = AudioRoutingManager.getInstance(this).getPreferredInputDevice()
+            val isBt = preferred?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+            if (isBt) {
+                tvNearbyDevicesStatus.text = "已就緒（目前連線：${preferred?.productName ?: "藍牙音訊裝置"}）"
+            } else {
+                tvNearbyDevicesStatus.text = "鄰近裝置權限已就緒（點此可管理系統權限）"
+            }
+            tvNearbyDevicesStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
+            btnGrantNearbyDevices.text = "已就緒"
+            btnGrantNearbyDevices.isEnabled = true
+        } else {
+            tvNearbyDevicesStatus.text = "藍牙耳機或外部麥克風連線收音所需，點擊前往授權"
+            tvNearbyDevicesStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnGrantNearbyDevices.text = "授予權限"
+            btnGrantNearbyDevices.isEnabled = true
         }
 
         val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
