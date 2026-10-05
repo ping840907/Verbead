@@ -2,6 +2,7 @@ package com.ping.voiceime.engine
 
 import android.content.Context
 import com.github.houbb.opencc4j.util.ZhConverterUtil
+import java.io.File
 
 object ModelConfig {
 
@@ -56,9 +57,23 @@ object ModelConfig {
         context.getSharedPreferences(PREF_VAD, Context.MODE_PRIVATE)
             .edit().putFloat(KEY_VAD_SILENCE, seconds.coerceIn(VAD_SILENCE_MIN, VAD_SILENCE_MAX)).apply()
 
-    fun modelsDir(context: Context): String =
-        context.getExternalFilesDir("models")?.absolutePath
-            ?: context.filesDir.absolutePath + "/models"
+    fun modelsDir(context: Context): String {
+        val primary = context.getExternalFilesDir("models")
+        if (primary != null && File(primary, OCR_DIR).exists()) {
+            return primary.absolutePath
+        }
+        val altPaths = listOf(
+            File(context.filesDir, "models"),
+            File("/storage/emulated/0/Android/data/com.ping.voiceime/files/models"),
+            File("/sdcard/Android/data/com.ping.voiceime/files/models")
+        )
+        for (alt in altPaths) {
+            if (File(alt, OCR_DIR).exists() || File(alt, X_ASR_DIR).exists() || File(alt, QWEN3_ASR_DIR).exists()) {
+                return alt.absolutePath
+            }
+        }
+        return primary?.absolutePath ?: (context.filesDir.absolutePath + "/models")
+    }
 
     // Qwen3
     fun qwen3AsrDir(context: Context)             = "${modelsDir(context)}/$QWEN3_ASR_DIR"
@@ -253,13 +268,18 @@ object ModelConfig {
     const val KEY_OCR_AUTO_ENTER = "ocr_auto_enter"
     const val KEY_OCR_SEPARATOR = "ocr_separator"
 
-    fun selectedOcrModel(context: Context): String =
-        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .getString(KEY_OCR_MODEL_SELECTION, OCR_MODEL_TINY) ?: OCR_MODEL_TINY
+    fun selectedOcrModel(context: Context): String {
+        val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getString(KEY_OCR_MODEL_SELECTION, null)
+        if (pref != null && isOcrReady(context, pref)) return pref
+        if (isOcrReady(context, OCR_MODEL_SMALL)) return OCR_MODEL_SMALL
+        if (isOcrReady(context, OCR_MODEL_TINY)) return OCR_MODEL_TINY
+        return pref ?: OCR_MODEL_SMALL
+    }
 
     fun setSelectedOcrModel(context: Context, model: String) =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .edit().putString(KEY_OCR_MODEL_SELECTION, model).apply()
+            .edit().putString(KEY_OCR_MODEL_SELECTION, model).commit()
 
     fun isOcrAutoEnterEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)

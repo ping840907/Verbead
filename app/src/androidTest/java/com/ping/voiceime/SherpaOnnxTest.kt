@@ -1,5 +1,10 @@
 package com.ping.voiceime
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -8,6 +13,7 @@ import com.ping.voiceime.engine.ModelDownloadSpec
 import com.ping.voiceime.engine.ModelDownloader
 import com.ping.voiceime.engine.XAsrEngine
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,10 +60,25 @@ class SherpaOnnxTest {
         Log.i(TAG, "OrtEnvironment and Sherpa-ONNX both loaded successfully!")
     }
 
+    private fun ensureOcrModels(context: android.content.Context) {
+        val dest = File(context.filesDir, "models/ocr")
+        dest.mkdirs()
+        val tmpOcr = File("/data/local/tmp/ocr")
+        if (tmpOcr.exists()) {
+            tmpOcr.listFiles()?.forEach { f ->
+                val target = File(dest, f.name)
+                if (!target.exists() || target.length() != f.length()) {
+                    f.copyTo(target, overwrite = true)
+                }
+            }
+        }
+    }
+
     @Test
     fun testPpOcrEngineLoad() {
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
+            ensureOcrModels(context)
             if (File(ModelConfig.ocrDetPath(context, ModelConfig.OCR_MODEL_SMALL)).exists()) {
                 ModelConfig.setSelectedOcrModel(context, ModelConfig.OCR_MODEL_SMALL)
             }
@@ -65,6 +86,95 @@ class SherpaOnnxTest {
             val loaded = ocr.load()
             Log.i(TAG, "PpOcrEngine loaded: $loaded, isReady: ${ocr.isReady}")
             assertTrue("PpOcrEngine should load successfully", loaded)
+            ocr.release()
+        }
+    }
+
+    @Test
+    fun testPpOcrVerticalTextRecognition() {
+        runBlocking {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            ensureOcrModels(context)
+            if (File(ModelConfig.ocrDetPath(context, ModelConfig.OCR_MODEL_SMALL)).exists()) {
+                ModelConfig.setSelectedOcrModel(context, ModelConfig.OCR_MODEL_SMALL)
+            }
+            val ocr = com.ping.voiceime.ocr.PpOcrEngine(context)
+            val loaded = ocr.load()
+            assertTrue("PpOcrEngine should load successfully", loaded)
+
+            suspend fun testOneVertical(text: String, gap: Float = 0f, bgColor: Int = Color.WHITE, textColor: Int = Color.BLACK) {
+                val fontSize = 44f
+                val charCount = text.length
+                val w = 72
+                val h = (20f + charCount * fontSize + (charCount - 1) * gap + 20f).toInt()
+                val bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                val cv = Canvas(bm)
+                cv.drawColor(bgColor)
+
+                val pt = Paint().apply {
+                    color = textColor
+                    textSize = fontSize
+                    isAntiAlias = true
+                    typeface = Typeface.DEFAULT_BOLD
+                    textAlign = Paint.Align.CENTER
+                }
+
+                for (i in text.indices) {
+                    val y = 20f + i * (fontSize + gap) + fontSize * 0.75f
+                    cv.drawText(text[i].toString(), w / 2f, y, pt)
+                }
+
+                val boxes = ocr.detectText(bm)
+                Log.i(TAG, "--- Testing '$text' (gap=$gap, bg=${String.format("#%06X", 0xFFFFFF and bgColor)}) ---")
+                Log.i(TAG, "Detected ${boxes.size} boxes for '$text'")
+                for ((idx, box) in boxes.withIndex()) {
+                    val rec = ocr.recognizeBox(bm, box)
+                    Log.i(TAG, "  Box $idx rect=$box -> '$rec'")
+                    assertEquals("Box $idx recognition should match", text, rec)
+                }
+                val direct = ocr.recognizeText(bm)
+                Log.i(TAG, "  Direct rec -> '$direct'")
+                assertEquals("Direct recognition should match", text, direct)
+            }
+
+            testOneVertical("牛肉麵")
+            testOneVertical("台北信義區")
+            testOneVertical("天仁茗茶", gap = 20f)
+            testOneVertical("風調雨順國泰民安")
+            testOneVertical("大吉大利", bgColor = Color.rgb(245, 235, 215)) // aged paper / cream
+            testOneVertical("珍珠奶茶半糖去冰")
+
+            suspend fun testOneHorizontal(text: String) {
+                val fontSize = 44f
+                val paint = Paint().apply {
+                    color = Color.BLACK
+                    textSize = fontSize
+                    isAntiAlias = true
+                    typeface = Typeface.DEFAULT_BOLD
+                }
+                val textW = paint.measureText(text)
+                val w = (textW + 40).toInt()
+                val h = (fontSize + 30).toInt()
+                val bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                val cv = Canvas(bm)
+                cv.drawColor(Color.WHITE)
+                cv.drawText(text, 20f, 15f + fontSize * 0.75f, paint)
+
+                val boxes = ocr.detectText(bm)
+                Log.i(TAG, "--- Horizontal test for '$text' ---")
+                for ((idx, box) in boxes.withIndex()) {
+                    val rec = ocr.recognizeBox(bm, box)
+                    Log.i(TAG, "  H Box $idx rect=$box -> '$rec'")
+                    assertEquals("H Box $idx recognition should match", text, rec)
+                }
+                val direct = ocr.recognizeText(bm)
+                Log.i(TAG, "  H Direct rec -> '$direct'")
+                assertEquals("H Direct recognition should match", text, direct)
+            }
+
+            testOneHorizontal("繁體中文語音輸入法")
+            testOneHorizontal("Hello World 123")
+
             ocr.release()
         }
     }

@@ -16,9 +16,9 @@ local.properties
 
 # Model files (large binaries — users download separately)
 app/src/main/assets/models/
-ocr/
-qwen3_asr/
-x_asr/
+/ocr/
+/qwen3_asr/
+/x_asr/
 *.onnx
 
 # AAR / JAR binary libraries

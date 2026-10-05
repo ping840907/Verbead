@@ -33,7 +33,7 @@ class PpOcrEngine(private val context: Context) {
         private const val REC_HEIGHT = 48
         private const val DB_THRESH = 0.2f
         private const val BOX_THRESH = 0.4f
-        private const val UNCLIP_RATIO = 1.4f
+        private const val UNCLIP_RATIO = 1.6f
     }
 
     private var env: OrtEnvironment? = null
@@ -48,13 +48,27 @@ class PpOcrEngine(private val context: Context) {
         try {
             if (isReady) return@withContext true
 
-            val detPath = ModelConfig.ocrDetPath(context)
-            val recPath = ModelConfig.ocrRecPath(context)
-            val dictPath = ModelConfig.ocrDictPath(context)
+            var detPath = ModelConfig.ocrDetPath(context)
+            var recPath = ModelConfig.ocrRecPath(context)
+            var dictPath = ModelConfig.ocrDictPath(context)
 
             if (!File(detPath).exists() || !File(recPath).exists()) {
-                Log.w(TAG, "OCR models not found at: $detPath or $recPath")
-                return@withContext false
+                val altModel = if (ModelConfig.selectedOcrModel(context) == ModelConfig.OCR_MODEL_TINY) {
+                    ModelConfig.OCR_MODEL_SMALL
+                } else {
+                    ModelConfig.OCR_MODEL_TINY
+                }
+                val altDet = ModelConfig.ocrDetPath(context, altModel)
+                val altRec = ModelConfig.ocrRecPath(context, altModel)
+                if (File(altDet).exists() && File(altRec).exists()) {
+                    detPath = altDet
+                    recPath = altRec
+                    dictPath = ModelConfig.ocrDictPath(context, altModel)
+                    ModelConfig.setSelectedOcrModel(context, altModel)
+                } else {
+                    Log.w(TAG, "OCR models not found at: $detPath or $recPath")
+                    return@withContext false
+                }
             }
 
             env = OrtEnvironment.getEnvironment()
@@ -274,13 +288,14 @@ class PpOcrEngine(private val context: Context) {
                     val avgScore = if (count > 0) scoreSum / count else 0.0
 
                     if (bw >= 6 && bh >= 6 && avgScore >= BOX_THRESH) {
-                        // Unclip / expand box slightly
-                        val expandX = (bw * (UNCLIP_RATIO - 1.0f) / 2).toInt()
-                        val expandY = (bh * (UNCLIP_RATIO - 1.0f) / 2).toInt()
-                        val unclipLeft = max(0, minX - expandX).toFloat()
-                        val unclipTop = max(0, minY - expandY).toFloat()
-                        val unclipRight = min(w - 1, maxX + expandX).toFloat()
-                        val unclipBottom = min(h - 1, maxY + expandY).toFloat()
+                        // Standard DBNet contour unclip: offset distance is based on area / perimeter
+                        val area = bw.toDouble() * bh
+                        val perimeter = 2.0 * (bw + bh)
+                        val d = ((area * (UNCLIP_RATIO - 1.0)) / perimeter).toInt().coerceAtLeast(1)
+                        val unclipLeft = max(0, minX - d).toFloat()
+                        val unclipTop = max(0, minY - d).toFloat()
+                        val unclipRight = min(w - 1, maxX + d).toFloat()
+                        val unclipBottom = min(h - 1, maxY + d).toFloat()
 
                         boxes.add(RectF(unclipLeft, unclipTop, unclipRight, unclipBottom))
                     }
@@ -295,10 +310,13 @@ class PpOcrEngine(private val context: Context) {
      */
     suspend fun recognizeBox(source: Bitmap, box: RectF): String = withContext(Dispatchers.Default) {
         try {
-            val left = box.left.toInt().coerceIn(0, source.width - 1)
-            val top = box.top.toInt().coerceIn(0, source.height - 1)
-            val right = box.right.toInt().coerceIn(left + 1, source.width)
-            val bottom = box.bottom.toInt().coerceIn(top + 1, source.height)
+            // Expand box slightly with contextual padding so outer stroke curves are not clipped
+            val padX = max(3, (box.width() * 0.08f).roundToInt())
+            val padY = max(3, (box.height() * 0.04f).roundToInt())
+            val left = (box.left - padX).toInt().coerceIn(0, source.width - 1)
+            val top = (box.top - padY).toInt().coerceIn(0, source.height - 1)
+            val right = (box.right + padX).toInt().coerceIn(left + 1, source.width)
+            val bottom = (box.bottom + padY).toInt().coerceIn(top + 1, source.height)
             val w = right - left
             val h = bottom - top
             if (w < 4 || h < 4) return@withContext ""
@@ -317,8 +335,8 @@ class PpOcrEngine(private val context: Context) {
     /**
      * Runs text recognition (PP-OCR Rec) on a cropped bounding box.
      * Accurately supports both horizontal text and vertical text (直排文字):
-     * For vertical boxes (H > W * 1.15), it automatically unrolls upright characters into a horizontal strip
-     * and evaluates orientation candidates to ensure reliable transcription of Chinese vertical columns and rotated text.
+     * For vertical boxes (H > W * 1.15), it automatically evaluates orientation & unrolling candidates
+     * to ensure reliable transcription of Chinese vertical columns and rotated text.
      */
     suspend fun recognizeText(crop: Bitmap): String = withContext(Dispatchers.Default) {
         val origW = crop.width
@@ -327,15 +345,11 @@ class PpOcrEngine(private val context: Context) {
 
         try {
             val resultText = if (origH > origW * 1.15f) {
-                // Vertical text box: evaluate multiple candidates
-                // Candidate 1: Upright vertical text unrolled into horizontal strip
-                val unrolled = unrollVerticalToHorizontal(crop)
-                val candUnroll = if (unrolled != null) recognizeHorizontalStrip(unrolled) else ("" to 0f)
-                if (unrolled != null && unrolled != crop) {
-                    unrolled.recycle()
-                }
+                // Vertical text box: evaluate orientation & unrolling candidates
 
-                // Candidate 2: Rotated 270 degrees (counter-clockwise 90, for sideways text / Latin)
+                // Candidate 1: Rotated 270 degrees (counter-clockwise 90).
+                // In Chinese vertical typesetting (top-to-bottom), 90 deg counter-clockwise maps top characters to the left,
+                // maintaining natural left-to-right reading sequence for PP-OCR's horizontal Rec model.
                 val matrix270 = Matrix().apply { postRotate(270f) }
                 val rot270 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix270, true)
                 val cand270 = recognizeHorizontalStrip(rot270)
@@ -343,7 +357,21 @@ class PpOcrEngine(private val context: Context) {
                     rot270.recycle()
                 }
 
-                // Candidate 3: Rotated 90 degrees
+                // Candidate 2: Upright vertical text unrolled into horizontal strip (adaptive gap segmentation)
+                val unrolled = unrollVerticalToHorizontal(crop)
+                val candUnroll = if (unrolled != null) recognizeHorizontalStrip(unrolled) else ("" to 0f)
+                if (unrolled != null && unrolled != crop) {
+                    unrolled.recycle()
+                }
+
+                // Candidate 3: Upright crop directly (for single character boxes where H/W is ~1.15-1.5)
+                val candUpright = if (origH <= origW * 1.55f) {
+                    recognizeHorizontalStrip(crop)
+                } else {
+                    "" to 0f
+                }
+
+                // Candidate 4: Rotated 90 degrees (for inverted/bottom-to-top text)
                 val matrix90 = Matrix().apply { postRotate(90f) }
                 val rot90 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix90, true)
                 val cand90 = recognizeHorizontalStrip(rot90)
@@ -351,24 +379,54 @@ class PpOcrEngine(private val context: Context) {
                     rot90.recycle()
                 }
 
-                // Score candidates: favor longer valid recognized text with good confidence
-                fun score(cand: Pair<String, Float>): Float {
-                    val clean = cand.first.trim()
-                    if (clean.isEmpty()) return -1f
-                    return clean.length * 15f + cand.second
+                // Score candidates: prioritize high confidence (>0.85), valid CJK/alphanumeric characters,
+                // favor natural unsliced candidates, and penalize noise punctuation/fragments and length that physically exceeds box capacity.
+                fun score(cand: Pair<String, Float>, isUnsliced: Boolean): Float {
+                    val text = cand.first.trim()
+                    if (text.isEmpty()) return -1f
+                    val avgConf = cand.second
+                    if (avgConf < 0.45f) return -1f
+
+                    val validChars = text.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() || it in "，。！？、；：" }
+                    val noiseChars = text.length - validChars
+                    val effectiveLength = validChars - noiseChars * 2.0f
+                    if (effectiveLength <= 0f) return -1f
+
+                    // Max characters that could physically fit in height origH with width origW
+                    val maxPossibleChars = (origH.toFloat() / (origW * 0.5f)).roundToInt() + 1
+                    var s = effectiveLength * (avgConf * avgConf) * 10f
+
+                    if (avgConf >= 0.85f) {
+                        s += 5f * avgConf
+                    }
+                    if (avgConf >= 0.95f) {
+                        s += 5f
+                    }
+                    if (isUnsliced) {
+                        s *= 1.3f // Strong preference for natural unsliced candidates
+                    }
+                    if (text.length > maxPossibleChars) {
+                        s -= (text.length - maxPossibleChars) * 15f
+                    }
+                    return s
                 }
 
-                val scoreUnroll = score(candUnroll)
-                val score270 = score(cand270)
-                val score90 = score(cand90)
+                val score270 = score(cand270, isUnsliced = true)
+                val scoreUnroll = score(candUnroll, isUnsliced = false)
+                val scoreUpright = score(candUpright, isUnsliced = true)
+                val score90 = score(cand90, isUnsliced = true)
 
-                val bestCandidate = when {
-                    scoreUnroll >= score270 && scoreUnroll >= score90 && scoreUnroll > 0f -> candUnroll.first
-                    score270 >= score90 && score270 > 0f -> cand270.first
-                    score90 > 0f -> cand90.first
-                    else -> candUnroll.first.ifEmpty { cand270.first }
-                }
-                bestCandidate
+                Log.d(TAG, "Vertical candidates for [${origW}x${origH}]: 270='${cand270.first}' (conf=${cand270.second}, s=$score270), unroll='${candUnroll.first}' (conf=${candUnroll.second}, s=$scoreUnroll), upright='${candUpright.first}' (conf=${candUpright.second}, s=$scoreUpright), 90='${cand90.first}' (conf=${cand90.second}, s=$score90)")
+
+                val candidates = listOf(
+                    Triple(cand270.first, score270, cand270.second),
+                    Triple(candUnroll.first, scoreUnroll, candUnroll.second),
+                    Triple(candUpright.first, scoreUpright, candUpright.second),
+                    Triple(cand90.first, score90, cand90.second)
+                )
+
+                val best = candidates.filter { it.second > 0f }.maxByOrNull { it.second }
+                best?.first ?: cand270.first.ifEmpty { candUnroll.first.ifEmpty { candUpright.first } }
             } else {
                 // Normal horizontal text box
                 recognizeHorizontalStrip(crop).first
@@ -382,24 +440,19 @@ class PpOcrEngine(private val context: Context) {
     }
 
     /**
-     * Unrolls a vertical column of upright Chinese characters into a horizontal strip of square character cells.
-     * Uses row stroke energy analysis to detect gaps between characters and slice them precisely.
+     * Unrolls a vertical column of upright Chinese characters into a horizontal strip.
+     * Uses row stroke energy and adaptive gap detection to preserve complete character cells
+     * without chopping characters or clipping canvas heights.
      */
     private fun unrollVerticalToHorizontal(crop: Bitmap): Bitmap? {
         val w = crop.width
         val h = crop.height
         if (w < 4 || h < 4) return null
 
-        val rawRatio = h.toFloat() / w
-        val estimatedCount = if (rawRatio >= 1.35f) max(2, rawRatio.roundToInt()).coerceIn(1, 40) else 1
-        if (estimatedCount <= 1) {
-            return Bitmap.createBitmap(crop)
-        }
-
         val pixels = IntArray(w * h)
         crop.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        // Calculate horizontal stroke energy per row to identify valleys between characters
+        // Calculate horizontal stroke energy per row to identify character strokes vs gaps
         val rowEnergy = FloatArray(h)
         for (y in 0 until h) {
             var sum = 0f
@@ -415,12 +468,12 @@ class PpOcrEngine(private val context: Context) {
             rowEnergy[y] = sum
         }
 
-        // 3-point moving average smoothing
+        // 5-point moving average smoothing
         val smoothed = FloatArray(h)
         for (y in 0 until h) {
             var s = 0f
             var count = 0
-            for (dy in -1..1) {
+            for (dy in -2..2) {
                 val ny = y + dy
                 if (ny in 0 until h) {
                     s += rowEnergy[ny]
@@ -430,26 +483,40 @@ class PpOcrEngine(private val context: Context) {
             smoothed[y] = s / count
         }
 
-        // Find split points (valleys in stroke energy)
-        val step = h.toFloat() / estimatedCount
+        val meanEnergy = smoothed.average().toFloat()
+        if (meanEnergy < 1f) return null // Blank image
+
+        // Character height reference: typically character height in Chinese text is comparable to column width
+        val expectedCharH = (w * 0.95f).roundToInt().coerceIn(12, h)
+        val minCharH = (expectedCharH * 0.6f).roundToInt().coerceAtLeast(8)
+        val maxCharH = (expectedCharH * 1.5f).roundToInt().coerceAtLeast(minCharH + 8)
+
+        // Detect split valleys across the vertical column
         val splits = mutableListOf<Int>()
         splits.add(0)
 
-        val searchRadius = (step * 0.35f).toInt().coerceAtLeast(2)
-        for (k in 1 until estimatedCount) {
-            val expectedY = (k * step).toInt()
-            val yMin = (expectedY - searchRadius).coerceIn(splits.last() + 4, h - 4)
-            val yMax = (expectedY + searchRadius).coerceIn(yMin, h - 1)
+        var curY = 0
+        while (curY < h) {
+            val nextExpected = curY + expectedCharH
+            if (nextExpected >= h - (minCharH / 2)) {
+                break
+            }
+            // Search for minimum stroke energy in window around nextExpected
+            val searchStart = (curY + minCharH).coerceIn(splits.last() + 4, h - 1)
+            val searchEnd = (curY + maxCharH).coerceIn(searchStart, h - 1)
 
-            var bestY = expectedY
-            var minEnergy = Float.MAX_VALUE
-            for (y in yMin..yMax) {
-                if (smoothed[y] < minEnergy) {
-                    minEnergy = smoothed[y]
+            var bestY = searchStart
+            var minVal = Float.MAX_VALUE
+            for (y in searchStart..searchEnd) {
+                val distPenalty = Math.abs(y - nextExpected).toFloat() / expectedCharH * (meanEnergy * 0.3f)
+                val cost = smoothed[y] + distPenalty
+                if (cost < minVal) {
+                    minVal = cost
                     bestY = y
                 }
             }
             splits.add(bestY)
+            curY = bestY
         }
         splits.add(h)
 
@@ -459,7 +526,7 @@ class PpOcrEngine(private val context: Context) {
             val top = splits[i]
             val bottom = splits[i + 1]
             val sliceH = bottom - top
-            if (sliceH >= 4) {
+            if (sliceH >= 6) {
                 val slice = Bitmap.createBitmap(crop, 0, top, w, sliceH)
                 slices.add(slice)
             }
@@ -467,22 +534,31 @@ class PpOcrEngine(private val context: Context) {
 
         if (slices.isEmpty()) return null
 
-        val cellW = w
-        val cellH = w
-        val totalW = cellW * slices.size
+        // Determine canvas dimensions: height is max of all slice heights (never clip!)
+        val maxSliceH = slices.maxOf { it.height }.coerceAtLeast(w)
+        val charSpacing = (maxSliceH * 0.08f).roundToInt().coerceIn(2, 10)
+        val totalW = slices.sumOf { it.width } + charSpacing * (slices.size - 1)
 
-        val outBitmap = Bitmap.createBitmap(totalW, cellH, Bitmap.Config.ARGB_8888)
+        val outBitmap = Bitmap.createBitmap(totalW, maxSliceH, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(outBitmap)
 
-        // Background color
-        canvas.drawColor(pixels[0])
+        // Background color: sample edge pixels
+        val edgeColors = intArrayOf(
+            pixels[0],
+            pixels[min(w - 1, pixels.size - 1)],
+            pixels[max(0, pixels.size - w)],
+            pixels[pixels.size - 1]
+        )
+        val bgR = edgeColors.map { Color.red(it) }.average().toInt()
+        val bgG = edgeColors.map { Color.green(it) }.average().toInt()
+        val bgB = edgeColors.map { Color.blue(it) }.average().toInt()
+        canvas.drawColor(Color.rgb(bgR, bgG, bgB))
 
-        for (i in slices.indices) {
-            val slice = slices[i]
-            val left = i * cellW
-            val offsetX = left + max(0, (cellW - slice.width) / 2)
-            val offsetY = max(0, (cellH - slice.height) / 2)
-            canvas.drawBitmap(slice, offsetX.toFloat(), offsetY.toFloat(), null)
+        var curLeft = 0
+        for (slice in slices) {
+            val offsetY = (maxSliceH - slice.height) / 2
+            canvas.drawBitmap(slice, curLeft.toFloat(), offsetY.toFloat(), null)
+            curLeft += slice.width + charSpacing
             slice.recycle()
         }
 
@@ -520,9 +596,9 @@ class PpOcrEngine(private val context: Context) {
             gPlane[i] = (Color.green(color) / 255.0f - 0.5f) / 0.5f
             bPlane[i] = (Color.blue(color) / 255.0f - 0.5f) / 0.5f
         }
-        floatBuffer.put(bPlane)
-        floatBuffer.put(gPlane)
         floatBuffer.put(rPlane)
+        floatBuffer.put(gPlane)
+        floatBuffer.put(bPlane)
         floatBuffer.flip()
 
         val inputShape = longArrayOf(1, 3, targetH.toLong(), targetW.toLong())
