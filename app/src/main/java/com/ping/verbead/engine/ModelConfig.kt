@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.engine
+package com.ping.verbead.engine
 
 import android.content.Context
 import com.github.houbb.opencc4j.util.ZhConverterUtil
@@ -192,19 +192,28 @@ object ModelConfig {
         '綉' to '繡',
         '祕' to '秘',
         '獃' to '呆',
-        '豔' to '艷',
+        '艷' to '豔',
         '踊' to '踴',
-        '洩' to '洩',
         '昇' to '升',
-        '衆' to '眾'
+        '衆' to '眾',
+        '啓' to '啟',
+        '爲' to '為',
+        '鉢' to '缽',
+        '糉' to '粽',
+        '賬' to '帳',
+        '脣' to '唇'
     )
 
     // ── Word & Character Normalization ────────────────────────────────────────
     /**
      * 正則表達式字詞替換規則架構：
-     * 1. 蘸 -> 沾：除古舊典故用詞（如「蘸甲」、「蘸火」）外，全面以正則表達式將「蘸」替換為常用規範字「沾」。
-     * 2. 迴應 -> 回應：語音辨識與簡繁轉換易將「回应」過度轉為「迴應」；除「巡迴/輪迴/迂迴/徘迴」等專用複合詞後接「應」外，
-     *    全面以負向回溯正則表達式將「迴應」替換為標準繁體字詞「回應」。
+     * 實作要點：詞彙規則先執行，單字異體字後執行，全部在 OpenCC 轉換之後執行。
+     * 1. 詞彙替換：
+     *    - 拼命 -> 拚命、打拼 -> 打拚、拼搏 -> 拚搏（拼圖、拼貼等其他詞彙不變）
+     *    - 迴應 -> 回應：除「巡迴/輪迴/迂迴/徘迴」等複合詞外，替換為「回應」
+     * 2. 單字正則替換：
+     *    - 蘸 -> 沾：除「蘸甲」、「蘸火」外，替換為常用字「沾」
+     *    - 泄 -> 洩：除「排泄」維持原字外，替換為常用字「洩」（(?<!排)泄）
      */
     data class WordReplacementRule(
         val name: String,
@@ -213,12 +222,24 @@ object ModelConfig {
         val replacement: String
     )
 
-    private val POST_PROCESSING_RULES = listOf(
+    private val VOCABULARY_RULES = listOf(
         WordReplacementRule(
-            name = "蘸 -> 沾",
-            fastCheck = { it.contains('蘸') },
-            regex = Regex("""(?!(?:蘸甲|蘸火))蘸"""),
-            replacement = "沾"
+            name = "拼命 -> 拚命",
+            fastCheck = { it.contains("拼命") },
+            regex = Regex("拼命"),
+            replacement = "拚命"
+        ),
+        WordReplacementRule(
+            name = "打拼 -> 打拚",
+            fastCheck = { it.contains("打拼") },
+            regex = Regex("打拼"),
+            replacement = "打拚"
+        ),
+        WordReplacementRule(
+            name = "拼搏 -> 拚搏",
+            fastCheck = { it.contains("拼搏") },
+            regex = Regex("拼搏"),
+            replacement = "拚搏"
         ),
         WordReplacementRule(
             name = "迴應 -> 回應",
@@ -228,22 +249,25 @@ object ModelConfig {
         )
     )
 
-    fun replaceZhan(text: String): String {
-        val rule = POST_PROCESSING_RULES[0]
-        if (text.isEmpty() || !rule.fastCheck(text)) return text
-        return text.replace(rule.regex, rule.replacement)
-    }
+    private val CHARACTER_RULES = listOf(
+        WordReplacementRule(
+            name = "蘸 -> 沾",
+            fastCheck = { it.contains('蘸') },
+            regex = Regex("""(?!(?:蘸甲|蘸火))蘸"""),
+            replacement = "沾"
+        ),
+        WordReplacementRule(
+            name = "泄 -> 洩",
+            fastCheck = { it.contains('泄') },
+            regex = Regex("""(?<!排)泄"""),
+            replacement = "洩"
+        )
+    )
 
-    fun replaceHuiYing(text: String): String {
-        val rule = POST_PROCESSING_RULES[1]
-        if (text.isEmpty() || !rule.fastCheck(text)) return text
-        return text.replace(rule.regex, rule.replacement)
-    }
-
-    fun applyPostRegexReplacements(text: String): String {
+    fun applyVocabularyRules(text: String): String {
         if (text.isEmpty()) return text
         var result = text
-        for (rule in POST_PROCESSING_RULES) {
+        for (rule in VOCABULARY_RULES) {
             if (rule.fastCheck(result)) {
                 result = result.replace(rule.regex, rule.replacement)
             }
@@ -251,13 +275,66 @@ object ModelConfig {
         return result
     }
 
+    fun applyCharacterRules(text: String): String {
+        if (text.isEmpty()) return text
+        var result = text
+        for (rule in CHARACTER_RULES) {
+            if (rule.fastCheck(result)) {
+                result = result.replace(rule.regex, rule.replacement)
+            }
+        }
+        return result
+    }
+
+    fun replaceZhan(text: String): String {
+        val rule = CHARACTER_RULES[0]
+        if (text.isEmpty() || !rule.fastCheck(text)) return text
+        return text.replace(rule.regex, rule.replacement)
+    }
+
+    fun replaceHuiYing(text: String): String {
+        val rule = VOCABULARY_RULES[3]
+        if (text.isEmpty() || !rule.fastCheck(text)) return text
+        return text.replace(rule.regex, rule.replacement)
+    }
+
+    fun replaceXie(text: String): String {
+        val rule = CHARACTER_RULES[1]
+        if (text.isEmpty() || !rule.fastCheck(text)) return text
+        return text.replace(rule.regex, rule.replacement)
+    }
+
+    fun replacePin(text: String): String {
+        if (text.isEmpty() || !text.contains('拼')) return text
+        var result = text
+        for (i in 0..2) {
+            val rule = VOCABULARY_RULES[i]
+            if (rule.fastCheck(result)) {
+                result = result.replace(rule.regex, rule.replacement)
+            }
+        }
+        return result
+    }
+
+    fun applyPostRegexReplacements(text: String): String {
+        if (text.isEmpty()) return text
+        // 詞彙規則先執行
+        val vocabApplied = applyVocabularyRules(text)
+        // 單字正則替換
+        return applyCharacterRules(vocabApplied)
+    }
+
     fun normalizeTaiwanVariants(text: String): String {
         if (text.isEmpty()) return text
-        val sb = java.lang.StringBuilder(text.length)
-        for (ch in text) {
+        // 1. 詞彙規則先執行
+        val vocabApplied = applyVocabularyRules(text)
+        // 2. 單字異體字替換
+        val sb = java.lang.StringBuilder(vocabApplied.length)
+        for (ch in vocabApplied) {
             sb.append(VARIANT_REPLACEMENTS[ch] ?: ch)
         }
-        return applyPostRegexReplacements(sb.toString())
+        // 3. 單字正則規則
+        return applyCharacterRules(sb.toString())
     }
 
     // ── PP-OCRv6 (Det & Rec) ────────────────────────────────────────────────

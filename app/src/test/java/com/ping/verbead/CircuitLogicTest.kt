@@ -110,6 +110,47 @@ class CircuitLogicTest {
     }
 
     @Test
+    fun testPhase2VocabularyReplacement() {
+        // 拼命、打拼、拼搏各一條；拼圖、拼貼等其他詞彙不變
+        assertEquals("大家拚命往前衝", ModelConfig.replacePin("大家拼命往前衝"))
+        assertEquals("年輕人在外打拚", ModelConfig.replacePin("年輕人在外打拼"))
+        assertEquals("頑強拚搏精神", ModelConfig.replacePin("頑強拼搏精神"))
+        assertEquals("愛玩拼圖遊戲", ModelConfig.replacePin("愛玩拼圖遊戲"))
+        assertEquals("藝術拼貼畫", ModelConfig.replacePin("藝術拼貼畫"))
+    }
+
+    @Test
+    fun testPhase2VariantCharactersAndXie() {
+        // 排泄維持原字，泄漏替換為洩漏
+        assertEquals("排泄系統與排泄物正常", ModelConfig.replaceXie("排泄系統與排泄物正常"))
+        assertEquals("瓦斯氣體洩漏，宣洩情緒，水洩不通", ModelConfig.replaceXie("瓦斯氣體泄漏，宣泄情緒，水泄不通"))
+
+        // 單字異體字
+        assertEquals("啟動", ModelConfig.normalizeTaiwanVariants("啓動"))
+        assertEquals("為什麼", ModelConfig.normalizeTaiwanVariants("爲什麼"))
+        assertEquals("豔麗", ModelConfig.normalizeTaiwanVariants("艷麗"))
+        assertEquals("衣缽", ModelConfig.normalizeTaiwanVariants("衣鉢"))
+        assertEquals("粽子", ModelConfig.normalizeTaiwanVariants("糉子"))
+        assertEquals("記帳", ModelConfig.normalizeTaiwanVariants("記賬"))
+        assertEquals("唇膏", ModelConfig.normalizeTaiwanVariants("脣膏"))
+    }
+
+    @Test
+    fun testPhase2MixedSentencePipeline() {
+        // 混合句子涵蓋：排泄、泄漏、拼圖、拼命、打拼、拼搏及多個異體字
+        val input = "工廠氣體泄漏，大家拼命打拼拼搏，回家完成拼圖拼貼。人體排泄正常，啓動了爲了艷麗脣膏與金鉢糉子之記賬。"
+        val expected = "工廠氣體洩漏，大家拚命打拚拚搏，回家完成拼圖拼貼。人體排泄正常，啟動了為了豔麗唇膏與金缽粽子之記帳。"
+        val actual = ModelConfig.normalizeTaiwanVariants(input)
+        assertEquals(expected, actual)
+
+        // 簡體轉繁體完整管線驗證
+        val simplifiedInput = "工厂气体泄漏，大家拼命打拼拼搏，爱玩拼图。人体排泄正常，启动了为了艳丽唇膏。"
+        val expectedTrad = "工廠氣體洩漏，大家拚命打拚拚搏，愛玩拼圖。人體排泄正常，啟動了為了豔麗唇膏。"
+        val actualTrad = ModelConfig.toTaiwanTraditional(simplifiedInput)
+        assertEquals(expectedTrad, actualTrad)
+    }
+
+    @Test
     fun testCircuitLogicScenarioA() {
         // 情境 A:
         // mic=true, Bubble ok, X_ASR ok, QWEN3 ok, selected=X_ASR
