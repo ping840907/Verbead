@@ -46,6 +46,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -189,6 +190,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     // PP-OCR snapshot
     private var ocrSnapshotView: View? = null
+    private var currentSnapshotBitmap: Bitmap? = null
     private var ocrSnapshotLayoutParams: WindowManager.LayoutParams? = null
     private var isOcrSnapshotActive = false
 
@@ -279,6 +281,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     override fun onCreate() {
         super.onCreate()
+        if (!Settings.canDrawOverlays(this)) {
+            Log.w(TAG, "Overlay permission not granted! Aborting service startup.")
+            stopSelf()
+            return
+        }
         instance = this
         isRunning = true
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
@@ -292,17 +299,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         createNotificationChannel()
         startForegroundWithNotification()
-
-        if (Settings.canDrawOverlays(this)) {
-            setupBubbleView()
-        } else {
-            Log.w(TAG, "Overlay permission not granted!")
-            stopSelf()
-        }
+        setupBubbleView()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            Log.w(TAG, "START_STICKY restarted without overlay permission, stopping self.")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -1016,7 +1022,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         lp.y = windowLayoutParams.y - (48 * density).toInt()
         try {
             windowManager.updateViewLayout(view, lp)
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update xButton layout", e)
+        }
     }
 
     // 獨立懸浮 X 鍵視窗（完全獨立 WindowManager 視窗，徹底消除氣泡視窗高度變更產生的任何擠壓或閃爍）
@@ -1069,7 +1077,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (view.isAttachedToWindow) {
             try {
                 windowManager.removeView(view)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove previous xButtonView", e)
+            }
         }
         view.alpha = 0f
         view.translationY = dpToPx(12f)
@@ -1104,7 +1114,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (view.isAttachedToWindow) {
                     try {
                         windowManager.removeView(view)
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove xButtonView on hide end", e)
+                    }
                 }
             }
             .start()
@@ -1119,7 +1131,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (view.isAttachedToWindow) {
             try {
                 windowManager.removeView(view)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove xButtonView immediately", e)
+            }
         }
     }
 
@@ -1826,7 +1840,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         lp.y = (capsuleInitialY + effectiveDy).toInt()
         try {
             windowManager.updateViewLayout(menu, lp)
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update capsuleMenuView layout", e)
+        }
 
         // Find which item's screen center is closest to bubble center
         var closestIndex = currentIndex
@@ -1962,7 +1978,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (menu.isAttachedToWindow) {
             try {
                 windowManager.removeView(menu)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove capsuleMenuView", e)
+            }
         }
     }
 
@@ -2264,7 +2282,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         try {
             cameraProvider?.unbindAll()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to unbind cameraProvider in stopScannerMode", e)
+        }
 
         val density = resources.displayMetrics.density
         val targetTranslationX = if (isDockedOnRight) (40 * density) else -(40 * density)
@@ -2278,7 +2298,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (scanner.isAttachedToWindow) {
                     try {
                         windowManager.removeView(scanner)
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove scannerView", e)
+                    }
                 }
                 scannerView = null
                 checkAndHideBubbleIfKeyboardClosed(animate = true)
@@ -2515,7 +2537,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         try {
             cameraProvider?.unbindAll()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to unbind cameraProvider in stopOcrMode", e)
+        }
 
         val density = resources.displayMetrics.density
         val targetTranslationX = if (isDockedOnRight) (40 * density) else -(40 * density)
@@ -2529,7 +2553,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (ocr.isAttachedToWindow) {
                     try {
                         windowManager.removeView(ocr)
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove ocrWindowView", e)
+                    }
                 }
                 ocrWindowView = null
                 checkAndHideBubbleIfKeyboardClosed(animate = true)
@@ -2644,15 +2670,35 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val viewFinder = ocrWindowView?.findViewById<PreviewView>(R.id.ocr_view_finder)
             ?: scannerView?.findViewById<PreviewView>(R.id.scanner_view_finder)
             ?: return
-        val bitmap = viewFinder.bitmap ?: run {
+        val rawBitmap = viewFinder.bitmap ?: run {
             Toast.makeText(this, "無法截取目前相機畫面", Toast.LENGTH_SHORT).show()
             return
+        }
+
+        // 限制截圖最大邊長以避免高解析度相機畫面導致 OOM
+        val maxDim = 1280
+        val bitmap = if (rawBitmap.width > maxDim || rawBitmap.height > maxDim) {
+            val scale = maxDim.toFloat() / maxOf(rawBitmap.width, rawBitmap.height)
+            val newW = (rawBitmap.width * scale).toInt()
+            val newH = (rawBitmap.height * scale).toInt()
+            val scaled = Bitmap.createScaledBitmap(rawBitmap, newW, newH, true)
+            if (scaled !== rawBitmap) {
+                rawBitmap.recycle()
+            }
+            scaled
+        } else {
+            rawBitmap
         }
 
         showOcrSnapshotView(bitmap)
     }
 
     private fun showOcrSnapshotView(bitmap: Bitmap) {
+        currentSnapshotBitmap?.let {
+            if (!it.isRecycled) it.recycle()
+        }
+        currentSnapshotBitmap = bitmap
+
         if (ocrSnapshotView == null) {
             ocrSnapshotView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_ocr_snapshot, null)
         }
@@ -2867,6 +2913,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             hideXButton()
         }
 
+        val ivSnapshot = ocrView.findViewById<ImageView>(R.id.iv_ocr_snapshot)
+        ivSnapshot?.setImageBitmap(null)
+        currentSnapshotBitmap?.let {
+            if (!it.isRecycled) {
+                it.recycle()
+            }
+        }
+        currentSnapshotBitmap = null
+
         ocrView.animate()
             .alpha(0f)
             .setDuration(160)
@@ -2874,7 +2929,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (ocrView.isAttachedToWindow) {
                     try {
                         windowManager.removeView(ocrView)
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove ocrSnapshotView", e)
+                    }
                 }
                 ocrSnapshotView = null
                 checkAndHideBubbleIfKeyboardClosed(animate = true)
@@ -2943,15 +3000,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (xAsr.isLoaded()) xAsr.release()
 
         if (xButtonView != null && xButtonView?.isAttachedToWindow == true) {
-            windowManager.removeView(xButtonView)
+            try {
+                windowManager.removeView(xButtonView)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove xButtonView in onDestroy", e)
+            }
         }
         xButtonView = null
 
         if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
-            windowManager.removeView(bubbleView)
+            try {
+                windowManager.removeView(bubbleView)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove bubbleView in onDestroy", e)
+            }
         }
         if (::previewView.isInitialized && previewView.isAttachedToWindow) {
-            windowManager.removeView(previewView)
+            try {
+                windowManager.removeView(previewView)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove previewView in onDestroy", e)
+            }
         }
+        scope.cancel()
     }
 }

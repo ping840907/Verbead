@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.provider.OpenableColumns
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
@@ -22,6 +23,7 @@ import java.util.zip.ZipInputStream
  */
 object ModelZipInstaller {
 
+    private const val TAG = "Verbead_Zip"
     const val DEFAULT_ZIP_FILENAME = "verbead_models.zip"
 
     data class InstallResult(
@@ -50,9 +52,9 @@ object ModelZipInstaller {
         }
 
         for (c in candidates) {
-            val exists = try { c.exists() } catch (_: Exception) { false }
-            val canRead = try { c.canRead() } catch (_: Exception) { false }
-            android.util.Log.d("Verbead_Zip", "Candidate: ${c.absolutePath}, exists=$exists, canRead=$canRead")
+            val exists = try { c.exists() } catch (e: Exception) { Log.w(TAG, "exists check failed for ${c.absolutePath}", e); false }
+            val canRead = try { c.canRead() } catch (e: Exception) { Log.w(TAG, "canRead check failed for ${c.absolutePath}", e); false }
+            Log.d(TAG, "Candidate: ${c.absolutePath}, exists=$exists, canRead=$canRead")
             if (exists && canRead) return c
         }
         return null
@@ -77,7 +79,9 @@ object ModelZipInstaller {
                     }
                 }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to query size for uri $uri", e)
+        }
 
         val inputStream = contentResolver.openInputStream(uri)
             ?: return@withContext InstallResult(

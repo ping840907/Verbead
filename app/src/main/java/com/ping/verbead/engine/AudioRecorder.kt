@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.engine
+package com.ping.verbead.engine
 
 import android.annotation.SuppressLint
 import android.media.AudioFormat
@@ -143,7 +143,9 @@ class AudioRecorder(private val context: Context? = null) {
         } finally {
             try {
                 recorder.stop()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.w(TAG, "recorder.stop() failed", e)
+            }
             recorder.release()
             routingManager?.releaseAfterRecording()
         }
@@ -269,7 +271,9 @@ class AudioRecorder(private val context: Context? = null) {
         } finally {
             try {
                 recorder.stop()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.w(TAG, "recorder.stop() failed in streaming", e)
+            }
             recorder.release()
             routingManager?.releaseAfterRecording()
         }

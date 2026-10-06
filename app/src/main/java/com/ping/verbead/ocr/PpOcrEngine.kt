@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.ocr
+package com.ping.verbead.ocr
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
@@ -12,6 +12,8 @@ import android.graphics.RectF
 import android.util.Log
 import com.ping.verbead.engine.ModelConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.FloatBuffer
@@ -40,6 +42,9 @@ class PpOcrEngine(private val context: Context) {
     private var detSession: OrtSession? = null
     private var recSession: OrtSession? = null
     private val charDict = mutableListOf<String>()
+
+    private val detMutex = Mutex()
+    private val recMutex = Mutex()
 
     val isReady: Boolean
         get() = detSession != null && recSession != null
@@ -156,81 +161,83 @@ class PpOcrEngine(private val context: Context) {
      * Returns a list of detected bounding boxes mapped back to original bitmap coordinates.
      */
     suspend fun detectText(bitmap: Bitmap): List<RectF> = withContext(Dispatchers.Default) {
-        val session = detSession ?: return@withContext emptyList()
-        val ortEnv = env ?: return@withContext emptyList()
+        detMutex.withLock {
+            val session = detSession ?: return@withLock emptyList()
+            val ortEnv = env ?: return@withLock emptyList()
 
-        try {
-            val origW = bitmap.width
-            val origH = bitmap.height
+            try {
+                val origW = bitmap.width
+                val origH = bitmap.height
 
-            // Calculate scaled dimensions (multiples of 32)
-            var scale = 1.0f
-            if (max(origW, origH) > DET_MAX_SIDE) {
-                scale = DET_MAX_SIDE.toFloat() / max(origW, origH)
+                // Calculate scaled dimensions (multiples of 32)
+                var scale = 1.0f
+                if (max(origW, origH) > DET_MAX_SIDE) {
+                    scale = DET_MAX_SIDE.toFloat() / max(origW, origH)
+                }
+                var targetW = (origW * scale).toInt()
+                var targetH = (origH * scale).toInt()
+                targetW = max(32, (targetW / 32) * 32)
+                targetH = max(32, (targetH / 32) * 32)
+
+                val scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+
+                // Normalize CHW tensor: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                val floatBuffer = FloatBuffer.allocate(1 * 3 * targetH * targetW)
+                val pixels = IntArray(targetW * targetH)
+                scaledBitmap.getPixels(pixels, 0, targetW, 0, 0, targetW, targetH)
+
+                val rPlane = FloatArray(targetW * targetH)
+                val gPlane = FloatArray(targetW * targetH)
+                val bPlane = FloatArray(targetW * targetH)
+
+                for (i in pixels.indices) {
+                    val color = pixels[i]
+                    val r = Color.red(color) / 255.0f
+                    val g = Color.green(color) / 255.0f
+                    val b = Color.blue(color) / 255.0f
+
+                    rPlane[i] = (r - 0.485f) / 0.229f
+                    gPlane[i] = (g - 0.456f) / 0.224f
+                    bPlane[i] = (b - 0.406f) / 0.225f
+                }
+                floatBuffer.put(rPlane)
+                floatBuffer.put(gPlane)
+                floatBuffer.put(bPlane)
+                floatBuffer.flip()
+
+                val inputShape = longArrayOf(1, 3, targetH.toLong(), targetW.toLong())
+                val inputTensor = OnnxTensor.createTensor(ortEnv, floatBuffer, inputShape)
+
+                val inputName = session.inputNames.iterator().next()
+                val output = session.run(mapOf(inputName to inputTensor))
+                val predTensor = output[0].value as Array<Array<Array<FloatArray>>> // [1, 1, H, W]
+                val probMap = predTensor[0][0]
+
+                inputTensor.close()
+                output.close()
+                if (scaledBitmap != bitmap) {
+                    scaledBitmap.recycle()
+                }
+
+                // Post-process: connected components on probMap
+                val rawBoxes = extractBoxesFromProbMap(probMap, targetW, targetH)
+
+                // Scale boxes back to original bitmap coordinates
+                val scaleX = origW.toFloat() / targetW
+                val scaleY = origH.toFloat() / targetH
+
+                rawBoxes.map { rect ->
+                    RectF(
+                        rect.left * scaleX,
+                        rect.top * scaleY,
+                        rect.right * scaleX,
+                        rect.bottom * scaleY
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Detection error: ${e.message}", e)
+                emptyList()
             }
-            var targetW = (origW * scale).toInt()
-            var targetH = (origH * scale).toInt()
-            targetW = max(32, (targetW / 32) * 32)
-            targetH = max(32, (targetH / 32) * 32)
-
-            val scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
-
-            // Normalize CHW tensor: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            val floatBuffer = FloatBuffer.allocate(1 * 3 * targetH * targetW)
-            val pixels = IntArray(targetW * targetH)
-            scaledBitmap.getPixels(pixels, 0, targetW, 0, 0, targetW, targetH)
-
-            val rPlane = FloatArray(targetW * targetH)
-            val gPlane = FloatArray(targetW * targetH)
-            val bPlane = FloatArray(targetW * targetH)
-
-            for (i in pixels.indices) {
-                val color = pixels[i]
-                val r = Color.red(color) / 255.0f
-                val g = Color.green(color) / 255.0f
-                val b = Color.blue(color) / 255.0f
-
-                rPlane[i] = (r - 0.485f) / 0.229f
-                gPlane[i] = (g - 0.456f) / 0.224f
-                bPlane[i] = (b - 0.406f) / 0.225f
-            }
-            floatBuffer.put(rPlane)
-            floatBuffer.put(gPlane)
-            floatBuffer.put(bPlane)
-            floatBuffer.flip()
-
-            val inputShape = longArrayOf(1, 3, targetH.toLong(), targetW.toLong())
-            val inputTensor = OnnxTensor.createTensor(ortEnv, floatBuffer, inputShape)
-
-            val inputName = session.inputNames.iterator().next()
-            val output = session.run(mapOf(inputName to inputTensor))
-            val predTensor = output[0].value as Array<Array<Array<FloatArray>>> // [1, 1, H, W]
-            val probMap = predTensor[0][0]
-
-            inputTensor.close()
-            output.close()
-            if (scaledBitmap != bitmap) {
-                scaledBitmap.recycle()
-            }
-
-            // Post-process: connected components on probMap
-            val rawBoxes = extractBoxesFromProbMap(probMap, targetW, targetH)
-
-            // Scale boxes back to original bitmap coordinates
-            val scaleX = origW.toFloat() / targetW
-            val scaleY = origH.toFloat() / targetH
-
-            rawBoxes.map { rect ->
-                RectF(
-                    rect.left * scaleX,
-                    rect.top * scaleY,
-                    rect.right * scaleX,
-                    rect.bottom * scaleY
-                )
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Detection error: ${e.message}", e)
-            emptyList()
         }
     }
 
@@ -339,103 +346,105 @@ class PpOcrEngine(private val context: Context) {
      * to ensure reliable transcription of Chinese vertical columns and rotated text.
      */
     suspend fun recognizeText(crop: Bitmap): String = withContext(Dispatchers.Default) {
-        val origW = crop.width
-        val origH = crop.height
-        if (origW < 4 || origH < 4) return@withContext ""
+        recMutex.withLock {
+            val origW = crop.width
+            val origH = crop.height
+            if (origW < 4 || origH < 4) return@withLock ""
 
-        try {
-            val resultText = if (origH > origW * 1.15f) {
-                // Vertical text box: evaluate orientation & unrolling candidates
+            try {
+                val resultText = if (origH > origW * 1.15f) {
+                    // Vertical text box: evaluate orientation & unrolling candidates
 
-                // Candidate 1: Rotated 270 degrees (counter-clockwise 90).
-                // In Chinese vertical typesetting (top-to-bottom), 90 deg counter-clockwise maps top characters to the left,
-                // maintaining natural left-to-right reading sequence for PP-OCR's horizontal Rec model.
-                val matrix270 = Matrix().apply { postRotate(270f) }
-                val rot270 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix270, true)
-                val cand270 = recognizeHorizontalStrip(rot270)
-                if (rot270 != crop) {
-                    rot270.recycle()
-                }
+                    // Candidate 1: Rotated 270 degrees (counter-clockwise 90).
+                    // In Chinese vertical typesetting (top-to-bottom), 90 deg counter-clockwise maps top characters to the left,
+                    // maintaining natural left-to-right reading sequence for PP-OCR's horizontal Rec model.
+                    val matrix270 = Matrix().apply { postRotate(270f) }
+                    val rot270 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix270, true)
+                    val cand270 = recognizeHorizontalStrip(rot270)
+                    if (rot270 != crop) {
+                        rot270.recycle()
+                    }
 
-                // Candidate 2: Upright vertical text unrolled into horizontal strip (adaptive gap segmentation)
-                val unrolled = unrollVerticalToHorizontal(crop)
-                val candUnroll = if (unrolled != null) recognizeHorizontalStrip(unrolled) else ("" to 0f)
-                if (unrolled != null && unrolled != crop) {
-                    unrolled.recycle()
-                }
+                    // Candidate 2: Upright vertical text unrolled into horizontal strip (adaptive gap segmentation)
+                    val unrolled = unrollVerticalToHorizontal(crop)
+                    val candUnroll = if (unrolled != null) recognizeHorizontalStrip(unrolled) else ("" to 0f)
+                    if (unrolled != null && unrolled != crop) {
+                        unrolled.recycle()
+                    }
 
-                // Candidate 3: Upright crop directly (for single character boxes where H/W is ~1.15-1.5)
-                val candUpright = if (origH <= origW * 1.55f) {
-                    recognizeHorizontalStrip(crop)
+                    // Candidate 3: Upright crop directly (for single character boxes where H/W is ~1.15-1.5)
+                    val candUpright = if (origH <= origW * 1.55f) {
+                        recognizeHorizontalStrip(crop)
+                    } else {
+                        "" to 0f
+                    }
+
+                    // Candidate 4: Rotated 90 degrees (for inverted/bottom-to-top text)
+                    val matrix90 = Matrix().apply { postRotate(90f) }
+                    val rot90 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix90, true)
+                    val cand90 = recognizeHorizontalStrip(rot90)
+                    if (rot90 != crop) {
+                        rot90.recycle()
+                    }
+
+                    // Score candidates: prioritize high confidence (>0.85), valid CJK/alphanumeric characters,
+                    // favor natural unsliced candidates, and penalize noise punctuation/fragments and length that physically exceeds box capacity.
+                    fun score(cand: Pair<String, Float>, isUnsliced: Boolean): Float {
+                        val text = cand.first.trim()
+                        if (text.isEmpty()) return -1f
+                        val avgConf = cand.second
+                        if (avgConf < 0.45f) return -1f
+
+                        val validChars = text.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() || it in "，。！？、；：" }
+                        val noiseChars = text.length - validChars
+                        val effectiveLength = validChars - noiseChars * 2.0f
+                        if (effectiveLength <= 0f) return -1f
+
+                        // Max characters that could physically fit in height origH with width origW
+                        val maxPossibleChars = (origH.toFloat() / (origW * 0.5f)).roundToInt() + 1
+                        var s = effectiveLength * (avgConf * avgConf) * 10f
+
+                        if (avgConf >= 0.85f) {
+                            s += 5f * avgConf
+                        }
+                        if (avgConf >= 0.95f) {
+                            s += 5f
+                        }
+                        if (isUnsliced) {
+                            s *= 1.3f // Strong preference for natural unsliced candidates
+                        }
+                        if (text.length > maxPossibleChars) {
+                            s -= (text.length - maxPossibleChars) * 15f
+                        }
+                        return s
+                    }
+
+                    val score270 = score(cand270, isUnsliced = true)
+                    val scoreUnroll = score(candUnroll, isUnsliced = false)
+                    val scoreUpright = score(candUpright, isUnsliced = true)
+                    val score90 = score(cand90, isUnsliced = true)
+
+                    Log.d(TAG, "Vertical candidates for [${origW}x${origH}]: 270='${cand270.first}' (conf=${cand270.second}, s=$score270), unroll='${candUnroll.first}' (conf=${candUnroll.second}, s=$scoreUnroll), upright='${candUpright.first}' (conf=${candUpright.second}, s=$scoreUpright), 90='${cand90.first}' (conf=${cand90.second}, s=$score90)")
+
+                    val candidates = listOf(
+                        Triple(cand270.first, score270, cand270.second),
+                        Triple(candUnroll.first, scoreUnroll, candUnroll.second),
+                        Triple(candUpright.first, scoreUpright, candUpright.second),
+                        Triple(cand90.first, score90, cand90.second)
+                    )
+
+                    val best = candidates.filter { it.second > 0f }.maxByOrNull { it.second }
+                    best?.first ?: cand270.first.ifEmpty { candUnroll.first.ifEmpty { candUpright.first } }
                 } else {
-                    "" to 0f
+                    // Normal horizontal text box
+                    recognizeHorizontalStrip(crop).first
                 }
 
-                // Candidate 4: Rotated 90 degrees (for inverted/bottom-to-top text)
-                val matrix90 = Matrix().apply { postRotate(90f) }
-                val rot90 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix90, true)
-                val cand90 = recognizeHorizontalStrip(rot90)
-                if (rot90 != crop) {
-                    rot90.recycle()
-                }
-
-                // Score candidates: prioritize high confidence (>0.85), valid CJK/alphanumeric characters,
-                // favor natural unsliced candidates, and penalize noise punctuation/fragments and length that physically exceeds box capacity.
-                fun score(cand: Pair<String, Float>, isUnsliced: Boolean): Float {
-                    val text = cand.first.trim()
-                    if (text.isEmpty()) return -1f
-                    val avgConf = cand.second
-                    if (avgConf < 0.45f) return -1f
-
-                    val validChars = text.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() || it in "，。！？、；：" }
-                    val noiseChars = text.length - validChars
-                    val effectiveLength = validChars - noiseChars * 2.0f
-                    if (effectiveLength <= 0f) return -1f
-
-                    // Max characters that could physically fit in height origH with width origW
-                    val maxPossibleChars = (origH.toFloat() / (origW * 0.5f)).roundToInt() + 1
-                    var s = effectiveLength * (avgConf * avgConf) * 10f
-
-                    if (avgConf >= 0.85f) {
-                        s += 5f * avgConf
-                    }
-                    if (avgConf >= 0.95f) {
-                        s += 5f
-                    }
-                    if (isUnsliced) {
-                        s *= 1.3f // Strong preference for natural unsliced candidates
-                    }
-                    if (text.length > maxPossibleChars) {
-                        s -= (text.length - maxPossibleChars) * 15f
-                    }
-                    return s
-                }
-
-                val score270 = score(cand270, isUnsliced = true)
-                val scoreUnroll = score(candUnroll, isUnsliced = false)
-                val scoreUpright = score(candUpright, isUnsliced = true)
-                val score90 = score(cand90, isUnsliced = true)
-
-                Log.d(TAG, "Vertical candidates for [${origW}x${origH}]: 270='${cand270.first}' (conf=${cand270.second}, s=$score270), unroll='${candUnroll.first}' (conf=${candUnroll.second}, s=$scoreUnroll), upright='${candUpright.first}' (conf=${candUpright.second}, s=$scoreUpright), 90='${cand90.first}' (conf=${cand90.second}, s=$score90)")
-
-                val candidates = listOf(
-                    Triple(cand270.first, score270, cand270.second),
-                    Triple(candUnroll.first, scoreUnroll, candUnroll.second),
-                    Triple(candUpright.first, scoreUpright, candUpright.second),
-                    Triple(cand90.first, score90, cand90.second)
-                )
-
-                val best = candidates.filter { it.second > 0f }.maxByOrNull { it.second }
-                best?.first ?: cand270.first.ifEmpty { candUnroll.first.ifEmpty { candUpright.first } }
-            } else {
-                // Normal horizontal text box
-                recognizeHorizontalStrip(crop).first
+                resultText
+            } catch (e: Exception) {
+                Log.e(TAG, "Recognition error: ${e.message}", e)
+                ""
             }
-
-            resultText
-        } catch (e: Exception) {
-            Log.e(TAG, "Recognition error: ${e.message}", e)
-            ""
         }
     }
 
@@ -655,7 +664,9 @@ class PpOcrEngine(private val context: Context) {
             detSession?.close()
             recSession?.close()
             env?.close()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Error closing PP-OCR engine resources", e)
+        }
         detSession = null
         recSession = null
         env = null
