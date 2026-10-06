@@ -18,6 +18,10 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.widget.Toast
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class VoiceAccessibilityService : AccessibilityService() {
 
@@ -43,6 +47,12 @@ class VoiceAccessibilityService : AccessibilityService() {
             private set
 
         fun isServiceRunning(): Boolean = instance != null
+
+        private val _keyboardStateFlow = MutableSharedFlow<KeyboardInfo>(replay = 1, extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+        val keyboardStateFlow: SharedFlow<KeyboardInfo> = _keyboardStateFlow.asSharedFlow()
+
+        private val _inputFocusStateFlow = MutableSharedFlow<Boolean>(replay = 1, extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+        val inputFocusStateFlow: SharedFlow<Boolean> = _inputFocusStateFlow.asSharedFlow()
 
         /**
          * Callback fired when soft keyboard status or bounds change.
@@ -175,6 +185,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (currentKeyboardInfo == info) return
         currentKeyboardInfo = info
         Log.i(TAG, "updateKeyboardState: isVisible=${info.isVisible}, top=${info.keyboardTop}, height=${info.keyboardHeight}")
+        _keyboardStateFlow.tryEmit(info)
         onKeyboardStateChanged?.invoke(info)
     }
 
@@ -182,6 +193,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (currentInputState == hasInputFocus) return
         currentInputState = hasInputFocus
         Log.i(TAG, "notifyInputState: hasInputFocus=$hasInputFocus")
+        _inputFocusStateFlow.tryEmit(hasInputFocus)
         onInputFocusStateChanged?.invoke(hasInputFocus)
         if (!hasInputFocus) {
             onInputFocusLost?.invoke()

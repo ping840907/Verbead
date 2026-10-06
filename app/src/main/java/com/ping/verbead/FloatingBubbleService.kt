@@ -38,6 +38,8 @@ import androidx.cardview.widget.CardView
 import androidx.core.app.NotificationCompat
 import com.google.android.material.card.MaterialCardView
 import com.k2fsa.sherpa.onnx.OnlineStream
+import com.ping.verbead.bubble.BubbleState as State
+import com.ping.verbead.bubble.BubbleStateMachine
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.Qwen3AsrEngine
@@ -274,8 +276,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun getNormalRightX(): Int = getScreenWidth() - (60 * resources.displayMetrics.density).toInt()
 
     // §6 狀態機: RECORDING, TRANSCRIBING, PASTED, SCANNING
-    private enum class State { IDLE, LOADING, RECORDING, TRANSCRIBING, PASTED, SCANNING }
-    private var state = State.IDLE
+    private val stateMachine = BubbleStateMachine()
+    private val state: State
+        get() = stateMachine.state
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -569,9 +572,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         windowManager.addView(previewView, previewLayoutParams)
         setState(State.IDLE)
 
-        // Listen for soft keyboard open/close and dynamic height changes
-        VoiceAccessibilityService.onKeyboardStateChanged = { info ->
-            Handler(Looper.getMainLooper()).post {
+        // Listen for soft keyboard open/close and dynamic height changes via SharedFlow
+        scope.launch {
+            VoiceAccessibilityService.keyboardStateFlow.collect { info ->
                 dynamicKeyboardTop = if (info.isVisible) info.keyboardTop else 0
                 val onlyOnKeyboard = ModelConfig.isShowOnlyOnKeyboard(this@FloatingBubbleService)
                 if (onlyOnKeyboard) {
@@ -582,7 +585,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
                 if (info.isVisible && ::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
                     if (isBubbleMoving || snapAnimator?.isRunning == true) {
-                        return@post
+                        return@collect
                     }
                     val safeMax = getMaxY()
                     if (windowLayoutParams.y > safeMax) {
@@ -1571,7 +1574,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun setState(s: State) {
-        state = s
+        stateMachine.transitionTo(s)
         if (!::btnBubbleMic.isInitialized) return
         when (state) {
             State.IDLE -> {

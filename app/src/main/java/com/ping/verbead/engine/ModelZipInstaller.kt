@@ -141,88 +141,27 @@ object ModelZipInstaller {
         onProgress: suspend (currentFile: String, percent: Int) -> Unit
     ): InstallResult {
         val targetDir = ModelConfig.getPrimaryModelsDir(context)
-        android.util.Log.d("Verbead_Zip", "installFromInputStream: targetDir=$targetDir, totalSize=$totalSize")
+        Log.d(TAG, "installFromInputStream: targetDir=$targetDir, totalSize=$totalSize")
         if (!targetDir.exists()) {
             targetDir.mkdirs()
         }
 
-        var extractedCount = 0
-        var totalBytesExtracted = 0L
+        val (extractedCount, totalBytesExtracted) = try {
+            extractZipToDirectory(rawStream, totalSize, targetDir, onProgress)
+        } catch (e: Exception) {
+            Log.e(TAG, "Extraction failed: ${e.message}", e)
+            return InstallResult(
+                isSuccess = false,
+                xAsrReady = false,
+                qwen3Ready = false,
+                ocrReady = false,
+                fileCount = 0,
+                totalBytes = 0,
+                message = "解壓縮失敗: ${e.message}"
+            )
+        }
 
-        try {
-            val progressStream = ProgressInputStream(rawStream, totalSize) { _, _ -> }
-
-            ZipInputStream(BufferedInputStream(progressStream, 64 * 1024)).use { zis ->
-                val buffer = ByteArray(64 * 1024)
-                var entry = zis.nextEntry
-
-                while (entry != null) {
-                    val rawName = entry.name.replace('\\', '/').trim()
-                    // Skip macOS or metadata junk
-                    if (rawName.startsWith("__MACOSX/") || rawName.endsWith(".DS_Store")) {
-                        zis.closeEntry()
-                        entry = zis.nextEntry
-                        continue
-                    }
-
-                    val entryName = normalizeEntryName(rawName)
-                    if (entryName.isEmpty()) {
-                        zis.closeEntry()
-                        entry = zis.nextEntry
-                        continue
-                    }
-
-                    val outFile = File(targetDir, entryName)
-                    // Security: Zip Slip check
-                    val canonicalDest = outFile.canonicalPath
-                    val canonicalTarget = targetDir.canonicalPath
-                    if (!canonicalDest.startsWith(canonicalTarget + File.separator) && canonicalDest != canonicalTarget) {
-                        throw SecurityException("偵測到不合法的壓縮檔案路徑 (Zip Slip): $entryName")
-                    }
-
-                    if (entry.isDirectory) {
-                        outFile.mkdirs()
-                    } else {
-                        outFile.parentFile?.mkdirs()
-                        val currentFileName = outFile.name
-                        val currentPct = if (totalSize > 0) {
-                            ((progressStream.bytesRead * 100) / totalSize).toInt().coerceIn(0, 100)
-                        } else 0
-                        onProgress(currentFileName, currentPct)
-
-                        val tempFile = File(outFile.parentFile, "${outFile.name}.tmp")
-                        FileOutputStream(tempFile).use { fos ->
-                            BufferedOutputStream(fos, 64 * 1024).use { bos ->
-                                var len: Int
-                                while (zis.read(buffer).also { len = it } > 0) {
-                                    bos.write(buffer, 0, len)
-                                    totalBytesExtracted += len
-                                }
-                                bos.flush()
-                            }
-                        }
-
-                        if (outFile.exists()) {
-                            outFile.delete()
-                        }
-                        if (!tempFile.renameTo(outFile)) {
-                            tempFile.copyTo(outFile, overwrite = true)
-                            tempFile.delete()
-                        }
-                        extractedCount++
-
-                        val updatedPct = if (totalSize > 0) {
-                            ((progressStream.bytesRead * 100) / totalSize).toInt().coerceIn(0, 100)
-                        } else 0
-                        onProgress(currentFileName, updatedPct)
-                    }
-
-                    zis.closeEntry()
-                    entry = zis.nextEntry
-                }
-            }
-
-            onProgress("復原完成", 100)
+        onProgress("復原完成", 100)
 
             // Validate and activate newly restored models
             val xAsrReady = ModelConfig.isXAsrReady(context)
@@ -252,18 +191,87 @@ object ModelZipInstaller {
                 totalBytes = totalBytesExtracted,
                 message = if (extractedCount > 0) "模型包復原成功！就緒模型：$readySummary" else "壓縮包中未包含有效模型檔案"
             )
+    }
 
-        } catch (ex: Exception) {
-            return InstallResult(
-                isSuccess = false,
-                xAsrReady = ModelConfig.isXAsrReady(context),
-                qwen3Ready = ModelConfig.isQwen3Ready(context),
-                ocrReady = ModelConfig.isOcrReady(context),
-                fileCount = extractedCount,
-                totalBytes = totalBytesExtracted,
-                message = "解壓失敗: ${ex.message ?: ex.javaClass.simpleName}"
-            )
+    internal suspend fun extractZipToDirectory(
+        rawStream: InputStream,
+        totalSize: Long,
+        targetDir: File,
+        onProgress: suspend (currentFile: String, percent: Int) -> Unit = { _, _ -> }
+    ): Pair<Int, Long> {
+        var extractedCount = 0
+        var totalBytesExtracted = 0L
+
+        val progressStream = ProgressInputStream(rawStream, totalSize) { _, _ -> }
+
+        ZipInputStream(BufferedInputStream(progressStream, 64 * 1024)).use { zis ->
+            val buffer = ByteArray(64 * 1024)
+            var entry = zis.nextEntry
+
+            while (entry != null) {
+                val rawName = entry.name.replace('\\', '/').trim()
+                if (rawName.startsWith("__MACOSX/") || rawName.endsWith(".DS_Store")) {
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                    continue
+                }
+
+                val entryName = normalizeEntryName(rawName)
+                if (entryName.isEmpty()) {
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                    continue
+                }
+
+                val outFile = File(targetDir, entryName)
+                val canonicalDest = outFile.canonicalPath
+                val canonicalTarget = targetDir.canonicalPath
+                if (!canonicalDest.startsWith(canonicalTarget + File.separator) && canonicalDest != canonicalTarget) {
+                    throw SecurityException("偵測到不合法的壓縮檔案路徑 (Zip Slip): $entryName")
+                }
+
+                if (entry.isDirectory) {
+                    outFile.mkdirs()
+                } else {
+                    outFile.parentFile?.mkdirs()
+                    val currentFileName = outFile.name
+                    val currentPct = if (totalSize > 0) {
+                        ((progressStream.bytesRead * 100) / totalSize).toInt().coerceIn(0, 100)
+                    } else 0
+                    onProgress(currentFileName, currentPct)
+
+                    val tempFile = File(outFile.parentFile, "${outFile.name}.tmp")
+                    FileOutputStream(tempFile).use { fos ->
+                        BufferedOutputStream(fos, 64 * 1024).use { bos ->
+                            var len: Int
+                            while (zis.read(buffer).also { len = it } > 0) {
+                                bos.write(buffer, 0, len)
+                                totalBytesExtracted += len
+                            }
+                            bos.flush()
+                        }
+                    }
+
+                    if (outFile.exists()) {
+                        outFile.delete()
+                    }
+                    if (!tempFile.renameTo(outFile)) {
+                        tempFile.copyTo(outFile, overwrite = true)
+                        tempFile.delete()
+                    }
+                    extractedCount++
+
+                    val updatedPct = if (totalSize > 0) {
+                        ((progressStream.bytesRead * 100) / totalSize).toInt().coerceIn(0, 100)
+                    } else 0
+                    onProgress(currentFileName, updatedPct)
+                }
+
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
         }
+        return Pair(extractedCount, totalBytesExtracted)
     }
 
     private class ProgressInputStream(
