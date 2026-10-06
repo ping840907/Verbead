@@ -35,24 +35,19 @@ object ModelZipInstaller {
     )
 
     /**
-     * Checks if default preloaded package exists in Downloads directory.
+     * Checks if default preloaded package exists in App private directories.
      */
     fun findDefaultZipPackage(context: Context? = null): File? {
+        if (context == null) return null
         val candidates = mutableListOf<File>()
-        if (context != null) {
-            context.getExternalFilesDir(null)?.let {
-                candidates.add(File(it, DEFAULT_ZIP_FILENAME))
-            }
-            candidates.add(File(context.filesDir, DEFAULT_ZIP_FILENAME))
-            candidates.add(File(context.cacheDir, DEFAULT_ZIP_FILENAME))
-            context.getExternalFilesDir("models")?.parentFile?.let {
-                candidates.add(File(it, DEFAULT_ZIP_FILENAME))
-            }
+        context.getExternalFilesDir(null)?.let {
+            candidates.add(File(it, DEFAULT_ZIP_FILENAME))
         }
-        candidates.add(File("/sdcard/Download/$DEFAULT_ZIP_FILENAME"))
-        candidates.add(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), DEFAULT_ZIP_FILENAME))
-        candidates.add(File("/storage/emulated/0/Download/$DEFAULT_ZIP_FILENAME"))
-        candidates.add(File("/data/local/tmp/$DEFAULT_ZIP_FILENAME"))
+        candidates.add(File(context.filesDir, DEFAULT_ZIP_FILENAME))
+        candidates.add(File(context.cacheDir, DEFAULT_ZIP_FILENAME))
+        context.getExternalFilesDir("models")?.parentFile?.let {
+            candidates.add(File(it, DEFAULT_ZIP_FILENAME))
+        }
 
         for (c in candidates) {
             val exists = try { c.exists() } catch (_: Exception) { false }

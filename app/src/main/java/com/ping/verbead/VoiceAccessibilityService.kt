@@ -1,8 +1,9 @@
-﻿package com.ping.verbead
+package com.ping.verbead
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -11,10 +12,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PersistableBundle
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import android.widget.Toast
 
 class VoiceAccessibilityService : AccessibilityService() {
 
@@ -305,20 +308,25 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     /**
      * Injects [text] into the currently focused editable node in the active foreground window.
-     * Tries ACTION_PASTE first so that it inserts at current cursor without wiping existing text.
-     * Falls back to ACTION_SET_TEXT (appending to existing text) if paste is not supported.
+     * Uses ACTION_SET_TEXT combined with cursor calculation to insert text at current cursor without
+     * writing to the system clipboard, preserving user privacy.
+     * Skips password fields and only falls back to clipboard (with EXTRA_IS_SENSITIVE) if ACTION_SET_TEXT fails.
      */
     fun inputText(text: String): Boolean {
         if (text.isEmpty()) return false
 
-        // Always copy text to clipboard as primary data & universal fallback
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("voice_input", text)
-        clipboard.setPrimaryClip(clip)
-
         val target = findActiveEditableNode()
         if (target == null) {
             Log.w(TAG, "No focused editable node found across all windows and cache")
+            return false
+        }
+
+        // 1.2 排除密碼欄位：拒絕貼入，也不建立快照
+        if (target.isPassword) {
+            Log.w(TAG, "Target node is a password field; rejecting automated input for privacy/security")
+            mainHandler.post {
+                Toast.makeText(this, "密碼欄位不支援自動填入", Toast.LENGTH_SHORT).show()
+            }
             return false
         }
 
@@ -331,10 +339,31 @@ class VoiceAccessibilityService : AccessibilityService() {
 
         isAutomatedActionInProgress = true
         try {
-            // §6.1 快照捕捉時機點：必須在執行 ACTION_PASTE 動作的前一刻（前 50ms 內）即時捕捉
-            val originalText = target.text?.toString() ?: ""
-            val selStart = target.textSelectionStart
-            val selEnd = target.textSelectionEnd
+            // 判斷是否顯示 HintText，避免把提示文字誤當成欄位原文
+            val isHint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                target.isShowingHintText
+            } else {
+                false
+            }
+            val originalText = if (isHint) "" else (target.text?.toString() ?: "")
+            val textLen = originalText.length
+
+            var selStart = target.textSelectionStart
+            var selEnd = target.textSelectionEnd
+            if (isHint || selStart < 0 || selEnd < 0) {
+                selStart = textLen
+                selEnd = textLen
+            } else {
+                selStart = selStart.coerceIn(0, textLen)
+                selEnd = selEnd.coerceIn(0, textLen)
+                if (selStart > selEnd) {
+                    val tmp = selStart
+                    selStart = selEnd
+                    selEnd = tmp
+                }
+            }
+
+            // §6.1 快照捕捉時機點：在執行輸入動作前捕捉
             lastSnapshot = EditorSnapshot(
                 node = target,
                 originalText = originalText,
@@ -342,21 +371,51 @@ class VoiceAccessibilityService : AccessibilityService() {
                 selectionEnd = selEnd
             )
 
-            // Try ACTION_PASTE first (inserts at cursor without wiping text)
-            val pasted = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
-            Log.i(TAG, "ACTION_PASTE result: $pasted")
-            if (pasted) {
-                return true
-            }
-
-            // Fallback: ACTION_SET_TEXT (append to existing text)
-            val combined = originalText + text
+            // 依游標位置組合文字: 原文[0..selStart] + 新文字 + 原文[selEnd..]
+            val combined = originalText.substring(0, selStart) + text + originalText.substring(selEnd)
             val args = Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, combined)
             }
-            val set = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
-            Log.i(TAG, "ACTION_SET_TEXT result: $set")
-            return set
+            val setSuccess = runCatching {
+                target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+            }.getOrDefault(false)
+
+            Log.i(TAG, "ACTION_SET_TEXT result: $setSuccess")
+
+            if (setSuccess) {
+                // 送出 ACTION_SET_TEXT 後，以 ACTION_SET_SELECTION 將游標移到 selStart + 新文字長度
+                val newCursor = selStart + text.length
+                val selArgs = Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, newCursor)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, newCursor)
+                }
+                runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs) }
+                return true
+            }
+
+            // SET_TEXT 失敗（部分 WebView 或自繪編輯器）時才退回剪貼簿，並加上 EXTRA_IS_SENSITIVE 標記與使用者提示
+            Log.w(TAG, "ACTION_SET_TEXT failed, falling back to clipboard paste with EXTRA_IS_SENSITIVE")
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("text", text).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    description.extras = PersistableBundle().apply {
+                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                    }
+                }
+            }
+            clipboard.setPrimaryClip(clip)
+
+            val pasted = runCatching {
+                target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+            }.getOrDefault(false)
+            Log.i(TAG, "Fallback ACTION_PASTE result: $pasted")
+
+            if (!pasted) {
+                mainHandler.post {
+                    Toast.makeText(this, "無法直接填入，已安全複製至剪貼簿", Toast.LENGTH_SHORT).show()
+                }
+            }
+            return pasted
         } finally {
             mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 250)
         }

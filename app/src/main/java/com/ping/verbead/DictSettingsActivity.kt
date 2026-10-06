@@ -1,4 +1,4 @@
-﻿package com.ping.verbead
+package com.ping.verbead
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,6 +8,7 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -19,6 +20,40 @@ class DictSettingsActivity : AppCompatActivity() {
     private lateinit var recycler: RecyclerView
     private lateinit var emptyState: View
     private lateinit var adapter: DictAdapter
+
+    private val importCsvLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri ?: return@registerForActivityResult
+        try {
+            contentResolver.openInputStream(uri)?.use { stream ->
+                val count = UserDictionary.importAndMergeFromCsv(this, stream)
+                refreshList()
+                Toast.makeText(this, "成功匯入 $count 筆詞彙", Toast.LENGTH_SHORT).show()
+            } ?: run {
+                Toast.makeText(this, "無法讀取選取的檔案", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "匯入失敗：${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val exportCsvLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        uri ?: return@registerForActivityResult
+        try {
+            val entries = UserDictionary.load(this)
+            contentResolver.openOutputStream(uri)?.use { stream ->
+                UserDictionary.exportToCsv(entries, stream)
+                Toast.makeText(this, "成功匯出 ${entries.size} 筆詞彙", Toast.LENGTH_SHORT).show()
+            } ?: run {
+                Toast.makeText(this, "無法寫入目標檔案", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "匯出失敗：${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +74,29 @@ class DictSettingsActivity : AppCompatActivity() {
         refreshList()
 
         findViewById<View>(R.id.btn_add_entry).setOnClickListener { showAddDialog() }
+
+        findViewById<View>(R.id.btn_import_csv).setOnClickListener {
+            try {
+                importCsvLauncher.launch(
+                    arrayOf(
+                        "text/comma-separated-values",
+                        "text/csv",
+                        "text/plain",
+                        "*/*"
+                    )
+                )
+            } catch (e: Exception) {
+                Toast.makeText(this, "無法開啟檔案選擇器：${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        findViewById<View>(R.id.btn_export_csv).setOnClickListener {
+            try {
+                exportCsvLauncher.launch("verbead_user_dict.csv")
+            } catch (e: Exception) {
+                Toast.makeText(this, "無法開啟儲存對話框：${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun refreshList() {

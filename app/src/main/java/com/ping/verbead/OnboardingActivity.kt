@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.provider.Settings
 import android.view.View
 import android.widget.EditText
@@ -100,7 +101,16 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var btnOnboardingImportZip: MaterialButton
 
     private val pickZipFileLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
+        object : ActivityResultContracts.OpenDocument() {
+            override fun createIntent(context: Context, input: Array<String>): Intent {
+                val intent = super.createIntent(context, input)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val downloadUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, downloadUri)
+                }
+                return intent
+            }
+        }
     ) { uri: Uri? ->
         uri?.let {
             runModelPackageImport(uri = it)
@@ -360,8 +370,18 @@ class OnboardingActivity : AppCompatActivity() {
             if (quickFile != null) {
                 runModelPackageImport(file = quickFile)
             } else {
-                Toast.makeText(this, "未找到 Download/verbead_models.zip", Toast.LENGTH_SHORT).show()
-                btnOnboardingQuickImportDownload.visibility = View.GONE
+                try {
+                    pickZipFileLauncher.launch(
+                        arrayOf(
+                            "application/zip",
+                            "application/x-zip-compressed",
+                            "application/octet-stream",
+                            "*/*"
+                        )
+                    )
+                } catch (ex: Exception) {
+                    Toast.makeText(this, "無法開啟檔案選擇器: ${ex.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
@@ -556,7 +576,7 @@ class OnboardingActivity : AppCompatActivity() {
         if (quickZip != null) {
             btnOnboardingQuickImportDownload.visibility = View.VISIBLE
             val sizeMb = quickZip.length() / (1024 * 1024)
-            btnOnboardingQuickImportDownload.text = "⚡ 快速從 Download 載入模型包 (${sizeMb}MB)"
+            btnOnboardingQuickImportDownload.text = "⚡ 快速載入內部儲存模型包 (${sizeMb}MB)"
         } else {
             btnOnboardingQuickImportDownload.visibility = View.GONE
         }

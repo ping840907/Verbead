@@ -1,7 +1,12 @@
-﻿package com.ping.verbead
+package com.ping.verbead
 
 import android.content.Context
 import org.json.JSONObject
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.OutputStream
+import java.io.OutputStreamWriter
+import java.io.Reader
 
 /**
  * Stores user-defined ASR post-correction entries in SharedPreferences.
@@ -112,5 +117,120 @@ object UserDictionary {
             }
         }
         return dp[a.length][b.length]
+    }
+
+    private fun escapeCsvField(field: String): String {
+        return if (field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r")) {
+            "\"" + field.replace("\"", "\"\"") + "\""
+        } else {
+            field
+        }
+    }
+
+    /**
+     * Exports [entries] to [outputStream] in RFC 4180 CSV format (UTF-8).
+     */
+    fun exportToCsv(entries: Map<String, String>, outputStream: OutputStream) {
+        val writer = OutputStreamWriter(outputStream, Charsets.UTF_8).buffered()
+        writer.write("原詞,替換詞\r\n")
+        entries.toSortedMap().forEach { (from, to) ->
+            writer.write("${escapeCsvField(from)},${escapeCsvField(to)}\r\n")
+        }
+        writer.flush()
+    }
+
+    private fun parseCsv(reader: Reader): List<List<String>> {
+        val records = mutableListOf<List<String>>()
+        val currentRecord = mutableListOf<String>()
+        val currentField = StringBuilder()
+        var inQuotes = false
+
+        var r = reader.read()
+        // Skip UTF-8 BOM if present
+        if (r == 0xFEFF) {
+            r = reader.read()
+        }
+
+        while (r != -1) {
+            val c = r.toChar()
+            if (inQuotes) {
+                if (c == '"') {
+                    val next = reader.read()
+                    if (next != -1 && next.toChar() == '"') {
+                        currentField.append('"')
+                    } else {
+                        inQuotes = false
+                        r = next
+                        continue
+                    }
+                } else {
+                    currentField.append(c)
+                }
+            } else {
+                when (c) {
+                    '"' -> inQuotes = true
+                    ',' -> {
+                        currentRecord.add(currentField.toString().trim())
+                        currentField.setLength(0)
+                    }
+                    '\r' -> {
+                        // ignore carriage return
+                    }
+                    '\n' -> {
+                        currentRecord.add(currentField.toString().trim())
+                        currentField.setLength(0)
+                        if (currentRecord.any { it.isNotEmpty() }) {
+                            records.add(ArrayList(currentRecord))
+                        }
+                        currentRecord.clear()
+                    }
+                    else -> currentField.append(c)
+                }
+            }
+            r = reader.read()
+        }
+        if (currentField.isNotEmpty() || currentRecord.isNotEmpty()) {
+            currentRecord.add(currentField.toString().trim())
+            if (currentRecord.any { it.isNotEmpty() }) {
+                records.add(currentRecord)
+            }
+        }
+        return records
+    }
+
+    /**
+     * Parses CSV from [inputStream] into a Map of (from -> to).
+     * Supports single-column (to=from) and two-column (from, to), skips header lines.
+     */
+    fun importFromCsv(inputStream: InputStream): Map<String, String> {
+        val records = parseCsv(InputStreamReader(inputStream, Charsets.UTF_8).buffered())
+        val result = mutableMapOf<String, String>()
+        for (row in records) {
+            if (row.isEmpty()) continue
+            val col0 = row.getOrNull(0)?.trim() ?: ""
+            if (col0.isEmpty()) continue
+            // Skip headers
+            if ((col0 == "原詞" || col0.equals("from", ignoreCase = true) || col0 == "錯誤詞") &&
+                (row.getOrNull(1)?.trim() in listOf("替換詞", "to", "正確詞", "目標詞", null, ""))) {
+                continue
+            }
+            val col1 = row.getOrNull(1)?.trim()
+            val from = col0
+            val to = if (!col1.isNullOrEmpty()) col1 else col0
+            result[from] = to
+        }
+        return result
+    }
+
+    /**
+     * Imports CSV from [inputStream], merges into UserDictionary SharedPreferences, and returns imported count.
+     */
+    fun importAndMergeFromCsv(context: Context, inputStream: InputStream): Int {
+        val imported = importFromCsv(inputStream)
+        if (imported.isEmpty()) return 0
+        val current = load(context).toMutableMap()
+        current.putAll(imported)
+        save(context, current)
+        return imported.size
     }
 }

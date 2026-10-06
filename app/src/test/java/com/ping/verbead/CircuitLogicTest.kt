@@ -47,6 +47,38 @@ class CircuitLogicTest {
     }
 
     @Test
+    fun testUserDictionaryCsvExportAndImport() {
+        val original = mapOf(
+            "語音,辨識" to "語音\"識別\"",
+            "打字" to "輸入",
+            "單詞" to "單詞"
+        )
+        val out = java.io.ByteArrayOutputStream()
+        UserDictionary.exportToCsv(original, out)
+        val csvString = out.toString(Charsets.UTF_8.name())
+        assertTrue(csvString.startsWith("原詞,替換詞"))
+
+        val inStream = java.io.ByteArrayInputStream(csvString.toByteArray(Charsets.UTF_8))
+        val imported = UserDictionary.importFromCsv(inStream)
+        assertEquals(original, imported)
+    }
+
+    @Test
+    fun testUserDictionaryCsvImportVariousFormats() {
+        val csvContent = "\uFEFFfrom,to\r\n" +
+                "\"特殊,名詞\",\"特殊替換\"\r\n" +
+                "單一詞彙\r\n" +
+                "\r\n" +
+                "錯別字,正確字\r\n"
+        val inStream = java.io.ByteArrayInputStream(csvContent.toByteArray(Charsets.UTF_8))
+        val imported = UserDictionary.importFromCsv(inStream)
+        assertEquals(3, imported.size)
+        assertEquals("特殊替換", imported["特殊,名詞"])
+        assertEquals("單一詞彙", imported["單一詞彙"])
+        assertEquals("正確字", imported["錯別字"])
+    }
+
+    @Test
     fun testZhanRegexReplacement() {
         val input = "吃火鍋蘸醬、蘸料、蘸醋，蘸著吃，蘸一下，不蘸鍋。古人行蘸甲禮，傳統打鐵有蘸火工藝。"
         val expected = "吃火鍋沾醬、沾料、沾醋，沾著吃，沾一下，不沾鍋。古人行蘸甲禮，傳統打鐵有蘸火工藝。"

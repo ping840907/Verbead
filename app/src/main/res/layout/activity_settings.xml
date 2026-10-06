@@ -633,18 +633,18 @@
                         android:id="@+id/btn_import_models_zip"
                         android:layout_width="match_parent"
                         android:layout_height="40dp"
-                        android:text="選取模型包 (.zip) 並解壓復原"
+                        android:text="選擇模型包匯入"
                         android:textSize="13sp"
                         app:cornerRadius="20dp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp" />
 
-                    <!-- 按鈕 2: 快捷從 Download/verbead_models.zip 載入 -->
+                    <!-- 按鈕 2: 快捷載入內部模型包 -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_quick_import_download"
                         android:layout_width="match_parent"
                         android:layout_height="38dp"
-                        android:text="⚡ 快速從 Download 載入 verbead_models.zip"
+                        android:text="⚡ 快速載入內部模型包"
                         android:textSize="12sp"
                         app:cornerRadius="19dp"
                         style="@style/Widget.Material3.Button.TonalButton"

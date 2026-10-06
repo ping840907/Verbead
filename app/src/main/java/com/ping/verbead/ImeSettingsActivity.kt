@@ -10,6 +10,7 @@ import android.media.AudioDeviceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.provider.Settings
 import android.view.View
 import android.widget.SeekBar
@@ -121,7 +122,16 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnQuickImportDownload: MaterialButton
 
     private val pickZipFileLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
+        object : ActivityResultContracts.OpenDocument() {
+            override fun createIntent(context: Context, input: Array<String>): Intent {
+                val intent = super.createIntent(context, input)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val downloadUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, downloadUri)
+                }
+                return intent
+            }
+        }
     ) { uri: Uri? ->
         uri?.let {
             runModelPackageImport(uri = it)
@@ -462,8 +472,18 @@ class ImeSettingsActivity : AppCompatActivity() {
             if (quickFile != null) {
                 runModelPackageImport(file = quickFile)
             } else {
-                Toast.makeText(this, "未找到 Download/verbead_models.zip", Toast.LENGTH_SHORT).show()
-                btnQuickImportDownload.visibility = View.GONE
+                try {
+                    pickZipFileLauncher.launch(
+                        arrayOf(
+                            "application/zip",
+                            "application/x-zip-compressed",
+                            "application/octet-stream",
+                            "*/*"
+                        )
+                    )
+                } catch (ex: Exception) {
+                    Toast.makeText(this, "無法開啟檔案選擇器：${ex.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -799,7 +819,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (quickZip != null) {
             btnQuickImportDownload.visibility = View.VISIBLE
             val sizeMb = quickZip.length() / (1024 * 1024)
-            btnQuickImportDownload.text = "⚡ 快速從 Download 載入預載模型包 (${sizeMb}MB)"
+            btnQuickImportDownload.text = "⚡ 快速載入內部儲存模型包 (${sizeMb}MB)"
         } else {
             btnQuickImportDownload.visibility = View.GONE
         }

@@ -1516,12 +1516,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
 
-        // 1. 複製至剪貼簿以策安全
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("voice_input", text)
-        clipboard.setPrimaryClip(clip)
-
-        // 2. 透過無障礙服務貼入
+        // 透過無障礙服務安全直接填入（避免污染剪貼簿）
         val accService = VoiceAccessibilityService.instance
         val injected = accService?.inputText(text) ?: false
 
@@ -2598,9 +2593,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun onBarcodeDetected(code: String) {
         HapticUtil.heavyClick(this)
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("barcode_result", code))
-
         val injected = VoiceAccessibilityService.instance?.inputText(code) ?: false
         if (ModelConfig.isOcrAutoEnterEnabled(this)) {
             Handler(Looper.getMainLooper()).postDelayed({
@@ -2824,9 +2816,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
                     val processed = results.joinToString(sep)
                     HapticUtil.heavyClick(this@FloatingBubbleService)
-
-                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("ocr_result", processed))
 
                     val injected = VoiceAccessibilityService.instance?.inputText(processed) ?: false
                     if (ModelConfig.isOcrAutoEnterEnabled(this@FloatingBubbleService)) {
