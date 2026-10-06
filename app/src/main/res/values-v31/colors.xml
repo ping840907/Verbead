@@ -28,6 +28,14 @@
     <color name="text_secondary">@android:color/system_neutral2_700</color>
     <color name="text_tertiary">@android:color/system_neutral2_400</color>
 
+    <!-- Tonal container surfaces (Material 3) used by cards / rows -->
+    <color name="surface_container">@android:color/system_neutral1_50</color>
+    <color name="surface_container_high">@android:color/system_neutral1_100</color>
+
+    <!-- Launcher icon gradient: follows the wallpaper accent (Material You) -->
+    <color name="ic_launcher_bg_start">@android:color/system_accent1_400</color>
+    <color name="ic_launcher_bg_end">@android:color/system_accent1_700</color>
+
     <!-- Semantic / Status Colors -->
     <color name="status_success">#10B981</color>
     <color name="status_success_container">#ECFDF5</color>

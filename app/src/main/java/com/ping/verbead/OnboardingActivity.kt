@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -388,9 +389,25 @@ class OnboardingActivity : AppCompatActivity() {
         // Step 5: Preferences
         fun updateVadButtons(selected: Float) {
             ModelConfig.setVadSilenceSeconds(this@OnboardingActivity, selected)
-            btnVadQuick.strokeWidth = if (selected == 0.8f) 4 else 1
-            btnVadNormal.strokeWidth = if (selected == 1.5f) 4 else 1
-            btnVadRelaxed.strokeWidth = if (selected == 2.5f) 4 else 1
+            val primaryColor = ContextCompat.getColor(this@OnboardingActivity, R.color.md_theme_light_primary)
+            val onPrimaryColor = ContextCompat.getColor(this@OnboardingActivity, R.color.md_theme_light_onPrimary)
+            val tonalColor = ContextCompat.getColor(this@OnboardingActivity, R.color.surface_container_high)
+            val onTonalColor = ContextCompat.getColor(this@OnboardingActivity, R.color.text_primary)
+
+            fun styleChoice(btn: MaterialButton, isSelected: Boolean) {
+                if (isSelected) {
+                    btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
+                    btn.setTextColor(onPrimaryColor)
+                    btn.strokeWidth = 0
+                } else {
+                    btn.backgroundTintList = ColorStateList.valueOf(tonalColor)
+                    btn.setTextColor(onTonalColor)
+                    btn.strokeWidth = 0
+                }
+            }
+            styleChoice(btnVadQuick, selected == 0.8f)
+            styleChoice(btnVadNormal, selected == 1.5f)
+            styleChoice(btnVadRelaxed, selected == 2.5f)
         }
 
         val initialVad = ModelConfig.vadSilenceSeconds(this)
@@ -542,16 +559,25 @@ class OnboardingActivity : AppCompatActivity() {
         tvOcrBadge.text = if (ocrReady) "已就緒" else "未下載"
         tvOcrBadge.setTextColor(ContextCompat.getColor(this, if (ocrReady) R.color.status_success else R.color.text_tertiary))
 
+        val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
+        val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)
+        val tonalColor = ContextCompat.getColor(this, R.color.surface_container_high)
+        val onTonalColor = ContextCompat.getColor(this, R.color.text_primary)
+
         if (isTiny) {
-            btnOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
-            btnOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.white))
-            btnOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
-            btnOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            btnOcrTiny.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            btnOcrTiny.setTextColor(onPrimaryColor)
+            btnOcrTiny.strokeWidth = 0
+            btnOcrSmall.backgroundTintList = ColorStateList.valueOf(tonalColor)
+            btnOcrSmall.setTextColor(onTonalColor)
+            btnOcrSmall.strokeWidth = 0
         } else {
-            btnOcrSmall.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_primary))
-            btnOcrSmall.setTextColor(ContextCompat.getColor(this, R.color.white))
-            btnOcrTiny.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer))
-            btnOcrTiny.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            btnOcrSmall.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            btnOcrSmall.setTextColor(onPrimaryColor)
+            btnOcrSmall.strokeWidth = 0
+            btnOcrTiny.backgroundTintList = ColorStateList.valueOf(tonalColor)
+            btnOcrTiny.setTextColor(onTonalColor)
+            btnOcrTiny.strokeWidth = 0
         }
 
         val active = ModelDownloadState.active.value

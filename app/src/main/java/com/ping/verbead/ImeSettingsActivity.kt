@@ -60,9 +60,13 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnGrantMic: MaterialButton
 
     // Nearby Devices
-    private lateinit var cardNearbyDevicesRoot: MaterialCardView
+    private lateinit var cardNearbyDevicesRoot: View
     private lateinit var tvNearbyDevicesStatus: TextView
     private lateinit var btnGrantNearbyDevices: MaterialButton
+
+    // Engine cards (highlighted when selected)
+    private lateinit var cardXAsr: MaterialCardView
+    private lateinit var cardQwen3: MaterialCardView
 
     // Node 2: Bubble Module
 
@@ -236,6 +240,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         switchShowOnlyOnKeyboard  = findViewById(R.id.switch_show_only_on_keyboard)
 
         // Node 3: Engines
+        cardXAsr = findViewById(R.id.card_x_asr)
+        cardQwen3 = findViewById(R.id.card_qwen3)
         // X-ASR
         tvXasrStatus           = findViewById(R.id.tv_xasr_status)
         btnSelectXasr          = findViewById(R.id.btn_select_xasr)
@@ -720,14 +726,25 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
 
+        val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
+        val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)
+        val tonalColor = ContextCompat.getColor(this, R.color.surface_container_high)
+        val onTonalColor = ContextCompat.getColor(this, R.color.text_primary)
+        val cardStrokeWidthSelected = (2 * resources.displayMetrics.density).toInt()
+
         // Node 3: X-ASR Card
         val isXasrSelected = selectedEngine == ModelConfig.ENGINE_X_ASR
         if (isXasrSelected) {
+            cardXAsr.strokeColor = primaryColor
+            cardXAsr.strokeWidth = cardStrokeWidthSelected
             btnSelectXasr.text = "使用中"
-            btnSelectXasr.isEnabled = true
+            btnSelectXasr.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            btnSelectXasr.setTextColor(onPrimaryColor)
         } else {
+            cardXAsr.strokeWidth = 0
             btnSelectXasr.text = "選取引擎"
-            btnSelectXasr.isEnabled = true
+            btnSelectXasr.backgroundTintList = ColorStateList.valueOf(tonalColor)
+            btnSelectXasr.setTextColor(onTonalColor)
         }
 
         if (xAsrDownloaded) {
@@ -743,11 +760,16 @@ class ImeSettingsActivity : AppCompatActivity() {
         // Node 3: Qwen3 Card
         val isQwen3Selected = selectedEngine == ModelConfig.ENGINE_QWEN3
         if (isQwen3Selected) {
+            cardQwen3.strokeColor = primaryColor
+            cardQwen3.strokeWidth = cardStrokeWidthSelected
             btnSelectQwen3.text = "使用中"
-            btnSelectQwen3.isEnabled = true
+            btnSelectQwen3.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            btnSelectQwen3.setTextColor(onPrimaryColor)
         } else {
+            cardQwen3.strokeWidth = 0
             btnSelectQwen3.text = "選取引擎"
-            btnSelectQwen3.isEnabled = true
+            btnSelectQwen3.backgroundTintList = ColorStateList.valueOf(tonalColor)
+            btnSelectQwen3.setTextColor(onTonalColor)
         }
 
         if (qwen3Downloaded) {
@@ -768,24 +790,19 @@ class ImeSettingsActivity : AppCompatActivity() {
         val isTiny = selectedOcr == ModelConfig.ENGINE_PP_OCR_TINY
         val ocrReady = ModelConfig.isOcrReady(this)
 
-        val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
-        val tonalColor = ContextCompat.getColor(this, R.color.md_theme_light_secondaryContainer)
-        val whiteColor = ContextCompat.getColor(this, R.color.white)
-        val textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary)
-
         if (isTiny) {
             btnSelectOcrTiny.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            btnSelectOcrTiny.setTextColor(whiteColor)
+            btnSelectOcrTiny.setTextColor(onPrimaryColor)
             btnSelectOcrTiny.strokeWidth = 0
             btnSelectOcrSmall.backgroundTintList = ColorStateList.valueOf(tonalColor)
-            btnSelectOcrSmall.setTextColor(textPrimaryColor)
+            btnSelectOcrSmall.setTextColor(onTonalColor)
             btnSelectOcrSmall.strokeWidth = 0
         } else {
             btnSelectOcrSmall.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            btnSelectOcrSmall.setTextColor(whiteColor)
+            btnSelectOcrSmall.setTextColor(onPrimaryColor)
             btnSelectOcrSmall.strokeWidth = 0
             btnSelectOcrTiny.backgroundTintList = ColorStateList.valueOf(tonalColor)
-            btnSelectOcrTiny.setTextColor(textPrimaryColor)
+            btnSelectOcrTiny.setTextColor(onTonalColor)
             btnSelectOcrTiny.strokeWidth = 0
         }
 
@@ -805,10 +822,10 @@ class ImeSettingsActivity : AppCompatActivity() {
         fun styleSepButton(btn: MaterialButton, isSelected: Boolean) {
             if (isSelected) {
                 btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
-                btn.setTextColor(whiteColor)
+                btn.setTextColor(onPrimaryColor)
             } else {
                 btn.backgroundTintList = ColorStateList.valueOf(tonalColor)
-                btn.setTextColor(textPrimaryColor)
+                btn.setTextColor(onTonalColor)
             }
             btn.strokeWidth = 0
         }

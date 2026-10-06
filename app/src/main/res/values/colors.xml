@@ -35,6 +35,14 @@
     <color name="text_secondary">#475569</color>
     <color name="text_tertiary">#94A3B8</color>
 
+    <!-- Tonal container surfaces (Material 3) used by cards / rows -->
+    <color name="surface_container">#EEF2F7</color>
+    <color name="surface_container_high">#E2E8F0</color>
+
+    <!-- Launcher icon gradient (Verbead) -->
+    <color name="ic_launcher_bg_start">#38BDF8</color>
+    <color name="ic_launcher_bg_end">#0369A1</color>
+
 
     <!-- Floating Bubble Colors -->
     <color name="bubble_bg_start">#E8F4FF</color>
