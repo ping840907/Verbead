@@ -1,56 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    珠璣 (Verbead) mark: a "V" (verb) drawn as a string of beads (bead).
-    Beads grow toward the vertex, the largest being the "珠" at the bottom.
-    All geometry stays inside the 66dp adaptive-icon safe zone.
+    珠璣 (Verbead) App 標誌：V 弦托珠 (V-Wave Crest)
+    - 單一明珠 (The Single Pearl)：象徵「端側智慧運算核心」與「字字珠璣」
+    - 流動 V 弦 (Flowing V-Wave)：聲波音訊與文字資訊流動之羽翼浪潮，象徵「隨說隨出、流暢如詩」
+    - 幾何線條嚴格落於 66dp 安全視圖區內，適配任意桌面遮罩。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group
-        android:pivotX="54"
-        android:pivotY="56"
-        android:scaleX="1.1"
-        android:scaleY="1.1"
-        android:translateY="-1">
 
-        <!-- string -->
-        <path
-            android:fillColor="#00000000"
-            android:pathData="M31,36 L54,72 L77,36"
-            android:strokeAlpha="0.75"
-            android:strokeColor="#FFFFFF"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
-            android:strokeWidth="2.6" />
+    <!-- 主流帶：動態揚起之 V 浪羽翼 (Voice Flow & Verbead Ribbon) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 27,42 C 25,56 30,70 43,77 C 55,82 69,74 78,54 C 82,44 84,33 85,27 C 82,34 77,47 69,59 C 61,70 51,72 44,69 C 37,66 33,55 33,45 C 33,42 29,41 27,42 Z" />
 
-        <!-- left arm -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M27.5,36 a3.5,3.5 0,1,0 7,0 a3.5,3.5 0,1,0 -7,0z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M32.44,46.08 a5,5 0,1,0 10,0 a5,5 0,1,0 -10,0z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M38.3,57.6 a6.5,6.5 0,1,0 13,0 a6.5,6.5 0,1,0 -13,0z" />
+    <!-- 伴隨聲波諧振流 (Harmonic Acoustic Stream) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M 33,34 C 36,45 42,56 52,60 C 60,62 70,56 77,42 C 80,35 82,29 83,23 C 82,27 78,36 72,46 C 65,56 57,60 50,58 C 43,55 38,45 35,34 C 35,32 33,32 33,34 Z" />
 
-        <!-- vertex bead -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M45.5,72 a8.5,8.5 0,1,0 17,0 a8.5,8.5 0,1,0 -17,0z" />
+    <!-- 實心凝結明珠 (Single Luminous Pearl) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 35,53 a 10.5,10.5 0 1,0 21,0 a 10.5,10.5 0 1,0 -21,0 Z" />
 
-        <!-- right arm -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M56.7,57.6 a6.5,6.5 0,1,0 13,0 a6.5,6.5 0,1,0 -13,0z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M65.56,46.08 a5,5 0,1,0 10,0 a5,5 0,1,0 -10,0z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M73.5,36 a3.5,3.5 0,1,0 7,0 a3.5,3.5 0,1,0 -7,0z" />
-    </group>
+    <!-- 明珠高光 (Pearl Specular Highlights for dimensional luster) -->
+    <path
+        android:fillColor="@color/md_theme_light_primary"
+        android:fillAlpha="0.3"
+        android:pathData="M 41,48.5 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0 Z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 41.8,49 a 1.2,1.2 0 1,0 2.4,0 a 1.2,1.2 0 1,0 -2.4,0 Z" />
 </vector>
