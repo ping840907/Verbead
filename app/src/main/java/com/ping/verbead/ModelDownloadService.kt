@@ -1,4 +1,4 @@
-package com.ping.voiceime
+﻿package com.ping.verbead
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,10 +10,10 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
-import com.ping.voiceime.engine.ModelConfig
-import com.ping.voiceime.engine.ModelDownloadSpec
-import com.ping.voiceime.engine.ModelDownloadState
-import com.ping.voiceime.engine.ModelDownloader
+import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.ModelDownloadSpec
+import com.ping.verbead.engine.ModelDownloadState
+import com.ping.verbead.engine.ModelDownloader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -144,8 +144,8 @@ class ModelDownloadService : Service() {
         private const val CHANNEL_ID = "model_download"
         private const val NOTIF_ID = 1001
         private const val EXTRA_ENGINE = "engine"
-        private const val ACTION_START = "com.ping.voiceime.action.START_DOWNLOAD"
-        private const val ACTION_CANCEL = "com.ping.voiceime.action.CANCEL_DOWNLOAD"
+        private const val ACTION_START = "com.ping.verbead.action.START_DOWNLOAD"
+        private const val ACTION_CANCEL = "com.ping.verbead.action.CANCEL_DOWNLOAD"
 
         fun start(context: Context, engine: String) {
             val intent = Intent(context, ModelDownloadService::class.java)

@@ -1,10 +1,10 @@
-# VoiceIME — Android 本機離線語音輸入法
+# 珠璣 (Verbead) — Android 本機離線輸入助手
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-purple.svg)](https://kotlinlang.org)
 
-**VoiceIME** 是一款專為 Android 設計的高隱私、純裝置端本機（On-Device）離線語音與視覺輸入助理。結合 **X-ASR** 輕量即時串流模型、**Qwen3-ASR** 高精確度語音模型與 **PP-OCRv6** 本機文字辨識，採用「桌面智慧懸浮球」架構，無須替換您原本習慣的注音、倉頡或 Gboard 鍵盤，即可在任何應用程式中高速辨識並直接填入文字。所有語音辨識與 AI 推論全程在裝置本機離線運作，無需連網即可高速輸入。
+**珠璣 (Verbead)** 是一款專為 Android 設計的高隱私、純裝置端本機（On-Device）離線語音與視覺輸入助理。字字珠璣，串字成珠。結合 **X-ASR** 輕量即時串流模型、**Qwen3-ASR** 高精確度語音模型與 **PP-OCRv6** 本機文字辨識，採用「桌面智慧懸浮球」架構，無須替換您原本習慣的注音、倉頡或 Gboard 鍵盤，即可在任何應用程式中高速辨識並直接填入文字。所有語音辨識與 AI 推論全程在裝置本機離線運作，無需連網即可高速輸入。
 
 ---
 
@@ -85,18 +85,18 @@
 模型存放於 App 專用儲存空間（無需額外要求危險檔案權限）。
 
 ### 方法 A：App 內一鍵下載（推薦）
-1. 安裝並開啟 VoiceIME App。
-2. 進入「VoiceIME 設定」頁面。
+1. 安裝並開啟 珠璣 App。
+2. 進入「珠璣 設定」頁面。
 3. 點擊 X-ASR 或 Qwen3-ASR 區塊中的「下載模型」，App 將啟動前台服務在背景自動完成下載與解壓縮。
 
 ### 方法 B：手動放置模型
 手動推播模型檔案至裝置儲存目錄：
 
 - **Qwen3-ASR 目錄**：
-  `/sdcard/Android/data/com.ping.voiceime/files/models/qwen3_asr/`
+  `/sdcard/Android/data/com.ping.verbead/files/models/qwen3_asr/`
   - 需包含：`conv_frontend.onnx`, `encoder.int8.onnx`, `decoder.int8.onnx`, `tokenizer/`
 - **X-ASR 目錄**：
-  `/sdcard/Android/data/com.ping.voiceime/files/models/x_asr/`
+  `/sdcard/Android/data/com.ping.verbead/files/models/x_asr/`
   - 需包含：`encoder.int8.onnx`, `decoder.onnx`, `joiner.int8.onnx`, `tokens.txt`
 
 ---
@@ -124,8 +124,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ## 專案結構
 
 ```
-app/src/main/java/com/ping/voiceime/
-├── VoiceImeApplication.kt         # Application 進入點（生命週期與初始化）
+app/src/main/java/com/ping/verbead/
+├── VerbeadApplication.kt          # Application 進入點（生命週期與初始化）
 ├── FloatingBubbleService.kt       # 懸浮語音泡泡前台服務（多模式垂直膠囊、跟手切換、物理慣性吸附、情境 X 鍵）
 ├── VoiceAccessibilityService.kt   # 無障礙服務（焦點輸入框自動填入、快照復原、軟體鍵盤狀態偵測）
 ├── ImeSettingsActivity.kt         # 主設定頁（引擎切換、雙引擎模式、VAD 設置、相機與 OCR、權限管理）

@@ -1,4 +1,4 @@
-package com.ping.voiceime.engine
+package com.ping.verbead.engine
 
 import android.content.Context
 import android.net.Uri
@@ -22,7 +22,7 @@ import java.util.zip.ZipInputStream
  */
 object ModelZipInstaller {
 
-    const val DEFAULT_ZIP_FILENAME = "voiceime_models.zip"
+    const val DEFAULT_ZIP_FILENAME = "verbead_models.zip"
 
     data class InstallResult(
         val isSuccess: Boolean,
@@ -57,7 +57,7 @@ object ModelZipInstaller {
         for (c in candidates) {
             val exists = try { c.exists() } catch (_: Exception) { false }
             val canRead = try { c.canRead() } catch (_: Exception) { false }
-            android.util.Log.d("VoiceIME_Zip", "Candidate: ${c.absolutePath}, exists=$exists, canRead=$canRead")
+            android.util.Log.d("Verbead_Zip", "Candidate: ${c.absolutePath}, exists=$exists, canRead=$canRead")
             if (exists && canRead) return c
         }
         return null
@@ -122,6 +122,19 @@ object ModelZipInstaller {
         installFromInputStream(context, inputStream, totalSize, onProgress)
     }
 
+    fun normalizeEntryName(raw: String): String {
+        var entryName = raw.replace('\\', '/').trim()
+        while (entryName.startsWith("/")) {
+            entryName = entryName.substring(1)
+        }
+        if (entryName.startsWith("models/")) {
+            entryName = entryName.removePrefix("models/")
+        } else if (entryName.startsWith("verbead_models/")) {
+            entryName = entryName.removePrefix("verbead_models/")
+        }
+        return entryName
+    }
+
     private suspend fun installFromInputStream(
         context: Context,
         rawStream: InputStream,
@@ -129,7 +142,7 @@ object ModelZipInstaller {
         onProgress: suspend (currentFile: String, percent: Int) -> Unit
     ): InstallResult {
         val targetDir = ModelConfig.getPrimaryModelsDir(context)
-        android.util.Log.d("VoiceIME_Zip", "installFromInputStream: targetDir=$targetDir, totalSize=$totalSize")
+        android.util.Log.d("Verbead_Zip", "installFromInputStream: targetDir=$targetDir, totalSize=$totalSize")
         if (!targetDir.exists()) {
             targetDir.mkdirs()
         }
@@ -145,25 +158,15 @@ object ModelZipInstaller {
                 var entry = zis.nextEntry
 
                 while (entry != null) {
-                    var entryName = entry.name.replace('\\', '/').trim()
-                    while (entryName.startsWith("/")) {
-                        entryName = entryName.substring(1)
-                    }
-
+                    val rawName = entry.name.replace('\\', '/').trim()
                     // Skip macOS or metadata junk
-                    if (entryName.startsWith("__MACOSX/") || entryName.endsWith(".DS_Store")) {
+                    if (rawName.startsWith("__MACOSX/") || rawName.endsWith(".DS_Store")) {
                         zis.closeEntry()
                         entry = zis.nextEntry
                         continue
                     }
 
-                    // Strip models/ or voiceime_models/ root folder prefix if packaged with root
-                    if (entryName.startsWith("models/")) {
-                        entryName = entryName.removePrefix("models/")
-                    } else if (entryName.startsWith("voiceime_models/")) {
-                        entryName = entryName.removePrefix("voiceime_models/")
-                    }
-
+                    val entryName = normalizeEntryName(rawName)
                     if (entryName.isEmpty()) {
                         zis.closeEntry()
                         entry = zis.nextEntry

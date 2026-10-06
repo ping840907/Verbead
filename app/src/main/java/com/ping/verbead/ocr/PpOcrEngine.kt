@@ -1,4 +1,4 @@
-package com.ping.voiceime.ocr
+﻿package com.ping.verbead.ocr
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
@@ -10,7 +10,7 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.util.Log
-import com.ping.voiceime.engine.ModelConfig
+import com.ping.verbead.engine.ModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

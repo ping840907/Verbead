@@ -15,5 +15,5 @@ dependencyResolutionManagement {
         flatDir { dirs 'app/libs' }
     }
 }
-rootProject.name = "VoiceIME"
+rootProject.name = "Verbead"
 include ':app'

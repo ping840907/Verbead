@@ -29,7 +29,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="VoiceIME 新手設定與功能導覽"
+            android:text="珠璣 新手設定與功能導覽"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
@@ -85,7 +85,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="歡迎使用 VoiceIME"
+                    android:text="歡迎使用 珠璣"
                     android:textSize="24sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
@@ -152,18 +152,18 @@
                                 android:lineSpacingExtra="2dp" />
                         </LinearLayout>
 
-                        <!-- VoiceIME 比較項 -->
+                        <!-- 珠璣 比較項 -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:background="@drawable/bg_voiceime_card"
+                            android:background="@drawable/bg_verbead_card"
                             android:padding="12dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="VoiceIME 離線語音輸入法"
+                                android:text="珠璣 離線輸入助手"
                                 android:textSize="13sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/status_success_text" />
@@ -358,7 +358,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="VoiceIME 採用純粹專注的桌面懸浮球架構，無須替換您原本習慣的鍵盤，即可在任何 App 中隨心所欲進行語音輸入、條碼掃描與文字辨識："
+                    android:text="珠璣 採用純粹專注的桌面懸浮球架構，無須替換您原本習慣的鍵盤，即可在任何 App 中隨心所欲進行語音輸入、條碼掃描與文字辨識："
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="6dp"
@@ -666,7 +666,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="功能解析：\n允許語音泡泡懸浮於所有 App 上方，可自由拖曳、自動吸附於螢幕兩側。點擊前往後，請在系統「顯示在上層」清單中找到「VoiceIME」並將開關開啟。"
+                                android:text="功能解析：\n允許懸浮球懸浮於所有 App 上方，可自由拖曳、自動吸附於螢幕兩側。點擊前往後，請在系統「顯示在上層」清單中找到「珠璣」並將開關開啟。"
                                 android:textSize="11sp"
                                 android:textColor="@color/text_secondary"
                                 android:layout_marginTop="8dp"
@@ -791,7 +791,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="第 1 步：點擊下方快捷按鈕前往「應用程式資訊」。\n第 2 步：在該頁面右上角找到三個垂直點的選單「...」。\n第 3 步：點選「允許受限制的設定」，並透過手機指紋或密碼驗證解鎖。\n第 4 步：重新回到無障礙設定清單，VoiceIME 開關即可正常開啟！"
+                                android:text="第 1 步：點擊下方快捷按鈕前往「應用程式資訊」。\n第 2 步：在該頁面右上角找到三個垂直點的選單「...」。\n第 3 步：點選「允許受限制的設定」，並透過手機指紋或密碼驗證解鎖。\n第 4 步：重新回到無障礙設定清單，珠璣 開關即可正常開啟！"
                                 android:textSize="12sp"
                                 android:textColor="@color/text_secondary"
                                 android:layout_marginTop="6dp"
@@ -832,7 +832,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="VoiceIME 採用最新的開源端側深度學習 AI 架構，所有模型下載後永久保存在本機，終身免費且離線運行。建議至少下載其中一個模型即可開始輸入："
+                    android:text="珠璣 採用最新的開源端側深度學習 AI 架構，所有模型下載後永久保存在本機，終身免費且離線運行。建議至少下載其中一個模型即可開始輸入："
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="6dp"
@@ -891,7 +891,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="若已下載或持有模型包 (voiceime_models.zip)，可直接匯入一併復原 Qwen3、X-ASR 與 PP-OCR，免去漫長連線下載！"
+                            android:text="若已下載或持有模型包 (verbead_models.zip)，可直接匯入一併復原 Qwen3、X-ASR 與 PP-OCR，免去漫長連線下載！"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"
                             android:layout_marginBottom="10dp"
@@ -1775,7 +1775,7 @@
                     style="@style/Widget.Material3.Button"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="完成設置，開始使用 VoiceIME"
+                    android:text="完成設置，開始使用 珠璣"
                     android:textSize="15sp"
                     android:textStyle="bold"
                     app:cornerRadius="24dp" />

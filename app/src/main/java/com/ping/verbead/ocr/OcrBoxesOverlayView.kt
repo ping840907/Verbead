@@ -1,4 +1,4 @@
-package com.ping.voiceime.ocr
+﻿package com.ping.verbead.ocr
 
 import android.content.Context
 import android.graphics.Canvas

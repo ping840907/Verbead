@@ -1,4 +1,4 @@
-package com.ping.voiceime
+package com.ping.verbead
 
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
@@ -38,10 +38,10 @@ import androidx.cardview.widget.CardView
 import androidx.core.app.NotificationCompat
 import com.google.android.material.card.MaterialCardView
 import com.k2fsa.sherpa.onnx.OnlineStream
-import com.ping.voiceime.engine.AudioRecorder
-import com.ping.voiceime.engine.ModelConfig
-import com.ping.voiceime.engine.Qwen3AsrEngine
-import com.ping.voiceime.engine.XAsrEngine
+import com.ping.verbead.engine.AudioRecorder
+import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.Qwen3AsrEngine
+import com.ping.verbead.engine.XAsrEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -76,13 +76,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import com.ping.voiceime.camera.FrameMetrics
-import com.ping.voiceime.camera.setCovered
-import com.ping.voiceime.camera.setFrameRoi
-import com.ping.voiceime.engine.AudioRoutingManager
-import com.ping.voiceime.ocr.OcrBoxesOverlayView
-import com.ping.voiceime.ocr.PpOcrEngine
-import com.ping.voiceime.util.HapticUtil
+import com.ping.verbead.camera.FrameMetrics
+import com.ping.verbead.camera.setCovered
+import com.ping.verbead.camera.setFrameRoi
+import com.ping.verbead.engine.AudioRoutingManager
+import com.ping.verbead.ocr.OcrBoxesOverlayView
+import com.ping.verbead.ocr.PpOcrEngine
+import com.ping.verbead.util.HapticUtil
 import de.markusfisch.android.zxingcpp.ZxingCpp
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -93,7 +93,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         private const val TAG = "FloatingBubbleService"
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "floating_bubble_channel"
-        private const val ACTION_STOP = "com.ping.voiceime.ACTION_STOP_BUBBLE"
+        private const val ACTION_STOP = "com.ping.verbead.ACTION_STOP_BUBBLE"
         const val MODE_VOICE = 0
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
@@ -127,7 +127,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private val lifecycleRegistry = LifecycleRegistry(this)
     override val lifecycle: Lifecycle get() = lifecycleRegistry
 
-    private val themedCtx by lazy { ContextThemeWrapper(this, R.style.Theme_VoiceIME) }
+    private val themedCtx by lazy { ContextThemeWrapper(this, R.style.Theme_Verbead) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val qwen3Asr by lazy { Qwen3AsrEngine(this) }
     private val xAsr by lazy { XAsrEngine(this) }
@@ -337,11 +337,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         )
 
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("VoiceIME 懸浮語音輸入")
-            .setContentText("輕觸懸浮泡泡即可語音輸入至目前焦點欄位")
+            .setContentTitle("珠璣 懸浮輸入助手")
+            .setContentText("輕觸懸浮球即可輸入文字或掃描條碼至目前焦點欄位")
             .setSmallIcon(R.drawable.ic_mic)
             .setContentIntent(openIntent)
-            .addAction(0, "關閉泡泡", stopIntent)
+            .addAction(0, "關閉懸浮球", stopIntent)
             .setOngoing(true)
             .build()
 

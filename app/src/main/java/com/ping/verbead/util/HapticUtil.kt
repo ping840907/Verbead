@@ -1,4 +1,4 @@
-package com.ping.voiceime.util
+﻿package com.ping.verbead.util
 
 import android.content.Context
 import android.os.Build

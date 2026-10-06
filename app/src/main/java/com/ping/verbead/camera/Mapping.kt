@@ -1,4 +1,4 @@
-package com.ping.voiceime.camera
+﻿package com.ping.verbead.camera
 
 import android.graphics.Matrix
 import android.graphics.Rect

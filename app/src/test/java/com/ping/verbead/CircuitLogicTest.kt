@@ -1,6 +1,7 @@
-package com.ping.voiceime
+package com.ping.verbead
 
-import com.ping.voiceime.engine.ModelConfig
+import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.ModelZipInstaller
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -35,12 +36,12 @@ class CircuitLogicTest {
     @Test
     fun testUserDictionaryApply() {
         val dict = mapOf(
-            "語音辨識" to "VoiceIME",
+            "語音辨識" to "Verbead",
             "着" to "著",
             "通用詞" to "通用詞"
         )
         val input = "這是語音辨識測試，看着螢幕"
-        val expected = "這是VoiceIME測試，看著螢幕"
+        val expected = "這是Verbead測試，看著螢幕"
         val actual = UserDictionary.apply(input, dict)
         assertEquals(expected, actual)
     }
@@ -213,5 +214,24 @@ class CircuitLogicTest {
         val input = "刚纔看着心裏吃靣"
         val converted = ModelConfig.toTaiwanTraditional(input)
         assertEquals("剛才看著心裡吃麵", converted)
+    }
+
+    @Test
+    fun testModelZipEntryNormalization() {
+        // 1. models/ 前綴應被去除
+        assertEquals("ocr/pp_ocrv6_small_det.onnx", ModelZipInstaller.normalizeEntryName("models/ocr/pp_ocrv6_small_det.onnx"))
+        assertEquals("x_asr/encoder.int8.onnx", ModelZipInstaller.normalizeEntryName("/models/x_asr/encoder.int8.onnx"))
+
+        // 2. verbead_models/ 前綴應被去除
+        assertEquals("ocr/pp_ocrv6_small_det.onnx", ModelZipInstaller.normalizeEntryName("verbead_models/ocr/pp_ocrv6_small_det.onnx"))
+        assertEquals("qwen3_asr/encoder.int8.onnx", ModelZipInstaller.normalizeEntryName("/verbead_models/qwen3_asr/encoder.int8.onnx"))
+
+        // 3. 根目錄本身應為空字串（供安裝器略過）
+        assertEquals("", ModelZipInstaller.normalizeEntryName("models/"))
+        assertEquals("", ModelZipInstaller.normalizeEntryName("verbead_models/"))
+
+        // 4. 舊的 legacy 前綴不再被特別處理（保留原前綴，不予去除）
+        val legacy = "voice" + "ime_models/ocr/model.onnx"
+        assertEquals(legacy, ModelZipInstaller.normalizeEntryName(legacy))
     }
 }

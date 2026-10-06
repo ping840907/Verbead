@@ -1,4 +1,4 @@
-package com.ping.voiceime
+﻿package com.ping.verbead
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -8,10 +8,10 @@ import android.graphics.Typeface
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.ping.voiceime.engine.ModelConfig
-import com.ping.voiceime.engine.ModelDownloadSpec
-import com.ping.voiceime.engine.ModelDownloader
-import com.ping.voiceime.engine.XAsrEngine
+import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.ModelDownloadSpec
+import com.ping.verbead.engine.ModelDownloader
+import com.ping.verbead.engine.XAsrEngine
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -82,7 +82,7 @@ class SherpaOnnxTest {
             if (File(ModelConfig.ocrDetPath(context, ModelConfig.OCR_MODEL_SMALL)).exists()) {
                 ModelConfig.setSelectedOcrModel(context, ModelConfig.OCR_MODEL_SMALL)
             }
-            val ocr = com.ping.voiceime.ocr.PpOcrEngine(context)
+            val ocr = com.ping.verbead.ocr.PpOcrEngine(context)
             val loaded = ocr.load()
             Log.i(TAG, "PpOcrEngine loaded: $loaded, isReady: ${ocr.isReady}")
             assertTrue("PpOcrEngine should load successfully", loaded)
@@ -98,7 +98,7 @@ class SherpaOnnxTest {
             if (File(ModelConfig.ocrDetPath(context, ModelConfig.OCR_MODEL_SMALL)).exists()) {
                 ModelConfig.setSelectedOcrModel(context, ModelConfig.OCR_MODEL_SMALL)
             }
-            val ocr = com.ping.voiceime.ocr.PpOcrEngine(context)
+            val ocr = com.ping.verbead.ocr.PpOcrEngine(context)
             val loaded = ocr.load()
             assertTrue("PpOcrEngine should load successfully", loaded)
 

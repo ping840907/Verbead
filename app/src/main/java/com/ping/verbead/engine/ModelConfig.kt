@@ -1,4 +1,4 @@
-package com.ping.voiceime.engine
+﻿package com.ping.verbead.engine
 
 import android.content.Context
 import com.github.houbb.opencc4j.util.ZhConverterUtil
@@ -68,8 +68,8 @@ object ModelConfig {
         }
         val altPaths = listOf(
             File(context.filesDir, "models"),
-            File("/storage/emulated/0/Android/data/com.ping.voiceime/files/models"),
-            File("/sdcard/Android/data/com.ping.voiceime/files/models")
+            File("/storage/emulated/0/Android/data/com.ping.verbead/files/models"),
+            File("/sdcard/Android/data/com.ping.verbead/files/models")
         )
         for (alt in altPaths) {
             if (File(alt, OCR_DIR).exists() || File(alt, X_ASR_DIR).exists() || File(alt, QWEN3_ASR_DIR).exists()) {

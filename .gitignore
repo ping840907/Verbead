@@ -21,7 +21,7 @@ app/src/main/assets/models/
 /x_asr/
 *.onnx
 *.zip
-voiceime_models.zip
+verbead_models.zip
 
 # AAR / JAR binary libraries
 app/libs/*.aar

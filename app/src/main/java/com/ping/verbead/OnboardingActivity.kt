@@ -1,4 +1,4 @@
-package com.ping.voiceime
+package com.ping.verbead
 
 import android.Manifest
 import android.content.ComponentName
@@ -22,9 +22,9 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.ping.voiceime.engine.ModelConfig
-import com.ping.voiceime.engine.ModelDownloadState
-import com.ping.voiceime.engine.ModelZipInstaller
+import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.ModelDownloadState
+import com.ping.verbead.engine.ModelZipInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -360,7 +360,7 @@ class OnboardingActivity : AppCompatActivity() {
             if (quickFile != null) {
                 runModelPackageImport(file = quickFile)
             } else {
-                Toast.makeText(this, "未找到 Download/voiceime_models.zip", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "未找到 Download/verbead_models.zip", Toast.LENGTH_SHORT).show()
                 btnOnboardingQuickImportDownload.visibility = View.GONE
             }
         }

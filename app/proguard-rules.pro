@@ -1,1 +1,1 @@
--keep class com.ping.voiceime.** { *; }
+-keep class com.ping.verbead.** { *; }

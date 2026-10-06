@@ -39,7 +39,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="VoiceIME 語音輸入法"
+                    android:text="珠璣 離線輸入助手"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
@@ -639,12 +639,12 @@
                         android:insetTop="0dp"
                         android:insetBottom="0dp" />
 
-                    <!-- 按鈕 2: 快捷從 Download/voiceime_models.zip 載入 -->
+                    <!-- 按鈕 2: 快捷從 Download/verbead_models.zip 載入 -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_quick_import_download"
                         android:layout_width="match_parent"
                         android:layout_height="38dp"
-                        android:text="⚡ 快速從 Download 載入 voiceime_models.zip"
+                        android:text="⚡ 快速從 Download 載入 verbead_models.zip"
                         android:textSize="12sp"
                         app:cornerRadius="19dp"
                         style="@style/Widget.Material3.Button.TonalButton"
@@ -1482,7 +1482,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="• 懸浮泡泡：點擊錄音，貼上後可點擊上方按鈕復原文字\n• 雙引擎模式：兼具即時顯示與精準斷句\n• 快速自訂詞彙：在鍵盤中長按「詞彙」鍵即可開啟管理"
+                    android:text="• 懸浮泡泡：點擊錄音，貼上後可點擊上方按鈕復原文字\n• 雙引擎模式：兼具即時顯示與精準斷句\n• 快速自訂詞彙：在鍵盤中長按「詞彙」鍵即可開啟管理\n\n珠璣 (Verbead)：字字珠璣，串字成珠"
                     android:textSize="12sp"
                     android:textColor="@color/text_secondary"
                     android:lineSpacingMultiplier="1.5" />

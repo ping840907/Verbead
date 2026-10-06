@@ -1,4 +1,4 @@
-package com.ping.voiceime
+package com.ping.verbead
 
 import android.Manifest
 import android.content.ComponentName
@@ -23,13 +23,13 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.ping.voiceime.engine.AudioRoutingManager
-import com.ping.voiceime.engine.ModelConfig
-import com.ping.voiceime.engine.ModelDownloadSpec
-import com.ping.voiceime.engine.ModelDownloadState
-import com.ping.voiceime.engine.ModelDownloader
-import com.ping.voiceime.engine.ModelZipInstaller
-import com.ping.voiceime.util.HapticUtil
+import com.ping.verbead.engine.AudioRoutingManager
+import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.ModelDownloadSpec
+import com.ping.verbead.engine.ModelDownloadState
+import com.ping.verbead.engine.ModelDownloader
+import com.ping.verbead.engine.ModelZipInstaller
+import com.ping.verbead.util.HapticUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -182,16 +182,16 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
-        android.util.Log.d("VoiceIME_Zip", "handleIntent: ${intent.extras}")
+        android.util.Log.d("Verbead_Zip", "handleIntent: ${intent.extras}")
         if (intent.getBooleanExtra("auto_import_default_zip", false)) {
             val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
-            android.util.Log.d("VoiceIME_Zip", "auto_import_default_zip -> quickFile: $quickFile")
+            android.util.Log.d("Verbead_Zip", "auto_import_default_zip -> quickFile: $quickFile")
             if (quickFile != null) {
                 runModelPackageImport(file = quickFile)
             }
         } else if (intent.hasExtra("import_zip_path")) {
             val path = intent.getStringExtra("import_zip_path")
-            android.util.Log.d("VoiceIME_Zip", "import_zip_path: $path")
+            android.util.Log.d("Verbead_Zip", "import_zip_path: $path")
             if (!path.isNullOrEmpty()) {
                 val f = java.io.File(path)
                 if (f.exists()) {
@@ -462,7 +462,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             if (quickFile != null) {
                 runModelPackageImport(file = quickFile)
             } else {
-                Toast.makeText(this, "未找到 Download/voiceime_models.zip", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "未找到 Download/verbead_models.zip", Toast.LENGTH_SHORT).show()
                 btnQuickImportDownload.visibility = View.GONE
             }
         }

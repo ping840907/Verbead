@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.ping.voiceime'
+    namespace 'com.ping.verbead'
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.ping.voiceime"
+        applicationId "com.ping.verbead"
         minSdk 26
         targetSdk 34
         versionCode 1
