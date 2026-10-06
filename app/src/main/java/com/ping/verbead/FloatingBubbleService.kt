@@ -567,7 +567,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         VoiceAccessibilityService.onKeyboardStateChanged = { info ->
             Handler(Looper.getMainLooper()).post {
                 dynamicKeyboardTop = if (info.isVisible) info.keyboardTop else 0
-                setBubbleVisible(info.isVisible, animate = true)
+                val onlyOnKeyboard = ModelConfig.isShowOnlyOnKeyboard(this@FloatingBubbleService)
+                if (onlyOnKeyboard) {
+                    setBubbleVisible(info.isVisible, animate = true)
+                } else {
+                    setBubbleVisible(true, animate = true)
+                }
 
                 if (info.isVisible && ::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
                     if (isBubbleMoving || snapAnimator?.isRunning == true) {
@@ -603,10 +608,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (state == State.PASTED) {
                     hideXButton()
                     setState(State.IDLE)
-                    val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                    if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
-                        setBubbleVisible(false, animate = true)
-                    }
+                    checkAndHideBubbleIfKeyboardClosed(animate = true)
                 }
             }
         }
@@ -615,10 +617,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (state == State.PASTED) {
                     hideXButton()
                     setState(State.IDLE)
-                    val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                    if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
-                        setBubbleVisible(false, animate = true)
-                    }
+                    checkAndHideBubbleIfKeyboardClosed(animate = true)
                 }
             }
         }
@@ -627,10 +626,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (state == State.PASTED) {
                     hideXButton()
                     setState(State.IDLE)
-                    val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                    if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
-                        setBubbleVisible(false, animate = true)
-                    }
+                    checkAndHideBubbleIfKeyboardClosed(animate = true)
                 }
             }
         }
@@ -640,7 +636,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isKeyboardOpen) {
             dynamicKeyboardTop = initialKeyboard.keyboardTop
         }
-        setBubbleVisible(isKeyboardOpen, animate = false)
+        val onlyOnKeyboard = ModelConfig.isShowOnlyOnKeyboard(this)
+        setBubbleVisible(if (onlyOnKeyboard) isKeyboardOpen else true, animate = false)
     }
 
     private fun getStatusBarHeight(): Int {
@@ -720,6 +717,27 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 bubbleView.visibility = View.GONE
                 bubbleView.alpha = 0f
             }
+        }
+    }
+
+    fun applyKeyboardOnlySetting() {
+        val onlyOnKeyboard = ModelConfig.isShowOnlyOnKeyboard(this)
+        val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+        if (onlyOnKeyboard) {
+            setBubbleVisible(isKeyboardOpen, animate = true)
+        } else {
+            setBubbleVisible(true, animate = true)
+        }
+    }
+
+    private fun checkAndHideBubbleIfKeyboardClosed(animate: Boolean = true) {
+        if (!ModelConfig.isShowOnlyOnKeyboard(this)) {
+            // 常駐模式：不因鍵盤收起而隱藏，常駐於側邊
+            return
+        }
+        val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
+        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
+            setBubbleVisible(false, animate = animate)
         }
     }
 
@@ -1529,10 +1547,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (state == State.PASTED) {
                 hideXButton()
                 setState(State.IDLE)
-                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
-                    setBubbleVisible(false, animate = true)
-                }
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
         }
 
@@ -1949,9 +1964,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 windowManager.removeView(menu)
             } catch (_: Exception) {}
         }
-        pill?.scaleX = 1f
-        pill?.scaleY = 1f
-        pill?.alpha = 1f
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -2269,10 +2281,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     } catch (_: Exception) {}
                 }
                 scannerView = null
-                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                if (!isKeyboardOpen && !isOcrModeActive && !isOcrSnapshotActive && state != State.PASTED) {
-                    setBubbleVisible(false, animate = true)
-                }
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
             .start()
     }
@@ -2523,10 +2532,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     } catch (_: Exception) {}
                 }
                 ocrWindowView = null
-                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                if (!isKeyboardOpen && !isScannerModeActive && !isOcrSnapshotActive && state != State.PASTED) {
-                    setBubbleVisible(false, animate = true)
-                }
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
             .start()
     }
@@ -2610,10 +2616,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (state == State.PASTED) {
                 hideXButton()
                 setState(State.IDLE)
-                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
-                    setBubbleVisible(false, animate = true)
-                }
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
         }
 
@@ -2836,10 +2839,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (state == State.PASTED) {
                             hideXButton()
                             setState(State.IDLE)
-                            val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                            if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive) {
-                                setBubbleVisible(false, animate = true)
-                            }
+                            checkAndHideBubbleIfKeyboardClosed(animate = true)
                         }
                     }
 
@@ -2877,10 +2877,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     } catch (_: Exception) {}
                 }
                 ocrSnapshotView = null
-                val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-                if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && state != State.PASTED) {
-                    setBubbleVisible(false, animate = true)
-                }
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
             .start()
     }

@@ -480,4 +480,16 @@ object ModelConfig {
     fun setOnboardingMode(context: Context, mode: String = MODE_BUBBLE) =
         context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
             .edit().putString(KEY_ONBOARDING_MODE, mode).apply()
+
+    // ── Floating Bubble Preferences ───────────────────────────────────────────
+    const val PREF_BUBBLE_SETTINGS = "bubble_settings"
+    const val KEY_SHOW_ONLY_ON_KEYBOARD = "show_only_on_keyboard"
+
+    fun isShowOnlyOnKeyboard(context: Context): Boolean =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_SHOW_ONLY_ON_KEYBOARD, false)
+
+    fun setShowOnlyOnKeyboard(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_SHOW_ONLY_ON_KEYBOARD, enabled).apply()
 }

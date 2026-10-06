@@ -72,6 +72,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvAccessibilityStatus: TextView
     private lateinit var btnGrantAccessibility: MaterialButton
     private lateinit var tvRestrictedSettingsHelp: TextView
+    private lateinit var switchShowOnlyOnKeyboard: MaterialSwitch
 
     // Node 3: Engines
     // X-ASR
@@ -232,6 +233,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvAccessibilityStatus     = findViewById(R.id.tv_accessibility_status)
         btnGrantAccessibility     = findViewById(R.id.btn_grant_accessibility)
         tvRestrictedSettingsHelp  = findViewById(R.id.tv_restricted_settings_help)
+        switchShowOnlyOnKeyboard  = findViewById(R.id.switch_show_only_on_keyboard)
 
         // Node 3: Engines
         // X-ASR
@@ -372,6 +374,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         // §3.2.2 備援連結與受限制設定指引
         tvRestrictedSettingsHelp.setOnClickListener {
             showRestrictedSettingsDialog()
+        }
+
+        switchShowOnlyOnKeyboard.setOnCheckedChangeListener { _, isChecked ->
+            ModelConfig.setShowOnlyOnKeyboard(this, isChecked)
+            FloatingBubbleService.instance?.applyKeyboardOnlySetting()
         }
 
         // Node 3: Engine Select Buttons (§2.2 點擊邏輯與聯鎖防呆)
@@ -547,6 +554,26 @@ class ImeSettingsActivity : AppCompatActivity() {
     // ══════════════════════════════════════════════════════════════════════════
     // §2.2 線路生效運算式與狀態判定
     // ══════════════════════════════════════════════════════════════════════════
+    private fun updatePermissionButton(
+        button: MaterialButton,
+        statusTextView: TextView,
+        isGranted: Boolean,
+        grantedDesc: String,
+        notGrantedDesc: String
+    ) {
+        if (isGranted) {
+            statusTextView.text = grantedDesc
+            statusTextView.setTextColor(ContextCompat.getColor(this, R.color.status_success))
+            button.text = "已啟用"
+            button.isEnabled = false
+        } else {
+            statusTextView.text = notGrantedDesc
+            statusTextView.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            button.text = "授予權限"
+            button.isEnabled = true
+        }
+    }
+
     private fun updateAllStatus() {
         val micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
@@ -601,66 +628,61 @@ class ImeSettingsActivity : AppCompatActivity() {
         // 更新 UI 元件狀態與文案
         // ══════════════════════════════════════════════════════════════════════
 
-        // Node 1: Mic & Camera
-        if (micGranted) {
+        // Node 1: Mic & Nearby Devices & Camera
+        val micGrantedDesc = run {
             val preferred = AudioRoutingManager.getInstance(this).getPreferredInputDevice()
             val isBt = preferred?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
                     (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
             if (isBt) {
-                tvMicStatus.text = "已就緒（優先使用藍牙音訊：${preferred?.productName ?: "藍牙耳機"}）"
+                "已就緒（優先使用藍牙音訊：${preferred?.productName ?: "藍牙耳機"}）"
             } else {
-                tvMicStatus.text = "麥克風錄音權限已就緒"
+                "麥克風錄音權限已就緒"
             }
-            tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnGrantMic.text = "已就緒"
-            btnGrantMic.isEnabled = false
-        } else {
-            tvMicStatus.text = "辨識語音必須的系統核心權限"
-            tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnGrantMic.text = "授予權限"
-            btnGrantMic.isEnabled = true
         }
+        updatePermissionButton(
+            btnGrantMic,
+            tvMicStatus,
+            micGranted,
+            micGrantedDesc,
+            "辨識語音必須的系統核心權限"
+        )
 
-        // Nearby Devices Status
+        // Nearby Devices Status (Android 11 及以下沒有鄰近裝置權限，視為已啟用)
         val nearbyGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
                     PackageManager.PERMISSION_GRANTED
         } else {
             true
         }
-
-        if (nearbyGranted) {
+        val nearbyGrantedDesc = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            "系統版本無需額外鄰近裝置權限"
+        } else {
             val preferred = AudioRoutingManager.getInstance(this).getPreferredInputDevice()
             val isBt = preferred?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+                    preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET
             if (isBt) {
-                tvNearbyDevicesStatus.text = "已就緒（目前連線：${preferred?.productName ?: "藍牙音訊裝置"}）"
+                "已就緒（目前連線：${preferred?.productName ?: "藍牙音訊裝置"}）"
             } else {
-                tvNearbyDevicesStatus.text = "鄰近裝置權限已就緒（點此可管理系統權限）"
+                "鄰近裝置權限已就緒"
             }
-            tvNearbyDevicesStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnGrantNearbyDevices.text = "已就緒"
-            btnGrantNearbyDevices.isEnabled = true
-        } else {
-            tvNearbyDevicesStatus.text = "藍牙耳機或外部麥克風連線收音所需，點擊前往授權"
-            tvNearbyDevicesStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnGrantNearbyDevices.text = "授予權限"
-            btnGrantNearbyDevices.isEnabled = true
         }
+        updatePermissionButton(
+            btnGrantNearbyDevices,
+            tvNearbyDevicesStatus,
+            nearbyGranted,
+            nearbyGrantedDesc,
+            "藍牙耳機或外部麥克風連線收音所需，點擊前往授權"
+        )
 
         val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
                 PackageManager.PERMISSION_GRANTED
-        if (cameraGranted) {
-            tvCameraStatus.text = "相機鏡頭權限已就緒"
-            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnGrantCamera.text = "已就緒"
-            btnGrantCamera.isEnabled = false
-        } else {
-            tvCameraStatus.text = "相機文字辨識與條碼掃描所需，完全在裝置本機端執行"
-            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnGrantCamera.text = "授予權限"
-            btnGrantCamera.isEnabled = true
-        }
+        updatePermissionButton(
+            btnGrantCamera,
+            tvCameraStatus,
+            cameraGranted,
+            "相機鏡頭權限已就緒",
+            "相機文字辨識與條碼掃描所需，完全在裝置本機端執行"
+        )
 
 
         // Node 2: Bubble
@@ -695,6 +717,8 @@ class ImeSettingsActivity : AppCompatActivity() {
             btnGrantAccessibility.text = "前往開啟"
             tvRestrictedSettingsHelp.visibility = View.VISIBLE
         }
+
+        switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
 
         // Node 3: X-ASR Card
         val isXasrSelected = selectedEngine == ModelConfig.ENGINE_X_ASR
