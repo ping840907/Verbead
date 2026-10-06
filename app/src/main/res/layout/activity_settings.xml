@@ -1419,6 +1419,192 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- ══════════════════════ 開源致謝 ══════════════════════ -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_credits"
+            style="@style/Verbead.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    style="@style/Verbead.Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="開源專案與致謝" />
+
+                <TextView
+                    style="@style/Verbead.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="珠璣 (Verbead) 衷心感謝開源社群與模型作者的卓越貢獻（點擊開啟專案）：" />
+
+                <!-- PP-OCR -->
+                <LinearLayout
+                    android:id="@+id/row_credit_ppocr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• PaddleOCR (PP-OCRv6) ↗"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="  作者：PaddlePaddle 團隊 (百度飛槳) · 離線文字辨識" />
+                </LinearLayout>
+
+                <!-- zxing-cpp -->
+                <LinearLayout
+                    android:id="@+id/row_credit_zxing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• zxing-cpp 條碼辨識庫 ↗"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="  作者：zxing-cpp 團隊 / Axel Waggershauser · C++ 條碼掃描" />
+                </LinearLayout>
+
+                <!-- sherpa-onnx -->
+                <LinearLayout
+                    android:id="@+id/row_credit_sherpa"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• sherpa-onnx ↗"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="  作者：Next-gen Kaldi (k2-fsa) · 端側語音辨識 Runtime" />
+                </LinearLayout>
+
+                <!-- X-ASR -->
+                <LinearLayout
+                    android:id="@+id/row_credit_xasr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• X-ASR 繁中串流模型 ↗"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="  作者：Luigi · 台灣繁體中文/國台英語最佳化模型" />
+                </LinearLayout>
+
+                <!-- Qwen3-ASR -->
+                <LinearLayout
+                    android:id="@+id/row_credit_qwen"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• Qwen3-ASR 語音模型 ↗"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="  作者：Alibaba Qwen Team · 高精度開源語音大模型" />
+                </LinearLayout>
+
+                <!-- ONNX Runtime -->
+                <LinearLayout
+                    android:id="@+id/row_credit_onnx"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• ONNX Runtime ↗"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="  作者：Microsoft · 跨平台高效能神經網路推論引擎" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Brand footer -->
         <TextView
             android:layout_width="match_parent"

@@ -155,6 +155,10 @@ app/src/main/java/com/ping/verbead/
 | **[X-ASR (zh-tw-en-streaming)](https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m)** | [Luigi](https://huggingface.co/Luigi) | Apache 2.0 | 感謝 Luigi 訓練並開源針對台灣繁體中文、國台語及英語最佳化之串流語音模型 |
 | **[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** | [Next-gen Kaldi (k2-fsa)](https://github.com/k2-fsa) | Apache 2.0 | 提供強大且高效的跨平台 On-Device 語音辨識 Runtime |
 | **[Qwen3-ASR](https://github.com/QwenLM)** | Alibaba Qwen Team | Apache 2.0 | 提供優異表現的開源語音辨識大模型 |
+| **[PaddleOCR (PP-OCRv6)](https://github.com/PaddlePaddle/PaddleOCR)** | [PaddlePaddle 團隊 (百度飛槳)](https://github.com/PaddlePaddle) | Apache 2.0 | 提供業界頂尖之端側輕量化 OCR 文字偵測與文字辨識模型（PP-OCRv6 Det & Rec），實現全離線文字提取 |
+| **[zxing-cpp](https://github.com/zxing-cpp/zxing-cpp)** | [zxing-cpp 團隊 / Axel Waggershauser](https://github.com/zxing-cpp) | Apache 2.0 | 高效能 C++ 一維與二維條碼 / QR Code 辨識引擎（提供 Android AAR 封裝），實現毫秒級即時掃描與解碼 |
+| **[ONNX Runtime](https://github.com/microsoft/onnxruntime)** | [Microsoft](https://github.com/microsoft) | MIT | 跨平台高效能端側神經網路推論引擎，支援 PP-OCR 視覺模型於本機高效運算 |
 | **[opencc4j](https://github.com/houbb/opencc4j)** | [houbb](https://github.com/houbb) | Apache 2.0 | 提供純 Java/Kotlin 高效繁簡轉換支援 |
 | **[Material Components for Android](https://github.com/material-components/material-components-android)** | Google | Apache 2.0 | 現代化 Material Design 介面元件庫 |
 | **[Commons Compress](https://commons.apache.org/proper/commons-compress/)** | Apache Software Foundation | Apache 2.0 | 用於 tar.bz2 模型封存檔於本機解壓縮 |
+

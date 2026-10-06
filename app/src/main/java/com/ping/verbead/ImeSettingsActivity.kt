@@ -499,6 +499,34 @@ class ImeSettingsActivity : AppCompatActivity() {
                 }
             }
         }
+
+        // 開源專案與致謝連結
+        fun openWebUrl(url: String) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            } catch (ex: Exception) {
+                Toast.makeText(this, "無法開啟連結：${ex.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        findViewById<View?>(R.id.row_credit_ppocr)?.setOnClickListener {
+            openWebUrl("https://github.com/PaddlePaddle/PaddleOCR")
+        }
+        findViewById<View?>(R.id.row_credit_zxing)?.setOnClickListener {
+            openWebUrl("https://github.com/zxing-cpp/zxing-cpp")
+        }
+        findViewById<View?>(R.id.row_credit_sherpa)?.setOnClickListener {
+            openWebUrl("https://github.com/k2-fsa/sherpa-onnx")
+        }
+        findViewById<View?>(R.id.row_credit_xasr)?.setOnClickListener {
+            openWebUrl("https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m")
+        }
+        findViewById<View?>(R.id.row_credit_qwen)?.setOnClickListener {
+            openWebUrl("https://github.com/QwenLM")
+        }
+        findViewById<View?>(R.id.row_credit_onnx)?.setOnClickListener {
+            openWebUrl("https://github.com/microsoft/onnxruntime")
+        }
     }
 
     override fun onStart() {
