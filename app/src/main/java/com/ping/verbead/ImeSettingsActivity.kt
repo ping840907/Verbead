@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.graphics.Rect
 import android.media.AudioDeviceInfo
 import android.net.Uri
 import android.os.Build
@@ -13,6 +14,8 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.Settings
 import android.view.View
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -20,6 +23,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.widget.NestedScrollView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -51,9 +55,30 @@ class ImeSettingsActivity : AppCompatActivity() {
     private var observeJob: Job? = null
     private var pendingDownloadEngine: String? = null
 
-    // Header
+    // Header & Status Indicator
+    private lateinit var scrollSettings: NestedScrollView
     private lateinit var tvOverallBadge: TextView
     private lateinit var btnOpenOnboarding: MaterialButton
+
+    private lateinit var itemStatusMic: LinearLayout
+    private lateinit var ivStatusDotMic: ImageView
+    private lateinit var tvStatusValMic: TextView
+
+    private lateinit var itemStatusOverlay: LinearLayout
+    private lateinit var ivStatusDotOverlay: ImageView
+    private lateinit var tvStatusValOverlay: TextView
+
+    private lateinit var itemStatusAccessibility: LinearLayout
+    private lateinit var ivStatusDotAccessibility: ImageView
+    private lateinit var tvStatusValAccessibility: TextView
+
+    private lateinit var itemStatusModel: LinearLayout
+    private lateinit var ivStatusDotModel: ImageView
+    private lateinit var tvStatusValModel: TextView
+
+    private lateinit var cardMicRoot: View
+    private lateinit var cardBubbleModule: View
+    private lateinit var cardImportModels: View
 
     // Node 1: Mic Root
     private lateinit var tvMicStatus: TextView
@@ -217,9 +242,30 @@ class ImeSettingsActivity : AppCompatActivity() {
     }
 
     private fun bindViews() {
-        // Overall
+        // Overall & Status Indicator
+        scrollSettings = findViewById(R.id.scroll_settings)
         tvOverallBadge = findViewById(R.id.tv_overall_badge)
         btnOpenOnboarding = findViewById(R.id.btn_open_onboarding)
+
+        itemStatusMic = findViewById(R.id.item_status_mic)
+        ivStatusDotMic = findViewById(R.id.iv_status_dot_mic)
+        tvStatusValMic = findViewById(R.id.tv_status_val_mic)
+
+        itemStatusOverlay = findViewById(R.id.item_status_overlay)
+        ivStatusDotOverlay = findViewById(R.id.iv_status_dot_overlay)
+        tvStatusValOverlay = findViewById(R.id.tv_status_val_overlay)
+
+        itemStatusAccessibility = findViewById(R.id.item_status_accessibility)
+        ivStatusDotAccessibility = findViewById(R.id.iv_status_dot_accessibility)
+        tvStatusValAccessibility = findViewById(R.id.tv_status_val_accessibility)
+
+        itemStatusModel = findViewById(R.id.item_status_model)
+        ivStatusDotModel = findViewById(R.id.iv_status_dot_model)
+        tvStatusValModel = findViewById(R.id.tv_status_val_model)
+
+        cardMicRoot = findViewById(R.id.card_mic_root)
+        cardBubbleModule = findViewById(R.id.card_bubble_module)
+        cardImportModels = findViewById(R.id.card_import_models)
 
         // Node 1: Mic
         tvMicStatus = findViewById(R.id.tv_mic_status)
@@ -290,10 +336,26 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnQuickImportDownload  = findViewById(R.id.btn_quick_import_download)
     }
 
+    private fun scrollToView(target: View) {
+        scrollSettings.post {
+            val rect = Rect()
+            target.getDrawingRect(rect)
+            scrollSettings.offsetDescendantRectToMyCoords(target, rect)
+            val scrollY = (rect.top - 24 * resources.displayMetrics.density).toInt()
+            scrollSettings.smoothScrollTo(0, maxOf(0, scrollY))
+        }
+    }
+
     private fun setupListeners() {
         btnOpenOnboarding.setOnClickListener {
             startActivity(Intent(this, OnboardingActivity::class.java))
         }
+
+        // Status indicator click to smooth scroll
+        itemStatusMic.setOnClickListener { scrollToView(cardMicRoot) }
+        itemStatusOverlay.setOnClickListener { scrollToView(cardBubbleModule) }
+        itemStatusAccessibility.setOnClickListener { scrollToView(btnGrantAccessibility) }
+        itemStatusModel.setOnClickListener { scrollToView(cardImportModels) }
 
         // Node 1: Mic & Camera Permissions
         btnGrantMic.setOnClickListener {
@@ -859,14 +921,77 @@ class ImeSettingsActivity : AppCompatActivity() {
         styleSepButton(btnOcrSepSpace, currentSep == " ")
         styleSepButton(btnOcrSepNone, currentSep == "")
 
-        // Header Overall Badge
-        if (inputPathReady && currentEngineReady) {
+        // Header Overall Badge & Status Indicator Items
+        val successColor = ContextCompat.getColor(this, R.color.status_success_text)
+        val warningColor = ContextCompat.getColor(this, R.color.status_warning_text)
+
+        var pendingCount = 0
+
+        // 1. 麥克風
+        if (micGranted) {
+            ivStatusDotMic.setImageResource(R.drawable.ic_check_circle)
+            ivStatusDotMic.setColorFilter(successColor)
+            tvStatusValMic.text = "已就緒 ✓"
+            tvStatusValMic.setTextColor(successColor)
+        } else {
+            ivStatusDotMic.setImageResource(R.drawable.bg_icon_circle)
+            ivStatusDotMic.setColorFilter(warningColor)
+            tvStatusValMic.text = "未授權 ➜"
+            tvStatusValMic.setTextColor(warningColor)
+            pendingCount++
+        }
+
+        // 2. 懸浮窗
+        if (overlayGranted) {
+            ivStatusDotOverlay.setImageResource(R.drawable.ic_check_circle)
+            ivStatusDotOverlay.setColorFilter(successColor)
+            tvStatusValOverlay.text = "已就緒 ✓"
+            tvStatusValOverlay.setTextColor(successColor)
+        } else {
+            ivStatusDotOverlay.setImageResource(R.drawable.bg_icon_circle)
+            ivStatusDotOverlay.setColorFilter(warningColor)
+            tvStatusValOverlay.text = "未授權 ➜"
+            tvStatusValOverlay.setTextColor(warningColor)
+            pendingCount++
+        }
+
+        // 3. 無障礙
+        if (accessibilityEnabled) {
+            ivStatusDotAccessibility.setImageResource(R.drawable.ic_check_circle)
+            ivStatusDotAccessibility.setColorFilter(successColor)
+            tvStatusValAccessibility.text = "已就緒 ✓"
+            tvStatusValAccessibility.setTextColor(successColor)
+        } else {
+            ivStatusDotAccessibility.setImageResource(R.drawable.bg_icon_circle)
+            ivStatusDotAccessibility.setColorFilter(warningColor)
+            tvStatusValAccessibility.text = "未開啟 ➜"
+            tvStatusValAccessibility.setTextColor(warningColor)
+            pendingCount++
+        }
+
+        // 4. 語音模型
+        val anyModelReady = xAsrDownloaded || qwen3Downloaded
+        if (anyModelReady) {
+            ivStatusDotModel.setImageResource(R.drawable.ic_check_circle)
+            ivStatusDotModel.setColorFilter(successColor)
+            tvStatusValModel.text = "已就緒 ✓"
+            tvStatusValModel.setTextColor(successColor)
+        } else {
+            ivStatusDotModel.setImageResource(R.drawable.bg_icon_circle)
+            ivStatusDotModel.setColorFilter(warningColor)
+            tvStatusValModel.text = "未下載 ➜"
+            tvStatusValModel.setTextColor(warningColor)
+            pendingCount++
+        }
+
+        // Overall Badge
+        if (pendingCount == 0) {
             tvOverallBadge.text = "全部就緒"
-            tvOverallBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
+            tvOverallBadge.setTextColor(successColor)
             tvOverallBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
         } else {
-            tvOverallBadge.text = "需要設定"
-            tvOverallBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
+            tvOverallBadge.text = "待配置 ${pendingCount} 項"
+            tvOverallBadge.setTextColor(warningColor)
             tvOverallBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
         }
 

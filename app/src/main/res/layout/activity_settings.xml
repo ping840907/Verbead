@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/scroll_settings"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
@@ -15,20 +15,22 @@
         android:paddingEnd="16dp"
         android:paddingBottom="40dp">
 
-        <!-- ══════════════════════ Hero ══════════════════════ -->
+        <!-- ══════════════════════ 頂部狀態顯示器 ══════════════════════ -->
         <com.google.android.material.card.MaterialCardView
-            style="@style/Verbead.Card.Primary"
+            android:id="@+id/card_status_indicator"
+            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            app:cardCornerRadius="28dp">
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="20dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="16dp">
 
+                <!-- Title & Overall Badge Row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -36,11 +38,12 @@
                     android:orientation="horizontal">
 
                     <ImageView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        android:layout_marginEnd="16dp"
-                        android:contentDescription="@string/app_name"
-                        android:src="@mipmap/ic_launcher" />
+                        android:id="@+id/iv_indicator_icon"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="10dp"
+                        android:src="@drawable/ic_tune"
+                        app:tint="@color/md_theme_light_primary" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -49,19 +52,19 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tv_indicator_title"
+                            style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="珠璣"
-                            android:textColor="@color/md_theme_light_onPrimaryContainer"
-                            android:textSize="28sp"
-                            android:textStyle="bold" />
+                            android:text="功能配置狀態" />
 
                         <TextView
+                            android:id="@+id/tv_indicator_subtitle"
+                            style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Verbead · 離線輸入助手"
-                            android:textColor="@color/md_theme_light_onPrimaryContainer"
-                            android:textSize="13sp" />
+                            android:layout_marginTop="2dp"
+                            android:text="點擊未完成項目可直接跳轉設定" />
                     </LinearLayout>
 
                     <TextView
@@ -74,25 +77,177 @@
                         android:textColor="@color/status_warning_text" />
                 </LinearLayout>
 
-                <TextView
+                <!-- Dynamic Diagnostic Items Container (Click to Jump) -->
+                <LinearLayout
+                    android:id="@+id/layout_status_items"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:alpha="0.85"
-                    android:lineSpacingMultiplier="1.2"
-                    android:text="語音輸入、條碼掃描與文字辨識，全部在本機完成，不上傳任何資料。字字珠璣，串字成珠。"
-                    android:textColor="@color/md_theme_light_onPrimaryContainer"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
 
+                    <!-- Item 1: Mic Permission -->
+                    <LinearLayout
+                        android:id="@+id/item_status_mic"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="6dp">
+
+                        <ImageView
+                            android:id="@+id/iv_status_dot_mic"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginEnd="8dp"
+                            android:src="@drawable/bg_icon_circle"
+                            app:tint="@color/status_warning_text" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Body"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="麥克風錄音權限"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tv_status_val_mic"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="未授權 ➜"
+                            android:textColor="@color/status_warning_text"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Item 2: Overlay Permission -->
+                    <LinearLayout
+                        android:id="@+id/item_status_overlay"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="6dp">
+
+                        <ImageView
+                            android:id="@+id/iv_status_dot_overlay"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginEnd="8dp"
+                            android:src="@drawable/bg_icon_circle"
+                            app:tint="@color/status_warning_text" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Body"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="懸浮窗顯示權限"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tv_status_val_overlay"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="未授權 ➜"
+                            android:textColor="@color/status_warning_text"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Item 3: Accessibility Service -->
+                    <LinearLayout
+                        android:id="@+id/item_status_accessibility"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="6dp">
+
+                        <ImageView
+                            android:id="@+id/iv_status_dot_accessibility"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginEnd="8dp"
+                            android:src="@drawable/bg_icon_circle"
+                            app:tint="@color/status_warning_text" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Body"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="無障礙焦點填入"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tv_status_val_accessibility"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="未啟用 ➜"
+                            android:textColor="@color/status_warning_text"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Item 4: Speech Recognition Model -->
+                    <LinearLayout
+                        android:id="@+id/item_status_model"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="6dp">
+
+                        <ImageView
+                            android:id="@+id/iv_status_dot_model"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginEnd="8dp"
+                            android:src="@drawable/bg_icon_circle"
+                            app:tint="@color/status_warning_text" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Body"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="語音辨識模型"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tv_status_val_model"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="未下載 ➜"
+                            android:textColor="@color/status_warning_text"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Navigation button to interactive onboarding / operation guide -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_open_onboarding"
-                    style="@style/Verbead.Button"
+                    style="@style/Verbead.Button.Tonal"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="新手導覽（重新設定）"
-                    app:icon="@drawable/ic_arrow_forward"
-                    app:iconGravity="textEnd" />
+                    android:layout_marginTop="12dp"
+                    android:text="操作示範與功能導覽"
+                    app:icon="@drawable/ic_info"
+                    app:iconGravity="textStart" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

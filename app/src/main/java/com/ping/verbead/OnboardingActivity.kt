@@ -1,784 +1,415 @@
 package com.ping.verbead
 
-import android.Manifest
-import android.content.ComponentName
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.DocumentsContract
-import android.provider.Settings
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.EditText
+import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.materialswitch.MaterialSwitch
-import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.engine.ModelConfig
-import com.ping.verbead.engine.ModelDownloadState
-import com.ping.verbead.engine.ModelZipInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/**
+ * OnboardingActivity: Interactive user experience tour.
+ * Explains core features (Voice typing, vertical capsule menu, edge docking & dismiss gesture, 100% offline privacy)
+ * using lightweight visual mockups and animations, guiding the user to main settings.
+ */
 class OnboardingActivity : AppCompatActivity() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var observeJob: Job? = null
-    private var pendingDownloadEngine: String? = null
-
-    private var currentStep = 1
-    private var selectedMode = ModelConfig.MODE_BUBBLE
-
-    // Top & Navigation Views
+    private lateinit var vpOnboarding: ViewPager2
     private lateinit var btnSkip: MaterialButton
-    private lateinit var progressSteps: LinearProgressIndicator
-    private lateinit var scrollContent: View
     private lateinit var btnPrev: MaterialButton
-    private lateinit var tvStepLabel: TextView
     private lateinit var btnNext: MaterialButton
+    private lateinit var dots: List<View>
 
-    // Step Containers
-    private lateinit var step1Container: LinearLayout
-    private lateinit var step2Container: LinearLayout
-    private lateinit var step3Container: LinearLayout
-    private lateinit var step4Container: LinearLayout
-    private lateinit var step5Container: LinearLayout
-
-    // Step 1 Views
-    private lateinit var tvMicStatus: TextView
-    private lateinit var btnGrantMic: MaterialButton
-    private lateinit var tvCameraStatus: TextView
-    private lateinit var btnGrantCamera: MaterialButton
-
-    // Step 2 Views
-    private lateinit var cardModeBubble: MaterialCardView
-    private lateinit var ivModeBubbleCheck: ImageView
-
-    // Step 3 Bubble Views
-    private lateinit var layoutStep3BubbleGroup: LinearLayout
-    private lateinit var tvOverlayStatus: TextView
-    private lateinit var btnGrantOverlay: MaterialButton
-    private lateinit var tvAccessibilityStatus: TextView
-    private lateinit var btnGrantAccessibility: MaterialButton
-    private lateinit var btnOpenAppDetails: MaterialButton
-
-    // Step 4 Views
-    private lateinit var tvXasrBadge: TextView
-    private lateinit var progressXasr: LinearProgressIndicator
-    private lateinit var tvStatusXasr: TextView
-    private lateinit var btnDownloadXasr: MaterialButton
-
-    private lateinit var tvQwen3Badge: TextView
-    private lateinit var progressQwen3: LinearProgressIndicator
-    private lateinit var tvStatusQwen3: TextView
-    private lateinit var btnDownloadQwen3: MaterialButton
-
-    private lateinit var tvOcrBadge: TextView
-    private lateinit var btnOcrTiny: MaterialButton
-    private lateinit var btnOcrSmall: MaterialButton
-    private lateinit var progressOcr: LinearProgressIndicator
-    private lateinit var tvStatusOcr: TextView
-    private lateinit var btnDownloadOcr: MaterialButton
-
-    // Step 4 Model Package ZIP Import
-    private lateinit var tvOnboardingAllModelsBadge: TextView
-    private lateinit var progressOnboardingImportModels: LinearProgressIndicator
-    private lateinit var tvOnboardingImportStatus: TextView
-    private lateinit var btnOnboardingQuickImportDownload: MaterialButton
-    private lateinit var btnOnboardingImportZip: MaterialButton
-
-    private val pickZipFileLauncher = registerForActivityResult(
-        object : ActivityResultContracts.OpenDocument() {
-            override fun createIntent(context: Context, input: Array<String>): Intent {
-                val intent = super.createIntent(context, input)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val downloadUri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Download")
-                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, downloadUri)
-                }
-                return intent
-            }
-        }
-    ) { uri: Uri? ->
-        uri?.let {
-            runModelPackageImport(uri = it)
-        }
-    }
-
-    // Step 5 Views
-    private lateinit var layoutQwen3Preferences: LinearLayout
-    private lateinit var cardXasrOnlyNotice: MaterialCardView
-    private lateinit var btnVadQuick: MaterialButton
-    private lateinit var btnVadNormal: MaterialButton
-    private lateinit var btnVadRelaxed: MaterialButton
-    private lateinit var switchPunctuation: MaterialSwitch
-    private lateinit var switchOcrAutoEnter: MaterialSwitch
-    private lateinit var etTest: EditText
-    private lateinit var btnFinish: MaterialButton
-
-    private val requestMic = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) {
-        updateStep1Status()
-    }
-
-    private val requestCamera = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) {
-        updateStep1Status()
-    }
-
-    private val requestNotifications = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) {
-        pendingDownloadEngine?.let { engine ->
-            ModelDownloadService.start(this, engine)
-            pendingDownloadEngine = null
-        }
-    }
+    private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var currentAnimJob: Job? = null
+    private var currentAnimatorSet: AnimatorSet? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_onboarding)
 
-        bindViews()
-        setupListeners()
-        updateModeSelection(ModelConfig.getOnboardingMode(this))
-        renderStep(1)
-        startObservingDownloads()
+        initViews()
+        setupViewPager()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        observeJob?.cancel()
-    }
+    private fun initViews() {
+        vpOnboarding = findViewById(R.id.vp_onboarding)
+        btnSkip = findViewById(R.id.btn_onboarding_skip)
+        btnPrev = findViewById(R.id.btn_onboarding_prev)
+        btnNext = findViewById(R.id.btn_onboarding_next)
 
-    override fun onResume() {
-        super.onResume()
-        updateAllStatus()
-    }
+        dots = listOf(
+            findViewById(R.id.dot_0),
+            findViewById(R.id.dot_1),
+            findViewById(R.id.dot_2),
+            findViewById(R.id.dot_3)
+        )
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            updateAllStatus()
-        }
-    }
-
-    private fun bindViews() {
-        btnSkip       = findViewById(R.id.btn_onboarding_skip)
-        progressSteps = findViewById(R.id.progress_onboarding_steps)
-        scrollContent = findViewById(R.id.scroll_onboarding_content)
-        btnPrev       = findViewById(R.id.btn_onboarding_prev)
-        tvStepLabel   = findViewById(R.id.tv_onboarding_step_label)
-        btnNext       = findViewById(R.id.btn_onboarding_next)
-
-        step1Container = findViewById(R.id.step_1_container)
-        step2Container = findViewById(R.id.step_2_container)
-        step3Container = findViewById(R.id.step_3_container)
-        step4Container = findViewById(R.id.step_4_container)
-        step5Container = findViewById(R.id.step_5_container)
-
-        // Step 1
-        tvMicStatus     = findViewById(R.id.tv_onboarding_mic_status)
-        btnGrantMic     = findViewById(R.id.btn_onboarding_grant_mic)
-        tvCameraStatus  = findViewById(R.id.tv_onboarding_camera_status)
-        btnGrantCamera  = findViewById(R.id.btn_onboarding_grant_camera)
-
-        // Step 2
-        cardModeBubble      = findViewById(R.id.card_mode_bubble)
-        ivModeBubbleCheck   = findViewById(R.id.iv_mode_bubble_check)
-
-        // Step 3
-        layoutStep3BubbleGroup   = findViewById(R.id.layout_step3_bubble_group)
-        tvOverlayStatus          = findViewById(R.id.tv_onboarding_overlay_status)
-        btnGrantOverlay          = findViewById(R.id.btn_onboarding_grant_overlay)
-        tvAccessibilityStatus    = findViewById(R.id.tv_onboarding_accessibility_status)
-        btnGrantAccessibility    = findViewById(R.id.btn_onboarding_grant_accessibility)
-        btnOpenAppDetails        = findViewById(R.id.btn_onboarding_open_app_details)
-
-        // Step 4
-        tvXasrBadge      = findViewById(R.id.tv_onboarding_xasr_badge)
-        progressXasr     = findViewById(R.id.progress_onboarding_xasr)
-        tvStatusXasr     = findViewById(R.id.tv_onboarding_status_xasr)
-        btnDownloadXasr  = findViewById(R.id.btn_onboarding_download_xasr)
-
-        tvQwen3Badge     = findViewById(R.id.tv_onboarding_qwen3_badge)
-        progressQwen3    = findViewById(R.id.progress_onboarding_qwen3)
-        tvStatusQwen3    = findViewById(R.id.tv_onboarding_status_qwen3)
-        btnDownloadQwen3 = findViewById(R.id.btn_onboarding_download_qwen3)
-
-        tvOcrBadge       = findViewById(R.id.tv_onboarding_ocr_badge)
-        btnOcrTiny       = findViewById(R.id.btn_onboarding_ocr_tiny)
-        btnOcrSmall      = findViewById(R.id.btn_onboarding_ocr_small)
-        progressOcr      = findViewById(R.id.progress_onboarding_ocr)
-        tvStatusOcr      = findViewById(R.id.tv_onboarding_status_ocr)
-        btnDownloadOcr   = findViewById(R.id.btn_onboarding_download_ocr)
-
-        // Step 4 Model Package ZIP Import
-        tvOnboardingAllModelsBadge        = findViewById(R.id.tv_onboarding_all_models_badge)
-        progressOnboardingImportModels    = findViewById(R.id.progress_onboarding_import_models)
-        tvOnboardingImportStatus          = findViewById(R.id.tv_onboarding_import_status)
-        btnOnboardingQuickImportDownload  = findViewById(R.id.btn_onboarding_quick_import_download)
-        btnOnboardingImportZip            = findViewById(R.id.btn_onboarding_import_zip)
-
-        // Step 5
-        layoutQwen3Preferences = findViewById(R.id.layout_qwen3_preferences)
-        cardXasrOnlyNotice     = findViewById(R.id.card_xasr_only_notice)
-        btnVadQuick            = findViewById(R.id.btn_vad_quick)
-        btnVadNormal           = findViewById(R.id.btn_vad_normal)
-        btnVadRelaxed          = findViewById(R.id.btn_vad_relaxed)
-        switchPunctuation      = findViewById(R.id.switch_onboarding_punctuation)
-        switchOcrAutoEnter     = findViewById(R.id.switch_onboarding_ocr_auto_enter)
-        etTest                 = findViewById(R.id.et_onboarding_test)
-        btnFinish              = findViewById(R.id.btn_onboarding_finish)
-    }
-
-    private fun setupListeners() {
-        // Top & Bottom Navigation
         btnSkip.setOnClickListener {
             completeOnboarding()
         }
 
         btnPrev.setOnClickListener {
-            if (currentStep > 1) {
-                renderStep(currentStep - 1)
+            if (vpOnboarding.currentItem > 0) {
+                vpOnboarding.currentItem = vpOnboarding.currentItem - 1
             }
         }
 
         btnNext.setOnClickListener {
-            if (currentStep < 5) {
-                if (currentStep == 1 && !hasMicPermission()) {
-                    Toast.makeText(this, R.string.toast_mic_permission_required, Toast.LENGTH_SHORT).show()
-                    requestMic.launch(Manifest.permission.RECORD_AUDIO)
-                    return@setOnClickListener
-                }
-                renderStep(currentStep + 1)
+            if (vpOnboarding.currentItem < 3) {
+                vpOnboarding.currentItem = vpOnboarding.currentItem + 1
             } else {
                 completeOnboarding()
             }
         }
+    }
 
-        // Step 1: Mic & Camera
-        btnGrantMic.setOnClickListener {
-            if (!hasMicPermission()) {
-                requestMic.launch(Manifest.permission.RECORD_AUDIO)
+    private fun setupViewPager() {
+        val adapter = OnboardingSlideAdapter(this)
+        vpOnboarding.adapter = adapter
+
+        vpOnboarding.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                updateNavigationUI(position)
+                playPageAnimation(position)
+            }
+        })
+
+        // Initial UI update
+        updateNavigationUI(0)
+    }
+
+    private fun updateNavigationUI(position: Int) {
+        // Prev button visibility
+        btnPrev.visibility = if (position > 0) View.VISIBLE else View.INVISIBLE
+
+        // Next button text
+        if (position == 3) {
+            btnNext.text = "前往設定開始使用"
+        } else {
+            btnNext.text = "下一步"
+        }
+
+        // Indicator dots
+        val activeWidth = (20 * resources.displayMetrics.density).toInt()
+        val inactiveWidth = (6 * resources.displayMetrics.density).toInt()
+        for (i in dots.indices) {
+            val dot = dots[i]
+            val params = dot.layoutParams
+            if (i == position) {
+                params.width = activeWidth
+                dot.setBackgroundResource(R.drawable.bg_indicator_dot_active)
             } else {
-                Toast.makeText(this, R.string.toast_mic_permission_ready, Toast.LENGTH_SHORT).show()
+                params.width = inactiveWidth
+                dot.setBackgroundResource(R.drawable.bg_indicator_dot_inactive)
             }
+            dot.layoutParams = params
         }
+    }
 
-        btnGrantCamera.setOnClickListener {
-            if (!hasCameraPermission()) {
-                requestCamera.launch(Manifest.permission.CAMERA)
-            } else {
-                Toast.makeText(this, R.string.toast_camera_permission_ready, Toast.LENGTH_SHORT).show()
-            }
+    private fun playPageAnimation(position: Int) {
+        stopAllAnimations()
+
+        val activeHolder = (vpOnboarding.getChildAt(0) as? RecyclerView)
+            ?.findViewHolderForAdapterPosition(position) as? OnboardingSlideAdapter.SlideViewHolder
+        val view = activeHolder?.itemView ?: return
+
+        when (position) {
+            0 -> startVoiceTypingAnimation(view)
+            1 -> startCapsuleMenuAnimation(view)
+            2 -> startGesturesAnimation(view)
+            3 -> startPrivacyAnimation(view)
         }
+    }
 
-        // Step 2: Mode Selection
-        cardModeBubble.setOnClickListener {
-            updateModeSelection(ModelConfig.MODE_BUBBLE)
-        }
+    private fun stopAllAnimations() {
+        currentAnimJob?.cancel()
+        currentAnimJob = null
+        currentAnimatorSet?.cancel()
+        currentAnimatorSet = null
+    }
 
-        // Step 3: Bubble Actions
-        btnGrantOverlay.setOnClickListener {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivity(intent)
-        }
+    // ── Slide 0: Voice Typing Mockup Animation ─────────────────────────────
+    private fun startVoiceTypingAnimation(view: View) {
+        val tvMockInput = view.findViewById<TextView>(R.id.tv_mock_voice_input) ?: return
+        val viewCursor = view.findViewById<View>(R.id.view_mock_cursor)
+        val rippleView = view.findViewById<View>(R.id.view_mock_bubble_ripple)
+        val previewPill = view.findViewById<View>(R.id.layout_mock_preview_pill)
+        val wave1 = view.findViewById<View>(R.id.mock_wave_1)
+        val wave2 = view.findViewById<View>(R.id.mock_wave_2)
+        val wave3 = view.findViewById<View>(R.id.mock_wave_3)
 
-        btnGrantAccessibility.setOnClickListener {
-            try {
-                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                    val compName = ComponentName(packageName, VoiceAccessibilityService::class.java.name).flattenToString()
-                    putExtra(":settings:fragment_args_key", compName)
-                    putExtra(":settings:show_fragment_args", Bundle().apply {
-                        putString(":settings:fragment_args_key", compName)
-                    })
+        // Waveform bounce
+        currentAnimJob = activityScope.launch {
+            val sampleText = "今天下午兩點在三樓會議室開會。"
+            while (isActive) {
+                // Initial state
+                tvMockInput.text = ""
+                previewPill?.alpha = 0f
+                rippleView?.alpha = 0f
+
+                delay(400)
+                // Pulse ripple & show preview pill
+                previewPill?.animate()?.alpha(1f)?.setDuration(300)?.start()
+                rippleView?.animate()?.alpha(0.5f)?.scaleX(1.35f)?.scaleY(1.35f)?.setDuration(400)?.withEndAction {
+                    rippleView.animate()?.alpha(0f)?.setDuration(300)?.start()
+                }?.start()
+
+                // Streaming typing loop
+                val sb = StringBuilder()
+                for (char in sampleText) {
+                    if (!isActive) break
+                    sb.append(char)
+                    tvMockInput.text = sb.toString()
+
+                    // Waveform jitter
+                    wave1?.scaleY = (0.5f + Math.random().toFloat() * 0.9f)
+                    wave2?.scaleY = (0.6f + Math.random().toFloat() * 1.0f)
+                    wave3?.scaleY = (0.5f + Math.random().toFloat() * 0.8f)
+
+                    // Cursor blink
+                    viewCursor?.visibility = if (sb.length % 2 == 0) View.VISIBLE else View.INVISIBLE
+
+                    delay(110)
                 }
-                startActivity(intent)
-            } catch (_: Exception) {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+
+                viewCursor?.visibility = View.VISIBLE
+                previewPill?.animate()?.alpha(0f)?.setDuration(400)?.start()
+
+                // Pause before restarting demonstration
+                delay(2400)
             }
         }
-
-        btnOpenAppDetails.setOnClickListener {
-            val intent = Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:$packageName")
-            )
-            startActivity(intent)
-        }
-
-        // Step 4: Model Downloads
-        btnDownloadXasr.setOnClickListener {
-            handleDownloadButtonClick(ModelConfig.ENGINE_X_ASR)
-        }
-
-        btnDownloadQwen3.setOnClickListener {
-            handleDownloadButtonClick(ModelConfig.ENGINE_QWEN3)
-        }
-
-        btnOcrTiny.setOnClickListener {
-            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_TINY)
-            updateStep4Status()
-        }
-
-        btnOcrSmall.setOnClickListener {
-            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_SMALL)
-            updateStep4Status()
-        }
-
-        btnDownloadOcr.setOnClickListener {
-            val engine = ModelConfig.selectedOcrModel(this)
-            handleDownloadButtonClick(engine)
-        }
-
-        // Step 4: Model Package ZIP Import
-        btnOnboardingImportZip.setOnClickListener {
-            try {
-                pickZipFileLauncher.launch(
-                    arrayOf(
-                        "application/zip",
-                        "application/x-zip-compressed",
-                        "application/octet-stream"
-                    )
-                )
-            } catch (ex: Exception) {
-                Toast.makeText(this, getString(R.string.toast_file_picker_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        btnOnboardingQuickImportDownload.setOnClickListener {
-            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
-            if (quickFile != null) {
-                runModelPackageImport(file = quickFile)
-            } else {
-                try {
-                    pickZipFileLauncher.launch(
-                        arrayOf(
-                            "application/zip",
-                            "application/x-zip-compressed",
-                            "application/octet-stream"
-                        )
-                    )
-                } catch (ex: Exception) {
-                    Toast.makeText(this, getString(R.string.toast_file_picker_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        // Step 5: Preferences
-        fun updateVadButtons(selected: Float) {
-            ModelConfig.setVadSilenceSeconds(this@OnboardingActivity, selected)
-            val primaryColor = ContextCompat.getColor(this@OnboardingActivity, R.color.md_theme_light_primary)
-            val onPrimaryColor = ContextCompat.getColor(this@OnboardingActivity, R.color.md_theme_light_onPrimary)
-            val tonalColor = ContextCompat.getColor(this@OnboardingActivity, R.color.surface_container_high)
-            val onTonalColor = ContextCompat.getColor(this@OnboardingActivity, R.color.text_primary)
-
-            fun styleChoice(btn: MaterialButton, isSelected: Boolean) {
-                if (isSelected) {
-                    btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
-                    btn.setTextColor(onPrimaryColor)
-                    btn.strokeWidth = 0
-                } else {
-                    btn.backgroundTintList = ColorStateList.valueOf(tonalColor)
-                    btn.setTextColor(onTonalColor)
-                    btn.strokeWidth = 0
-                }
-            }
-            styleChoice(btnVadQuick, selected == 0.8f)
-            styleChoice(btnVadNormal, selected == 1.5f)
-            styleChoice(btnVadRelaxed, selected == 2.5f)
-        }
-
-        val initialVad = ModelConfig.vadSilenceSeconds(this)
-        updateVadButtons(initialVad)
-
-        btnVadQuick.setOnClickListener { updateVadButtons(0.8f) }
-        btnVadNormal.setOnClickListener { updateVadButtons(1.5f) }
-        btnVadRelaxed.setOnClickListener { updateVadButtons(2.5f) }
-
-        switchPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
-        switchPunctuation.setOnCheckedChangeListener { _, isChecked ->
-            ModelConfig.setFilterPunctuationEnabled(this, isChecked)
-        }
-
-        switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
-        switchOcrAutoEnter.setOnCheckedChangeListener { _, isChecked ->
-            ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
-        }
-
-        btnFinish.setOnClickListener {
-            completeOnboarding()
-        }
     }
 
-    private fun renderStep(step: Int) {
-        currentStep = step
-        progressSteps.progress = step * 20
-        tvStepLabel.text = "步驟 $step / 5"
+    // ── Slide 1: Capsule Menu Mockup Animation ─────────────────────────────
+    private fun startCapsuleMenuAnimation(view: View) {
+        val highlight = view.findViewById<View>(R.id.view_mock_capsule_highlight) ?: return
+        val finger = view.findViewById<View>(R.id.view_mock_touch_finger) ?: return
+        val tvModeTitle = view.findViewById<TextView>(R.id.tv_mock_active_mode_title)
+        val tvModeDesc = view.findViewById<TextView>(R.id.tv_mock_active_mode_desc)
+        val ivModeIcon = view.findViewById<ImageView>(R.id.iv_mock_active_mode_icon)
 
-        btnPrev.visibility = if (step > 1) View.VISIBLE else View.INVISIBLE
-        btnNext.text = if (step == 5) "完成" else "下一步"
+        val density = resources.displayMetrics.density
+        val stepPx = 56f * density
 
-        step1Container.visibility = if (step == 1) View.VISIBLE else View.GONE
-        step2Container.visibility = if (step == 2) View.VISIBLE else View.GONE
-        step3Container.visibility = if (step == 3) View.VISIBLE else View.GONE
-        step4Container.visibility = if (step == 4) View.VISIBLE else View.GONE
-        step5Container.visibility = if (step == 5) View.VISIBLE else View.GONE
+        currentAnimJob = activityScope.launch {
+            var modeIndex = 0
+            while (isActive) {
+                val targetY = modeIndex * stepPx
+                highlight.animate().translationY(targetY).setDuration(400).setInterpolator(AccelerateDecelerateInterpolator()).start()
+                finger.animate().translationY(targetY).setDuration(400).setInterpolator(AccelerateDecelerateInterpolator()).start()
 
-        // 滾動回頂端
-        scrollContent.scrollTo(0, 0)
-
-        // 刷新當前步驟對應狀態
-        updateAllStatus()
-    }
-
-    private fun updateModeSelection(mode: String = ModelConfig.MODE_BUBBLE) {
-        selectedMode = ModelConfig.MODE_BUBBLE
-        ModelConfig.setOnboardingMode(this, ModelConfig.MODE_BUBBLE)
-
-        val strokeSelected = ContextCompat.getColor(this, R.color.md_theme_light_primary)
-        cardModeBubble.strokeColor = strokeSelected
-        cardModeBubble.strokeWidth = 4
-        ivModeBubbleCheck.visibility = View.VISIBLE
-
-        layoutStep3BubbleGroup.visibility = View.VISIBLE
-    }
-
-    private fun updateAllStatus() {
-        updateStep1Status()
-        updateStep3Status()
-        updateStep4Status()
-        updateStep5Status()
-    }
-
-    private fun updateStep5Status() {
-        val qwen3Ready = ModelConfig.isQwen3Ready(this)
-        val xAsrReady = ModelConfig.isXAsrReady(this)
-
-        // 若使用者僅下載 X-ASR，隱藏 Qwen3 專屬的 VAD 與標點符號偏好，顯示專屬說明
-        if (xAsrReady && !qwen3Ready) {
-            layoutQwen3Preferences.visibility = View.GONE
-            cardXasrOnlyNotice.visibility = View.VISIBLE
-        } else {
-            layoutQwen3Preferences.visibility = View.VISIBLE
-            cardXasrOnlyNotice.visibility = View.GONE
-        }
-    }
-
-    private fun updateStep1Status() {
-        if (hasMicPermission()) {
-            tvMicStatus.text = "麥克風權限已就緒"
-            tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnGrantMic.text = "已就緒"
-            btnGrantMic.isEnabled = false
-        } else {
-            tvMicStatus.text = "語音輸入必備的核心權限，請點擊授予"
-            tvMicStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnGrantMic.text = "授予麥克風權限"
-            btnGrantMic.isEnabled = true
-        }
-
-        if (hasCameraPermission()) {
-            tvCameraStatus.text = "相機鏡頭權限已就緒"
-            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnGrantCamera.text = "已就緒"
-            btnGrantCamera.isEnabled = false
-        } else {
-            tvCameraStatus.text = "相機文字辨識 (OCR) 必備權限，完全在裝置端運算"
-            tvCameraStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnGrantCamera.text = "授予相機權限"
-            btnGrantCamera.isEnabled = true
-        }
-    }
-
-    private fun updateStep3Status() {
-        // Bubble Status
-        val overlayGranted = Settings.canDrawOverlays(this)
-        val accessibilityEnabled = isAccessibilityServiceEnabled()
-
-        if (overlayGranted) {
-            tvOverlayStatus.text = "懸浮窗權限已就緒"
-            tvOverlayStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnGrantOverlay.text = "已授權"
-        } else {
-            tvOverlayStatus.text = "允許語音泡泡飄浮在螢幕邊緣隨時供您點擊"
-            tvOverlayStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnGrantOverlay.text = "前往授權懸浮窗"
-        }
-
-        if (accessibilityEnabled) {
-            tvAccessibilityStatus.text = "自動填入文字服務已就緒"
-            tvAccessibilityStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
-            btnGrantAccessibility.text = "已開啟"
-        } else {
-            tvAccessibilityStatus.text = "懸浮球辨識完成後，以此服務將文字填入輸入框"
-            tvAccessibilityStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnGrantAccessibility.text = "前往開啟無障礙服務"
-        }
-
-        // 自動確保懸浮泡泡服務在系統條件就緒時運行
-        if (overlayGranted && accessibilityEnabled && !FloatingBubbleService.isRunning) {
-            FloatingBubbleService.start(this)
-        }
-    }
-
-    private fun updateStep4Status() {
-        val xAsrReady = ModelConfig.isXAsrReady(this)
-        val qwen3Ready = ModelConfig.isQwen3Ready(this)
-        val ocrReady = ModelConfig.isOcrReady(this)
-        val selectedOcr = ModelConfig.selectedOcrModel(this)
-        val isTiny = selectedOcr == ModelConfig.ENGINE_PP_OCR_TINY
-
-        tvXasrBadge.text = if (xAsrReady) "已就緒" else "未下載"
-        tvXasrBadge.setTextColor(ContextCompat.getColor(this, if (xAsrReady) R.color.status_success else R.color.text_tertiary))
-
-        tvQwen3Badge.text = if (qwen3Ready) "已就緒" else "未下載"
-        tvQwen3Badge.setTextColor(ContextCompat.getColor(this, if (qwen3Ready) R.color.status_success else R.color.text_tertiary))
-
-        tvOcrBadge.text = if (ocrReady) "已就緒" else "未下載"
-        tvOcrBadge.setTextColor(ContextCompat.getColor(this, if (ocrReady) R.color.status_success else R.color.text_tertiary))
-
-        val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
-        val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)
-        val tonalColor = ContextCompat.getColor(this, R.color.surface_container_high)
-        val onTonalColor = ContextCompat.getColor(this, R.color.text_primary)
-
-        if (isTiny) {
-            btnOcrTiny.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            btnOcrTiny.setTextColor(onPrimaryColor)
-            btnOcrTiny.strokeWidth = 0
-            btnOcrSmall.backgroundTintList = ColorStateList.valueOf(tonalColor)
-            btnOcrSmall.setTextColor(onTonalColor)
-            btnOcrSmall.strokeWidth = 0
-        } else {
-            btnOcrSmall.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            btnOcrSmall.setTextColor(onPrimaryColor)
-            btnOcrSmall.strokeWidth = 0
-            btnOcrTiny.backgroundTintList = ColorStateList.valueOf(tonalColor)
-            btnOcrTiny.setTextColor(onTonalColor)
-            btnOcrTiny.strokeWidth = 0
-        }
-
-        val active = ModelDownloadState.active.value
-        if (active == null) {
-            btnDownloadXasr.text = if (xAsrReady) "已就緒" else "下載 X-ASR 模型"
-            btnDownloadQwen3.text = if (qwen3Ready) "已就緒" else "下載 Qwen3-ASR 模型"
-            btnDownloadOcr.text = if (ocrReady) "已就緒" else "下載 PP-OCRv6 模型 (${if (isTiny) "11MB" else "22MB"})"
-        }
-
-        val allModelsReady = ModelConfig.areAllModelsReady(this)
-        if (allModelsReady) {
-            tvOnboardingAllModelsBadge.text = "全部模型已就緒"
-            tvOnboardingAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
-            tvOnboardingAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
-        } else {
-            tvOnboardingAllModelsBadge.text = "推薦離線復原"
-            tvOnboardingAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.tag_recommend))
-            tvOnboardingAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_recommend)
-        }
-
-        val quickZip = ModelZipInstaller.findDefaultZipPackage(this)
-        if (quickZip != null) {
-            btnOnboardingQuickImportDownload.visibility = View.VISIBLE
-            val sizeMb = quickZip.length() / (1024 * 1024)
-            btnOnboardingQuickImportDownload.text = "⚡ 快速載入內部儲存模型包 (${sizeMb}MB)"
-        } else {
-            btnOnboardingQuickImportDownload.visibility = View.GONE
-        }
-    }
-
-    private fun runModelPackageImport(file: java.io.File? = null, uri: Uri? = null) {
-        btnOnboardingImportZip.isEnabled = false
-        btnOnboardingQuickImportDownload.isEnabled = false
-        progressOnboardingImportModels.visibility = View.VISIBLE
-        progressOnboardingImportModels.progress = 0
-        tvOnboardingImportStatus.visibility = View.VISIBLE
-        tvOnboardingImportStatus.text = "正在準備解壓模型包…"
-
-        scope.launch {
-            val result = if (file != null) {
-                ModelZipInstaller.installFromFile(this@OnboardingActivity, file) { currentFile, pct ->
-                    runOnUiThread {
-                        progressOnboardingImportModels.progress = pct
-                        tvOnboardingImportStatus.text = "解壓中：$currentFile ($pct%)"
+                when (modeIndex) {
+                    0 -> {
+                        tvModeTitle?.text = "語音即時輸入"
+                        tvModeDesc?.text = "高精準度離線語音辨識，輕觸即開始聽寫"
+                        ivModeIcon?.setImageResource(R.drawable.ic_mic)
+                    }
+                    1 -> {
+                        tvModeTitle?.text = "條碼與 QR 掃描"
+                        tvModeDesc?.text = "極速本機掃瞄，瞄準即讀取並自動填入"
+                        ivModeIcon?.setImageResource(R.drawable.ic_barcode)
+                    }
+                    2 -> {
+                        tvModeTitle?.text = "螢幕文字辨識 (OCR)"
+                        tvModeDesc?.text = "凍結畫面框選文字，離線高精度字元辨識"
+                        ivModeIcon?.setImageResource(R.drawable.ic_ocr)
                     }
                 }
-            } else if (uri != null) {
-                ModelZipInstaller.installFromUri(this@OnboardingActivity, uri) { currentFile, pct ->
-                    runOnUiThread {
-                        progressOnboardingImportModels.progress = pct
-                        tvOnboardingImportStatus.text = "解壓中：$currentFile ($pct%)"
+
+                delay(2000)
+                modeIndex = (modeIndex + 1) % 3
+            }
+        }
+    }
+
+    // ── Slide 2: Gestures Mockup Animation ─────────────────────────────────
+    private fun startGesturesAnimation(view: View) {
+        val bubble = view.findViewById<View>(R.id.layout_mock_gesture_bubble) ?: return
+        val dismissTarget = view.findViewById<View>(R.id.btn_mock_dismiss_circle) ?: return
+        val tvStatusTitle = view.findViewById<TextView>(R.id.tv_mock_gesture_status_title)
+        val tvStatusDesc = view.findViewById<TextView>(R.id.tv_mock_gesture_status_desc)
+
+        val density = resources.displayMetrics.density
+        val edgeDistanceX = 105f * density
+        val dismissDistanceY = 120f * density
+
+        currentAnimJob = activityScope.launch {
+            while (isActive) {
+                // Phase 1: Snap to right edge & dim
+                tvStatusTitle?.text = "手勢 1：貼邊半透明收納"
+                tvStatusDesc?.text = "將懸浮球移至螢幕左右邊緣，自動吸附並淡化為半透明標籤"
+
+                bubble.animate()
+                    .translationX(edgeDistanceX)
+                    .translationY(0f)
+                    .alpha(0.4f)
+                    .scaleX(0.9f)
+                    .scaleY(0.9f)
+                    .setDuration(700)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+
+                delay(2200)
+                if (!isActive) break
+
+                // Phase 2: Drag down to dismiss target (X)
+                tvStatusTitle?.text = "手勢 2：向下拖曳關閉"
+                tvStatusDesc?.text = "拖曳至螢幕底部的 ✕ 區域，即可立即收合懸浮球"
+
+                bubble.animate()
+                    .translationX(0f)
+                    .translationY(dismissDistanceY)
+                    .alpha(1.0f)
+                    .scaleX(0.85f)
+                    .scaleY(0.85f)
+                    .setDuration(800)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+
+                delay(750)
+                if (!isActive) break
+
+                // Dismiss circle pulse
+                dismissTarget.animate()
+                    .scaleX(1.2f)
+                    .scaleY(1.2f)
+                    .setDuration(250)
+                    .withEndAction {
+                        dismissTarget.animate().scaleX(1.0f).scaleY(1.0f).setDuration(250).start()
                     }
-                }
-            } else {
-                ModelZipInstaller.InstallResult(
-                    isSuccess = false,
-                    xAsrReady = false,
-                    qwen3Ready = false,
-                    ocrReady = false,
-                    fileCount = 0,
-                    totalBytes = 0,
-                    message = "無效的檔案來源"
-                )
-            }
+                    .start()
 
-            btnOnboardingImportZip.isEnabled = true
-            btnOnboardingQuickImportDownload.isEnabled = true
-            progressOnboardingImportModels.visibility = View.GONE
+                delay(1800)
+                if (!isActive) break
 
-            if (result.isSuccess) {
-                tvOnboardingImportStatus.text = "✅ ${result.message}"
-                updateStep4Status()
-                Toast.makeText(this@OnboardingActivity, R.string.toast_models_extracted_success, Toast.LENGTH_LONG).show()
-            } else {
-                tvOnboardingImportStatus.text = "❌ ${result.message}"
-                Toast.makeText(this@OnboardingActivity, result.message, Toast.LENGTH_LONG).show()
-                updateStep4Status()
+                // Reset back to center
+                bubble.animate()
+                    .translationX(0f)
+                    .translationY(0f)
+                    .alpha(1.0f)
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(600)
+                    .start()
+
+                delay(900)
             }
         }
     }
 
-    private fun handleDownloadButtonClick(engine: String) {
-        val active = ModelDownloadState.active.value
-        if (active != null && active.engine == engine) {
-            ModelDownloadService.cancel(this)
-            updateStep4Status()
-            return
-        }
+    // ── Slide 3: 100% Offline Privacy Animation ────────────────────────────
+    private fun startPrivacyAnimation(view: View) {
+        val shield = view.findViewById<View>(R.id.layout_mock_shield) ?: return
+        val pulse = view.findViewById<View>(R.id.view_mock_privacy_pulse) ?: return
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED) {
-            pendingDownloadEngine = engine
-            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-            return
-        }
-
-        ModelDownloadService.start(this, engine)
-    }
-
-    private fun startObservingDownloads() {
-        observeJob = scope.launch {
-            launch {
-                ModelDownloadState.active.collect { active ->
-                    renderDownloadProgress(active)
-                }
-            }
-            launch {
-                ModelDownloadState.results.collect { (engine, result) ->
-                    val label = when (engine) {
-                        ModelConfig.ENGINE_X_ASR -> "X-ASR"
-                        ModelConfig.ENGINE_QWEN3 -> "Qwen3-ASR"
-                        ModelConfig.ENGINE_PP_OCR_TINY -> "PP-OCRv6 Tiny"
-                        ModelConfig.ENGINE_PP_OCR_SMALL -> "PP-OCRv6 Small"
-                        else -> engine
+        currentAnimJob = activityScope.launch {
+            while (isActive) {
+                shield.animate()
+                    .scaleX(1.08f)
+                    .scaleY(1.08f)
+                    .setDuration(1000)
+                    .withEndAction {
+                        shield.animate().scaleX(1.0f).scaleY(1.0f).setDuration(1000).start()
                     }
-                    result.onSuccess {
-                        Toast.makeText(this@OnboardingActivity, getString(R.string.toast_model_download_done, label), Toast.LENGTH_LONG).show()
-                        updateStep4Status()
-                    }.onFailure { ex ->
-                        Toast.makeText(this@OnboardingActivity, getString(R.string.toast_model_download_failed, label, ex.message ?: ""), Toast.LENGTH_LONG).show()
-                        updateStep4Status()
+                    .start()
+
+                pulse.animate()
+                    .scaleX(1.25f)
+                    .scaleY(1.25f)
+                    .alpha(0.0f)
+                    .setDuration(1200)
+                    .withEndAction {
+                        pulse.scaleX = 1.0f
+                        pulse.scaleY = 1.0f
+                        pulse.alpha = 0.35f
                     }
-                }
+                    .start()
+
+                delay(2200)
             }
         }
-    }
-
-    private fun renderDownloadProgress(active: ModelDownloadState.Active?) {
-        if (active == null) {
-            progressXasr.visibility = View.GONE
-            tvStatusXasr.visibility = View.GONE
-            progressQwen3.visibility = View.GONE
-            tvStatusQwen3.visibility = View.GONE
-            progressOcr.visibility = View.GONE
-            tvStatusOcr.visibility = View.GONE
-            updateStep4Status()
-            return
-        }
-
-        val isXasr = active.engine == ModelConfig.ENGINE_X_ASR
-        val isQwen3 = active.engine == ModelConfig.ENGINE_QWEN3
-        val isOcr = active.engine == ModelConfig.ENGINE_PP_OCR_TINY || active.engine == ModelConfig.ENGINE_PP_OCR_SMALL
-
-        val progressIndicator = when {
-            isXasr -> progressXasr
-            isQwen3 -> progressQwen3
-            else -> progressOcr
-        }
-        val tvStatus = when {
-            isXasr -> tvStatusXasr
-            isQwen3 -> tvStatusQwen3
-            else -> tvStatusOcr
-        }
-        val btn = when {
-            isXasr -> btnDownloadXasr
-            isQwen3 -> btnDownloadQwen3
-            else -> btnDownloadOcr
-        }
-
-        btn.text = "取消下載"
-        progressIndicator.visibility = View.VISIBLE
-        tvStatus.visibility = View.VISIBLE
-
-        progressIndicator.isIndeterminate = active.progress.percent < 0
-        if (active.progress.percent >= 0) {
-            progressIndicator.progress = active.progress.percent
-        }
-
-        val pctStr = if (active.progress.percent >= 0) "${active.progress.percent}%" else ""
-        tvStatus.text = "${active.progress.label} $pctStr"
-    }
-
-    private fun hasMicPermission(): Boolean =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
-                PackageManager.PERMISSION_GRANTED
-
-    private fun hasCameraPermission(): Boolean =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
-                PackageManager.PERMISSION_GRANTED
-
-    private fun isAccessibilityServiceEnabled(): Boolean {
-        if (VoiceAccessibilityService.isServiceRunning()) return true
-        val enabledServices = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        return enabledServices.contains(packageName)
     }
 
     private fun completeOnboarding() {
         ModelConfig.setOnboardingCompleted(this, true)
+        ModelConfig.setOnboardingMode(this, ModelConfig.MODE_BUBBLE)
 
-        // 若下載了模型但尚未選取引擎，自動選取一個就緒的引擎
-        val xAsrReady = ModelConfig.isXAsrReady(this)
-        val qwen3Ready = ModelConfig.isQwen3Ready(this)
-        if (qwen3Ready) {
-            ModelConfig.setSelectedEngine(this, ModelConfig.ENGINE_QWEN3)
-        } else if (xAsrReady) {
-            ModelConfig.setSelectedEngine(this, ModelConfig.ENGINE_X_ASR)
+        val intent = Intent(this, ImeSettingsActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        startActivity(intent)
+        finish()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::vpOnboarding.isInitialized) {
+            playPageAnimation(vpOnboarding.currentItem)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopAllAnimations()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopAllAnimations()
+        activityScope.cancel()
+    }
+
+    // ── ViewPager2 Adapter ──────────────────────────────────────────────────
+    private class OnboardingSlideAdapter(private val activity: AppCompatActivity) :
+        RecyclerView.Adapter<OnboardingSlideAdapter.SlideViewHolder>() {
+
+        private val layoutIds = intArrayOf(
+            R.layout.layout_onboarding_slide_voice,
+            R.layout.layout_onboarding_slide_capsule,
+            R.layout.layout_onboarding_slide_gestures,
+            R.layout.layout_onboarding_slide_privacy
+        )
+
+        class SlideViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
+
+        override fun getItemCount(): Int = layoutIds.size
+
+        override fun getItemViewType(position: Int): Int = layoutIds[position]
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SlideViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
+            return SlideViewHolder(view)
         }
 
-        startActivity(Intent(this, ImeSettingsActivity::class.java))
-        finish()
+        override fun onBindViewHolder(holder: SlideViewHolder, position: Int) {
+            // Bind callback trigger
+            if (position == (activity as? OnboardingActivity)?.vpOnboarding?.currentItem) {
+                (activity as? OnboardingActivity)?.playPageAnimation(position)
+            }
+        }
     }
 }
