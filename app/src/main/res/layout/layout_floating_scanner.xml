@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_scanner_root"
+    android:layout_width="250dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_scanner_window"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Top Header Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginBottom="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_close_scanner"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="關閉掃描"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="#FFFFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="條碼掃描"
+            android:textColor="#EEFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:orientation="horizontal">
+
+            <!-- 縮放鍵 (Scale/Resize Toggle) -->
+            <ImageButton
+                android:id="@+id/btn_scanner_scale"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_scanner_btn_circle"
+                android:contentDescription="縮放視窗"
+                android:padding="6dp"
+                android:src="@drawable/ic_fullscreen"
+                app:tint="#FFFFFFFF" />
+
+            <!-- 閃光燈 (Flash Toggle) -->
+            <ImageButton
+                android:id="@+id/btn_scanner_flash"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_scanner_btn_circle"
+                android:contentDescription="閃光燈"
+                android:padding="6dp"
+                android:src="@drawable/ic_flash_off"
+                app:tint="#FFFFFFFF" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Center Camera Preview Area (Square) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_scanner_preview"
+        android:layout_width="234dp"
+        android:layout_height="234dp"
+        android:layout_gravity="center_horizontal"
+        app:cardBackgroundColor="#000000"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <androidx.camera.view.PreviewView
+                android:id="@+id/scanner_view_finder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Zooming Slider below camera view -->
+    <SeekBar
+        android:id="@+id/slider_scanner_zoom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#64B5F6"
+        android:thumbTint="#90CAF9" />
+
+    <!-- Bottom Controls: Auto-Enter toggle and hint -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_scanner_auto_enter"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="自動換行"
+            android:padding="6dp"
+            android:src="@drawable/ic_auto_enter_on"
+            app:tint="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/tv_scanner_hint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="對準條碼或 QR Code 自動填入"
+            android:textColor="#B0FFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+</LinearLayout>

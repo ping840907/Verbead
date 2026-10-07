@@ -2,6 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <!-- Model downloading only: recognition itself always runs fully on-device -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -13,13 +22,13 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:name=".VoiceImeApplication"
-        android:allowBackup="true"
+        android:name=".VerbeadApplication"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.VoiceIME">
+        android:theme="@style/Theme.Verbead">
 
         <!-- Launcher: setup and model status -->
         <activity
@@ -50,19 +59,7 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- Voice IME service -->
-        <service
-            android:name=".VoiceImeService"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:permission="android.permission.BIND_INPUT_METHOD">
-            <intent-filter>
-                <action android:name="android.view.InputMethod" />
-            </intent-filter>
-            <meta-data
-                android:name="android.view.im"
-                android:resource="@xml/method" />
-        </service>
+
 
         <!-- Floating bubble overlay service -->
         <service

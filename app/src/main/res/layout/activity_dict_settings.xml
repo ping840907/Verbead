@@ -98,18 +98,47 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- Bottom Action Button -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_add_entry"
+    <!-- Bottom Action Buttons -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="＋ 新增專屬詞彙"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        app:cornerRadius="14dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_import_csv"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="匯入 CSV"
+            android:textSize="13sp"
+            app:cornerRadius="12dp"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_marginEnd="6dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_export_csv"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="匯出 CSV"
+            android:textSize="13sp"
+            app:cornerRadius="12dp"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_marginEnd="6dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_add_entry"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1.2"
+            android:text="＋ 新增"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:cornerRadius="12dp" />
+    </LinearLayout>
 
 </LinearLayout>

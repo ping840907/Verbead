@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/btn_bubble_x"
+    android:layout_width="44dp"
+    android:layout_height="44dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <FrameLayout
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bubble_x_background"
+        android:elevation="8dp">
+
+        <ImageView
+            android:id="@+id/iv_bubble_x_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_close"
+            android:contentDescription="取消或復原" />
+    </FrameLayout>
+</FrameLayout>

@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Viewfinder 4 symmetrical corner brackets -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M7.5,4H5.5C4.67,4 4,4.67 4,5.5V7.5 M16.5,4H18.5C19.33,4 20,4.67 20,5.5V7.5 M4,16.5V18.5C4,19.33 4.67,20 5.5,20H7.5 M20,16.5V18.5C20,19.33 19.33,20 18.5,20H16.5" />
+
+    <!-- Perfectly centered Letter T -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M8,8.5H16 M12,8.5V16.5" />
+</vector>

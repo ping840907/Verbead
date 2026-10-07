@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Dark palette for Android 8–11 (no Monet). Android 12+ devices resolve the
+        same names from values-night-v31 (dynamic colors). Only names that exist
+        in values-night-v31 are declared here so dynamic colors are never shadowed.
+    -->
+    <color name="md_theme_light_primary">#7DD3FC</color>
+    <color name="md_theme_light_onPrimary">#0C4A6E</color>
+    <color name="md_theme_light_primaryContainer">#075985</color>
+    <color name="md_theme_light_onPrimaryContainer">#E0F2FE</color>
+    <color name="md_theme_light_secondary">#CBD5E1</color>
+    <color name="md_theme_light_onSecondary">#1E293B</color>
+    <color name="md_theme_light_secondaryContainer">#334155</color>
+    <color name="md_theme_light_onSecondaryContainer">#E2E8F0</color>
+    <color name="md_theme_light_surface">#0F172A</color>
+    <color name="md_theme_light_onSurface">#F1F5F9</color>
+    <color name="md_theme_light_surfaceVariant">#1E293B</color>
+    <color name="md_theme_light_onSurfaceVariant">#CBD5E1</color>
+    <color name="md_theme_light_outline">#64748B</color>
+    <color name="md_theme_light_outlineVariant">#334155</color>
+
+    <color name="background">#0F172A</color>
+    <color name="surface_card">#1E293B</color>
+    <color name="surface_card_stroke">#334155</color>
+    <color name="text_primary">#F1F5F9</color>
+    <color name="text_secondary">#CBD5E1</color>
+    <color name="text_tertiary">#94A3B8</color>
+
+    <color name="surface_container">#1E293B</color>
+    <color name="surface_container_high">#334155</color>
+
+    <color name="status_success">#34D399</color>
+    <color name="status_success_container">#064E3B</color>
+    <color name="status_success_text">#6EE7B7</color>
+    <color name="status_warning">#FBBF24</color>
+    <color name="status_warning_container">#78350F</color>
+    <color name="status_warning_text">#FDE68A</color>
+    <color name="tag_recommend">#A5B4FC</color>
+    <color name="tag_recommend_container">#312E81</color>
+</resources>

@@ -1,9 +1,96 @@
 <resources>
-    <string name="app_name">VoiceIME</string>
-    <string name="subtype_label">繁體中文語音輸入</string>
-    <string name="accessibility_service_label">VoiceIME 語音自動輸入輔助</string>
-    <string name="accessibility_service_desc">允許 VoiceIME 懸浮泡泡將辨識出的文字直接填入任何應用程式的輸入框中，無需切換目前使用的輸入法。</string>
-    <string name="bubble_service_title">VoiceIME 懸浮泡泡執行中</string>
-    <string name="bubble_service_content">點擊螢幕邊緣的語音泡泡即可隨時辨識出字</string>
-    <string name="bubble_notification_channel">懸浮語音輸入服務</string>
+    <string name="app_name">珠璣</string>
+    <string name="accessibility_service_label">珠璣 離線輸入輔助</string>
+    <string name="accessibility_service_desc">允許珠璣懸浮球將辨識出的文字直接填入任何應用程式的輸入框中，無需切換目前使用的輸入法。</string>
+    <string name="bubble_service_title">珠璣 懸浮泡泡執行中</string>
+    <string name="bubble_service_content">點擊螢幕邊緣的懸浮球即可隨時辨識出字</string>
+    <string name="bubble_notification_channel">懸浮輸入服務</string>
+
+    <!-- Notifications -->
+    <string name="notif_bubble_title">珠璣 懸浮輸入助手</string>
+    <string name="notif_bubble_text">輕觸懸浮球即可輸入文字或掃描條碼至目前焦點欄位</string>
+    <string name="notif_bubble_action_close">關閉懸浮球</string>
+    <string name="notif_channel_bubble_desc">提供懸浮泡泡語音輸入服務</string>
+    <string name="notif_download_title">正在下載語音辨識模型</string>
+
+    <!-- DictSettings Toasts -->
+    <string name="toast_dict_import_success">成功匯入 %1$d 筆詞彙</string>
+    <string name="toast_dict_import_cannot_read">無法讀取選取的檔案</string>
+    <string name="toast_dict_import_failed">匯入失敗：%1$s</string>
+    <string name="toast_dict_export_success">成功匯出 %1$d 筆詞彙</string>
+    <string name="toast_dict_export_cannot_write">無法寫入目標檔案</string>
+    <string name="toast_dict_export_failed">匯出失敗：%1$s</string>
+    <string name="toast_dict_file_picker_error">無法開啟檔案選擇器：%1$s</string>
+    <string name="toast_dict_save_dialog_error">無法開啟儲存對話框：%1$s</string>
+    <string name="toast_dict_target_word_empty">請輸入目標詞彙內容</string>
+
+    <!-- VoiceAccessibility Toasts -->
+    <string name="toast_password_not_supported">密碼欄位不支援自動填入</string>
+    <string name="toast_fallback_clipboard">無法直接填入，已安全複製至剪貼簿</string>
+
+    <!-- Onboarding Tour -->
+    <string name="onboarding_tour_title">操作導覽</string>
+    <string name="onboarding_skip">略過</string>
+    <string name="onboarding_prev">上一步</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_start_main_settings">前往主設定開始使用</string>
+    <string name="onboarding_page1_title">隨處懸浮 · 點擊即說</string>
+    <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始辨識；懸浮球轉為紅色代表正在聆聽，開口說話即自動辨識並填入文字！</string>
+    <string name="onboarding_page1_tip">💡 提示：點擊懸浮球後底色轉為紅色即開始收音聆聽，再次點擊或靜音自動完成填入。</string>
+    <string name="onboarding_page2_title">垂直膠囊 · 滑動切換模式</string>
+    <string name="onboarding_page2_desc">長按懸浮球可展開垂直功能膠囊，滑動手指即可帶動整個膠囊上下移動，將想要使用的模式對齊懸浮球位置：支援「語音輸入」、「條碼掃描」與「螢幕 OCR 文字辨識」。</string>
+    <string name="onboarding_page2_tip">💡 提示：長按懸浮球即可展開功能膠囊；上下滑動膠囊帶動選項對齊，鬆開手指即可立即切換模式。</string>
+    <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回輸入</string>
+    <string name="onboarding_page3_desc">當語音辨識或文字填入不如預期時，無需手動逐字刪除！懸浮球上方會自動出現小型 ✕ 鍵，輕點即可瞬間撤回並復原欄位原本的文字內容。</string>
+    <string name="onboarding_page3_tip">💡 提示：填入文字後懸浮球上方會顯示 ✕ 鍵，點擊即可執行 Undo 復原。</string>
+    <string name="onboarding_page4_title">邊緣收納 · 鍵盤聯動顯示</string>
+    <string name="onboarding_page4_desc" formatted="false">將懸浮球拖曳至螢幕邊緣時會自動貼邊收納，超出畫面約 70%，僅露出約 30% 邊緣圓弧，完全不遮擋視野。您也可以在主設定中開啟「僅軟體鍵盤出現時顯示」，伴隨輸入鍵盤升起平滑淡入！</string>
+    <string name="onboarding_page4_tip">💡 提示：貼邊狀態下輕點即可拉出；或在主設定啟用鍵盤聯動，讓懸浮球僅在需要打字時現身。</string>
+    <string name="onboarding_page5_title" formatted="false">100% 離線端側 · 一站式主設定</string>
+    <string name="onboarding_page5_desc">所有語音、OCR 與文字處理全程在手機本機執行，零資料上傳、零隱私外洩。所有強大權限與模型設定已統一整合至主設定頁面，隨時依個人習慣配置！</string>
+    <string name="onboarding_page5_tip">🔒 隱私保障：極致辨識速度與最高端側資安，點擊下方前往主設定開始使用。</string>
+
+    <!-- Onboarding Toasts -->
+    <string name="toast_mic_permission_required">請先授予麥克風權限以利後續功能使用</string>
+    <string name="toast_mic_permission_ready">麥克風權限已就緒</string>
+    <string name="toast_camera_permission_ready">相機權限已就緒</string>
+    <string name="toast_file_picker_error">無法開啟檔案選擇器: %1$s</string>
+    <string name="toast_models_extracted_success">所有模型已成功解壓並復原！</string>
+    <string name="toast_model_download_done">%1$s 模型下載完成</string>
+    <string name="toast_model_download_failed">%1$s 下載失敗: %2$s</string>
+
+    <!-- ImeSettings Toasts -->
+    <string name="toast_bt_headset_allowed">此 Android 版本已預設允許藍牙耳機</string>
+    <string name="toast_url_open_error">無法開啟連結：%1$s</string>
+    <string name="toast_model_not_downloaded">尚未下載此模型，請先點擊下方下載</string>
+    <string name="toast_switched_to_qwen3_dual">已切換為 Qwen3-ASR 並啟用雙引擎模式</string>
+
+    <!-- FloatingBubbleService Toasts -->
+    <string name="toast_mic_permission_voice">請先授權麥克風權限以進行語音輸入</string>
+    <string name="toast_offline_model_error_applied_streaming">離線模型轉譯異常，已套用即時辨識結果</string>
+    <string name="toast_transcribe_failed_retry">轉譯失敗，請重新錄音</string>
+    <string name="toast_camera_permission_scan">請先授權相機權限以使用掃描功能</string>
+    <string name="toast_camera_permission_ocr">請先授權相機權限以使用文字辨識功能</string>
+    <string name="toast_auto_enter_enabled">已開啟自動換行</string>
+    <string name="toast_auto_enter_disabled">已關閉自動換行</string>
+    <string name="toast_ocr_model_not_downloaded">尚未下載 PP-OCR 模型，請先至設定頁面下載</string>
+    <string name="toast_camera_capture_failed">無法截取目前相機畫面</string>
+
+    <!-- FloatingBubbleService Previews -->
+    <string name="preview_restored">已復原</string>
+    <string name="preview_voice_start_failed">語音輸入啟動失敗: %1$s</string>
+    <string name="preview_loading_dual_models">載入雙模型中…</string>
+    <string name="preview_loading_models">載入模型中…</string>
+    <string name="preview_model_load_failed">模型載入失敗，請檢查設定</string>
+    <string name="preview_cannot_create_stream">無法建立辨識串流</string>
+    <string name="preview_listening">聆聽中…</string>
+    <string name="preview_no_speech_detected">未偵測到語音</string>
+    <string name="preview_transcribe_failed">轉譯失敗，請重新錄音</string>
+    <string name="preview_no_text_detected">未偵測到文字</string>
+    <string name="preview_copied">已複製</string>
+    <string name="preview_mode_voice">語音模式</string>
+    <string name="preview_mode_ocr">文字辨識 (OCR)</string>
+    <string name="preview_mode_barcode">條碼掃描</string>
+    <string name="preview_copied_barcode">已複製條碼</string>
+    <string name="preview_copied_with_text">已複製：%1$s</string>
 </resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Themed (Material You) monochrome layer for Android 13+
+    珠璣 (Verbead) V 弦托珠 (V-Wave Crest)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 主流帶：動態揚起之 V 浪羽翼 (Voice Flow & Verbead Ribbon) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 27,42 C 25,56 30,70 43,77 C 55,82 69,74 78,54 C 82,44 84,33 85,27 C 82,34 77,47 69,59 C 61,70 51,72 44,69 C 37,66 33,55 33,45 C 33,42 29,41 27,42 Z" />
+
+    <!-- 伴隨聲波諧振流 (Harmonic Acoustic Stream) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 33,34 C 36,45 42,56 52,60 C 60,62 70,56 77,42 C 80,35 82,29 83,23 C 82,27 78,36 72,46 C 65,56 57,60 50,58 C 43,55 38,45 35,34 C 35,32 33,32 33,34 Z" />
+
+    <!-- 實心凝結明珠 (Single Luminous Pearl) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 35,53 a 10.5,10.5 0 1,0 21,0 a 10.5,10.5 0 1,0 -21,0 Z" />
+</vector>

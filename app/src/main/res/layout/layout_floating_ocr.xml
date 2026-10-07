@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_ocr_root"
+    android:layout_width="250dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_scanner_window"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Top Header Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginBottom="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_close_ocr"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="關閉"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/tv_ocr_window_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="文字辨識 (OCR)"
+            android:textColor="#EEFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:orientation="horizontal">
+
+            <!-- 縮放鍵 (Scale/Resize Toggle) -->
+            <ImageButton
+                android:id="@+id/btn_ocr_scale"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_scanner_btn_circle"
+                android:contentDescription="縮放視窗"
+                android:padding="6dp"
+                android:src="@drawable/ic_fullscreen"
+                app:tint="#FFFFFFFF" />
+
+            <!-- 閃光燈 (Flash Toggle) -->
+            <ImageButton
+                android:id="@+id/btn_ocr_flash"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_scanner_btn_circle"
+                android:contentDescription="閃光燈"
+                android:padding="6dp"
+                android:src="@drawable/ic_flash_off"
+                app:tint="#FFFFFFFF" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Center Camera Preview Area -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_ocr_preview"
+        android:layout_width="234dp"
+        android:layout_height="234dp"
+        android:layout_gravity="center_horizontal"
+        app:cardBackgroundColor="#000000"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <androidx.camera.view.PreviewView
+                android:id="@+id/ocr_view_finder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Zoom Slider below camera view -->
+    <SeekBar
+        android:id="@+id/slider_ocr_zoom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="4dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#64B5F6"
+        android:thumbTint="#90CAF9" />
+
+    <!-- Bottom Controls: Auto-Enter, Shutter Button, and Hint -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <!-- Auto-Enter Toggle Button -->
+        <ImageButton
+            android:id="@+id/btn_ocr_auto_enter"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="自動換行"
+            android:padding="6dp"
+            android:src="@drawable/ic_auto_enter_on"
+            app:tint="#FFFFFFFF" />
+
+        <!-- 快門鍵 (Shutter Button - Always Retained) -->
+        <FrameLayout
+            android:id="@+id/btn_ocr_shutter"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/bg_shutter_btn"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="拍攝文字截圖" />
+
+        <TextView
+            android:id="@+id/tv_ocr_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:text="按快門拍字"
+            android:textColor="#B0FFFFFF"
+            android:textSize="11sp" />
+    </RelativeLayout>
+
+</LinearLayout>

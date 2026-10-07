@@ -16,6 +16,12 @@ local.properties
 
 # Model files (large binaries — users download separately)
 app/src/main/assets/models/
+/ocr/
+/qwen3_asr/
+/x_asr/
+*.onnx
+*.zip
+verbead_models.zip
 
 # AAR / JAR binary libraries
 app/libs/*.aar

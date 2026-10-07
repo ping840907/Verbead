@@ -35,21 +35,14 @@
     <color name="text_secondary">#475569</color>
     <color name="text_tertiary">#94A3B8</color>
 
-    <!-- IME Keyboard Colors - Deep modern graphite & slate -->
-    <color name="ime_bg">#13171C</color>
-    <color name="ime_surface">#1E262F</color>
-    <color name="ime_key_bg">#25303B</color>
-    <color name="ime_key_bg_pressed">#374656</color>
-    <color name="ime_key_icon">#E2E8F0</color>
-    <color name="ime_key_text">#F8FAFC</color>
-    <color name="ime_accent">#0EA5E9</color>
-    <color name="ime_accent_pressed">#0284C7</color>
-    <color name="ime_accent_glow">#330EA5E9</color>
-    <color name="ime_accent_text">#FFFFFF</color>
-    <color name="ime_preview_bg">#0C1014</color>
-    <color name="ime_preview_text">#F8FAFC</color>
-    <color name="ime_status_text">#94A3B8</color>
-    <color name="ime_status_pill">#1E262F</color>
+    <!-- Tonal container surfaces (Material 3) used by cards / rows -->
+    <color name="surface_container">#EEF2F7</color>
+    <color name="surface_container_high">#E2E8F0</color>
+
+    <!-- Launcher icon gradient (Verbead) -->
+    <color name="ic_launcher_bg_start">#38BDF8</color>
+    <color name="ic_launcher_bg_end">#0369A1</color>
+
 
     <!-- Floating Bubble Colors -->
     <color name="bubble_bg_start">#E8F4FF</color>
