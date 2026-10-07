@@ -83,3 +83,76 @@ dependencies {
     androidTestImplementation libs.androidx.test.ext.junit
 }
 
+// Auto-align sherpa-onnx AAR ELF symbol version requirement (VERS_1.28.2 -> VERS_1.28.0)
+// so it cleanly links against Microsoft ONNX Runtime 1.28.0 without symbol mismatch.
+tasks.register('alignSherpaAar') {
+    doLast {
+        def aarFile = file('libs/sherpa-onnx-1.13.8.aar')
+        if (!aarFile.exists()) return
+
+        boolean needsPatch = false
+        def zipFile = new java.util.zip.ZipFile(aarFile)
+        try {
+            def entries = zipFile.entries()
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                if (entry.name.endsWith('.so') && (entry.name.contains('sherpa-onnx-jni') || entry.name.contains('sherpa-onnx-c-api'))) {
+                    byte[] bytes = zipFile.getInputStream(entry).bytes
+                    if (new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1).contains("VERS_1.28.2")) {
+                        needsPatch = true
+                        break
+                    }
+                }
+            }
+        } finally {
+            zipFile.close()
+        }
+
+        if (needsPatch) {
+            logger.lifecycle("alignSherpaAar: Aligning sherpa-onnx-1.13.8.aar symbol version VERS_1.28.2 -> VERS_1.28.0...")
+            def tempOut = file("libs/temp_${aarFile.name}")
+            def zf = new java.util.zip.ZipFile(aarFile)
+            def zos = new java.util.zip.ZipOutputStream(new BufferedOutputStream(new FileOutputStream(tempOut)))
+            try {
+                def entries = zf.entries()
+                while (entries.hasMoreElements()) {
+                    def entry = entries.nextElement()
+                    byte[] data = zf.getInputStream(entry).bytes
+                    if (entry.name.contains('sherpa-onnx-c-api') || entry.name.contains('sherpa-onnx-jni')) {
+                        byte[] targetStr = "VERS_1.28.2".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                        for (int i = 0; i <= data.length - targetStr.length; i++) {
+                            boolean match = true
+                            for (int j = 0; j < targetStr.length; j++) {
+                                if (data[i + j] != targetStr[j]) { match = false; break; }
+                            }
+                            if (match) {
+                                data[i + targetStr.length - 1] = (byte)'0'
+                            }
+                        }
+                        for (int i = 0; i <= data.length - 4; i++) {
+                            if ((data[i] & 0xff) == 0x82 && (data[i+1] & 0xff) == 0xfe &&
+                                (data[i+2] & 0xff) == 0x7b && (data[i+3] & 0xff) == 0x02) {
+                                data[i] = (byte)0x80
+                            }
+                        }
+                    }
+                    def outEntry = new java.util.zip.ZipEntry(entry.name)
+                    outEntry.setTime(entry.getTime())
+                    zos.putNextEntry(outEntry)
+                    zos.write(data)
+                    zos.closeEntry()
+                }
+            } finally {
+                zf.close()
+                zos.close()
+            }
+            java.nio.file.Files.move(tempOut.toPath(), aarFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            logger.lifecycle("alignSherpaAar: Successfully aligned sherpa-onnx-1.13.8.aar to VERS_1.28.0.")
+        }
+    }
+}
+tasks.matching { it.name.startsWith("pre") && it.name.endsWith("Build") }.configureEach {
+    dependsOn('alignSherpaAar')
+}
+
+

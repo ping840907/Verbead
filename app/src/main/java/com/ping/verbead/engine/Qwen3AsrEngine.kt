@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.engine
+package com.ping.verbead.engine
 
 import android.content.Context
 import android.util.Log
@@ -59,7 +59,14 @@ class Qwen3AsrEngine(private val context: Context) {
 
             release()
 
-            var lastError: Exception? = null
+            // Explicitly preload onnxruntime native library
+            try {
+                System.loadLibrary("onnxruntime")
+            } catch (t: Throwable) {
+                Log.w(TAG, "Preload onnxruntime: ${t.message}")
+            }
+
+            var lastError: Throwable? = null
             for (provider in ModelConfig.ASR_PROVIDER_PRIORITY) {
                 try {
                     recognizer = OfflineRecognizer(
@@ -88,8 +95,8 @@ class Qwen3AsrEngine(private val context: Context) {
                         .edit().putString(KEY_PROVIDER, provider).apply()
                     Log.i(TAG, "Loaded — provider=$provider  threads=${ModelConfig.QWEN3_ASR_THREADS}  hotwords=${hotwords.lines().size} words")
                     return@withContext LoadResult(true, provider = provider)
-                } catch (ex: Exception) {
-                    Log.w(TAG, "Provider '$provider' failed: ${ex.message}")
+                } catch (ex: Throwable) {
+                    Log.w(TAG, "Provider '$provider' failed: ${ex.message}", ex)
                     lastError = ex
                 }
             }

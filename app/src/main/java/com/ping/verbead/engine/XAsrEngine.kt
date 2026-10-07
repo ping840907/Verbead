@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.engine
+package com.ping.verbead.engine
 
 import android.content.Context
 import android.util.Log
@@ -54,10 +54,14 @@ class XAsrEngine(private val context: Context) {
 
             release()
 
-            // Try NNAPI first, falling back to CPU. Both providers reproduced the same
-            // empty-output symptom in testing, so NNAPI is not the root cause after all —
-            // restored per user request.
-            var lastError: Exception? = null
+            // Explicitly preload onnxruntime native library
+            try {
+                System.loadLibrary("onnxruntime")
+            } catch (t: Throwable) {
+                Log.w(TAG, "Preload onnxruntime: ${t.message}")
+            }
+
+            var lastError: Throwable? = null
             for (provider in ModelConfig.ASR_PROVIDER_PRIORITY) {
                 try {
                     recognizer = OnlineRecognizer(
@@ -89,8 +93,8 @@ class XAsrEngine(private val context: Context) {
                     activeProvider = provider
                     Log.i(TAG, "Loaded — provider=$provider  threads=${ModelConfig.X_ASR_THREADS}")
                     return@withContext LoadResult(true, provider = provider)
-                } catch (ex: Exception) {
-                    Log.w(TAG, "Provider '$provider' failed: ${ex.message}")
+                } catch (ex: Throwable) {
+                    Log.w(TAG, "Provider '$provider' failed: ${ex.message}", ex)
                     lastError = ex
                 }
             }
