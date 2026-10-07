@@ -106,7 +106,7 @@ class OnboardingActivity : AppCompatActivity() {
             override fun createIntent(context: Context, input: Array<String>): Intent {
                 val intent = super.createIntent(context, input)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val downloadUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                    val downloadUri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Download")
                     intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, downloadUri)
                 }
                 return intent
@@ -262,7 +262,7 @@ class OnboardingActivity : AppCompatActivity() {
         btnNext.setOnClickListener {
             if (currentStep < 5) {
                 if (currentStep == 1 && !hasMicPermission()) {
-                    Toast.makeText(this, "請先授予麥克風權限以利後續功能使用", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_mic_permission_required, Toast.LENGTH_SHORT).show()
                     requestMic.launch(Manifest.permission.RECORD_AUDIO)
                     return@setOnClickListener
                 }
@@ -277,7 +277,7 @@ class OnboardingActivity : AppCompatActivity() {
             if (!hasMicPermission()) {
                 requestMic.launch(Manifest.permission.RECORD_AUDIO)
             } else {
-                Toast.makeText(this, "麥克風權限已就緒", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_mic_permission_ready, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -285,7 +285,7 @@ class OnboardingActivity : AppCompatActivity() {
             if (!hasCameraPermission()) {
                 requestCamera.launch(Manifest.permission.CAMERA)
             } else {
-                Toast.makeText(this, "相機權限已就緒", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_camera_permission_ready, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -357,12 +357,11 @@ class OnboardingActivity : AppCompatActivity() {
                     arrayOf(
                         "application/zip",
                         "application/x-zip-compressed",
-                        "application/octet-stream",
-                        "*/*"
+                        "application/octet-stream"
                     )
                 )
             } catch (ex: Exception) {
-                Toast.makeText(this, "無法開啟檔案選擇器: ${ex.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_file_picker_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -376,12 +375,11 @@ class OnboardingActivity : AppCompatActivity() {
                         arrayOf(
                             "application/zip",
                             "application/x-zip-compressed",
-                            "application/octet-stream",
-                            "*/*"
+                            "application/octet-stream"
                         )
                     )
                 } catch (ex: Exception) {
-                    Toast.makeText(this, "無法開啟檔案選擇器: ${ex.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.toast_file_picker_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -650,7 +648,7 @@ class OnboardingActivity : AppCompatActivity() {
             if (result.isSuccess) {
                 tvOnboardingImportStatus.text = "✅ ${result.message}"
                 updateStep4Status()
-                Toast.makeText(this@OnboardingActivity, "所有模型已成功解壓並復原！", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@OnboardingActivity, R.string.toast_models_extracted_success, Toast.LENGTH_LONG).show()
             } else {
                 tvOnboardingImportStatus.text = "❌ ${result.message}"
                 Toast.makeText(this@OnboardingActivity, result.message, Toast.LENGTH_LONG).show()
@@ -695,10 +693,10 @@ class OnboardingActivity : AppCompatActivity() {
                         else -> engine
                     }
                     result.onSuccess {
-                        Toast.makeText(this@OnboardingActivity, "$label 模型下載完成", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@OnboardingActivity, getString(R.string.toast_model_download_done, label), Toast.LENGTH_LONG).show()
                         updateStep4Status()
                     }.onFailure { ex ->
-                        Toast.makeText(this@OnboardingActivity, "$label 下載失敗: ${ex.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@OnboardingActivity, getString(R.string.toast_model_download_failed, label, ex.message ?: ""), Toast.LENGTH_LONG).show()
                         updateStep4Status()
                     }
                 }

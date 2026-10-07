@@ -378,17 +378,127 @@ object ModelConfig {
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .edit().putString(KEY_OCR_SEPARATOR, sep).apply()
 
-    fun ocrDir(context: Context): String = "${modelsDir(context)}/$OCR_DIR"
+    fun ocrDir(context: Context): String {
+        val candidates = listOfNotNull(
+            context.getExternalFilesDir("models")?.let { File(it, OCR_DIR) },
+            File(context.filesDir, "models/$OCR_DIR"),
+            File(context.filesDir, OCR_DIR),
+            context.getExternalFilesDir(OCR_DIR),
+            context.getExternalFilesDir(null)?.let { File(it, "models/$OCR_DIR") },
+            File("/storage/emulated/0/Android/data/${context.packageName}/files/models/$OCR_DIR"),
+            File("/sdcard/Android/data/${context.packageName}/files/models/$OCR_DIR")
+        )
+        for (dir in candidates) {
+            if (dir.exists() && dir.isDirectory) {
+                val hasFiles = dir.listFiles()?.any {
+                    it.name.endsWith(".onnx", ignoreCase = true) ||
+                    it.name.endsWith(".txt", ignoreCase = true) ||
+                    it.name.endsWith(".yml", ignoreCase = true)
+                } == true
+                if (hasFiles) return dir.absolutePath
+            }
+        }
+        for (dir in candidates) {
+            if (dir.exists()) return dir.absolutePath
+        }
+        return "${modelsDir(context)}/$OCR_DIR"
+    }
+
+    data class OcrPaths(
+        val detPath: String,
+        val recPath: String,
+        val dictPath: String,
+        val model: String
+    )
+
+    fun findOcrPaths(context: Context, preferredModel: String? = null): OcrPaths? {
+        val targetModel = preferredModel ?: run {
+            val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+                .getString(KEY_OCR_MODEL_SELECTION, null)
+            pref ?: OCR_MODEL_SMALL
+        }
+        val modelsToCheck = if (targetModel == OCR_MODEL_TINY) {
+            listOf(OCR_MODEL_TINY, OCR_MODEL_SMALL)
+        } else {
+            listOf(OCR_MODEL_SMALL, OCR_MODEL_TINY)
+        }
+
+        val searchDirs = buildList {
+            add(File(ocrDir(context)))
+            context.getExternalFilesDir("models")?.let { add(File(it, OCR_DIR)); add(it) }
+            add(File(context.filesDir, "models/$OCR_DIR"))
+            add(File(context.filesDir, OCR_DIR))
+            add(File(context.filesDir, "models"))
+            add(context.filesDir)
+            context.getExternalFilesDir(null)?.let { add(File(it, "models/$OCR_DIR")); add(File(it, OCR_DIR)); add(it) }
+            add(File("/storage/emulated/0/Android/data/${context.packageName}/files/models/$OCR_DIR"))
+            add(File("/sdcard/Android/data/${context.packageName}/files/models/$OCR_DIR"))
+            add(File("/storage/emulated/0/Download/verbead_models/$OCR_DIR"))
+            add(File("/sdcard/Download/verbead_models/$OCR_DIR"))
+            add(File("/storage/emulated/0/Download"))
+            add(File("/sdcard/Download"))
+        }.distinctBy { it.canonicalPath }
+
+        // 1. Check exact standard filenames (case-insensitive)
+        for (m in modelsToCheck) {
+            val detName = "${m}_det.onnx"
+            val recName = "${m}_rec.onnx"
+            val dictName = "${m}_dict.txt"
+
+            for (dir in searchDirs) {
+                if (!dir.exists() || !dir.isDirectory) continue
+                val files = dir.listFiles() ?: continue
+                val detFile = files.firstOrNull { it.name.equals(detName, ignoreCase = true) }
+                val recFile = files.firstOrNull { it.name.equals(recName, ignoreCase = true) }
+                if (detFile != null && recFile != null) {
+                    val dictFile = files.firstOrNull {
+                        it.name.equals(dictName, ignoreCase = true) ||
+                        it.name.equals("inference.yml", ignoreCase = true) ||
+                        it.name.equals("dict.txt", ignoreCase = true)
+                    } ?: File(dir, dictName)
+                    return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, m)
+                }
+            }
+        }
+
+        // 2. Flexible detection / recognition filename pattern matching
+        for (dir in searchDirs) {
+            if (!dir.exists() || !dir.isDirectory) continue
+            val files = dir.listFiles() ?: continue
+            val detFile = files.firstOrNull {
+                val n = it.name.lowercase()
+                n.endsWith(".onnx") && (n.contains("det") || n.contains("detect"))
+            }
+            val recFile = files.firstOrNull {
+                val n = it.name.lowercase()
+                n.endsWith(".onnx") && (n.contains("rec") || n.contains("recogn"))
+            }
+            if (detFile != null && recFile != null) {
+                val dictFile = files.firstOrNull {
+                    val n = it.name.lowercase()
+                    (n.endsWith(".txt") || n.endsWith(".yml") || n.endsWith(".yaml")) && (n.contains("dict") || n.contains("inference"))
+                } ?: File(dir, "pp_ocrv6_small_dict.txt")
+                val detectedModel = if (detFile.name.contains("tiny", ignoreCase = true)) OCR_MODEL_TINY else OCR_MODEL_SMALL
+                return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, detectedModel)
+            }
+        }
+
+        return null
+    }
+
     fun ocrDetPath(context: Context, model: String = selectedOcrModel(context)): String =
-        "${ocrDir(context)}/${model}_det.onnx"
+        findOcrPaths(context, model)?.detPath ?: "${ocrDir(context)}/${model}_det.onnx"
+
     fun ocrRecPath(context: Context, model: String = selectedOcrModel(context)): String =
-        "${ocrDir(context)}/${model}_rec.onnx"
+        findOcrPaths(context, model)?.recPath ?: "${ocrDir(context)}/${model}_rec.onnx"
+
     fun ocrDictPath(context: Context, model: String = selectedOcrModel(context)): String =
-        "${ocrDir(context)}/${model}_dict.txt"
+        findOcrPaths(context, model)?.dictPath ?: "${ocrDir(context)}/${model}_dict.txt"
 
     fun isOcrReady(context: Context, model: String = selectedOcrModel(context)): Boolean {
-        return java.io.File(ocrDetPath(context, model)).exists() &&
-               java.io.File(ocrRecPath(context, model)).exists()
+        if (findOcrPaths(context, model) != null) return true
+        return java.io.File("${ocrDir(context)}/${model}_det.onnx").exists() &&
+               java.io.File("${ocrDir(context)}/${model}_rec.onnx").exists()
     }
 
     // ── Camera & Scanner Settings ─────────────────────────────────────────────

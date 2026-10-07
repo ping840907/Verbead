@@ -72,6 +72,12 @@ class ModelDownloaderTest {
             assertTrue("OCR tiny ${f.relativePath} must have sha256", !f.sha256.isNullOrBlank())
             assertEquals(64, f.sha256!!.length)
         }
+
+        val qwen3Target = ModelDownloadSpec.qwen3()
+        assertTrue("Qwen3 archiveSha256 must not be null or blank", !qwen3Target.archiveSha256.isNullOrBlank())
+        assertEquals(64, qwen3Target.archiveSha256!!.length)
+        assertTrue("Qwen3 archiveSha256 must be valid hex", qwen3Target.archiveSha256!!.matches(Regex("^[0-9a-fA-F]{64}$")))
+        assertEquals("393f8a14e2f5fb96746aaab342997a40641001fbd5bf9592a080a8329178ee96", qwen3Target.archiveSha256)
     }
 
     @Test

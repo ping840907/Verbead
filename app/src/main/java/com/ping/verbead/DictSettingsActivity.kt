@@ -29,12 +29,12 @@ class DictSettingsActivity : AppCompatActivity() {
             contentResolver.openInputStream(uri)?.use { stream ->
                 val count = UserDictionary.importAndMergeFromCsv(this, stream)
                 refreshList()
-                Toast.makeText(this, "成功匯入 $count 筆詞彙", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_dict_import_success, count), Toast.LENGTH_SHORT).show()
             } ?: run {
-                Toast.makeText(this, "無法讀取選取的檔案", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_dict_import_cannot_read, Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "匯入失敗：${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_dict_import_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -46,12 +46,12 @@ class DictSettingsActivity : AppCompatActivity() {
             val entries = UserDictionary.load(this)
             contentResolver.openOutputStream(uri)?.use { stream ->
                 UserDictionary.exportToCsv(entries, stream)
-                Toast.makeText(this, "成功匯出 ${entries.size} 筆詞彙", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_dict_export_success, entries.size), Toast.LENGTH_SHORT).show()
             } ?: run {
-                Toast.makeText(this, "無法寫入目標檔案", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_dict_export_cannot_write, Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "匯出失敗：${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_dict_export_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -86,7 +86,7 @@ class DictSettingsActivity : AppCompatActivity() {
                     )
                 )
             } catch (e: Exception) {
-                Toast.makeText(this, "無法開啟檔案選擇器：${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_dict_file_picker_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -94,7 +94,7 @@ class DictSettingsActivity : AppCompatActivity() {
             try {
                 exportCsvLauncher.launch("verbead_user_dict.csv")
             } catch (e: Exception) {
-                Toast.makeText(this, "無法開啟儲存對話框：${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_dict_save_dialog_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -122,7 +122,7 @@ class DictSettingsActivity : AppCompatActivity() {
                 val to = etTo.text.toString().trim()
                 val fromRaw = etFrom.text.toString().trim()
                 if (to.isBlank()) {
-                    Toast.makeText(this, "請輸入目標詞彙內容", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_dict_target_word_empty, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 val from = if (fromRaw.isNotBlank()) fromRaw else to

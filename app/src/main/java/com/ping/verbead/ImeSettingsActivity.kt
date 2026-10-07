@@ -131,7 +131,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             override fun createIntent(context: Context, input: Array<String>): Intent {
                 val intent = super.createIntent(context, input)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val downloadUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                    val downloadUri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Download")
                     intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, downloadUri)
                 }
                 return intent
@@ -341,7 +341,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                 try {
                     startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
                 } catch (_: Exception) {
-                    Toast.makeText(this, "此 Android 版本已預設允許藍牙耳機", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_bt_headset_allowed, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -471,12 +471,11 @@ class ImeSettingsActivity : AppCompatActivity() {
                     arrayOf(
                         "application/zip",
                         "application/x-zip-compressed",
-                        "application/octet-stream",
-                        "*/*"
+                        "application/octet-stream"
                     )
                 )
             } catch (ex: Exception) {
-                Toast.makeText(this, "無法開啟檔案選擇器：${ex.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_file_picker_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -490,12 +489,11 @@ class ImeSettingsActivity : AppCompatActivity() {
                         arrayOf(
                             "application/zip",
                             "application/x-zip-compressed",
-                            "application/octet-stream",
-                            "*/*"
+                            "application/octet-stream"
                         )
                     )
                 } catch (ex: Exception) {
-                    Toast.makeText(this, "無法開啟檔案選擇器：${ex.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.toast_file_picker_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -505,7 +503,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             } catch (ex: Exception) {
-                Toast.makeText(this, "無法開啟連結：${ex.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_url_open_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -547,9 +545,9 @@ class ImeSettingsActivity : AppCompatActivity() {
                         else -> engine
                     }
                     result.onSuccess {
-                        Toast.makeText(this@ImeSettingsActivity, "$label 模型下載完成", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@ImeSettingsActivity, getString(R.string.toast_model_download_done, label), Toast.LENGTH_LONG).show()
                     }.onFailure { ex ->
-                        Toast.makeText(this@ImeSettingsActivity, "$label 下載失敗：${ex.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@ImeSettingsActivity, getString(R.string.toast_model_download_failed, label, ex.message ?: ""), Toast.LENGTH_LONG).show()
                     }
                     updateAllStatus()
                 }
@@ -968,7 +966,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             }
             updateAllStatus()
         } else {
-            Toast.makeText(this, TOAST_MODEL_NOT_DOWNLOADED, Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_model_not_downloaded, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1002,7 +1000,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                     ModelConfig.setSelectedEngine(this, ModelConfig.ENGINE_QWEN3)
                     ModelConfig.setDualEngineEnabled(this, true)
                     updateAllStatus()
-                    Toast.makeText(this, "已切換為 Qwen3-ASR 並啟用雙引擎模式", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_switched_to_qwen3_dual, Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("取消", null)
                 .show()

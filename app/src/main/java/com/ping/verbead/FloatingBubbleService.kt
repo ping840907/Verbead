@@ -7,8 +7,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -40,6 +38,7 @@ import com.google.android.material.card.MaterialCardView
 import com.k2fsa.sherpa.onnx.OnlineStream
 import com.ping.verbead.bubble.BubbleState as State
 import com.ping.verbead.bubble.BubbleStateMachine
+import com.ping.verbead.bubble.CapsuleMenuController
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.Qwen3AsrEngine
@@ -113,6 +112,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             private set
 
         fun start(context: Context) {
+            if (!Settings.canDrawOverlays(context)) {
+                Log.w(TAG, "Cannot start FloatingBubbleService: overlay permission not granted")
+                return
+            }
             val intent = Intent(context, FloatingBubbleService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -155,14 +158,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var xButtonView: View? = null
     private var xButtonLayoutParams: WindowManager.LayoutParams? = null
 
-    // Capsule menu & mode
-    private var capsuleMenuView: View? = null
-    private var capsuleLayoutParams: WindowManager.LayoutParams? = null
-    private var isCapsuleMenuShowing = false
+    // Capsule menu controller & mode
+    private lateinit var capsuleMenuController: CapsuleMenuController
+    private val isCapsuleMenuShowing: Boolean
+        get() = ::capsuleMenuController.isInitialized && capsuleMenuController.isShowing
     private var currentMode = MODE_VOICE
-    private var capsuleInitialY = 0f
-    private var capsuleTouchStartY = 0f
-    private var capsuleCurrentHoveredIndex = 0
 
     // Barcode scanner
     private var scannerView: View? = null
@@ -251,8 +251,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var isDockedOnRight = true
     private var isXButtonShowing = false
     private var isBubbleMoving = false
-    private var cachedMicCenterY = 0f
-    private var cachedMicCenterX = 0f
 
     // 邊緣收納隱藏狀態 (~30% 可視，~70% 位於畫面外)
     private var isTucked = false
@@ -284,6 +282,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
+        startForegroundWithNotification()
         if (!Settings.canDrawOverlays(this)) {
             Log.w(TAG, "Overlay permission not granted! Aborting service startup.")
             stopSelf()
@@ -300,8 +300,21 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             currentMode = MODE_VOICE
         }
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        createNotificationChannel()
-        startForegroundWithNotification()
+        capsuleMenuController = CapsuleMenuController(
+            context = themedCtx,
+            windowManager = windowManager,
+            listener = object : CapsuleMenuController.Listener {
+                override fun onModeSelected(mode: Int) {
+                    applyCapsuleSelection(mode)
+                    animateModeIconIntoBubble(mode)
+                }
+                override fun onDismissed() {
+                    if (::btnBubbleMic.isInitialized) {
+                        btnBubbleMic.alpha = 1f
+                    }
+                }
+            }
+        )
         setupBubbleView()
     }
 
@@ -325,7 +338,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 getString(R.string.bubble_notification_channel),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "提供懸浮泡泡語音輸入服務"
+                description = getString(R.string.notif_channel_bubble_desc)
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -346,11 +359,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         )
 
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("珠璣 懸浮輸入助手")
-            .setContentText("輕觸懸浮球即可輸入文字或掃描條碼至目前焦點欄位")
+            .setContentTitle(getString(R.string.notif_bubble_title))
+            .setContentText(getString(R.string.notif_bubble_text))
             .setSmallIcon(R.drawable.ic_mic)
             .setContentIntent(openIntent)
-            .addAction(0, "關閉懸浮球", stopIntent)
+            .addAction(0, getString(R.string.notif_bubble_action_close), stopIntent)
             .setOngoing(true)
             .build()
 
@@ -481,7 +494,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     val dist = hypot(dx, dy)
 
                     if (isLongPressTriggered || isCapsuleMenuShowing) {
-                        updateCapsuleDrag(event.rawX, event.rawY)
+                        capsuleMenuController.updateDrag(event.rawX, event.rawY)
                         return@setOnTouchListener true
                     }
 
@@ -516,7 +529,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     recordTouchSample(event.rawX, event.rawY)
                     longPressHandler.removeCallbacks(longPressRunnable)
                     if (isLongPressTriggered || isCapsuleMenuShowing) {
-                        finishCapsuleDrag(event.rawX, event.rawY)
+                        capsuleMenuController.finishDrag(event.rawX, event.rawY)
                         isLongPressTriggered = false
                         isBubbleMoving = false
                         bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
@@ -543,7 +556,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 MotionEvent.ACTION_CANCEL -> {
                     longPressHandler.removeCallbacks(longPressRunnable)
                     if (isLongPressTriggered || isCapsuleMenuShowing) {
-                        dismissCapsuleMenu()
+                        capsuleMenuController.dismiss()
                         isLongPressTriggered = false
                         isBubbleMoving = false
                         bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
@@ -612,32 +625,21 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         // §6.2 被動自動隱藏規則 (PASTED 狀態下打字、游標移動、失焦自動隱藏 X 鍵)
-        VoiceAccessibilityService.onManualTypingDetected = {
-            Handler(Looper.getMainLooper()).post {
-                if (state == State.PASTED) {
-                    hideXButton()
-                    setState(State.IDLE)
-                    checkAndHideBubbleIfKeyboardClosed(animate = true)
-                }
+        fun handlePastedDismiss() {
+            if (state == State.PASTED) {
+                hideXButton()
+                setState(State.IDLE)
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
         }
-        VoiceAccessibilityService.onCursorMoved = {
-            Handler(Looper.getMainLooper()).post {
-                if (state == State.PASTED) {
-                    hideXButton()
-                    setState(State.IDLE)
-                    checkAndHideBubbleIfKeyboardClosed(animate = true)
-                }
-            }
+        scope.launch {
+            VoiceAccessibilityService.manualTypingFlow.collect { handlePastedDismiss() }
         }
-        VoiceAccessibilityService.onInputFocusLost = {
-            Handler(Looper.getMainLooper()).post {
-                if (state == State.PASTED) {
-                    hideXButton()
-                    setState(State.IDLE)
-                    checkAndHideBubbleIfKeyboardClosed(animate = true)
-                }
-            }
+        scope.launch {
+            VoiceAccessibilityService.cursorMovedFlow.collect { handlePastedDismiss() }
+        }
+        scope.launch {
+            VoiceAccessibilityService.inputFocusLostFlow.collect { handlePastedDismiss() }
         }
 
         val initialKeyboard = VoiceAccessibilityService.instance?.checkKeyboardState()
@@ -967,7 +969,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
                 val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
                 if (restored) {
-                    showPreviewText("已復原", autoHide = true)
+                    showPreviewText(getString(R.string.preview_restored), autoHide = true)
                 }
                 setState(State.IDLE)
                 hideXButton()
@@ -1233,7 +1235,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             untuckBubble(animate = false)
         }
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "請先授權麥克風權限以進行語音輸入", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.toast_mic_permission_voice, Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -1268,13 +1270,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         } catch (e: Throwable) {
             Log.e(TAG, "startRecording failed: ${e.message}", e)
             setState(State.IDLE)
-            showPreviewText("語音輸入啟動失敗: ${e.localizedMessage ?: "未知錯誤"}", autoHide = true)
+            showPreviewText(getString(R.string.preview_voice_start_failed, e.localizedMessage ?: "未知錯誤"), autoHide = true)
         }
     }
 
     private fun preloadDualEngineAndStart() {
         setState(State.LOADING)
-        showPreviewText("載入雙模型中…", autoHide = false)
+        showPreviewText(getString(R.string.preview_loading_dual_models), autoHide = false)
 
         scope.launch {
             val (xOk, qOk) = withContext(Dispatchers.IO) {
@@ -1286,14 +1288,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 startDualEngineRecording()
             } else {
                 setState(State.IDLE)
-                showPreviewText("模型載入失敗，請檢查設定", autoHide = true)
+                showPreviewText(getString(R.string.preview_model_load_failed), autoHide = true)
             }
         }
     }
 
     private fun preloadAndStart(engine: String) {
         setState(State.LOADING)
-        showPreviewText("載入模型中…", autoHide = false)
+        showPreviewText(getString(R.string.preview_loading_models), autoHide = false)
 
         scope.launch {
             val success = withContext(Dispatchers.IO) {
@@ -1311,7 +1313,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
             } else {
                 setState(State.IDLE)
-                showPreviewText("模型載入失敗，請檢查設定", autoHide = true)
+                showPreviewText(getString(R.string.preview_model_load_failed), autoHide = true)
             }
         }
     }
@@ -1319,7 +1321,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // 雙引擎模式底層運作機制
     private fun startDualEngineRecording() {
         val stream = xAsr.createStream() ?: run {
-            showPreviewText("無法建立辨識串流", autoHide = true)
+            showPreviewText(getString(R.string.preview_cannot_create_stream), autoHide = true)
             return
         }
         activeStream = stream
@@ -1327,7 +1329,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         isAborted = false
         setState(State.RECORDING)
         showXButton()
-        showPreviewText("聆聽中…", autoHide = false)
+        showPreviewText(getString(R.string.preview_listening), autoHide = false)
 
         val audioBuffer = mutableListOf<FloatArray>()
         var accumulatedXAsr = ""
@@ -1380,7 +1382,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
                 setState(State.IDLE)
                 hideXButton()
-                showPreviewText("未偵測到語音", autoHide = true)
+                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
                 return@launch
             }
 
@@ -1395,7 +1397,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (totalSamples == 0) {
                 setState(State.IDLE)
                 hideXButton()
-                showPreviewText("未偵測到語音", autoHide = true)
+                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
                 return@launch
             }
             val combinedAudio = FloatArray(totalSamples)
@@ -1421,12 +1423,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (fallbackText.isNotEmpty()) {
                     val processedFallback = postProcess(fallbackText)
                     onTranscriptionDone(processedFallback)
-                    Toast.makeText(this@FloatingBubbleService, "離線模型轉譯異常，已套用即時辨識結果", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@FloatingBubbleService, R.string.toast_offline_model_error_applied_streaming, Toast.LENGTH_SHORT).show()
                 } else {
                     setState(State.IDLE)
                     hideXButton()
-                    showPreviewText("轉譯失敗，請重新錄音", autoHide = true)
-                    Toast.makeText(this@FloatingBubbleService, "轉譯失敗，請重新錄音", Toast.LENGTH_SHORT).show()
+                    showPreviewText(getString(R.string.preview_transcribe_failed), autoHide = true)
+                    Toast.makeText(this@FloatingBubbleService, R.string.toast_transcribe_failed_retry, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -1437,7 +1439,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         isAborted = false
         setState(State.RECORDING)
         showXButton()
-        showPreviewText("聆聽中…", autoHide = false)
+        showPreviewText(getString(R.string.preview_listening), autoHide = false)
 
         recordingJob = scope.launch {
             val recording = withContext(Dispatchers.IO) {
@@ -1463,12 +1465,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (ex is kotlinx.coroutines.CancellationException || isAborted) return@launch
                     setState(State.IDLE)
                     hideXButton()
-                    showPreviewText("轉譯失敗，請重新錄音", autoHide = true)
+                    showPreviewText(getString(R.string.preview_transcribe_failed), autoHide = true)
                 }
             } else {
                 setState(State.IDLE)
                 hideXButton()
-                showPreviewText("未偵測到語音", autoHide = true)
+                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
             }
         }
     }
@@ -1476,7 +1478,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun startStreamingRecording() {
         val engine = xAsr
         val stream = engine.createStream() ?: run {
-            showPreviewText("無法建立辨識串流", autoHide = true)
+            showPreviewText(getString(R.string.preview_cannot_create_stream), autoHide = true)
             return
         }
         activeStream = stream
@@ -1484,7 +1486,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         isAborted = false
         setState(State.RECORDING)
         showXButton()
-        showPreviewText("聆聽中…", autoHide = false)
+        showPreviewText(getString(R.string.preview_listening), autoHide = false)
 
         var accumulated = ""
         var lastShown = ""
@@ -1534,7 +1536,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
                 setState(State.IDLE)
                 hideXButton()
-                showPreviewText("未偵測到語音", autoHide = true)
+                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
                 return@launch
             }
 
@@ -1547,7 +1549,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (text.isBlank()) {
             setState(State.IDLE)
             hideXButton()
-            showPreviewText("未偵測到文字", autoHide = true)
+            showPreviewText(getString(R.string.preview_no_text_detected), autoHide = true)
             return
         }
 
@@ -1569,7 +1571,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         if (!injected) {
-            showPreviewText("已複製", autoHide = true)
+            showPreviewText(getString(R.string.preview_copied), autoHide = true)
         }
     }
 
@@ -1676,269 +1678,27 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // ══════════════════════════════════════════════════════════════════
     // Capsule Menu Methods
     // ══════════════════════════════════════════════════════════════════
-    private fun modeToIndex(mode: Int): Int = when (mode) {
-        MODE_VOICE -> 0
-        MODE_BARCODE -> 1
-        MODE_OCR -> 2
-        else -> 0
-    }
-
-    private fun indexToMode(index: Int): Int = when (index) {
-        0 -> MODE_VOICE
-        1 -> MODE_BARCODE
-        2 -> MODE_OCR
-        else -> MODE_VOICE
-    }
-
     private fun showCapsuleMenu(startRawY: Float = 0f) {
         if (isCapsuleMenuShowing) return
         if (isTucked) {
             untuckBubble(animate = false)
         }
         hideXButtonImmediately()
-        val density = resources.displayMetrics.density
-        val bubbleWidthPx = (60 * density).toInt()
-        val bubbleHeightPx = (60 * density).toInt()
-
-        if (capsuleMenuView == null) {
-            capsuleMenuView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_capsule_menu, null)
-        }
-        val menu = capsuleMenuView ?: return
-
-        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill) ?: return
-        val itemVoice = menu.findViewById<FrameLayout>(R.id.item_capsule_voice)
-        val itemBarcode = menu.findViewById<FrameLayout>(R.id.item_capsule_barcode)
-        val itemOcr = menu.findViewById<FrameLayout>(R.id.item_capsule_ocr)
-
-        itemVoice?.setOnClickListener { selectModeFromCapsule(MODE_VOICE) }
-        itemBarcode?.setOnClickListener { selectModeFromCapsule(MODE_BARCODE) }
-        itemOcr?.setOnClickListener { selectModeFromCapsule(MODE_OCR) }
-
-        val bubbleCenterX = windowLayoutParams.x + (bubbleWidthPx / 2f)
-        val bubbleCenterY = windowLayoutParams.y + (bubbleHeightPx / 2f)
-        cachedMicCenterX = bubbleCenterX
-        cachedMicCenterY = bubbleCenterY
-
-        val currentIndex = modeToIndex(currentMode)
-        capsuleCurrentHoveredIndex = currentIndex
-
-        val windowWidth = bubbleWidthPx
-        val windowHeight = (192 * density).toInt()
-
-        // In layout_capsule_menu.xml:
-        // Window padding top is 12dp. Pill height is 168dp (3 items * 56dp).
-        // Center of item i within window: (12dp + 28dp + i * 56dp) = (40dp + i * 56dp)
-        // Center of btnBubbleMic within bubbleView: (30dp)
-        // To align item currentIndex directly over the bubble:
-        // initialY + itemWinCenterY = bubbleCenterY
-        // initialY = bubbleCenterY - itemWinCenterY
-        val itemWinCenterY = (40f + currentIndex * 56f) * density
-        val initialY = (bubbleCenterY - itemWinCenterY).toInt()
-        capsuleInitialY = initialY.toFloat()
-        capsuleTouchStartY = if (startRawY > 0f) startRawY else bubbleCenterY
-
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
-
-        capsuleLayoutParams = WindowManager.LayoutParams(
-            windowWidth,
-            windowHeight,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.LEFT
-            x = windowLayoutParams.x
-            y = initialY
-        }
-
-        updateCapsuleItemHighlights(currentIndex, animate = false)
-
-        if (menu.isAttachedToWindow) {
-            windowManager.removeView(menu)
-        }
-        windowManager.addView(menu, capsuleLayoutParams)
-        isCapsuleMenuShowing = true
-
-        // Hide bubble mic while capsule is open to avoid showing underneath during drag
         btnBubbleMic.alpha = 0f
-
-        pill.animate().cancel()
-        pill.pivotX = 28f * density
-        pill.pivotY = (28f + currentIndex * 56f) * density
-        pill.scaleX = 0.5f
-        pill.scaleY = 0.5f
-        pill.alpha = 0f
-        pill.animate()
-            .scaleX(1.0f)
-            .scaleY(1.0f)
-            .alpha(1.0f)
-            .setDuration(220)
-            .setInterpolator(OvershootInterpolator(1.2f))
-            .start()
-    }
-
-    private fun updateCapsuleItemHighlights(selectedIndex: Int, animate: Boolean) {
-        val menu = capsuleMenuView ?: return
-        val indicators = arrayOf(
-            menu.findViewById<View>(R.id.indicator_capsule_voice),
-            menu.findViewById<View>(R.id.indicator_capsule_barcode),
-            menu.findViewById<View>(R.id.indicator_capsule_ocr)
-        )
-        val icons = arrayOf(
-            menu.findViewById<ImageView>(R.id.iv_capsule_voice),
-            menu.findViewById<ImageView>(R.id.iv_capsule_barcode),
-            menu.findViewById<ImageView>(R.id.iv_capsule_ocr)
-        )
-
-        for (i in 0..2) {
-            val isSelected = (i == selectedIndex)
-            val targetIndAlpha = if (isSelected) 1.0f else 0.0f
-            val targetIconAlpha = if (isSelected) 1.0f else 0.65f
-            val targetIconScale = if (isSelected) 1.15f else 0.95f
-
-            val ind = indicators[i]
-            val iv = icons[i]
-
-            if (animate) {
-                ind?.animate()?.alpha(targetIndAlpha)?.setDuration(120)?.start()
-                iv?.animate()?.alpha(targetIconAlpha)?.scaleX(targetIconScale)?.scaleY(targetIconScale)?.setDuration(120)?.start()
-            } else {
-                ind?.alpha = targetIndAlpha
-                iv?.alpha = targetIconAlpha
-                iv?.scaleX = targetIconScale
-                iv?.scaleY = targetIconScale
-            }
-        }
-    }
-
-    private fun updateCapsuleDrag(rawX: Float, rawY: Float) {
-        val menu = capsuleMenuView ?: return
-        if (!isCapsuleMenuShowing || !menu.isAttachedToWindow) return
-        val lp = capsuleLayoutParams ?: return
-
         val density = resources.displayMetrics.density
-        val itemPitchPx = 56f * density
-        val currentIndex = modeToIndex(currentMode)
-
-        val dy = rawY - capsuleTouchStartY
-
-        // When dragging up (dy < 0), items below (higher index) move up toward bubble
-        // When dragging down (dy > 0), items above (lower index) move down toward bubble
-        val maxUpDrag = -(2 - currentIndex) * itemPitchPx
-        val maxDownDrag = currentIndex * itemPitchPx
-
-        val effectiveDy = when {
-            dy < maxUpDrag -> maxUpDrag + (dy - maxUpDrag) * 0.25f
-            dy > maxDownDrag -> maxDownDrag + (dy - maxDownDrag) * 0.25f
-            else -> dy
-        }
-
-        lp.y = (capsuleInitialY + effectiveDy).toInt()
-        try {
-            windowManager.updateViewLayout(menu, lp)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to update capsuleMenuView layout", e)
-        }
-
-        // Find which item's screen center is closest to bubble center
-        var closestIndex = currentIndex
-        var minDistance = Float.MAX_VALUE
-        for (i in 0..2) {
-            val itemCenterOnScreen = lp.y + (40f + i * 56f) * density
-            val dist = kotlin.math.abs(itemCenterOnScreen - cachedMicCenterY)
-            if (dist < minDistance) {
-                minDistance = dist
-                closestIndex = i
-            }
-        }
-
-        if (closestIndex != capsuleCurrentHoveredIndex) {
-            capsuleCurrentHoveredIndex = closestIndex
-            HapticUtil.tick(this)
-            updateCapsuleItemHighlights(closestIndex, animate = true)
-        }
+        capsuleMenuController.show(
+            bubbleX = windowLayoutParams.x,
+            bubbleY = windowLayoutParams.y,
+            bubbleWidthPx = (60 * density).toInt(),
+            bubbleHeightPx = (60 * density).toInt(),
+            mode = currentMode,
+            startRawY = startRawY
+        )
     }
 
-    private fun finishCapsuleDrag(rawX: Float, rawY: Float) {
-        val menu = capsuleMenuView ?: return
-        if (!isCapsuleMenuShowing) return
-
-        val targetMode = indexToMode(capsuleCurrentHoveredIndex)
-        val isModeChanged = (targetMode != currentMode)
-
-        if (isModeChanged) {
-            applyCapsuleSelection(targetMode)
-        }
-
-        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill)
-        if (pill != null) {
-            val density = resources.displayMetrics.density
-            pill.pivotX = 28f * density
-            pill.pivotY = (28f + capsuleCurrentHoveredIndex * 56f) * density
-            pill.animate()
-                .scaleX(0.2f)
-                .scaleY(0.2f)
-                .alpha(0f)
-                .setDuration(180)
-                .setInterpolator(DecelerateInterpolator(1.5f))
-                .withEndAction {
-                    dismissCapsuleMenu()
-                    if (isModeChanged) {
-                        animateModeIconIntoBubble(targetMode)
-                    }
-                }
-                .start()
-        } else {
-            dismissCapsuleMenu()
-            if (isModeChanged) {
-                animateModeIconIntoBubble(targetMode)
-            }
-        }
-    }
-
-    private fun selectModeFromCapsule(mode: Int) {
-        val targetIndex = modeToIndex(mode)
-        val isModeChanged = (mode != currentMode)
-        if (isModeChanged) {
-            applyCapsuleSelection(mode)
-        }
-        val menu = capsuleMenuView ?: run {
-            dismissCapsuleMenu()
-            if (isModeChanged) {
-                animateModeIconIntoBubble(mode)
-            }
-            return
-        }
-        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill)
-        if (pill != null) {
-            val density = resources.displayMetrics.density
-            pill.pivotX = 28f * density
-            pill.pivotY = (28f + targetIndex * 56f) * density
-            pill.animate()
-                .scaleX(0.2f)
-                .scaleY(0.2f)
-                .alpha(0f)
-                .setDuration(180)
-                .setInterpolator(DecelerateInterpolator(1.5f))
-                .withEndAction {
-                    dismissCapsuleMenu()
-                    if (isModeChanged) {
-                        animateModeIconIntoBubble(mode)
-                    }
-                }
-                .start()
-        } else {
-            dismissCapsuleMenu()
-            if (isModeChanged) {
-                animateModeIconIntoBubble(mode)
-            }
+    private fun dismissCapsuleMenu() {
+        if (::capsuleMenuController.isInitialized) {
+            capsuleMenuController.dismiss()
         }
     }
 
@@ -1950,39 +1710,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         when (mode) {
             MODE_VOICE -> {
                 setState(State.IDLE)
-                showPreviewText("語音模式", autoHide = true)
+                showPreviewText(getString(R.string.preview_mode_voice), autoHide = true)
                 stopScannerMode()
                 stopOcrMode()
             }
             MODE_OCR -> {
                 setState(State.IDLE)
-                showPreviewText("文字辨識 (OCR)", autoHide = true)
+                showPreviewText(getString(R.string.preview_mode_ocr), autoHide = true)
                 stopScannerMode()
             }
             MODE_BARCODE -> {
                 setState(State.IDLE)
-                showPreviewText("條碼掃描", autoHide = true)
+                showPreviewText(getString(R.string.preview_mode_barcode), autoHide = true)
                 stopOcrMode()
-            }
-        }
-    }
-
-    private fun dismissCapsuleMenu() {
-        if (::btnBubbleMic.isInitialized) {
-            btnBubbleMic.alpha = 1f
-        }
-        val menu = capsuleMenuView ?: return
-        if (!isCapsuleMenuShowing) return
-        isCapsuleMenuShowing = false
-
-        val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill)
-        pill?.animate()?.cancel()
-
-        if (menu.isAttachedToWindow) {
-            try {
-                windowManager.removeView(menu)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove capsuleMenuView", e)
             }
         }
     }
@@ -2004,7 +1744,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             untuckBubble(animate = false)
         }
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "請先授權相機權限以使用掃描功能", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.toast_camera_permission_scan, Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -2105,7 +1845,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             val nextState = !ModelConfig.isOcrAutoEnterEnabled(this)
             ModelConfig.setOcrAutoEnterEnabled(this, nextState)
             btnAutoEnter.setImageResource(if (nextState) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
-            Toast.makeText(this, if (nextState) "已開啟自動換行" else "已關閉自動換行", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, if (nextState) R.string.toast_auto_enter_enabled else R.string.toast_auto_enter_disabled, Toast.LENGTH_SHORT).show()
         }
 
         val savedZoom = ModelConfig.getCameraZoom(this, MODE_BARCODE)
@@ -2328,7 +2068,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             untuckBubble(animate = false)
         }
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "請先授權相機權限以使用文字辨識功能", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.toast_camera_permission_ocr, Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -2430,7 +2170,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             val nextState = !ModelConfig.isOcrAutoEnterEnabled(this)
             ModelConfig.setOcrAutoEnterEnabled(this, nextState)
             btnAutoEnter.setImageResource(if (nextState) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
-            Toast.makeText(this, if (nextState) "已開啟自動換行" else "已關閉自動換行", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, if (nextState) R.string.toast_auto_enter_enabled else R.string.toast_auto_enter_disabled, Toast.LENGTH_SHORT).show()
         }
 
         val savedZoom = ModelConfig.getCameraZoom(this, MODE_OCR)
@@ -2650,7 +2390,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         if (!injected) {
-            showPreviewText("已複製條碼", autoHide = true)
+            showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
         }
         Handler(Looper.getMainLooper()).postDelayed({
             isProcessingBarcode = false
@@ -2662,7 +2402,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // ══════════════════════════════════════════════════════════════════
     private fun triggerOcrSnapshot() {
         if (!ModelConfig.isOcrReady(this)) {
-            Toast.makeText(this, "尚未下載 PP-OCR 模型，請先至設定頁面下載", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.toast_ocr_model_not_downloaded, Toast.LENGTH_LONG).show()
             val intent = Intent(this, ImeSettingsActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -2674,7 +2414,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             ?: scannerView?.findViewById<PreviewView>(R.id.scanner_view_finder)
             ?: return
         val rawBitmap = viewFinder.bitmap ?: run {
-            Toast.makeText(this, "無法截取目前相機畫面", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_camera_capture_failed, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -2765,7 +2505,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     val loaded = ppOcrEngine.load()
                     if (!loaded) {
                         progress.visibility = View.GONE
-                        tvStatus.text = "PP-OCR 模型載入失敗，請確認模型檔案完整"
+                        val reason = ppOcrEngine.lastLoadError ?: "請確認模型檔案完整"
+                        tvStatus.text = "PP-OCR 模型載入失敗: $reason"
                         return@launch
                     }
                 }
@@ -2835,7 +2576,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             } catch (e: Throwable) {
                 Log.e(TAG, "OCR detection error: ${e.message}", e)
                 progress.visibility = View.GONE
-                tvStatus.text = "OCR 處理發生錯誤: ${e.localizedMessage ?: "未知錯誤"}"
+                tvStatus.text = "OCR 處理發生錯誤 (${e.javaClass.simpleName}): ${e.localizedMessage ?: e.message ?: "未知錯誤"}"
             }
         }
     }
@@ -2894,7 +2635,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
                     if (!injected) {
                         val previewMsg = if (processed.length > 25) "${processed.take(25)}…" else processed
-                        showPreviewText("已複製：$previewMsg", autoHide = true)
+                        showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
                     }
                 } else {
                     tvStatus.text = "未能成功辨識，請重試或選取其他文字"
@@ -2902,7 +2643,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             } catch (e: Throwable) {
                 Log.e(TAG, "OCR recognition error: ${e.message}", e)
                 progress.visibility = View.GONE
-                tvStatus.text = "辨識失敗: ${e.localizedMessage ?: "未知錯誤"}"
+                tvStatus.text = "辨識失敗 (${e.javaClass.simpleName}): ${e.localizedMessage ?: e.message ?: "未知錯誤"}"
             }
         }
     }
@@ -2973,58 +2714,56 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (instance === this) {
-            instance = null
-        }
-        isRunning = false
-        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
-        routingManager.stop()
-        stopScannerMode()
-        stopOcrMode()
-        dismissCapsuleMenu()
-        dismissOcrSnapshot()
-        cameraExecutor?.shutdown()
-        ppOcrEngine.release()
+        try {
+            if (instance === this) instance = null
+            isRunning = false
+            lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
-        VoiceAccessibilityService.onKeyboardStateChanged = null
-        VoiceAccessibilityService.onInputFocusStateChanged = null
-        VoiceAccessibilityService.onManualTypingDetected = null
-        VoiceAccessibilityService.onCursorMoved = null
-        VoiceAccessibilityService.onInputFocusLost = null
-        snapAnimator?.cancel()
-        recordingJob?.cancel()
-        autoHidePreviewJob?.cancel()
-        xButtonAutoHideJob?.cancel()
-        recorder.stopEarly()
-        activeStream?.let { runCatching { it.release() } }
-        activeStream = null
+            safely("routingManager") { routingManager.stop() }
+            safely("scanner") { stopScannerMode() }
+            safely("ocr") { stopOcrMode() }
+            safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }
+            safely("snapshot") { dismissOcrSnapshot() }
+            safely("camera") { cameraExecutor?.shutdown() }
+            safely("ppOcr") { ppOcrEngine.release() }
 
-        if (qwen3Asr.isLoaded()) qwen3Asr.release()
-        if (xAsr.isLoaded()) xAsr.release()
 
-        if (xButtonView != null && xButtonView?.isAttachedToWindow == true) {
-            try {
-                windowManager.removeView(xButtonView)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove xButtonView in onDestroy", e)
+
+            safely("jobs") {
+                snapAnimator?.cancel()
+                recordingJob?.cancel()
+                autoHidePreviewJob?.cancel()
+                xButtonAutoHideJob?.cancel()
             }
-        }
-        xButtonView = null
+            safely("recorder") { recorder.stopEarly() }
+            safely("stream") { activeStream?.release() }
+            activeStream = null
+            safely("qwen3") { if (qwen3Asr.isLoaded()) qwen3Asr.release() }
+            safely("xAsr") { if (xAsr.isLoaded()) xAsr.release() }
 
-        if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
-            try {
-                windowManager.removeView(bubbleView)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove bubbleView in onDestroy", e)
-            }
+            removeOverlay("xButton", xButtonView)
+            xButtonView = null
+            if (::bubbleView.isInitialized) removeOverlay("bubble", bubbleView)
+            if (::previewView.isInitialized) removeOverlay("preview", previewView)
+        } finally {
+            scope.cancel()
         }
-        if (::previewView.isInitialized && previewView.isAttachedToWindow) {
-            try {
-                windowManager.removeView(previewView)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove previewView in onDestroy", e)
-            }
+    }
+
+    private inline fun safely(tag: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (e: Exception) {
+            Log.w(TAG, "onDestroy: $tag failed", e)
         }
-        scope.cancel()
+    }
+
+    private fun removeOverlay(tag: String, view: View?) {
+        if (view == null || !view.isAttachedToWindow) return
+        try {
+            windowManager.removeView(view)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to remove $tag in onDestroy", e)
+        }
     }
 }

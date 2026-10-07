@@ -1,3 +1,8 @@
+# Line numbers and source attributes for crash reporting
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# Keep all app classes (OCR, bubble state machine, models, services, custom views)
 -keep class com.ping.verbead.** { *; }
 
 # Keep all native methods across the app

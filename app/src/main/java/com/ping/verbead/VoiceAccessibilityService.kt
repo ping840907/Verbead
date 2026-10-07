@@ -22,6 +22,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import com.ping.verbead.util.TextInsertion
 
 class VoiceAccessibilityService : AccessibilityService() {
 
@@ -54,23 +55,14 @@ class VoiceAccessibilityService : AccessibilityService() {
         private val _inputFocusStateFlow = MutableSharedFlow<Boolean>(replay = 1, extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
         val inputFocusStateFlow: SharedFlow<Boolean> = _inputFocusStateFlow.asSharedFlow()
 
-        /**
-         * Callback fired when soft keyboard status or bounds change.
-         */
-        var onKeyboardStateChanged: ((KeyboardInfo) -> Unit)? = null
+        private val _manualTypingFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+        val manualTypingFlow: SharedFlow<Unit> = _manualTypingFlow.asSharedFlow()
 
-        /**
-         * Callback fired when entering or exiting text input state.
-         * true = editable field is focused; false = no editable field focused.
-         */
-        var onInputFocusStateChanged: ((Boolean) -> Unit)? = null
+        private val _cursorMovedFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+        val cursorMovedFlow: SharedFlow<Unit> = _cursorMovedFlow.asSharedFlow()
 
-        /**
-         * Callbacks for X-button (Undo) auto-invalidation
-         */
-        var onManualTypingDetected: (() -> Unit)? = null
-        var onCursorMoved: (() -> Unit)? = null
-        var onInputFocusLost: (() -> Unit)? = null
+        private val _inputFocusLostFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+        val inputFocusLostFlow: SharedFlow<Unit> = _inputFocusLostFlow.asSharedFlow()
     }
 
     private var lastFocusedNode: AccessibilityNodeInfo? = null
@@ -114,11 +106,6 @@ class VoiceAccessibilityService : AccessibilityService() {
     override fun onUnbind(intent: Intent?): Boolean {
         instance = null
         mainHandler.removeCallbacks(keyboardCheckRunnable)
-        onKeyboardStateChanged = null
-        onInputFocusStateChanged = null
-        onManualTypingDetected = null
-        onCursorMoved = null
-        onInputFocusLost = null
         lastSnapshot = null
         Log.i(TAG, "VoiceAccessibilityService disconnected")
         return super.onUnbind(intent)
@@ -130,6 +117,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        if (event.packageName == packageName) return
 
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOWS_CHANGED,
@@ -147,13 +135,13 @@ class VoiceAccessibilityService : AccessibilityService() {
                 }
             }
             AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
-                if (!isAutomatedActionInProgress) {
-                    onManualTypingDetected?.invoke()
+                if (lastSnapshot != null && !isAutomatedActionInProgress) {
+                    _manualTypingFlow.tryEmit(Unit)
                 }
             }
             AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
-                if (!isAutomatedActionInProgress) {
-                    onCursorMoved?.invoke()
+                if (lastSnapshot != null && !isAutomatedActionInProgress) {
+                    _cursorMovedFlow.tryEmit(Unit)
                 }
             }
         }
@@ -186,7 +174,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         currentKeyboardInfo = info
         Log.i(TAG, "updateKeyboardState: isVisible=${info.isVisible}, top=${info.keyboardTop}, height=${info.keyboardHeight}")
         _keyboardStateFlow.tryEmit(info)
-        onKeyboardStateChanged?.invoke(info)
     }
 
     private fun notifyInputState(hasInputFocus: Boolean) {
@@ -194,9 +181,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         currentInputState = hasInputFocus
         Log.i(TAG, "notifyInputState: hasInputFocus=$hasInputFocus")
         _inputFocusStateFlow.tryEmit(hasInputFocus)
-        onInputFocusStateChanged?.invoke(hasInputFocus)
         if (!hasInputFocus) {
-            onInputFocusLost?.invoke()
+            _inputFocusLostFlow.tryEmit(Unit)
         }
     }
 
@@ -337,7 +323,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (target.isPassword) {
             Log.w(TAG, "Target node is a password field; rejecting automated input for privacy/security")
             mainHandler.post {
-                Toast.makeText(this, "密碼欄位不支援自動填入", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_password_not_supported, Toast.LENGTH_SHORT).show()
             }
             return false
         }
@@ -357,36 +343,25 @@ class VoiceAccessibilityService : AccessibilityService() {
             } else {
                 false
             }
-            val originalText = if (isHint) "" else (target.text?.toString() ?: "")
-            val textLen = originalText.length
 
-            var selStart = target.textSelectionStart
-            var selEnd = target.textSelectionEnd
-            if (isHint || selStart < 0 || selEnd < 0) {
-                selStart = textLen
-                selEnd = textLen
-            } else {
-                selStart = selStart.coerceIn(0, textLen)
-                selEnd = selEnd.coerceIn(0, textLen)
-                if (selStart > selEnd) {
-                    val tmp = selStart
-                    selStart = selEnd
-                    selEnd = tmp
-                }
-            }
+            val insertion = TextInsertion.insert(
+                originalText = target.text,
+                rawSelStart = target.textSelectionStart,
+                rawSelEnd = target.textSelectionEnd,
+                insertedText = text,
+                isHint = isHint
+            )
 
             // §6.1 快照捕捉時機點：在執行輸入動作前捕捉
             lastSnapshot = EditorSnapshot(
                 node = target,
-                originalText = originalText,
-                selectionStart = selStart,
-                selectionEnd = selEnd
+                originalText = if (isHint) "" else (target.text?.toString() ?: ""),
+                selectionStart = insertion.normalizedSelStart,
+                selectionEnd = insertion.normalizedSelEnd
             )
 
-            // 依游標位置組合文字: 原文[0..selStart] + 新文字 + 原文[selEnd..]
-            val combined = originalText.substring(0, selStart) + text + originalText.substring(selEnd)
             val args = Bundle().apply {
-                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, combined)
+                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, insertion.text)
             }
             val setSuccess = runCatching {
                 target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
@@ -395,11 +370,10 @@ class VoiceAccessibilityService : AccessibilityService() {
             Log.i(TAG, "ACTION_SET_TEXT result: $setSuccess")
 
             if (setSuccess) {
-                // 送出 ACTION_SET_TEXT 後，以 ACTION_SET_SELECTION 將游標移到 selStart + 新文字長度
-                val newCursor = selStart + text.length
+                // 送出 ACTION_SET_TEXT 後，以 ACTION_SET_SELECTION 將游標移到計算出的新位置
                 val selArgs = Bundle().apply {
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, newCursor)
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, newCursor)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, insertion.cursorPosition)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, insertion.cursorPosition)
                 }
                 runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs) }
                 return true
@@ -424,7 +398,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
             if (!pasted) {
                 mainHandler.post {
-                    Toast.makeText(this, "無法直接填入，已安全複製至剪貼簿", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_fallback_clipboard, Toast.LENGTH_SHORT).show()
                 }
             }
             return pasted

@@ -46,50 +46,121 @@ class PpOcrEngine(private val context: Context) {
     private val detMutex = Mutex()
     private val recMutex = Mutex()
 
+    var lastLoadError: String? = null
+        private set
+
     val isReady: Boolean
         get() = detSession != null && recSession != null
 
     suspend fun load(): Boolean = withContext(Dispatchers.IO) {
         try {
             if (isReady) return@withContext true
+            lastLoadError = null
 
-            var detPath = ModelConfig.ocrDetPath(context)
-            var recPath = ModelConfig.ocrRecPath(context)
-            var dictPath = ModelConfig.ocrDictPath(context)
+            val prefModel = ModelConfig.selectedOcrModel(context)
+            val ocrPaths = ModelConfig.findOcrPaths(context, prefModel)
 
-            if (!File(detPath).exists() || !File(recPath).exists()) {
-                val altModel = if (ModelConfig.selectedOcrModel(context) == ModelConfig.OCR_MODEL_TINY) {
-                    ModelConfig.OCR_MODEL_SMALL
-                } else {
-                    ModelConfig.OCR_MODEL_TINY
-                }
-                val altDet = ModelConfig.ocrDetPath(context, altModel)
-                val altRec = ModelConfig.ocrRecPath(context, altModel)
-                if (File(altDet).exists() && File(altRec).exists()) {
-                    detPath = altDet
-                    recPath = altRec
-                    dictPath = ModelConfig.ocrDictPath(context, altModel)
-                    ModelConfig.setSelectedOcrModel(context, altModel)
-                } else {
-                    Log.w(TAG, "OCR models not found at: $detPath or $recPath")
-                    return@withContext false
+            var detPath: String
+            var recPath: String
+            var dictPath: String
+
+            if (ocrPaths != null) {
+                detPath = ocrPaths.detPath
+                recPath = ocrPaths.recPath
+                dictPath = ocrPaths.dictPath
+                ModelConfig.setSelectedOcrModel(context, ocrPaths.model)
+            } else {
+                detPath = ModelConfig.ocrDetPath(context)
+                recPath = ModelConfig.ocrRecPath(context)
+                dictPath = ModelConfig.ocrDictPath(context)
+
+                if (!File(detPath).exists() || !File(recPath).exists()) {
+                    val altModel = if (prefModel == ModelConfig.OCR_MODEL_TINY) {
+                        ModelConfig.OCR_MODEL_SMALL
+                    } else {
+                        ModelConfig.OCR_MODEL_TINY
+                    }
+                    val altDet = ModelConfig.ocrDetPath(context, altModel)
+                    val altRec = ModelConfig.ocrRecPath(context, altModel)
+                    if (File(altDet).exists() && File(altRec).exists()) {
+                        detPath = altDet
+                        recPath = altRec
+                        dictPath = ModelConfig.ocrDictPath(context, altModel)
+                        ModelConfig.setSelectedOcrModel(context, altModel)
+                    } else {
+                        val searched = ModelConfig.ocrDir(context)
+                        lastLoadError = "找不到模型檔案 (已搜尋: $searched, det=$detPath, rec=$recPath)"
+                        Log.w(TAG, lastLoadError!!)
+                        return@withContext false
+                    }
                 }
             }
 
-            env = OrtEnvironment.getEnvironment()
+            Log.i(TAG, "Loading PP-OCR models: det=$detPath, rec=$recPath, dict=$dictPath")
+
+            // Explicitly preload native libraries to ensure linker resolves symbols cleanly
+            try {
+                System.loadLibrary("onnxruntime")
+            } catch (t: Throwable) {
+                Log.w(TAG, "Preload onnxruntime: ${t.message}")
+            }
+            try {
+                System.loadLibrary("onnxruntime4j_jni")
+            } catch (t: Throwable) {
+                Log.w(TAG, "Preload onnxruntime4j_jni: ${t.message}")
+            }
+
+            env = try {
+                OrtEnvironment.getEnvironment()
+            } catch (t: Throwable) {
+                val cause = t.cause
+                val msg = if (cause != null) {
+                    "${t.javaClass.simpleName}: ${t.message} [原因: ${cause.javaClass.simpleName}: ${cause.message}]"
+                } else {
+                    "${t.javaClass.simpleName}: ${t.message}"
+                }
+                lastLoadError = "OrtEnvironment 初始化失敗 ($msg)"
+                Log.e(TAG, lastLoadError!!, t)
+                return@withContext false
+            }
+
+            if (env == null) {
+                lastLoadError = "OrtEnvironment 初始化失敗 (env 為 null)"
+                Log.e(TAG, lastLoadError!!)
+                return@withContext false
+            }
+
             val sessionOptions = OrtSession.SessionOptions().apply {
                 setInterOpNumThreads(2)
                 setIntraOpNumThreads(2)
             }
 
-            detSession = env?.createSession(detPath, sessionOptions)
-            recSession = env?.createSession(recPath, sessionOptions)
+            detSession = try {
+                env?.createSession(detPath, sessionOptions)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to create detSession with sessionOptions, retrying with default: ${e.message}")
+                env?.createSession(detPath)
+            }
 
-            loadDictionary(dictPath)
+            recSession = try {
+                env?.createSession(recPath, sessionOptions)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to create recSession with sessionOptions, retrying with default: ${e.message}")
+                env?.createSession(recPath)
+            }
+
+            try {
+                loadDictionary(dictPath)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Non-fatal error loading dictionary from $dictPath: ${e.message}", e)
+            }
+
             Log.i(TAG, "PP-OCR engine loaded successfully! Dictionary size=${charDict.size}")
             true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to load PP-OCR engine: ${e.message}", e)
+        } catch (e: Throwable) {
+            val causeMsg = e.cause?.let { " [原因: ${it.javaClass.simpleName}: ${it.message}]" } ?: ""
+            lastLoadError = "${e.javaClass.simpleName}: ${e.message ?: e.localizedMessage ?: "未知錯誤"}$causeMsg"
+            Log.e(TAG, "Failed to load PP-OCR engine: $lastLoadError", e)
             release()
             false
         }
@@ -234,7 +305,7 @@ class PpOcrEngine(private val context: Context) {
                         rect.bottom * scaleY
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Detection error: ${e.message}", e)
                 emptyList()
             }
@@ -441,7 +512,7 @@ class PpOcrEngine(private val context: Context) {
                 }
 
                 resultText
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Recognition error: ${e.message}", e)
                 ""
             }

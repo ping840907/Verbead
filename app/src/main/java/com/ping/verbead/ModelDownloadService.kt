@@ -1,4 +1,4 @@
-﻿package com.ping.verbead
+package com.ping.verbead
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -119,7 +119,7 @@ class ModelDownloadService : Service() {
 
     private fun buildNotification(text: String, percent: Int) =
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("正在下載語音辨識模型")
+            .setContentTitle(getString(R.string.notif_download_title))
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_mic)
             .setOngoing(true)
