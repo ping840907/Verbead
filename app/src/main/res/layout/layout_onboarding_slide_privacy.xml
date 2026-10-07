@@ -179,7 +179,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:text="@string/onboarding_page4_title"
+        android:text="@string/onboarding_page5_title"
         android:textSize="22sp" />
 
     <TextView
@@ -188,7 +188,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:lineSpacingMultiplier="1.25"
-        android:text="@string/onboarding_page4_desc"
+        android:text="@string/onboarding_page5_desc"
         android:textColor="@color/text_secondary" />
 
     <!-- Feature Tip Pill -->
@@ -208,7 +208,7 @@
             style="@style/Verbead.Text.Caption"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/onboarding_page4_tip"
+            android:text="@string/onboarding_page5_tip"
             android:textColor="@color/md_theme_light_primary" />
     </LinearLayout>
 </LinearLayout>

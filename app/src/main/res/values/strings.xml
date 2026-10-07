@@ -35,23 +35,20 @@
     <string name="onboarding_next">下一步</string>
     <string name="onboarding_start_main_settings">前往主設定開始使用</string>
     <string name="onboarding_page1_title">隨處懸浮 · 點擊即說</string>
-    <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在 LINE、瀏覽器或任何 App 的輸入欄位，點擊桌面的懸浮球，開口說話即自動辨識並填入文字！</string>
-    <string name="onboarding_page1_tip">支援輸入焦點自動定位，長按或點擊即可啟動語音辨識</string>
-    <string name="onboarding_page2_title">垂直膠囊 · 多功能秒切</string>
-    <string name="onboarding_page2_desc">長按或點選懸浮球展開垂直功能膠囊，一鍵秒切「語音輸入」、「相機條碼掃描」、「PP-OCR 文字辨識」或「文字復原撤銷」。</string>
-    <string name="onboarding_page2_tip">輕觸膠囊即刻切換輸入模式，鬆手自動收合不擋畫面</string>
-    <string name="onboarding_page3_title">智慧貼邊 · 手勢關閉</string>
-    <string name="onboarding_page3_desc">懸浮球可隨心拖曳至任意位置，閒置時自動貼附螢幕邊緣並半透明收納；拖曳往螢幕底部滑向「✕」鍵即可快速關閉。</string>
-    <string name="onboarding_page3_tip">也可以在通知列隨時點擊「關閉懸浮球」暫停服務</string>
-    <string name="onboarding_page4_title">100% 離線端側 · 極致隱私</string>
-    <string name="onboarding_page4_desc">所有語音與文字辨識全程在手機本地完成，保護隱私不外洩。相關權限與模型設定請直接於主設定頁面進行配置！</string>
-    <string name="onboarding_page4_tip">所有權限授權與模型下載均在主設定頁面一鍵完成</string>
-    <string name="onboarding_feature_local">100% 離線端側推論</string>
-    <string name="onboarding_feature_local_sub">模型完全運行於手機端</string>
-    <string name="onboarding_feature_cloud">零雲端資料上傳</string>
-    <string name="onboarding_feature_cloud_sub">無伺服器傳輸，隱私零洩漏</string>
-    <string name="onboarding_feature_speed">無網路亦可高速輸入</string>
-    <string name="onboarding_feature_speed_sub">地鐵、飛航模式也能秒速打字</string>
+    <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始辨識；懸浮球轉為紅色代表正在聆聽，開口說話即自動辨識並填入文字！</string>
+    <string name="onboarding_page1_tip">💡 提示：點擊懸浮球後底色轉為紅色即開始收音聆聽，再次點擊或靜音自動完成填入。</string>
+    <string name="onboarding_page2_title">垂直膠囊 · 滑動切換模式</string>
+    <string name="onboarding_page2_desc">展開垂直功能膠囊後，滑動手指即可帶動整個膠囊上下移動，將想要使用的模式對齊懸浮球位置：支援「語音輸入」、「條碼掃描」與「螢幕 OCR 文字辨識」。</string>
+    <string name="onboarding_page2_tip">💡 提示：上下滑動膠囊帶動選項對齊，鬆開手指即可立即切換至對應工具。</string>
+    <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回輸入</string>
+    <string name="onboarding_page3_desc">當語音辨識或文字填入不如預期時，無需手動逐字刪除！懸浮球上方會自動出現小型 ✕ 鍵，輕點即可瞬間撤回並復原欄位原本的文字內容。</string>
+    <string name="onboarding_page3_tip">💡 提示：填入文字後懸浮球上方會顯示 ✕ 鍵，點擊即可執行 Undo 復原。</string>
+    <string name="onboarding_page4_title">邊緣收納 · 鍵盤聯動顯示</string>
+    <string name="onboarding_page4_desc" formatted="false">將懸浮球拖曳至螢幕邊緣時會自動貼邊收納，超出畫面約 70%，僅露出約 30% 邊緣圓弧，完全不遮擋視野。您也可以在主設定中開啟「僅軟體鍵盤出現時顯示」，伴隨輸入鍵盤升起平滑淡入！</string>
+    <string name="onboarding_page4_tip">💡 提示：貼邊狀態下輕點即可拉出；或在主設定啟用鍵盤聯動，讓懸浮球僅在需要打字時現身。</string>
+    <string name="onboarding_page5_title" formatted="false">100% 離線端側 · 一站式主設定</string>
+    <string name="onboarding_page5_desc">所有語音、OCR 與文字處理全程在手機本機執行，零資料上傳、零隱私外洩。所有強大權限與模型設定已統一整合至主設定頁面，隨時依個人習慣配置！</string>
+    <string name="onboarding_page5_tip">🔒 隱私保障：極致辨識速度與最高端側資安，點擊下方前往主設定開始使用。</string>
 
     <!-- Onboarding Toasts -->
     <string name="toast_mic_permission_required">請先授予麥克風權限以利後續功能使用</string>

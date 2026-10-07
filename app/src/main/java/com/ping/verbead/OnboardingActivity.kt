@@ -1,9 +1,6 @@
 package com.ping.verbead
 
 import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,7 +12,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
@@ -31,8 +27,12 @@ import kotlinx.coroutines.launch
 
 /**
  * OnboardingActivity: Interactive user experience tour.
- * Explains core features (Voice typing, vertical capsule menu, edge docking & dismiss gesture, 100% offline privacy)
- * using lightweight visual mockups and animations, guiding the user to main settings.
+ * Explains core features:
+ * 1. Voice typing (with red listening state)
+ * 2. Vertical capsule drag-to-align mode switching
+ * 3. Small floating X button to undo/withdraw input
+ * 4. 70% edge tucking & software keyboard sync
+ * 5. 100% offline on-device privacy
  */
 class OnboardingActivity : AppCompatActivity() {
 
@@ -64,7 +64,8 @@ class OnboardingActivity : AppCompatActivity() {
             findViewById(R.id.dot_0),
             findViewById(R.id.dot_1),
             findViewById(R.id.dot_2),
-            findViewById(R.id.dot_3)
+            findViewById(R.id.dot_3),
+            findViewById(R.id.dot_4)
         )
 
         btnSkip.setOnClickListener {
@@ -78,7 +79,7 @@ class OnboardingActivity : AppCompatActivity() {
         }
 
         btnNext.setOnClickListener {
-            if (vpOnboarding.currentItem < 3) {
+            if (vpOnboarding.currentItem < 4) {
                 vpOnboarding.currentItem = vpOnboarding.currentItem + 1
             } else {
                 completeOnboarding()
@@ -107,7 +108,7 @@ class OnboardingActivity : AppCompatActivity() {
         btnPrev.visibility = if (position > 0) View.VISIBLE else View.INVISIBLE
 
         // Next button text
-        if (position == 3) {
+        if (position == 4) {
             btnNext.text = "前往設定開始使用"
         } else {
             btnNext.text = "下一步"
@@ -140,8 +141,9 @@ class OnboardingActivity : AppCompatActivity() {
         when (position) {
             0 -> startVoiceTypingAnimation(view)
             1 -> startCapsuleMenuAnimation(view)
-            2 -> startGesturesAnimation(view)
-            3 -> startPrivacyAnimation(view)
+            2 -> startUndoAnimation(view)
+            3 -> startTuckAndKeyboardAnimation(view)
+            4 -> startPrivacyAnimation(view)
         }
     }
 
@@ -152,30 +154,37 @@ class OnboardingActivity : AppCompatActivity() {
         currentAnimatorSet = null
     }
 
-    // ── Slide 0: Voice Typing Mockup Animation ─────────────────────────────
+    // ── Slide 0: Voice Typing Mockup Animation (Red active state) ────────────
     private fun startVoiceTypingAnimation(view: View) {
         val tvMockInput = view.findViewById<TextView>(R.id.tv_mock_voice_input) ?: return
         val viewCursor = view.findViewById<View>(R.id.view_mock_cursor)
+        val bubbleLayout = view.findViewById<View>(R.id.layout_mock_bubble)
+        val bubbleIcon = view.findViewById<ImageView>(R.id.iv_mock_bubble_icon)
         val rippleView = view.findViewById<View>(R.id.view_mock_bubble_ripple)
         val previewPill = view.findViewById<View>(R.id.layout_mock_preview_pill)
         val wave1 = view.findViewById<View>(R.id.mock_wave_1)
         val wave2 = view.findViewById<View>(R.id.mock_wave_2)
         val wave3 = view.findViewById<View>(R.id.mock_wave_3)
 
-        // Waveform bounce
         currentAnimJob = activityScope.launch {
             val sampleText = "今天下午兩點在三樓會議室開會。"
             while (isActive) {
-                // Initial state
+                // Initial IDLE state: blue bubble
                 tvMockInput.text = ""
                 previewPill?.alpha = 0f
                 rippleView?.alpha = 0f
+                bubbleLayout?.setBackgroundResource(R.drawable.bubble_background)
+                bubbleIcon?.setImageResource(R.drawable.ic_mic)
 
-                delay(400)
-                // Pulse ripple & show preview pill
-                previewPill?.animate()?.alpha(1f)?.setDuration(300)?.start()
-                rippleView?.animate()?.alpha(0.5f)?.scaleX(1.35f)?.scaleY(1.35f)?.setDuration(400)?.withEndAction {
-                    rippleView.animate()?.alpha(0f)?.setDuration(300)?.start()
+                delay(500)
+                if (!isActive) break
+
+                // RECORDING / LISTENING: Turns RED!
+                bubbleLayout?.setBackgroundResource(R.drawable.bubble_background_active)
+                bubbleIcon?.setImageResource(R.drawable.ic_mic_active)
+                previewPill?.animate()?.alpha(1f)?.setDuration(250)?.start()
+                rippleView?.animate()?.alpha(0.5f)?.scaleX(1.35f)?.scaleY(1.35f)?.setDuration(350)?.withEndAction {
+                    rippleView.animate()?.alpha(0f)?.setDuration(250)?.start()
                 }?.start()
 
                 // Streaming typing loop
@@ -196,8 +205,12 @@ class OnboardingActivity : AppCompatActivity() {
                     delay(110)
                 }
 
+                // Done transcribing / pasting: Return to BLUE bubble
+                delay(300)
+                bubbleLayout?.setBackgroundResource(R.drawable.bubble_background)
+                bubbleIcon?.setImageResource(R.drawable.ic_mic)
                 viewCursor?.visibility = View.VISIBLE
-                previewPill?.animate()?.alpha(0f)?.setDuration(400)?.start()
+                previewPill?.animate()?.alpha(0f)?.setDuration(350)?.start()
 
                 // Pause before restarting demonstration
                 delay(2400)
@@ -205,23 +218,27 @@ class OnboardingActivity : AppCompatActivity() {
         }
     }
 
-    // ── Slide 1: Capsule Menu Mockup Animation ─────────────────────────────
+    // ── Slide 1: Capsule Menu Animation (Translates entire capsule pill) ─────
     private fun startCapsuleMenuAnimation(view: View) {
-        val highlight = view.findViewById<View>(R.id.view_mock_capsule_highlight) ?: return
-        val finger = view.findViewById<View>(R.id.view_mock_touch_finger) ?: return
+        val capsulePill = view.findViewById<View>(R.id.layout_mock_capsule_pill) ?: return
         val tvModeTitle = view.findViewById<TextView>(R.id.tv_mock_active_mode_title)
         val tvModeDesc = view.findViewById<TextView>(R.id.tv_mock_active_mode_desc)
         val ivModeIcon = view.findViewById<ImageView>(R.id.iv_mock_active_mode_icon)
 
         val density = resources.displayMetrics.density
-        val stepPx = 56f * density
+        val itemPitchPx = 56f * density
 
         currentAnimJob = activityScope.launch {
             var modeIndex = 0
             while (isActive) {
-                val targetY = modeIndex * stepPx
-                highlight.animate().translationY(targetY).setDuration(400).setInterpolator(AccelerateDecelerateInterpolator()).start()
-                finger.animate().translationY(targetY).setDuration(400).setInterpolator(AccelerateDecelerateInterpolator()).start()
+                // Dragging the capsule: bringing item modeIndex to center anchor
+                // Item 0 is at offset 0, Item 1 requires translating up by -56dp, Item 2 by -112dp
+                val targetTranslationY = -modeIndex * itemPitchPx
+                capsulePill.animate()
+                    .translationY(targetTranslationY)
+                    .setDuration(450)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
 
                 when (modeIndex) {
                     0 -> {
@@ -241,88 +258,139 @@ class OnboardingActivity : AppCompatActivity() {
                     }
                 }
 
-                delay(2000)
+                delay(2200)
                 modeIndex = (modeIndex + 1) % 3
             }
         }
     }
 
-    // ── Slide 2: Gestures Mockup Animation ─────────────────────────────────
-    private fun startGesturesAnimation(view: View) {
-        val bubble = view.findViewById<View>(R.id.layout_mock_gesture_bubble) ?: return
-        val dismissTarget = view.findViewById<View>(R.id.btn_mock_dismiss_circle) ?: return
-        val tvStatusTitle = view.findViewById<TextView>(R.id.tv_mock_gesture_status_title)
-        val tvStatusDesc = view.findViewById<TextView>(R.id.tv_mock_gesture_status_desc)
+    // ── Slide 2: Undo Input via Small X Button Mockup Animation ─────────────
+    private fun startUndoAnimation(view: View) {
+        val tvInput = view.findViewById<TextView>(R.id.tv_mock_undo_input) ?: return
+        val btnX = view.findViewById<View>(R.id.btn_mock_undo_x) ?: return
+        val tvToast = view.findViewById<TextView>(R.id.tv_mock_undo_toast)
+        val finger = view.findViewById<View>(R.id.view_mock_undo_finger)
 
-        val density = resources.displayMetrics.density
-        val edgeDistanceX = 105f * density
-        val dismissDistanceY = 120f * density
+        val fullText = "今天開會時間是兩點整。"
 
         currentAnimJob = activityScope.launch {
             while (isActive) {
-                // Phase 1: Snap to right edge & dim
-                tvStatusTitle?.text = "手勢 1：貼邊半透明收納"
-                tvStatusDesc?.text = "將懸浮球移至螢幕左右邊緣，自動吸附並淡化為半透明標籤"
+                // Initial state: text already pasted, small X button shown above bubble
+                tvInput.text = fullText
+                tvToast?.alpha = 0f
+                finger?.alpha = 0f
+                btnX.alpha = 1f
+                btnX.translationY = 0f
+                btnX.scaleX = 1f
+                btnX.scaleY = 1f
 
-                bubble.animate()
-                    .translationX(edgeDistanceX)
-                    .translationY(0f)
-                    .alpha(0.4f)
-                    .scaleX(0.9f)
-                    .scaleY(0.9f)
-                    .setDuration(700)
-                    .setInterpolator(AccelerateDecelerateInterpolator())
-                    .start()
-
-                delay(2200)
+                delay(1200)
                 if (!isActive) break
 
-                // Phase 2: Drag down to dismiss target (X)
-                tvStatusTitle?.text = "手勢 2：向下拖曳關閉"
-                tvStatusDesc?.text = "拖曳至螢幕底部的 ✕ 區域，即可立即收合懸浮球"
-
-                bubble.animate()
-                    .translationX(0f)
-                    .translationY(dismissDistanceY)
-                    .alpha(1.0f)
-                    .scaleX(0.85f)
-                    .scaleY(0.85f)
-                    .setDuration(800)
-                    .setInterpolator(AccelerateDecelerateInterpolator())
-                    .start()
-
-                delay(750)
+                // Finger moves to tap X button
+                finger?.animate()?.alpha(0.85f)?.setDuration(250)?.start()
+                delay(300)
                 if (!isActive) break
 
-                // Dismiss circle pulse
-                dismissTarget.animate()
-                    .scaleX(1.2f)
-                    .scaleY(1.2f)
+                // X button press feedback
+                btnX.animate().scaleX(0.85f).scaleY(0.85f).setDuration(120).withEndAction {
+                    btnX.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                }.start()
+
+                delay(150)
+                // Undo performed: text is cleared / rolled back!
+                tvInput.text = ""
+                tvToast?.animate()?.alpha(1f)?.setDuration(250)?.start()
+
+                // Finger lifts and X button hides
+                finger?.animate()?.alpha(0f)?.setDuration(200)?.start()
+                btnX.animate()
+                    .alpha(0f)
+                    .translationY(15f)
+                    .scaleX(0.6f)
+                    .scaleY(0.6f)
                     .setDuration(250)
-                    .withEndAction {
-                        dismissTarget.animate().scaleX(1.0f).scaleY(1.0f).setDuration(250).start()
-                    }
                     .start()
 
-                delay(1800)
+                delay(2000)
                 if (!isActive) break
-
-                // Reset back to center
-                bubble.animate()
-                    .translationX(0f)
-                    .translationY(0f)
-                    .alpha(1.0f)
-                    .scaleX(1.0f)
-                    .scaleY(1.0f)
-                    .setDuration(600)
-                    .start()
-
-                delay(900)
+                tvToast?.animate()?.alpha(0f)?.setDuration(300)?.start()
+                delay(500)
             }
         }
     }
 
-    // ── Slide 3: 100% Offline Privacy Animation ────────────────────────────
+    // ── Slide 3: 70% Edge Tucking & Keyboard Linkage Animation ───────────────
+    private fun startTuckAndKeyboardAnimation(view: View) {
+        val bubble = view.findViewById<View>(R.id.layout_mock_tuck_bubble) ?: return
+        val keyboard = view.findViewById<View>(R.id.layout_mock_keyboard) ?: return
+        val tvTitle = view.findViewById<TextView>(R.id.tv_mock_tuck_status_title)
+        val tvDesc = view.findViewById<TextView>(R.id.tv_mock_tuck_status_desc)
+
+        val density = resources.displayMetrics.density
+        // 52dp * 0.70 ≈ 36dp超出邊界
+        val tuckHiddenX = 36f * density
+        val keyboardHeightPx = 90f * density
+
+        currentAnimJob = activityScope.launch {
+            while (isActive) {
+                // Phase 1: Edge Tuck (70% outside, 30% visible)
+                tvTitle?.text = "1. 邊緣收納：超出邊界 70%"
+                tvDesc?.text = "自動藏入螢幕邊緣，僅露 30% 圓弧，輕點即可拉出"
+
+                keyboard.translationY = keyboardHeightPx
+                bubble.alpha = 1.0f
+                bubble.animate()
+                    .translationX(tuckHiddenX)
+                    .translationY(0f)
+                    .setDuration(700)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+
+                delay(2600)
+                if (!isActive) break
+
+                // Phase 2: Keyboard Linkage (Bubble fades in above keyboard)
+                tvTitle?.text = "2. 鍵盤聯動：僅打字時現身"
+                tvDesc?.text = "主設定開啟「僅軟體鍵盤出現時顯示」，伴隨鍵盤升起淡入出現"
+
+                // Untuck and prepare above keyboard
+                bubble.translationX = 0f
+                bubble.translationY = -keyboardHeightPx / 2f
+                bubble.alpha = 0f
+
+                // Keyboard slides up, bubble fades in
+                keyboard.animate()
+                    .translationY(0f)
+                    .setDuration(350)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+
+                bubble.animate()
+                    .alpha(1.0f)
+                    .setDuration(350)
+                    .start()
+
+                delay(2400)
+                if (!isActive) break
+
+                // Keyboard slides down, bubble fades out
+                keyboard.animate()
+                    .translationY(keyboardHeightPx)
+                    .setDuration(350)
+                    .start()
+
+                bubble.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .start()
+
+                delay(800)
+            }
+        }
+    }
+
+    // ── Slide 4: 100% Offline Privacy Animation ────────────────────────────
     private fun startPrivacyAnimation(view: View) {
         val shield = view.findViewById<View>(R.id.layout_mock_shield) ?: return
         val pulse = view.findViewById<View>(R.id.view_mock_privacy_pulse) ?: return
@@ -390,6 +458,7 @@ class OnboardingActivity : AppCompatActivity() {
         private val layoutIds = intArrayOf(
             R.layout.layout_onboarding_slide_voice,
             R.layout.layout_onboarding_slide_capsule,
+            R.layout.layout_onboarding_slide_undo,
             R.layout.layout_onboarding_slide_gestures,
             R.layout.layout_onboarding_slide_privacy
         )
@@ -406,7 +475,6 @@ class OnboardingActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: SlideViewHolder, position: Int) {
-            // Bind callback trigger
             if (position == (activity as? OnboardingActivity)?.vpOnboarding?.currentItem) {
                 (activity as? OnboardingActivity)?.playPageAnimation(position)
             }

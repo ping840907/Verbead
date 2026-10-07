@@ -100,6 +100,13 @@
                 android:layout_height="6dp"
                 android:layout_marginHorizontal="3dp"
                 android:background="@drawable/bg_indicator_dot_inactive" />
+
+            <View
+                android:id="@+id/dot_4"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/bg_indicator_dot_inactive" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
