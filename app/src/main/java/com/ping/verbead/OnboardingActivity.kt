@@ -160,6 +160,7 @@ class OnboardingActivity : AppCompatActivity() {
         val viewCursor = view.findViewById<View>(R.id.view_mock_cursor)
         val bubbleLayout = view.findViewById<View>(R.id.layout_mock_bubble)
         val bubbleIcon = view.findViewById<ImageView>(R.id.iv_mock_bubble_icon)
+        val finger = view.findViewById<View>(R.id.view_mock_voice_finger)
         val rippleView = view.findViewById<View>(R.id.view_mock_bubble_ripple)
         val previewPill = view.findViewById<View>(R.id.layout_mock_preview_pill)
         val wave1 = view.findViewById<View>(R.id.mock_wave_1)
@@ -173,12 +174,24 @@ class OnboardingActivity : AppCompatActivity() {
                 tvMockInput.text = ""
                 previewPill?.alpha = 0f
                 rippleView?.alpha = 0f
+                finger?.alpha = 0f
                 bubbleLayout?.setBackgroundResource(R.drawable.bubble_background)
                 bubbleIcon?.setImageResource(R.drawable.ic_mic)
 
-                delay(500)
+                delay(600)
                 if (!isActive) break
 
+                // Finger dot moves in to tap the bubble
+                finger?.animate()?.alpha(0.85f)?.setDuration(250)?.start()
+                delay(300)
+                if (!isActive) break
+
+                // Bubble press scale feedback
+                bubbleLayout?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(120)?.withEndAction {
+                    bubbleLayout.animate()?.scaleX(1.0f)?.scaleY(1.0f)?.setDuration(120)?.start()
+                }?.start()
+
+                delay(120)
                 // RECORDING / LISTENING: Turns RED!
                 bubbleLayout?.setBackgroundResource(R.drawable.bubble_background_active)
                 bubbleIcon?.setImageResource(R.drawable.ic_mic_active)
@@ -186,6 +199,9 @@ class OnboardingActivity : AppCompatActivity() {
                 rippleView?.animate()?.alpha(0.5f)?.scaleX(1.35f)?.scaleY(1.35f)?.setDuration(350)?.withEndAction {
                     rippleView.animate()?.alpha(0f)?.setDuration(250)?.start()
                 }?.start()
+
+                // Finger fades away
+                finger?.animate()?.alpha(0f)?.setDuration(200)?.start()
 
                 // Streaming typing loop
                 val sb = StringBuilder()
@@ -328,8 +344,9 @@ class OnboardingActivity : AppCompatActivity() {
         val tvDesc = view.findViewById<TextView>(R.id.tv_mock_tuck_status_desc)
 
         val density = resources.displayMetrics.density
-        // 52dp * 0.70 ≈ 36dp超出邊界
-        val tuckHiddenX = 36f * density
+        // Bubble marginEnd is 12dp inside screen. Bubble width is 52dp.
+        // Translating right by (12dp + 36dp) = 48dp pushes 36dp (70%) outside and leaves 16dp (30%) visible!
+        val tuckHiddenX = 48f * density
         val keyboardHeightPx = 90f * density
 
         currentAnimJob = activityScope.launch {

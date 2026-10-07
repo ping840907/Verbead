@@ -141,6 +141,17 @@
                     app:tint="@android:color/white" />
             </FrameLayout>
 
+            <!-- Simulated finger touch dot (Taps bubble to start recording) -->
+            <View
+                android:id="@+id/view_mock_voice_finger"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:alpha="0"
+                android:background="@drawable/bg_icon_circle"
+                android:backgroundTint="@color/md_theme_light_primary"
+                android:elevation="12dp" />
+
             <!-- Floating Preview Pill above bubble -->
             <LinearLayout
                 android:id="@+id/layout_mock_preview_pill"
