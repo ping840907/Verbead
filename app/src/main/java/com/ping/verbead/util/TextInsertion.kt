@@ -88,6 +88,42 @@ object TextInsertion {
     }
 
     /**
+     * Evaluates probe results to determine if [initialText] is a dynamic placeholder.
+     *
+     * Principles:
+     * - An empty field displaying a placeholder (hint) will dynamically revert to the placeholder
+     *   whenever cleared to empty ("").
+     * - In contrast, real user text will vanish when cleared and will never reappear in an empty field.
+     * - When a space is entered, a placeholder is displaced; when cleared, it returns.
+     *
+     * @param initialText Text captured before probing
+     * @param textWithSpace Text returned after temporarily writing a space " "
+     * @param textAfterClear Text returned after clearing the field to ""
+     * @param isHintAfterClear Whether the system explicitly flagged isShowingHintText after clearing
+     * @return true if the probe proves [initialText] is a placeholder, false otherwise
+     */
+    fun evaluateProbeResult(
+        initialText: CharSequence?,
+        textWithSpace: CharSequence?,
+        textAfterClear: CharSequence?,
+        isHintAfterClear: Boolean = false
+    ): Boolean {
+        if (initialText.isNullOrEmpty()) return false
+        if (isHintAfterClear) return true
+
+        val initNorm = normalizeHint(initialText)
+        if (initNorm.isEmpty()) return false
+
+        val clearNorm = normalizeHint(textAfterClear)
+        // If the placeholder reappears upon clearing the field to empty, it is definitively a placeholder
+        if (initNorm.equals(clearNorm, ignoreCase = true)) {
+            return true
+        }
+
+        return false
+    }
+
+    /**
      * Inserts [insertedText] into [originalText] at the range specified by [rawSelStart] and [rawSelEnd].
      *
      * Handles:

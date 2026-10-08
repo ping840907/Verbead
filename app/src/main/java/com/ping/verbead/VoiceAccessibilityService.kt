@@ -305,6 +305,91 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 互動式判斷 target 節點當前文字是否為佔位文字（Placeholder / Hint）。
+     *
+     * 判定邏輯：
+     * 1. 游標判定：若游標位置大於 0（rawSelStart > 0 || rawSelEnd > 0），空欄位在 Android 中游標必為 0 或 -1，
+     *    因此有正數游標代表使用者已實際輸入內容，直接判定為非佔位符。
+     * 2. 官方屬性判定：檢查 Android 8.0+ isShowingHintText 與 hintText 特徵。
+     * 3. 互動式探測（Interactive Probing）：
+     *    - 透過 ACTION_SET_TEXT 嘗試寫入空白 " "，若節點為佔位文字，輸入非空內容將使佔位文字消失（內容改變）。
+     *    - 接著將內容清空為 ""。若該文字為佔位文字，清空後節點文字將動態復原為原本的提示文字（或 isShowingHintText 轉為 true）。
+     *    - 真實使用者文字被清空後，絕不會在清空狀態下自動復原為原本文字。
+     * 4. 備援機制：若互動探測未成功執行，退回 TextInsertion.isHintText 作為備援保護。
+     */
+    private fun isNodeTextPlaceholder(
+        target: AccessibilityNodeInfo,
+        initialText: String,
+        rawSelStart: Int,
+        rawSelEnd: Int
+    ): Boolean {
+        if (initialText.isEmpty()) return false
+
+        // 1. 若游標位置大於 0，空欄位不可有正數游標，必為真實輸入內容
+        if (rawSelStart > 0 || rawSelEnd > 0) {
+            return false
+        }
+
+        // 2. 官方屬性快速判定
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (target.isShowingHintText) return true
+            val hint = target.hintText?.toString()
+            if (!hint.isNullOrBlank()) {
+                if (TextInsertion.normalizeHint(initialText).equals(TextInsertion.normalizeHint(hint), ignoreCase = true)) {
+                    return true
+                }
+            }
+        }
+
+        // 3. 互動式探測（Interactive Probing）
+        try {
+            val spaceArgs = Bundle().apply {
+                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, " ")
+            }
+            val spaceSuccess = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, spaceArgs)
+            if (spaceSuccess) {
+                target.refresh()
+                val textWithSpace = target.text?.toString() ?: ""
+
+                val emptyArgs = Bundle().apply {
+                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "")
+                }
+                target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, emptyArgs)
+                target.refresh()
+
+                val textAfterClear = target.text?.toString() ?: ""
+                val isHintAfterClear = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false
+
+                val isProbePlaceholder = TextInsertion.evaluateProbeResult(
+                    initialText = initialText,
+                    textWithSpace = textWithSpace,
+                    textAfterClear = textAfterClear,
+                    isHintAfterClear = isHintAfterClear
+                )
+
+                Log.d(TAG, "isNodeTextPlaceholder probe: initial='$initialText', withSpace='$textWithSpace', afterClear='$textAfterClear', isPlaceholder=$isProbePlaceholder")
+                if (isProbePlaceholder) {
+                    return true
+                }
+                // 若輸入空白後內容實質改變，且清空後文字不是 initialText，代表 initialText 是真實使用者文字（清空後消失）
+                if (textWithSpace != initialText && !textAfterClear.equals(initialText, ignoreCase = true)) {
+                    return false
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Interactive placeholder probe exception: ${e.message}")
+        }
+
+        // 4. 備援機制
+        return TextInsertion.isHintText(
+            originalText = initialText,
+            hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null,
+            isShowingHintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false,
+            contentDescription = target.contentDescription
+        )
+    }
+
+    /**
      * Injects [text] into the currently focused editable node in the active foreground window.
      * Uses ACTION_SET_TEXT combined with cursor calculation to insert text at current cursor without
      * writing to the system clipboard, preserving user privacy.
@@ -340,39 +425,27 @@ class VoiceAccessibilityService : AccessibilityService() {
 
         isAutomatedActionInProgress = true
         try {
-            // 判斷是否顯示 HintText / Placeholder，避免把通訊軟體或輸入框的提示文字（如「輸入訊息」）誤當成欄位原文
-            val isShowingHint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                target.isShowingHintText
-            } else {
-                false
-            }
-            val hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                target.hintText
-            } else {
-                null
-            }
+            val initialText = target.text?.toString() ?: ""
+            val rawSelStart = target.textSelectionStart
+            val rawSelEnd = target.textSelectionEnd
 
-            val isHint = TextInsertion.isHintText(
-                originalText = target.text,
-                hintText = hintText,
-                isShowingHintText = isShowingHint,
-                contentDescription = target.contentDescription
-            )
+            // 採用互動判斷邏輯（Interactive Probing）比對輸入反應，動態決定是否移除佔位文字
+            val isHint = isNodeTextPlaceholder(target, initialText, rawSelStart, rawSelEnd)
 
             val insertion = TextInsertion.insert(
-                originalText = target.text,
-                rawSelStart = target.textSelectionStart,
-                rawSelEnd = target.textSelectionEnd,
+                originalText = initialText,
+                rawSelStart = rawSelStart,
+                rawSelEnd = rawSelEnd,
                 insertedText = text,
                 isHint = isHint,
-                hintText = hintText,
+                hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null,
                 contentDescription = target.contentDescription
             )
 
             // §6.1 快照捕捉時機點：在執行輸入動作前捕捉
             lastSnapshot = EditorSnapshot(
                 node = target,
-                originalText = if (isHint) "" else (target.text?.toString() ?: ""),
+                originalText = if (isHint) "" else initialText,
                 selectionStart = insertion.normalizedSelStart,
                 selectionEnd = insertion.normalizedSelEnd
             )
