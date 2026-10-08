@@ -2,11 +2,13 @@ package com.ping.verbead
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
@@ -101,11 +103,49 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (android.provider.Settings.canDrawOverlays(this)) {
             FloatingBubbleService.start(this)
         }
+        if (BuildConfig.DEBUG) {
+            val filter = IntentFilter("com.ping.verbead.TEST_INPUT")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(testReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(testReceiver, filter)
+            }
+        }
+    }
+
+    private val testReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent == null) return
+            val setup = intent.getStringExtra("setupText")
+            if (setup != null) {
+                val sel = intent.getIntExtra("setupSel", 0)
+                val target = findActiveEditableNode()
+                if (target != null) {
+                    val args = Bundle().apply {
+                        putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, setup)
+                    }
+                    target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                    val selArgs = Bundle().apply {
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, sel)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, sel)
+                    }
+                    target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
+                    Log.d(TAG, "TestReceiver setup completed: text='$setup', cursor=$sel")
+                }
+                return
+            }
+            val text = intent.getStringExtra("text") ?: return
+            Log.d(TAG, "TestReceiver received text: $text")
+            inputText(text)
+        }
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         instance = null
         mainHandler.removeCallbacks(keyboardCheckRunnable)
+        if (BuildConfig.DEBUG) {
+            runCatching { unregisterReceiver(testReceiver) }
+        }
         lastSnapshot = null
         Log.i(TAG, "VoiceAccessibilityService disconnected")
         return super.onUnbind(intent)
@@ -330,15 +370,9 @@ class VoiceAccessibilityService : AccessibilityService() {
             return false
         }
 
-        // 2. 官方屬性快速判定
+        // 2. 官方屬性快速判定：系統明確標記正在顯示提示文字
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (target.isShowingHintText) return true
-            val hint = target.hintText?.toString()
-            if (!hint.isNullOrBlank()) {
-                if (TextInsertion.normalizeHint(initialText).equals(TextInsertion.normalizeHint(hint), ignoreCase = true)) {
-                    return true
-                }
-            }
         }
 
         // 3. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）
@@ -349,6 +383,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         // canSelectText() 必為 false，執行 ACTION_SET_SELECTION 必然被系統拒絕返回 false！
         // 因此：canSelect == false 代表空欄位佔位符（替換）；canSelect == true 代表真實使用者文字（保留）！
         val len = initialText.length
+        Log.d(TAG, "isNodeTextPlaceholder: pkg=${target.packageName}, cls=${target.className}, text='$initialText', rawSelStart=$rawSelStart, rawSelEnd=$rawSelEnd, hint='${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else ""}', isShowingHint=${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false}, actions=${target.actionList.map { it.id }}")
         try {
             val selArgs = Bundle().apply {
                 putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
@@ -428,9 +463,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 rawSelStart = rawSelStart,
                 rawSelEnd = rawSelEnd,
                 insertedText = text,
-                isHint = isHint,
-                hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null,
-                contentDescription = target.contentDescription
+                isHint = isHint
             )
 
             // §6.1 快照捕捉時機點：在執行輸入動作前捕捉

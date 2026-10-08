@@ -241,6 +241,21 @@ class TextInsertionTest {
     }
 
     @Test
+    fun testHandTypedTextIdenticalToPlaceholderPreservedWhenCursorAtZero() {
+        // 當使用者輸入與佔位符完全相同的文字（例如「輸入訊息」），且游標在 0 時
+        // 經由選取探測判定非佔位符（isHint = false），插入前綴時原有手打文字必須被保留
+        val result = TextInsertion.insert(
+            originalText = "輸入訊息",
+            rawSelStart = 0,
+            rawSelEnd = 0,
+            insertedText = "前綴：",
+            isHint = false
+        )
+        assertEquals("前綴：輸入訊息", result.text)
+        assertEquals(3, result.cursorPosition)
+    }
+
+    @Test
     fun testEvaluateProbeResultForPlaceholderReappearance() {
         // 模擬通訊軟體（如 LINE）輸入框在清空後提示字「輸入訊息」重新浮現
         val isPlaceholder = TextInsertion.evaluateProbeResult(
