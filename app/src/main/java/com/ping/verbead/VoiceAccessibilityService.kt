@@ -74,6 +74,13 @@ class VoiceAccessibilityService : AccessibilityService() {
     private var isAutomatedActionInProgress = false
     var lastSnapshot: EditorSnapshot? = null
         private set
+    private var lastInjectedText: String? = null
+    private var lastInjectedCursorPos: Int = -1
+
+    fun hasValidSnapshot(): Boolean {
+        val snap = lastSnapshot ?: return false
+        return (System.currentTimeMillis() - snap.capturedAtMs) < 15_000
+    }
 
     fun isInputFocused(): Boolean = currentInputState == true
     fun getKeyboardInfo(): KeyboardInfo = currentKeyboardInfo
@@ -134,6 +141,11 @@ class VoiceAccessibilityService : AccessibilityService() {
                 }
                 return
             }
+            if (intent.getBooleanExtra("undo", false)) {
+                Log.d(TAG, "TestReceiver received undo request")
+                restoreLastSnapshot()
+                return
+            }
             val text = intent.getStringExtra("text") ?: return
             Log.d(TAG, "TestReceiver received text: $text")
             inputText(text)
@@ -147,6 +159,8 @@ class VoiceAccessibilityService : AccessibilityService() {
             runCatching { unregisterReceiver(testReceiver) }
         }
         lastSnapshot = null
+        lastInjectedText = null
+        lastInjectedCursorPos = -1
         Log.i(TAG, "VoiceAccessibilityService disconnected")
         return super.onUnbind(intent)
     }
@@ -176,12 +190,25 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
             AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
                 if (lastSnapshot != null && !isAutomatedActionInProgress) {
-                    _manualTypingFlow.tryEmit(Unit)
+                    val currentText = event.text?.joinToString("") ?: ""
+                    if (currentText.isNotEmpty() && currentText == lastInjectedText) {
+                        Log.d(TAG, "Ignoring TYPE_VIEW_TEXT_CHANGED matching lastInjectedText")
+                    } else {
+                        Log.d(TAG, "Manual typing detected: emitting manualTypingFlow")
+                        _manualTypingFlow.tryEmit(Unit)
+                    }
                 }
             }
             AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
                 if (lastSnapshot != null && !isAutomatedActionInProgress) {
-                    _cursorMovedFlow.tryEmit(Unit)
+                    val selStart = event.fromIndex
+                    val selEnd = event.toIndex
+                    if (lastInjectedCursorPos >= 0 && selStart == lastInjectedCursorPos && selEnd == lastInjectedCursorPos) {
+                        Log.d(TAG, "Ignoring TYPE_VIEW_TEXT_SELECTION_CHANGED matching lastInjectedCursorPos")
+                    } else {
+                        Log.d(TAG, "Cursor moved detected: emitting cursorMovedFlow (sel=$selStart..$selEnd, injected=$lastInjectedCursorPos)")
+                        _cursorMovedFlow.tryEmit(Unit)
+                    }
                 }
             }
         }
@@ -421,7 +448,7 @@ class VoiceAccessibilityService : AccessibilityService() {
      * writing to the system clipboard, preserving user privacy.
      * Skips password fields and only falls back to clipboard (with EXTRA_IS_SENSITIVE) if ACTION_SET_TEXT fails.
      */
-    fun inputText(text: String): Boolean {
+    fun inputText(text: String, createSnapshot: Boolean = true): Boolean {
         if (text.isEmpty()) return false
 
         val target = findActiveEditableNode()
@@ -466,13 +493,17 @@ class VoiceAccessibilityService : AccessibilityService() {
                 isHint = isHint
             )
 
-            // §6.1 快照捕捉時機點：在執行輸入動作前捕捉
-            lastSnapshot = EditorSnapshot(
-                node = target,
-                originalText = if (isHint) "" else initialText,
-                selectionStart = insertion.normalizedSelStart,
-                selectionEnd = insertion.normalizedSelEnd
-            )
+            if (createSnapshot) {
+                // §6.1 快照捕捉時機點：在執行輸入動作前捕捉
+                lastSnapshot = EditorSnapshot(
+                    node = target,
+                    originalText = if (isHint) "" else initialText,
+                    selectionStart = insertion.normalizedSelStart,
+                    selectionEnd = insertion.normalizedSelEnd
+                )
+                lastInjectedText = insertion.text
+                lastInjectedCursorPos = insertion.cursorPosition
+            }
 
             val args = Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, insertion.text)
@@ -517,7 +548,7 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
             return pasted
         } finally {
-            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 250)
+            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
         }
     }
 
@@ -525,18 +556,68 @@ class VoiceAccessibilityService : AccessibilityService() {
      * §6.1 Undo the last paste using the captured snapshot.
      */
     fun restoreLastSnapshot(): Boolean {
-        val snapshot = lastSnapshot ?: return false
-        val target = findActiveEditableNode() ?: snapshot.node ?: return false
+        val snapshot = lastSnapshot ?: run {
+            Log.w(TAG, "restoreLastSnapshot: lastSnapshot is null")
+            return false
+        }
+        Log.i(TAG, "restoreLastSnapshot called: originalText='${snapshot.originalText}', sel=${snapshot.selectionStart}..${snapshot.selectionEnd}")
+
+        var target = findActiveEditableNode()
+        if (target == null) {
+            val cachedNode = snapshot.node
+            if (cachedNode != null) {
+                val refreshed = runCatching { cachedNode.refresh() }.getOrDefault(false)
+                if (refreshed && isEditableNode(cachedNode)) {
+                    target = cachedNode
+                } else if (isEditableNode(cachedNode)) {
+                    target = cachedNode
+                }
+            }
+        }
+        if (target == null) {
+            Log.w(TAG, "restoreLastSnapshot: failed to find active or cached editable node")
+            return false
+        }
+
         isAutomatedActionInProgress = true
         try {
+            runCatching { target.refresh() }
             if (!target.isFocused) {
                 runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }
+                runCatching { target.refresh() }
             }
             val args = Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
             }
-            val restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
-            if (snapshot.selectionStart >= 0 && snapshot.selectionEnd >= 0) {
+            var restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
+            Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
+
+            if (!restored) {
+                // Fallback for custom views or WebViews: select all and cut/paste
+                val currentLen = target.text?.length ?: 10000
+                val selAll = Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
+                }
+                target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll)
+                if (snapshot.originalText.isEmpty()) {
+                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
+                } else {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            description.extras = PersistableBundle().apply {
+                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                            }
+                        }
+                    }
+                    clipboard.setPrimaryClip(clip)
+                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
+                }
+                Log.i(TAG, "restoreLastSnapshot: fallback select-all cut/paste result: $restored")
+            }
+
+            if (restored && snapshot.selectionStart >= 0 && snapshot.selectionEnd >= 0) {
                 val selArgs = Bundle().apply {
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, snapshot.selectionStart)
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, snapshot.selectionEnd)
@@ -544,9 +625,11 @@ class VoiceAccessibilityService : AccessibilityService() {
                 runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs) }
             }
             lastSnapshot = null
+            lastInjectedText = null
+            lastInjectedCursorPos = -1
             return restored
         } finally {
-            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 250)
+            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
         }
     }
 
@@ -563,6 +646,6 @@ class VoiceAccessibilityService : AccessibilityService() {
             false
         }
         if (imeAction) return true
-        return inputText("\n")
+        return inputText("\n", createSnapshot = false)
     }
 }

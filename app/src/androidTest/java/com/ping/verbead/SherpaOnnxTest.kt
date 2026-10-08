@@ -1,4 +1,4 @@
-﻿package com.ping.verbead
+package com.ping.verbead
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -205,13 +205,19 @@ class SherpaOnnxTest {
 
             var wavFile = File(context.filesDir, "test.wav")
             if (!wavFile.exists()) {
-                val extWav = File(context.getExternalFilesDir(null), "test.wav")
-                if (extWav.exists()) {
-                    extWav.copyTo(wavFile, overwrite = true)
-                } else {
-                    val candidateWav = File(ModelConfig.modelsDir(context), "qwen3_asr/test_wavs/qiqiu1.wav")
-                    if (candidateWav.exists()) {
-                        candidateWav.copyTo(wavFile, overwrite = true)
+                val tmpWav = File("/data/local/tmp/test.wav")
+                if (tmpWav.exists() && runCatching { tmpWav.canRead() }.getOrDefault(false)) {
+                    runCatching { tmpWav.copyTo(wavFile, overwrite = true) }
+                }
+                if (!wavFile.exists()) {
+                    val extWav = runCatching { File(context.getExternalFilesDir(null), "test.wav") }.getOrNull()
+                    if (extWav != null && extWav.exists()) {
+                        runCatching { extWav.copyTo(wavFile, overwrite = true) }
+                    } else {
+                        val candidateWav = File(ModelConfig.modelsDir(context), "qwen3_asr/test_wavs/qiqiu1.wav")
+                        if (candidateWav.exists()) {
+                            runCatching { candidateWav.copyTo(wavFile, overwrite = true) }
+                        }
                     }
                 }
             }

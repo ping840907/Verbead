@@ -987,7 +987,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun onXButtonClick() {
         HapticUtil.click(this)
         when {
-            state == State.PASTED -> {
+            state == State.PASTED || VoiceAccessibilityService.instance?.hasValidSnapshot() == true -> {
                 // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
                 val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
                 if (restored) {
@@ -1033,6 +1033,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 hideXButton()
             }
             else -> {
+                val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
+                if (restored) {
+                    showPreviewText(getString(R.string.preview_restored), autoHide = true)
+                }
+                setState(State.IDLE)
                 hideXButton()
             }
         }
