@@ -77,6 +77,13 @@ class ModelDownloader(private val context: Context? = null) {
                     }
                 }
             }
+
+            // PP-OCRv6 Tiny 與 Small 互斥：下載其一成功時，安全清理並替換另一種舊模型檔案
+            if (target.engine == ModelConfig.OCR_MODEL_TINY) {
+                context?.let { ModelConfig.deleteOcrModel(it, ModelConfig.OCR_MODEL_SMALL) }
+            } else if (target.engine == ModelConfig.OCR_MODEL_SMALL) {
+                context?.let { ModelConfig.deleteOcrModel(it, ModelConfig.OCR_MODEL_TINY) }
+            }
             Result.success(Unit)
         } catch (ex: Exception) {
             Log.e(TAG, "Download failed: ${ex.message}", ex)

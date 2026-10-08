@@ -321,58 +321,7 @@
                     android:layout_height="1dp"
                     android:layout_marginStart="76dp" />
 
-                <!-- Nearby devices (Bluetooth headset / external mic shortcut) -->
-                <LinearLayout
-                    android:id="@+id/card_nearby_devices_root"
-                    style="@style/Verbead.Row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
 
-                    <ImageView
-                        style="@style/Verbead.RowIcon"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_marginEnd="16dp"
-                        android:src="@drawable/ic_bluetooth" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/Verbead.Text.Title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="鄰近裝置（藍牙耳機）" />
-
-                        <TextView
-                            android:id="@+id/tv_nearby_devices_status"
-                            style="@style/Verbead.Text.Caption"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="藍牙耳機連線與外部麥克風收音捷徑" />
-                    </LinearLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_grant_nearby_devices"
-                        style="@style/Verbead.Button.Compact"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="授予權限" />
-                </LinearLayout>
-
-                <View
-                    style="@style/Verbead.Divider"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="76dp" />
 
                 <!-- Camera -->
                 <LinearLayout
@@ -647,96 +596,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Gesture guide -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_bubble_guide"
-            style="@style/Verbead.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    style="@style/Verbead.Text.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:text="懸浮球手勢與多模式" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="12dp"
-                        android:background="@drawable/bg_icon_circle"
-                        android:gravity="center"
-                        android:text="🔄"
-                        android:textSize="15sp" />
-
-                    <TextView
-                        style="@style/Verbead.Text.Body"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="長按切換：長按懸浮球展開垂直膠囊選單，依序為「語音模式」、「條碼辨識」與「文字辨識」，跟手滑動即可切換。" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="12dp"
-                        android:background="@drawable/bg_icon_circle"
-                        android:gravity="center"
-                        android:text="🧲"
-                        android:textSize="15sp" />
-
-                    <TextView
-                        style="@style/Verbead.Text.Body"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="自然慣性：拖曳鬆手具備減速拋擲與平滑貼邊效果，不會反彈或突兀跳動。" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="12dp"
-                        android:background="@drawable/bg_icon_circle"
-                        android:gravity="center"
-                        android:text="⌨️"
-                        android:textSize="15sp" />
-
-                    <TextView
-                        style="@style/Verbead.Text.Body"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="鍵盤聯動：開啟「僅在鍵盤出現時顯示」後，懸浮球只在需要輸入時出現，收起鍵盤自動隱藏。" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════ 離線模型包 ══════════════════════ -->
         <TextView
@@ -1068,12 +928,13 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Speech general preferences (external audio & VAD) -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_qwen3_preferences"
+            android:id="@+id/card_speech_settings"
             style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1090,7 +951,7 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         android:layout_marginEnd="16dp"
-                        android:src="@drawable/ic_tune" />
+                        android:src="@drawable/ic_mic" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -1102,25 +963,29 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Qwen3 辨識偏好" />
+                            android:text="語音輸入偏好" />
 
                         <TextView
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="套用於 Qwen3-ASR 及雙引擎最終潤飾階段" />
+                            android:text="適用於所有語音辨識模式與引擎" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Punctuation filter -->
+                <!-- Prefer external audio -->
                 <LinearLayout
+                    android:id="@+id/layout_prefer_external_audio_toggle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="4dp"
+                    android:paddingTop="8dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="12dp">
 
@@ -1134,7 +999,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="過濾中文標點符號"
+                            android:text="優先使用外部音訊"
                             android:textColor="@color/text_primary"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -1144,13 +1009,76 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="自動去除逗號、句號、問號等全形符號" />
+                            android:text="連線藍牙耳機或外接麥克風時優先收音，關閉則固定使用手機麥克風" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_filter_punctuation"
+                        android:id="@+id/switch_prefer_external_audio"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:clickable="false"
+                        android:focusable="false" />
+                </LinearLayout>
+
+                <!-- External audio gain slider -->
+                <LinearLayout
+                    android:id="@+id/layout_audio_gain"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="外部音訊增益"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="調整耳機或外接麥克風收音音量倍率，解決遠距偏小問題" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_audio_gain_value"
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_recommend"
+                            android:text="2.5x 增益"
+                            android:textColor="@color/tag_recommend" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/sb_audio_gain"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:max="10"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:progress="3" />
                 </LinearLayout>
 
                 <View
@@ -1218,6 +1146,99 @@
                         android:paddingStart="4dp"
                         android:paddingEnd="4dp"
                         android:progress="6" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_qwen3_preferences"
+            style="@style/Verbead.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    style="@style/Verbead.Row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        style="@style/Verbead.RowIcon"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginEnd="16dp"
+                        android:src="@drawable/ic_tune" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/Verbead.Text.Title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Qwen3 辨識偏好" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="套用於 Qwen3-ASR 及雙引擎最終潤飾階段" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Punctuation filter -->
+                <LinearLayout
+                    android:id="@+id/layout_filter_punctuation_toggle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="過濾中文標點符號"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="自動去除逗號、句號、問號等全形符號" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_filter_punctuation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="false"
+                        android:focusable="false" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -1546,33 +1567,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ══════════════════════ 使用說明 ══════════════════════ -->
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Verbead.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    style="@style/Verbead.Text.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="使用小撇步" />
-
-                <TextView
-                    style="@style/Verbead.Text.Body"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="• 懸浮泡泡：點擊錄音，貼上後可點擊上方按鈕復原文字\n• 雙引擎模式：兼具即時顯示與精準斷句\n• 快速自訂詞彙：在鍵盤中長按「詞彙」鍵即可開啟管理" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
 
         <!-- ══════════════════════ 開源致謝 ══════════════════════ -->
         <com.google.android.material.card.MaterialCardView

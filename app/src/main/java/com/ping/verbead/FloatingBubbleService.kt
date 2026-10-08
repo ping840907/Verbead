@@ -158,6 +158,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var xButtonView: View? = null
     private var xButtonLayoutParams: WindowManager.LayoutParams? = null
 
+    // Standalone outer pulse ring volume indicator window
+    private var pulseView: View? = null
+    private var pulseLayoutParams: WindowManager.LayoutParams? = null
+    private var viewPulseRing: View? = null
+    private var viewPulseWave: View? = null
+    private var isPulseShowing = false
+    private var lastWaveTime = 0L
+
     // Capsule menu controller & mode
     private lateinit var capsuleMenuController: CapsuleMenuController
     private val isCapsuleMenuShowing: Boolean
@@ -521,6 +529,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             windowLayoutParams.x = newX
                             windowLayoutParams.y = newY
                             windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                            updateXButtonPosition()
+                            updatePulsePosition()
                         }
                     }
                     true
@@ -614,6 +624,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                         windowLayoutParams.y = newY
                                         windowManager.updateViewLayout(bubbleView, windowLayoutParams)
                                         updateXButtonPosition()
+                                        updatePulsePosition()
                                     }
                                 }
                             }
@@ -775,6 +786,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             windowLayoutParams.x = targetX
             windowLayoutParams.y = targetY
             windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+            updateXButtonPosition()
+            updatePulsePosition()
             updatePreviewPosition()
             updateSystemGestureExclusion()
             onComplete?.invoke()
@@ -796,6 +809,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         windowLayoutParams.x = curX
                         windowLayoutParams.y = curY
                         windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        updateXButtonPosition()
+                        updatePulsePosition()
                     }
                 }
             }
@@ -805,6 +820,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         windowLayoutParams.x = targetX
                         windowLayoutParams.y = targetY
                         windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        updateXButtonPosition()
+                        updatePulsePosition()
                         updatePreviewPosition()
                         updateSystemGestureExclusion()
                     }
@@ -933,6 +950,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         windowLayoutParams.x = newX
                         windowLayoutParams.y = newY
                         windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        updateXButtonPosition()
+                        updatePulsePosition()
                     }
                 }
             }
@@ -948,6 +967,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         windowLayoutParams.x = finalX
                         windowLayoutParams.y = finalY
                         windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        updateXButtonPosition()
+                        updatePulsePosition()
                     }
                     updatePreviewPosition()
                     updateSystemGestureExclusion()
@@ -1023,8 +1044,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val density = resources.displayMetrics.density
         val btnSize = (44 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
+        val statusBar = getStatusBarHeight()
+        val preferredY = windowLayoutParams.y - (48 * density).toInt()
+        val targetY = if (preferredY < statusBar) {
+            // 上方空間不足（接近狀態列/螢幕頂端），智慧翻轉顯示在懸浮球正下方
+            windowLayoutParams.y + bubbleWidthPx + (4 * density).toInt()
+        } else {
+            preferredY
+        }
         lp.x = windowLayoutParams.x + ((bubbleWidthPx - btnSize) / 2)
-        lp.y = windowLayoutParams.y - (48 * density).toInt()
+        lp.y = targetY
         try {
             windowManager.updateViewLayout(view, lp)
         } catch (e: Exception) {
@@ -1062,7 +1091,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnSize = (44 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
         val xOffset = windowLayoutParams.x + ((bubbleWidthPx - btnSize) / 2)
-        val targetY = windowLayoutParams.y - (48 * density).toInt()
+        val statusBar = getStatusBarHeight()
+        val preferredY = windowLayoutParams.y - (48 * density).toInt()
+        val isFlipped = preferredY < statusBar
+        val targetY = if (isFlipped) {
+            windowLayoutParams.y + bubbleWidthPx + (4 * density).toInt()
+        } else {
+            preferredY
+        }
 
         xButtonLayoutParams = WindowManager.LayoutParams(
             btnSize,
@@ -1087,7 +1123,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
         }
         view.alpha = 0f
-        view.translationY = dpToPx(12f)
+        view.translationY = if (isFlipped) -dpToPx(12f) else dpToPx(12f)
         view.scaleX = 0.6f
         view.scaleY = 0.6f
         windowManager.addView(view, xButtonLayoutParams)
@@ -1138,6 +1174,176 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 windowManager.removeView(view)
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to remove xButtonView immediately", e)
+            }
+        }
+    }
+
+    // 獨立脈衝音量外圈視窗（像教學動畫般，於錄音中圍繞懸浮球根據 RMS 音量即時外擴收縮）
+    private fun updatePulsePosition() {
+        val view = pulseView ?: return
+        if (!isPulseShowing || !view.isAttachedToWindow) return
+        val lp = pulseLayoutParams ?: return
+        val density = resources.displayMetrics.density
+        val pulseSize = (104 * density).toInt()
+        val bubbleWidthPx = (60 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
+        lp.x = windowLayoutParams.x + ((bubbleWidthPx - pulseSize) / 2)
+        lp.y = windowLayoutParams.y + ((bubbleHeightPx - pulseSize) / 2)
+        try {
+            windowManager.updateViewLayout(view, lp)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update pulse layout", e)
+        }
+    }
+
+    private fun showPulseView() {
+        if (isPulseShowing) {
+            updatePulsePosition()
+            return
+        }
+        isPulseShowing = true
+
+        if (pulseView == null) {
+            pulseView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_bubble_pulse, null).apply {
+                viewPulseRing = findViewById(R.id.view_bubble_pulse_ring)
+                viewPulseWave = findViewById(R.id.view_bubble_pulse_wave)
+            }
+        }
+        val view = pulseView ?: return
+        val density = resources.displayMetrics.density
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val pulseSize = (104 * density).toInt()
+        val bubbleWidthPx = (60 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
+        val xOffset = windowLayoutParams.x + ((bubbleWidthPx - pulseSize) / 2)
+        val yOffset = windowLayoutParams.y + ((bubbleHeightPx - pulseSize) / 2)
+
+        pulseLayoutParams = WindowManager.LayoutParams(
+            pulseSize,
+            pulseSize,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = xOffset
+            y = yOffset
+        }
+
+        view.animate().cancel()
+        viewPulseRing?.animate()?.cancel()
+        viewPulseWave?.animate()?.cancel()
+
+        if (view.isAttachedToWindow) {
+            try {
+                windowManager.removeView(view)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove previous pulseView", e)
+            }
+        }
+
+        viewPulseRing?.alpha = 0.25f
+        viewPulseRing?.scaleX = 1.0f
+        viewPulseRing?.scaleY = 1.0f
+
+        viewPulseWave?.alpha = 0f
+        viewPulseWave?.scaleX = 1.0f
+        viewPulseWave?.scaleY = 1.0f
+
+        try {
+            windowManager.addView(view, pulseLayoutParams)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add pulseView to WindowManager", e)
+        }
+    }
+
+    private fun hidePulseView() {
+        if (!isPulseShowing) return
+        isPulseShowing = false
+        val view = pulseView ?: return
+        viewPulseRing?.animate()?.cancel()
+        viewPulseWave?.animate()?.cancel()
+
+        viewPulseRing?.animate()
+            ?.alpha(0f)
+            ?.scaleX(1.0f)
+            ?.scaleY(1.0f)
+            ?.setDuration(160)
+            ?.withEndAction {
+                if (view.isAttachedToWindow && !isPulseShowing) {
+                    try {
+                        windowManager.removeView(view)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove pulseView on hide", e)
+                    }
+                }
+            }
+            ?.start()
+
+        viewPulseWave?.animate()?.alpha(0f)?.setDuration(120)?.start()
+    }
+
+    private fun hidePulseViewImmediately() {
+        if (!isPulseShowing) return
+        isPulseShowing = false
+        val view = pulseView ?: return
+        viewPulseRing?.animate()?.cancel()
+        viewPulseWave?.animate()?.cancel()
+        if (view.isAttachedToWindow) {
+            try {
+                windowManager.removeView(view)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to remove pulseView immediately", e)
+            }
+        }
+    }
+
+    private fun onAudioRmsUpdate(rms: Float) {
+        if (!isRecording || !isPulseShowing) return
+        Handler(Looper.getMainLooper()).post {
+            if (!isRecording || !isPulseShowing) return@post
+            val ring = viewPulseRing ?: return@post
+            val wave = viewPulseWave ?: return@post
+
+            // RMS 能量範圍通常介於 0.005（靜音底噪）~ 0.18（清晰說話）
+            val norm = ((rms - 0.008f) / 0.12f).coerceIn(0f, 1f)
+
+            // 動態外擴比例：1.0f（同懸浮球大小）~ 1.48f（外擴脈衝）
+            val targetScale = 1.0f + norm * 0.48f
+            val targetAlpha = if (norm > 0.05f) (0.25f + norm * 0.55f).coerceAtMost(0.85f) else 0.12f
+
+            ring.animate()
+                .scaleX(targetScale)
+                .scaleY(targetScale)
+                .alpha(targetAlpha)
+                .setDuration(70)
+                .start()
+
+            // 說話重音峰值時觸發擴散外波（如音量大於門檻且間隔達 320ms）
+            val now = android.os.SystemClock.uptimeMillis()
+            if (norm > 0.35f && (now - lastWaveTime > 320L)) {
+                lastWaveTime = now
+                wave.animate().cancel()
+                wave.scaleX = 1.05f
+                wave.scaleY = 1.05f
+                wave.alpha = 0.65f
+                wave.animate()
+                    .scaleX(1.55f)
+                    .scaleY(1.55f)
+                    .alpha(0f)
+                    .setDuration(380)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .start()
             }
         }
     }
@@ -1210,10 +1416,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         when (state) {
             State.RECORDING -> {
                 recorder.stopEarly()
-                if (isDualEngineActive() || ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_QWEN3) {
-                    hidePreviewText()
-                    setState(State.TRANSCRIBING)
-                }
+                hidePreviewText()
+                setState(State.TRANSCRIBING)
             }
             State.LOADING -> { /* Waiting for model */ }
             State.TRANSCRIBING -> { /* Processing */ }
@@ -1360,11 +1564,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             if (partial.isNotBlank()) accumulatedXAsr += partial
                             xAsr.reset(stream)
                         }
-                    }
+                    },
+                    onRmsUpdate = { rms -> onAudioRmsUpdate(rms) }
                 )
             }
 
             isRecording = false
+            hidePulseView()
             activeStream = null
             runCatching { xAsr.inputFinished(stream) }
             runCatching {
@@ -1444,10 +1650,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         recordingJob = scope.launch {
             val recording = withContext(Dispatchers.IO) {
                 recorder.recordUntilSilence(
-                    silenceSeconds = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService)
+                    silenceSeconds = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService),
+                    onRmsUpdate = { rms -> onAudioRmsUpdate(rms) }
                 )
             }
             isRecording = false
+            hidePulseView()
             if (isAborted) return@launch
 
             if (recording.samples.isNotEmpty()) {
@@ -1515,11 +1723,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             if (partial.isNotBlank()) accumulated += partial
                             engine.reset(stream)
                         }
-                    }
+                    },
+                    onRmsUpdate = { rms -> onAudioRmsUpdate(rms) }
                 )
             }
 
             isRecording = false
+            hidePulseView()
             activeStream = null
 
             runCatching { engine.inputFinished(stream) }
@@ -1577,6 +1787,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun setState(s: State) {
         stateMachine.transitionTo(s)
+        if (state == State.RECORDING) {
+            showPulseView()
+        } else {
+            hidePulseView()
+        }
         if (!::btnBubbleMic.isInitialized) return
         when (state) {
             State.IDLE -> {
@@ -2701,6 +2916,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 windowLayoutParams.y = finalY
                 windowManager.updateViewLayout(bubbleView, windowLayoutParams)
             }
+            updateXButtonPosition()
+            updatePulsePosition()
             updatePreviewPosition()
             updateSystemGestureExclusion()
         }
@@ -2743,6 +2960,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
             removeOverlay("xButton", xButtonView)
             xButtonView = null
+            removeOverlay("pulse", pulseView)
+            pulseView = null
             if (::bubbleView.isInitialized) removeOverlay("bubble", bubbleView)
             if (::previewView.isInitialized) removeOverlay("preview", previewView)
         } finally {

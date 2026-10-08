@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layout_pulse_root"
+    android:layout_width="104dp"
+    android:layout_height="104dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Secondary Wave Ring (peaks on energetic voice) -->
+    <View
+        android:id="@+id/view_bubble_pulse_wave"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:alpha="0"
+        android:background="@drawable/bg_bubble_pulse" />
+
+    <!-- Primary Pulse Ring (reacts dynamically to RMS) -->
+    <View
+        android:id="@+id/view_bubble_pulse_ring"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:alpha="0"
+        android:background="@drawable/bg_bubble_pulse" />
+</FrameLayout>

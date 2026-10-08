@@ -144,6 +144,32 @@ object ModelConfig {
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_FILTER_PUNCTUATION, enabled).apply()
 
+    // ── External Audio Routing ────────────────────────────────────────────────
+    private const val PREF_AUDIO = "audio_routing_settings"
+    private const val KEY_PREFER_EXTERNAL_AUDIO = "prefer_external_audio"
+    private const val KEY_EXTERNAL_AUDIO_GAIN   = "external_audio_gain"
+
+    const val DEFAULT_EXTERNAL_AUDIO_GAIN = 2.5f
+    const val MIN_EXTERNAL_AUDIO_GAIN = 1.0f
+    const val MAX_EXTERNAL_AUDIO_GAIN = 6.0f
+    const val STEP_EXTERNAL_AUDIO_GAIN = 0.5f
+
+    fun isPreferExternalAudio(context: Context): Boolean =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .getBoolean(KEY_PREFER_EXTERNAL_AUDIO, false)
+
+    fun setPreferExternalAudio(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_PREFER_EXTERNAL_AUDIO, enabled).apply()
+
+    fun externalAudioGain(context: Context): Float =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .getFloat(KEY_EXTERNAL_AUDIO_GAIN, DEFAULT_EXTERNAL_AUDIO_GAIN)
+
+    fun setExternalAudioGain(context: Context, gain: Float) =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .edit().putFloat(KEY_EXTERNAL_AUDIO_GAIN, gain).apply()
+
     private val CHINESE_PUNCTUATION_REGEX = Regex("[，。！？、…：；「」『』—～（）《》〈〉【】〔〕]")
 
     fun filterChinesePunctuation(text: String): String =
@@ -352,10 +378,10 @@ object ModelConfig {
     fun selectedOcrModel(context: Context): String {
         val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .getString(KEY_OCR_MODEL_SELECTION, null)
-        if (pref != null && isOcrReady(context, pref)) return pref
-        if (isOcrReady(context, OCR_MODEL_SMALL)) return OCR_MODEL_SMALL
-        if (isOcrReady(context, OCR_MODEL_TINY)) return OCR_MODEL_TINY
-        return pref ?: OCR_MODEL_SMALL
+        if (pref != null) return pref
+        if (isOcrSmallReady(context)) return OCR_MODEL_SMALL
+        if (isOcrTinyReady(context)) return OCR_MODEL_TINY
+        return OCR_MODEL_SMALL
     }
 
     fun setSelectedOcrModel(context: Context, model: String) =
@@ -411,19 +437,8 @@ object ModelConfig {
         val model: String
     )
 
-    fun findOcrPaths(context: Context, preferredModel: String? = null): OcrPaths? {
-        val targetModel = preferredModel ?: run {
-            val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-                .getString(KEY_OCR_MODEL_SELECTION, null)
-            pref ?: OCR_MODEL_SMALL
-        }
-        val modelsToCheck = if (targetModel == OCR_MODEL_TINY) {
-            listOf(OCR_MODEL_TINY, OCR_MODEL_SMALL)
-        } else {
-            listOf(OCR_MODEL_SMALL, OCR_MODEL_TINY)
-        }
-
-        val searchDirs = buildList {
+    fun getOcrSearchDirs(context: Context): List<File> {
+        return buildList {
             add(File(ocrDir(context)))
             context.getExternalFilesDir("models")?.let { add(File(it, OCR_DIR)); add(it) }
             add(File(context.filesDir, "models/$OCR_DIR"))
@@ -438,67 +453,145 @@ object ModelConfig {
             add(File("/storage/emulated/0/Download"))
             add(File("/sdcard/Download"))
         }.distinctBy { it.canonicalPath }
+    }
 
-        // 1. Check exact standard filenames (case-insensitive)
-        for (m in modelsToCheck) {
-            val detName = "${m}_det.onnx"
-            val recName = "${m}_rec.onnx"
-            val dictName = "${m}_dict.txt"
+    /**
+     * 嚴格尋找指定 OCR 模型（Tiny 或 Small）檔案路徑，絕不跨模型回退。
+     */
+    fun findSpecificOcrPathsInDirs(searchDirs: List<File>, model: String): OcrPaths? {
+        val isTiny = (model == OCR_MODEL_TINY)
+        val detName = "${model}_det.onnx"
+        val recName = "${model}_rec.onnx"
+        val dictName = "${model}_dict.txt"
 
-            for (dir in searchDirs) {
-                if (!dir.exists() || !dir.isDirectory) continue
-                val files = dir.listFiles() ?: continue
-                val detFile = files.firstOrNull { it.name.equals(detName, ignoreCase = true) }
-                val recFile = files.firstOrNull { it.name.equals(recName, ignoreCase = true) }
-                if (detFile != null && recFile != null) {
-                    val dictFile = files.firstOrNull {
-                        it.name.equals(dictName, ignoreCase = true) ||
-                        it.name.equals("inference.yml", ignoreCase = true) ||
-                        it.name.equals("dict.txt", ignoreCase = true)
-                    } ?: File(dir, dictName)
-                    return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, m)
-                }
+        // 1. 標準檔案命名比對（不分大小寫）
+        for (dir in searchDirs) {
+            if (!dir.exists() || !dir.isDirectory) continue
+            val files = dir.listFiles() ?: continue
+            val detFile = files.firstOrNull { it.name.equals(detName, ignoreCase = true) }
+            val recFile = files.firstOrNull { it.name.equals(recName, ignoreCase = true) }
+            if (detFile != null && recFile != null) {
+                val dictFile = files.firstOrNull {
+                    it.name.equals(dictName, ignoreCase = true) ||
+                    it.name.equals("inference.yml", ignoreCase = true) ||
+                    it.name.equals("dict.txt", ignoreCase = true)
+                } ?: File(dir, dictName)
+                return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, model)
             }
         }
 
-        // 2. Flexible detection / recognition filename pattern matching
+        // 2. 寬鬆檔名特徵匹配（嚴格比對 tiny / small 關鍵字）
         for (dir in searchDirs) {
             if (!dir.exists() || !dir.isDirectory) continue
             val files = dir.listFiles() ?: continue
             val detFile = files.firstOrNull {
                 val n = it.name.lowercase()
-                n.endsWith(".onnx") && (n.contains("det") || n.contains("detect"))
+                n.endsWith(".onnx") && (n.contains("det") || n.contains("detect")) &&
+                    (if (isTiny) n.contains("tiny") else (!n.contains("tiny") || n.contains("small")))
             }
             val recFile = files.firstOrNull {
                 val n = it.name.lowercase()
-                n.endsWith(".onnx") && (n.contains("rec") || n.contains("recogn"))
+                n.endsWith(".onnx") && (n.contains("rec") || n.contains("recogn")) &&
+                    (if (isTiny) n.contains("tiny") else (!n.contains("tiny") || n.contains("small")))
             }
             if (detFile != null && recFile != null) {
                 val dictFile = files.firstOrNull {
                     val n = it.name.lowercase()
                     (n.endsWith(".txt") || n.endsWith(".yml") || n.endsWith(".yaml")) && (n.contains("dict") || n.contains("inference"))
-                } ?: File(dir, "pp_ocrv6_small_dict.txt")
-                val detectedModel = if (detFile.name.contains("tiny", ignoreCase = true)) OCR_MODEL_TINY else OCR_MODEL_SMALL
-                return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, detectedModel)
+                } ?: File(dir, dictName)
+                return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, model)
             }
         }
 
         return null
     }
 
+    fun findSpecificOcrPaths(context: Context, model: String): OcrPaths? =
+        findSpecificOcrPathsInDirs(getOcrSearchDirs(context), model)
+
+    /**
+     * 搜尋可用 OCR 模型路徑。
+     * 若指定 [preferredModel]，僅針對該模型搜尋；若未指定，優先依用戶選取設定搜尋，再依已下載的模型搜尋。
+     */
+    fun findOcrPaths(context: Context, preferredModel: String? = null): OcrPaths? {
+        if (preferredModel != null) {
+            return findSpecificOcrPaths(context, preferredModel)
+        }
+        val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getString(KEY_OCR_MODEL_SELECTION, null)
+        if (pref != null) {
+            val paths = findSpecificOcrPaths(context, pref)
+            if (paths != null) return paths
+        }
+        return findSpecificOcrPaths(context, OCR_MODEL_SMALL)
+            ?: findSpecificOcrPaths(context, OCR_MODEL_TINY)
+    }
+
     fun ocrDetPath(context: Context, model: String = selectedOcrModel(context)): String =
-        findOcrPaths(context, model)?.detPath ?: "${ocrDir(context)}/${model}_det.onnx"
+        findSpecificOcrPaths(context, model)?.detPath ?: "${ocrDir(context)}/${model}_det.onnx"
 
     fun ocrRecPath(context: Context, model: String = selectedOcrModel(context)): String =
-        findOcrPaths(context, model)?.recPath ?: "${ocrDir(context)}/${model}_rec.onnx"
+        findSpecificOcrPaths(context, model)?.recPath ?: "${ocrDir(context)}/${model}_rec.onnx"
 
     fun ocrDictPath(context: Context, model: String = selectedOcrModel(context)): String =
-        findOcrPaths(context, model)?.dictPath ?: "${ocrDir(context)}/${model}_dict.txt"
+        findSpecificOcrPaths(context, model)?.dictPath ?: "${ocrDir(context)}/${model}_dict.txt"
 
-    fun isOcrReady(context: Context, model: String = selectedOcrModel(context)): Boolean {
-        if (findOcrPaths(context, model) != null) return true
-        return java.io.File("${ocrDir(context)}/${model}_det.onnx").exists() &&
-               java.io.File("${ocrDir(context)}/${model}_rec.onnx").exists()
+    /** 嚴格判斷特定 OCR 模型（Tiny 或 Small）是否已下載並完整就緒。 */
+    fun isOcrModelStrictlyReady(context: Context, model: String): Boolean {
+        if (findSpecificOcrPaths(context, model) != null) return true
+        val det = File("${ocrDir(context)}/${model}_det.onnx")
+        val rec = File("${ocrDir(context)}/${model}_rec.onnx")
+        return det.exists() && det.length() > 0L && rec.exists() && rec.length() > 0L
+    }
+
+    fun isOcrTinyReady(context: Context): Boolean = isOcrModelStrictlyReady(context, OCR_MODEL_TINY)
+
+    fun isOcrSmallReady(context: Context): Boolean = isOcrModelStrictlyReady(context, OCR_MODEL_SMALL)
+
+    /**
+     * OCR 功能總體就緒判斷：其中任一種（Tiny 或 Small）備齊便可供使用。
+     */
+    fun isOcrReady(context: Context): Boolean = isOcrTinyReady(context) || isOcrSmallReady(context)
+
+    /**
+     * 特定模型是否就緒判斷。
+     */
+    fun isOcrReady(context: Context, model: String): Boolean = isOcrModelStrictlyReady(context, model)
+
+    /**
+     * 從指定資料夾刪除目標 OCR 模型的檔案。
+     */
+    fun deleteOcrFilesFromDir(dir: File, model: String) {
+        val target = model.lowercase()
+        if (!dir.exists() || !dir.isDirectory) return
+        val files = dir.listFiles() ?: return
+        for (file in files) {
+            val name = file.name.lowercase()
+            val isMatch = if (target == OCR_MODEL_TINY) {
+                name.contains("tiny") && (name.endsWith(".onnx") || name.endsWith(".txt") || name.endsWith(".yml") || name.endsWith(".part"))
+            } else if (target == OCR_MODEL_SMALL) {
+                name.contains("small") && (name.endsWith(".onnx") || name.endsWith(".txt") || name.endsWith(".yml") || name.endsWith(".part"))
+            } else {
+                name.startsWith("${target}_")
+            }
+            if (isMatch) {
+                try {
+                    file.delete()
+                } catch (e: Exception) {
+                    android.util.Log.w("ModelConfig", "Failed to delete ${file.absolutePath}: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * 刪除指定的 OCR 模型核心檔案（互斥替換使用）。
+     */
+    fun deleteOcrModel(context: Context, model: String) {
+        val dirs = getOcrSearchDirs(context)
+        for (dir in dirs) {
+            deleteOcrFilesFromDir(dir, model)
+        }
     }
 
     // ── Camera & Scanner Settings ─────────────────────────────────────────────

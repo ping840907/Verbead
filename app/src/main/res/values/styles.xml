@@ -18,6 +18,7 @@
         <item name="android:textSize">13sp</item>
         <item name="android:textColor">@color/text_secondary</item>
         <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:includeFontPadding">true</item>
     </style>
 
     <style name="Verbead.Text.Caption" parent="">

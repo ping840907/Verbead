@@ -20,6 +20,58 @@ class AudioRecorder(private val context: Context? = null) {
         private const val CHANNEL_CFG  = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
         private const val CHUNK_FRAMES = 1024
+
+        // 外部/藍牙 SCO 穩定前 250ms 消除連線暫態爆震，內建麥克風前 50ms 消除手勢觸控震動
+        private const val WARMUP_EXTERNAL_SECONDS = 0.25f
+        private const val WARMUP_INTERNAL_SECONDS = 0.05f
+        private const val RAMP_SECONDS            = 0.05f
+    }
+
+    private fun processWarmup(
+        buf: ShortArray,
+        read: Int,
+        startFrame: Int,
+        warmupFrames: Int,
+        rampFrames: Int
+    ) {
+        if (warmupFrames <= 0) return
+        for (i in 0 until read) {
+            val f = startFrame + i
+            if (f < warmupFrames) {
+                buf[i] = 0
+            } else if (f < warmupFrames + rampFrames) {
+                val factor = (f - warmupFrames).toFloat() / rampFrames
+                buf[i] = (buf[i] * factor).toInt().toShort()
+            }
+        }
+    }
+
+    private fun createAudioRecord(bufSize: Int): AudioRecord {
+        try {
+            val record = AudioRecord(
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
+            )
+            if (record.state == AudioRecord.STATE_INITIALIZED) {
+                Log.i(TAG, "AudioRecord initialized with VOICE_RECOGNITION")
+                return record
+            }
+            record.release()
+        } catch (e: Throwable) {
+            Log.w(TAG, "Failed to initialize AudioRecord with VOICE_RECOGNITION, falling back to MIC: ${e.message}")
+        }
+        return AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
+        )
+    }
+
+    private fun applyGain(buf: ShortArray, len: Int, gain: Float) {
+        if (gain == 1.0f) return
+        for (i in 0 until len) {
+            val v = (buf[i] * gain).toInt()
+            buf[i] = v.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+        }
     }
 
     enum class StopReason { SILENCE, INITIAL_TIMEOUT, TIMEOUT, MANUAL, ERROR }
@@ -47,6 +99,8 @@ class AudioRecorder(private val context: Context? = null) {
 
         val routingManager = context?.let { AudioRoutingManager.getInstance(it) }
         val preferredDevice = routingManager?.getPreferredInputDevice()
+        val isExternal = routingManager?.isExternalDevice(preferredDevice) == true
+        val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
 
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
@@ -54,10 +108,7 @@ class AudioRecorder(private val context: Context? = null) {
         )
 
         val recorder = try {
-            AudioRecord(
-                MediaRecorder.AudioSource.MIC,
-                SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
-            )
+            createAudioRecord(bufSize)
         } catch (e: Throwable) {
             Log.e(TAG, "AudioRecord init failed: ${e.message}", e)
             return@withContext Recording(FloatArray(0), 0f, StopReason.ERROR)
@@ -76,7 +127,9 @@ class AudioRecorder(private val context: Context? = null) {
         val trailingSilenceFrames = (silenceSeconds * SAMPLE_RATE).toInt()
         val initialTimeoutFrames  = (initialTimeoutSeconds * SAMPLE_RATE).toInt()
         val minSpeechFrames       = (0.10f * SAMPLE_RATE).toInt() // ~100ms 語音確認開口
-        val startupIgnoreFrames   = (0.08f * SAMPLE_RATE).toInt() // 前 80ms 忽略按鍵物理敲擊震動
+        val warmupFrames          = if (isExternal) (WARMUP_EXTERNAL_SECONDS * SAMPLE_RATE).toInt() else (WARMUP_INTERNAL_SECONDS * SAMPLE_RATE).toInt()
+        val rampFrames            = (RAMP_SECONDS * SAMPLE_RATE).toInt()
+        val startupIgnoreFrames   = warmupFrames + rampFrames
 
         val allSamples  = ShortArray(maxFrames)
         var sampleCount = 0
@@ -94,6 +147,13 @@ class AudioRecorder(private val context: Context? = null) {
             while (coroutineContext.isActive && !shouldStop) {
                 val read = recorder.read(chunkBuffer, 0, CHUNK_FRAMES)
                 if (read <= 0) continue
+
+                // 消除連線暫態爆震與平滑淡入
+                processWarmup(chunkBuffer, read, sampleCount, warmupFrames, rampFrames)
+
+                if (isExternal) {
+                    applyGain(chunkBuffer, read, externalGain)
+                }
 
                 val copy = minOf(read, maxFrames - sampleCount)
                 System.arraycopy(chunkBuffer, 0, allSamples, sampleCount, copy)
@@ -177,6 +237,8 @@ class AudioRecorder(private val context: Context? = null) {
 
         val routingManager = context?.let { AudioRoutingManager.getInstance(it) }
         val preferredDevice = routingManager?.getPreferredInputDevice()
+        val isExternal = routingManager?.isExternalDevice(preferredDevice) == true
+        val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
 
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
@@ -184,10 +246,7 @@ class AudioRecorder(private val context: Context? = null) {
         )
 
         val recorder = try {
-            AudioRecord(
-                MediaRecorder.AudioSource.MIC,
-                SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT, bufSize
-            )
+            createAudioRecord(bufSize)
         } catch (e: Throwable) {
             Log.e(TAG, "AudioRecord init failed: ${e.message}", e)
             return@withContext StopReason.ERROR
@@ -206,7 +265,9 @@ class AudioRecorder(private val context: Context? = null) {
         val trailingSilenceFrames = (silenceSeconds * SAMPLE_RATE).toInt()
         val initialTimeoutFrames  = (initialTimeoutSeconds * SAMPLE_RATE).toInt()
         val minSpeechFrames       = (0.10f * SAMPLE_RATE).toInt()
-        val startupIgnoreFrames   = (0.08f * SAMPLE_RATE).toInt()
+        val warmupFrames          = if (isExternal) (WARMUP_EXTERNAL_SECONDS * SAMPLE_RATE).toInt() else (WARMUP_INTERNAL_SECONDS * SAMPLE_RATE).toInt()
+        val rampFrames            = (RAMP_SECONDS * SAMPLE_RATE).toInt()
+        val startupIgnoreFrames   = warmupFrames + rampFrames
 
         var totalFrames   = 0
         val chunkBuffer   = ShortArray(CHUNK_FRAMES)
@@ -223,6 +284,13 @@ class AudioRecorder(private val context: Context? = null) {
             while (coroutineContext.isActive && !shouldStop) {
                 val read = recorder.read(chunkBuffer, 0, CHUNK_FRAMES)
                 if (read <= 0) continue
+
+                // 消除連線暫態爆震與平滑淡入
+                processWarmup(chunkBuffer, read, totalFrames, warmupFrames, rampFrames)
+
+                if (isExternal) {
+                    applyGain(chunkBuffer, read, externalGain)
+                }
 
                 val floats = FloatArray(read) { chunkBuffer[it] / 32768.0f }
                 onChunk(floats)
@@ -282,9 +350,16 @@ class AudioRecorder(private val context: Context? = null) {
     }
 
     private fun computeRms(buf: ShortArray, len: Int): Float {
-        var sum = 0.0
-        for (i in 0 until len) sum += (buf[i] / 32768.0) * (buf[i] / 32768.0)
-        return sqrt(sum / len).toFloat()
+        if (len <= 0) return 0f
+        var meanSum = 0.0
+        for (i in 0 until len) meanSum += buf[i]
+        val mean = meanSum / len
+        var sumSquares = 0.0
+        for (i in 0 until len) {
+            val diff = (buf[i] - mean) / 32768.0
+            sumSquares += diff * diff
+        }
+        return sqrt(sumSquares / len).toFloat()
     }
 
     private fun convertToFloat(shorts: ShortArray, count: Int) = FloatArray(count) { shorts[it] / 32768.0f }

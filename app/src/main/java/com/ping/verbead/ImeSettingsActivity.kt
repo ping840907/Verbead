@@ -35,6 +35,7 @@ import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.ModelDownloader
 import com.ping.verbead.engine.ModelZipInstaller
 import com.ping.verbead.util.HapticUtil
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -84,11 +85,6 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvMicStatus: TextView
     private lateinit var btnGrantMic: MaterialButton
 
-    // Nearby Devices
-    private lateinit var cardNearbyDevicesRoot: View
-    private lateinit var tvNearbyDevicesStatus: TextView
-    private lateinit var btnGrantNearbyDevices: MaterialButton
-
     // Engine cards (highlighted when selected)
     private lateinit var cardXAsr: MaterialCardView
     private lateinit var cardQwen3: MaterialCardView
@@ -117,13 +113,22 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnDownloadQwen3: MaterialButton
     private lateinit var progressDownloadQwen3: LinearProgressIndicator
     private lateinit var tvDownloadStatusQwen3: TextView
-    private lateinit var switchFilterPunctuation: MaterialSwitch
-    private lateinit var tvVadValue: TextView
-    private lateinit var sbVadSilence: SeekBar
 
     // Dual Engine
     private lateinit var layoutDualEngineToggle: View
     private lateinit var switchDualEngine: MaterialSwitch
+
+    // Speech general preferences (External Audio & VAD)
+    private lateinit var layoutPreferExternalAudioToggle: View
+    private lateinit var switchPreferExternalAudio: MaterialSwitch
+    private lateinit var layoutAudioGain: View
+    private lateinit var tvAudioGainValue: TextView
+    private lateinit var sbAudioGain: SeekBar
+    private lateinit var tvVadValue: TextView
+    private lateinit var sbVadSilence: SeekBar
+
+    // Qwen3 preferences
+    private lateinit var switchFilterPunctuation: MaterialSwitch
 
     // Node 4: Vocabulary
     private lateinit var btnOpenDict: MaterialButton
@@ -169,7 +174,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     }
 
     private val requestMic = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
+        ActivityResultContracts.RequestPermission()
     ) {
         updateAllStatus()
     }
@@ -180,9 +185,18 @@ class ImeSettingsActivity : AppCompatActivity() {
         updateAllStatus()
     }
 
-    private val requestNearbyDevices = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) {
+    private val requestExternalAudioPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            ModelConfig.setPreferExternalAudio(this, true)
+            switchPreferExternalAudio.isChecked = true
+            Toast.makeText(this, "已開啟優先使用外部音訊", Toast.LENGTH_SHORT).show()
+        } else {
+            ModelConfig.setPreferExternalAudio(this, false)
+            switchPreferExternalAudio.isChecked = false
+            Toast.makeText(this, "需要鄰近裝置權限方能使用藍牙音訊", Toast.LENGTH_SHORT).show()
+        }
         updateAllStatus()
     }
 
@@ -271,11 +285,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvMicStatus = findViewById(R.id.tv_mic_status)
         btnGrantMic = findViewById(R.id.btn_grant_mic)
 
-        // Nearby Devices
-        cardNearbyDevicesRoot  = findViewById(R.id.card_nearby_devices_root)
-        tvNearbyDevicesStatus  = findViewById(R.id.tv_nearby_devices_status)
-        btnGrantNearbyDevices  = findViewById(R.id.btn_grant_nearby_devices)
-
         // Node 2: Bubble Module
         tvBubbleBadge             = findViewById(R.id.tv_bubble_badge)
         tvOverlayStatus           = findViewById(R.id.tv_overlay_status)
@@ -301,13 +310,22 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnDownloadQwen3        = findViewById(R.id.btn_download_qwen3)
         progressDownloadQwen3   = findViewById(R.id.progress_download_qwen3)
         tvDownloadStatusQwen3   = findViewById(R.id.tv_download_status_qwen3)
-        switchFilterPunctuation = findViewById(R.id.switch_filter_punctuation)
-        tvVadValue              = findViewById(R.id.tv_vad_value)
-        sbVadSilence            = findViewById(R.id.sb_vad_silence)
 
         // Dual Engine
         layoutDualEngineToggle = findViewById(R.id.layout_dual_engine_toggle)
         switchDualEngine       = findViewById(R.id.switch_dual_engine)
+
+        // Speech general preferences (External Audio & VAD)
+        layoutPreferExternalAudioToggle = findViewById(R.id.layout_prefer_external_audio_toggle)
+        switchPreferExternalAudio       = findViewById(R.id.switch_prefer_external_audio)
+        layoutAudioGain                 = findViewById(R.id.layout_audio_gain)
+        tvAudioGainValue                = findViewById(R.id.tv_audio_gain_value)
+        sbAudioGain                     = findViewById(R.id.sb_audio_gain)
+        tvVadValue                      = findViewById(R.id.tv_vad_value)
+        sbVadSilence                    = findViewById(R.id.sb_vad_silence)
+
+        // Qwen3 preferences
+        switchFilterPunctuation = findViewById(R.id.switch_filter_punctuation)
 
         // Node 4: Vocabulary
         btnOpenDict = findViewById(R.id.btn_open_dict)
@@ -343,6 +361,23 @@ class ImeSettingsActivity : AppCompatActivity() {
             scrollSettings.offsetDescendantRectToMyCoords(target, rect)
             val scrollY = (rect.top - 24 * resources.displayMetrics.density).toInt()
             scrollSettings.smoothScrollTo(0, maxOf(0, scrollY))
+
+            // 目標卡片抵達後提供微縮放呼吸與觸覺輕震反饋，指引用戶視覺焦點
+            target.postDelayed({
+                target.animate()
+                    .scaleX(1.025f)
+                    .scaleY(1.025f)
+                    .setDuration(160)
+                    .withEndAction {
+                        target.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(160)
+                            .start()
+                    }
+                    .start()
+                HapticUtil.tick(this@ImeSettingsActivity)
+            }, 260)
         }
     }
 
@@ -359,56 +394,11 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Node 1: Mic & Camera Permissions
         btnGrantMic.setOnClickListener {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                requestMic.launch(
-                    arrayOf(
-                        Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.BLUETOOTH_CONNECT
-                    )
-                )
-            } else {
-                requestMic.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
-            }
+            requestMic.launch(Manifest.permission.RECORD_AUDIO)
         }
         btnGrantCamera.setOnClickListener {
             requestCamera.launch(Manifest.permission.CAMERA)
         }
-
-        // Nearby Devices Shortcut
-        fun performNearbyDevicesShortcut() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val hasConnect = ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.BLUETOOTH_CONNECT
-                ) == PackageManager.PERMISSION_GRANTED
-                if (!hasConnect) {
-                    requestNearbyDevices.launch(
-                        arrayOf(
-                            Manifest.permission.BLUETOOTH_CONNECT,
-                            Manifest.permission.BLUETOOTH_SCAN
-                        )
-                    )
-                } else {
-                    // 已就緒時點擊作為捷徑直接跳轉至系統應用程式權限或藍牙設定
-                    try {
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:$packageName")
-                        }
-                        startActivity(intent)
-                    } catch (_: Exception) {
-                        startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
-                    }
-                }
-            } else {
-                try {
-                    startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
-                } catch (_: Exception) {
-                    Toast.makeText(this, R.string.toast_bt_headset_allowed, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        btnGrantNearbyDevices.setOnClickListener { performNearbyDevicesShortcut() }
-        cardNearbyDevicesRoot.setOnClickListener { performNearbyDevicesShortcut() }
 
 
         // Node 2: Bubble & §3.2.1 高亮跳轉
@@ -467,13 +457,58 @@ class ImeSettingsActivity : AppCompatActivity() {
             handleDownloadButtonClick(ModelConfig.ENGINE_QWEN3)
         }
 
-        // Qwen3 settings: Punctuation filter
-        switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
-        switchFilterPunctuation.setOnCheckedChangeListener { _, isChecked ->
-            ModelConfig.setFilterPunctuationEnabled(this, isChecked)
+        // Dual Engine Toggle Click Logic (§2.2)
+        layoutDualEngineToggle.setOnClickListener {
+            onDualEngineToggleClick()
         }
 
-        // Qwen3 settings: VAD slider
+        // Speech general preferences: External audio
+        fun togglePreferExternalAudio() {
+            val willEnable = !switchPreferExternalAudio.isChecked
+            if (willEnable) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val hasBt = ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!hasBt) {
+                        requestExternalAudioPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                        return
+                    }
+                }
+                ModelConfig.setPreferExternalAudio(this, true)
+                switchPreferExternalAudio.isChecked = true
+            } else {
+                ModelConfig.setPreferExternalAudio(this, false)
+                switchPreferExternalAudio.isChecked = false
+            }
+            updateAllStatus()
+        }
+        layoutPreferExternalAudioToggle.setOnClickListener {
+            togglePreferExternalAudio()
+        }
+
+        // Speech general preferences: External audio gain slider
+        fun audioGainLabel(gain: Float) = if (gain == 1.0f) "1.0x (原音)" else "%.1fx 增益".format(gain)
+        val currentGain = ModelConfig.externalAudioGain(this)
+        val gainProgress = (((currentGain - ModelConfig.MIN_EXTERNAL_AUDIO_GAIN) / ModelConfig.STEP_EXTERNAL_AUDIO_GAIN).roundToInt())
+            .coerceIn(0, 10)
+        sbAudioGain.progress = gainProgress
+        tvAudioGainValue.text = audioGainLabel(currentGain)
+        sbAudioGain.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                val gain = ModelConfig.MIN_EXTERNAL_AUDIO_GAIN + progress * ModelConfig.STEP_EXTERNAL_AUDIO_GAIN
+                tvAudioGainValue.text = audioGainLabel(gain)
+                if (fromUser) {
+                    ModelConfig.setExternalAudioGain(this@ImeSettingsActivity, gain)
+                    HapticUtil.tick(this@ImeSettingsActivity)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
+
+        // Speech general preferences: VAD slider
         fun vadLabel(seconds: Float) = "%.1f 秒".format(seconds)
         val currentVad = ModelConfig.vadSilenceSeconds(this)
         sbVadSilence.progress = (((currentVad - ModelConfig.VAD_SILENCE_MIN) / 0.1f).toInt())
@@ -491,9 +526,15 @@ class ImeSettingsActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
 
-        // Dual Engine Toggle Click Logic (§2.2)
-        layoutDualEngineToggle.setOnClickListener {
-            onDualEngineToggleClick()
+        // Qwen3 settings: Punctuation filter
+        findViewById<View?>(R.id.layout_filter_punctuation_toggle)?.setOnClickListener {
+            val nextState = !switchFilterPunctuation.isChecked
+            switchFilterPunctuation.isChecked = nextState
+            ModelConfig.setFilterPunctuationEnabled(this, nextState)
+        }
+        switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
+        switchFilterPunctuation.setOnCheckedChangeListener { _, isChecked ->
+            ModelConfig.setFilterPunctuationEnabled(this, isChecked)
         }
 
         // Vocabulary
@@ -607,6 +648,9 @@ class ImeSettingsActivity : AppCompatActivity() {
                         else -> engine
                     }
                     result.onSuccess {
+                        if (engine == ModelConfig.ENGINE_PP_OCR_TINY || engine == ModelConfig.ENGINE_PP_OCR_SMALL) {
+                            ModelConfig.setSelectedOcrModel(this@ImeSettingsActivity, engine)
+                        }
                         Toast.makeText(this@ImeSettingsActivity, getString(R.string.toast_model_download_done, label), Toast.LENGTH_LONG).show()
                     }.onFailure { ex ->
                         Toast.makeText(this@ImeSettingsActivity, getString(R.string.toast_model_download_failed, label, ex.message ?: ""), Toast.LENGTH_LONG).show()
@@ -722,15 +766,33 @@ class ImeSettingsActivity : AppCompatActivity() {
         // 更新 UI 元件狀態與文案
         // ══════════════════════════════════════════════════════════════════════
 
-        // Node 1: Mic & Nearby Devices & Camera
+        // Node 1: Mic & Camera
+        val preferExternal = ModelConfig.isPreferExternalAudio(this)
+        val hasBtPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        val effectivePreferExternal = preferExternal && hasBtPermission
+        if (preferExternal && !hasBtPermission) {
+            ModelConfig.setPreferExternalAudio(this, false)
+        }
+        switchPreferExternalAudio.isChecked = effectivePreferExternal
+        layoutAudioGain.alpha = if (effectivePreferExternal) 1.0f else 0.45f
+        sbAudioGain.isEnabled = effectivePreferExternal
+
         val micGrantedDesc = run {
-            val preferred = AudioRoutingManager.getInstance(this).getPreferredInputDevice()
-            val isBt = preferred?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
-            if (isBt) {
-                "已就緒（優先使用藍牙音訊：${preferred?.productName ?: "藍牙耳機"}）"
+            if (effectivePreferExternal) {
+                val preferred = AudioRoutingManager.getInstance(this).getPreferredInputDevice()
+                val isBt = preferred?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+                if (isBt) {
+                    "已就緒（優先使用藍牙音訊：${preferred?.productName ?: "藍牙耳機"}）"
+                } else {
+                    "麥克風錄音權限已就緒"
+                }
             } else {
-                "麥克風錄音權限已就緒"
+                "麥克風錄音權限已就緒（使用內建麥克風）"
             }
         }
         updatePermissionButton(
@@ -739,33 +801,6 @@ class ImeSettingsActivity : AppCompatActivity() {
             micGranted,
             micGrantedDesc,
             "辨識語音必須的系統核心權限"
-        )
-
-        // Nearby Devices Status (Android 11 及以下沒有鄰近裝置權限，視為已啟用)
-        val nearbyGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
-                    PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
-        val nearbyGrantedDesc = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            "系統版本無需額外鄰近裝置權限"
-        } else {
-            val preferred = AudioRoutingManager.getInstance(this).getPreferredInputDevice()
-            val isBt = preferred?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                    preferred?.type == AudioDeviceInfo.TYPE_BLE_HEADSET
-            if (isBt) {
-                "已就緒（目前連線：${preferred?.productName ?: "藍牙音訊裝置"}）"
-            } else {
-                "鄰近裝置權限已就緒"
-            }
-        }
-        updatePermissionButton(
-            btnGrantNearbyDevices,
-            tvNearbyDevicesStatus,
-            nearbyGranted,
-            nearbyGrantedDesc,
-            "藍牙耳機或外部麥克風連線收音所需，點擊前往授權"
         )
 
         val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
@@ -876,7 +911,10 @@ class ImeSettingsActivity : AppCompatActivity() {
         // OCR & Scanner Node
         val selectedOcr = ModelConfig.selectedOcrModel(this)
         val isTiny = selectedOcr == ModelConfig.ENGINE_PP_OCR_TINY
-        val ocrReady = ModelConfig.isOcrReady(this)
+        val tinyReady = ModelConfig.isOcrTinyReady(this)
+        val smallReady = ModelConfig.isOcrSmallReady(this)
+        val isSelectedReady = if (isTiny) tinyReady else smallReady
+        val anyOcrReady = tinyReady || smallReady
 
         if (isTiny) {
             btnSelectOcrTiny.backgroundTintList = ColorStateList.valueOf(primaryColor)
@@ -894,15 +932,25 @@ class ImeSettingsActivity : AppCompatActivity() {
             btnSelectOcrTiny.strokeWidth = 0
         }
 
-        if (ocrReady) {
+        btnSelectOcrTiny.text = if (tinyReady) "Tiny · 已就緒" else "Tiny · 11MB"
+        btnSelectOcrSmall.text = if (smallReady) "Small · 已就緒" else "Small · 22MB"
+
+        if (isSelectedReady) {
             tvOcrStatus.text = "已就緒 (${if (isTiny) "Tiny 輕量版" else "Small 高精版"})"
             tvOcrStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
             btnDownloadOcr.text = "重新下載"
         } else {
             val sizeStr = if (isTiny) "約 11MB" else "約 22MB"
-            tvOcrStatus.text = "未下載 ($sizeStr)"
-            tvOcrStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnDownloadOcr.text = "下載模型"
+            if (anyOcrReady) {
+                val existingName = if (isTiny) "Small 高精版" else "Tiny 輕量版"
+                tvOcrStatus.text = "未下載 ($sizeStr，下載後將自動替換現有 $existingName)"
+                tvOcrStatus.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
+                btnDownloadOcr.text = "下載並替換模型"
+            } else {
+                tvOcrStatus.text = "未下載 ($sizeStr)"
+                tvOcrStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                btnDownloadOcr.text = "下載模型"
+            }
         }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
 
@@ -1185,18 +1233,35 @@ class ImeSettingsActivity : AppCompatActivity() {
             val ready = when (engine) {
                 ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this@ImeSettingsActivity)
                 ModelConfig.ENGINE_QWEN3 -> ModelConfig.isQwen3Ready(this@ImeSettingsActivity)
+                ModelConfig.ENGINE_PP_OCR_TINY -> ModelConfig.isOcrTinyReady(this@ImeSettingsActivity)
+                ModelConfig.ENGINE_PP_OCR_SMALL -> ModelConfig.isOcrSmallReady(this@ImeSettingsActivity)
                 else -> ModelConfig.isOcrReady(this@ImeSettingsActivity)
             }
-            btn.text = if (ready) "重新下載" else "下載模型"
+            val hasConflict = (engine == ModelConfig.ENGINE_PP_OCR_TINY && ModelConfig.isOcrSmallReady(this@ImeSettingsActivity)) ||
+                    (engine == ModelConfig.ENGINE_PP_OCR_SMALL && ModelConfig.isOcrTinyReady(this@ImeSettingsActivity))
+            btn.text = if (ready) "重新下載" else if (hasConflict) "下載並替換模型" else "下載模型"
+
+            val conflictNotice = if (engine == ModelConfig.ENGINE_PP_OCR_TINY && ModelConfig.isOcrSmallReady(this@ImeSettingsActivity)) {
+                "\n\n⚠️ 注意：目前已安裝 Small 高精版模型，下載後將自動替換並清理舊模型檔案，兩者不重複佔用空間。"
+            } else if (engine == ModelConfig.ENGINE_PP_OCR_SMALL && ModelConfig.isOcrTinyReady(this@ImeSettingsActivity)) {
+                "\n\n⚠️ 注意：目前已安裝 Tiny 輕量版模型，下載後將自動替換並清理舊模型檔案，兩者不重複佔用空間。"
+            } else {
+                ""
+            }
 
             AlertDialog.Builder(this@ImeSettingsActivity)
                 .setTitle("下載 $engineLabel 模型")
                 .setMessage(
                     "即將下載約 ${ModelDownloader.formatBytes(bytes)} 的模型檔案，下載會在背景進行，" +
                             "關閉螢幕或切換應用不會中斷。\n\n" +
-                            "文字辨識與語音轉譯全程在裝置本機執行，僅下載步驟需使用網路。\n\n是否繼續？"
+                            "文字辨識與語音轉譯全程在裝置本機執行，僅下載步驟需使用網路。$conflictNotice\n\n是否繼續？"
                 )
-                .setPositiveButton("開始下載") { _, _ ->
+                .setPositiveButton(if (hasConflict) "替換並下載" else "開始下載") { _, _ ->
+                    if (engine == ModelConfig.ENGINE_PP_OCR_TINY) {
+                        ModelConfig.deleteOcrModel(this@ImeSettingsActivity, ModelConfig.ENGINE_PP_OCR_SMALL)
+                    } else if (engine == ModelConfig.ENGINE_PP_OCR_SMALL) {
+                        ModelConfig.deleteOcrModel(this@ImeSettingsActivity, ModelConfig.ENGINE_PP_OCR_TINY)
+                    }
                     requestNotificationPermissionThenDownload(engine)
                 }
                 .setNegativeButton("取消", null)
@@ -1275,7 +1340,11 @@ class ImeSettingsActivity : AppCompatActivity() {
             else -> {
                 progressDownloadOcr.visibility = View.GONE
                 tvDownloadStatusOcr.visibility = View.GONE
-                btnDownloadOcr.text = if (ModelConfig.isOcrReady(this)) "重新下載" else "下載模型"
+                val sel = ModelConfig.selectedOcrModel(this)
+                val selReady = ModelConfig.isOcrReady(this, sel)
+                val hasConflict = (sel == ModelConfig.ENGINE_PP_OCR_TINY && ModelConfig.isOcrSmallReady(this)) ||
+                        (sel == ModelConfig.ENGINE_PP_OCR_SMALL && ModelConfig.isOcrTinyReady(this))
+                btnDownloadOcr.text = if (selReady) "重新下載" else if (hasConflict) "下載並替換模型" else "下載模型"
             }
         }
     }

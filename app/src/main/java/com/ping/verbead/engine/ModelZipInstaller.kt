@@ -166,8 +166,8 @@ object ModelZipInstaller {
             // Validate and activate newly restored models
             val xAsrReady = ModelConfig.isXAsrReady(context)
             val qwen3Ready = ModelConfig.isQwen3Ready(context)
-            val ocrSmallReady = ModelConfig.isOcrReady(context, ModelConfig.ENGINE_PP_OCR_SMALL)
-            val ocrTinyReady = ModelConfig.isOcrReady(context, ModelConfig.ENGINE_PP_OCR_TINY)
+            val ocrSmallReady = ModelConfig.isOcrSmallReady(context)
+            val ocrTinyReady = ModelConfig.isOcrTinyReady(context)
             val ocrReady = ocrSmallReady || ocrTinyReady
 
             if (ocrSmallReady) {

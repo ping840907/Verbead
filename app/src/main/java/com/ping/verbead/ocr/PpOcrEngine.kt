@@ -46,6 +46,7 @@ class PpOcrEngine(private val context: Context) {
     private val detMutex = Mutex()
     private val recMutex = Mutex()
 
+    private var loadedModel: String? = null
     var lastLoadError: String? = null
         private set
 
@@ -54,49 +55,33 @@ class PpOcrEngine(private val context: Context) {
 
     suspend fun load(): Boolean = withContext(Dispatchers.IO) {
         try {
-            if (isReady) return@withContext true
+            val prefModel = ModelConfig.selectedOcrModel(context)
+            if (isReady && loadedModel == prefModel) return@withContext true
+            if (isReady && loadedModel != prefModel) {
+                release()
+            }
             lastLoadError = null
 
-            val prefModel = ModelConfig.selectedOcrModel(context)
-            val ocrPaths = ModelConfig.findOcrPaths(context, prefModel)
-
-            var detPath: String
-            var recPath: String
-            var dictPath: String
-
-            if (ocrPaths != null) {
-                detPath = ocrPaths.detPath
-                recPath = ocrPaths.recPath
-                dictPath = ocrPaths.dictPath
-                ModelConfig.setSelectedOcrModel(context, ocrPaths.model)
-            } else {
-                detPath = ModelConfig.ocrDetPath(context)
-                recPath = ModelConfig.ocrRecPath(context)
-                dictPath = ModelConfig.ocrDictPath(context)
-
-                if (!File(detPath).exists() || !File(recPath).exists()) {
-                    val altModel = if (prefModel == ModelConfig.OCR_MODEL_TINY) {
-                        ModelConfig.OCR_MODEL_SMALL
-                    } else {
-                        ModelConfig.OCR_MODEL_TINY
-                    }
-                    val altDet = ModelConfig.ocrDetPath(context, altModel)
-                    val altRec = ModelConfig.ocrRecPath(context, altModel)
-                    if (File(altDet).exists() && File(altRec).exists()) {
-                        detPath = altDet
-                        recPath = altRec
-                        dictPath = ModelConfig.ocrDictPath(context, altModel)
-                        ModelConfig.setSelectedOcrModel(context, altModel)
-                    } else {
-                        val searched = ModelConfig.ocrDir(context)
-                        lastLoadError = "找不到模型檔案 (已搜尋: $searched, det=$detPath, rec=$recPath)"
-                        Log.w(TAG, lastLoadError!!)
-                        return@withContext false
-                    }
-                }
+            // 優先載入所選模型；若尚未備齊則回退至已備妥的任一模型（Tiny 或 Small）
+            var ocrPaths = ModelConfig.findOcrPaths(context, prefModel)
+            if (ocrPaths == null) {
+                ocrPaths = ModelConfig.findOcrPaths(context, null)
             }
 
-            Log.i(TAG, "Loading PP-OCR models: det=$detPath, rec=$recPath, dict=$dictPath")
+            if (ocrPaths == null) {
+                val searched = ModelConfig.ocrDir(context)
+                lastLoadError = "找不到模型檔案 (已搜尋: $searched)"
+                Log.w(TAG, lastLoadError!!)
+                return@withContext false
+            }
+
+            val detPath = ocrPaths.detPath
+            val recPath = ocrPaths.recPath
+            val dictPath = ocrPaths.dictPath
+            ModelConfig.setSelectedOcrModel(context, ocrPaths.model)
+            loadedModel = ocrPaths.model
+
+            Log.i(TAG, "Loading PP-OCR models (${ocrPaths.model}): det=$detPath, rec=$recPath, dict=$dictPath")
 
             // Explicitly preload native libraries to ensure linker resolves symbols cleanly
             try {
@@ -741,5 +726,6 @@ class PpOcrEngine(private val context: Context) {
         detSession = null
         recSession = null
         env = null
+        loadedModel = null
     }
 }

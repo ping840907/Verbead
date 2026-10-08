@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.engine
+package com.ping.verbead.engine
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -110,6 +110,18 @@ class AudioRoutingManager(private val context: Context) {
     }
 
     /**
+     * 判斷指定音訊裝置是否屬於外部裝置（藍牙耳機、有線耳機、USB 耳麥等）。
+     */
+    fun isExternalDevice(device: AudioDeviceInfo?): Boolean {
+        if (device == null) return false
+        return device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+               device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+               device.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+               (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && device.type == AudioDeviceInfo.TYPE_BLE_HEADSET) ||
+               (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && device.type == AudioDeviceInfo.TYPE_USB_DEVICE)
+    }
+
+    /**
      * Determines the best available recording device based on priority:
      * 1. Bluetooth SCO or BLE Headset
      * 2. Wired / USB Headset with microphone
@@ -117,6 +129,13 @@ class AudioRoutingManager(private val context: Context) {
      */
     fun getPreferredInputDevice(): AudioDeviceInfo? {
         try {
+            // When external audio prioritization is disabled, always prefer the built-in mic
+            if (!ModelConfig.isPreferExternalAudio(context)) {
+                val inputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+                return inputDevices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+                    ?: inputDevices.firstOrNull()
+            }
+
             // 1. Check API 31+ availableCommunicationDevices for Bluetooth
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && hasBluetoothPermission()) {
                 val commBluetooth = audioManager.availableCommunicationDevices.firstOrNull { device ->
@@ -161,6 +180,7 @@ class AudioRoutingManager(private val context: Context) {
      */
     @SuppressLint("MissingPermission")
     fun prepareForRecording(preferredDevice: AudioDeviceInfo?) {
+        if (!ModelConfig.isPreferExternalAudio(context)) return
         if (preferredDevice == null) return
         val isBluetooth = preferredDevice.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
                 (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && preferredDevice.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
@@ -202,6 +222,20 @@ class AudioRoutingManager(private val context: Context) {
      * Applies the preferred device to the initialized AudioRecord instance.
      */
     fun applyToAudioRecord(recorder: AudioRecord, preferredDevice: AudioDeviceInfo?) {
+        if (!ModelConfig.isPreferExternalAudio(context)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val builtIn = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+                    .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+                if (builtIn != null) {
+                    try {
+                        recorder.setPreferredDevice(builtIn)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to set built-in mic on AudioRecord: ${e.message}")
+                    }
+                }
+            }
+            return
+        }
         if (preferredDevice != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 val success = recorder.setPreferredDevice(preferredDevice)

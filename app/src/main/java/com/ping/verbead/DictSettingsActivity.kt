@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
+import com.ping.verbead.util.HapticUtil
 
 class DictSettingsActivity : AppCompatActivity() {
 
@@ -66,10 +67,25 @@ class DictSettingsActivity : AppCompatActivity() {
         recycler = findViewById(R.id.rv_dict)
         recycler.layoutManager = LinearLayoutManager(this)
 
-        adapter = DictAdapter(loadEntries()) { from ->
-            UserDictionary.remove(this, from)
-            refreshList()
-        }
+        adapter = DictAdapter(
+            loadEntries(),
+            onDelete = { from, to ->
+                val displayLabel = if (from != to) "$from → $to" else to
+                AlertDialog.Builder(this)
+                    .setTitle("刪除專屬詞彙")
+                    .setMessage("確定要刪除「$displayLabel」嗎？")
+                    .setPositiveButton("刪除") { _, _ ->
+                        UserDictionary.remove(this, from)
+                        refreshList()
+                        HapticUtil.click(this)
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+            },
+            onEdit = { from, to ->
+                showEditDialog(from, to)
+            }
+        )
         recycler.adapter = adapter
         refreshList()
 
@@ -133,9 +149,42 @@ class DictSettingsActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showEditDialog(existingFrom: String, existingTo: String) {
+        val view = layoutInflater.inflate(R.layout.dialog_add_entry, null)
+        val etTo = view.findViewById<EditText>(R.id.et_to)
+        val etFrom = view.findViewById<EditText>(R.id.et_from)
+
+        etTo.setText(existingTo)
+        if (existingFrom != existingTo) {
+            etFrom.setText(existingFrom)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("編輯專屬詞彙 / 替換規則")
+            .setView(view)
+            .setPositiveButton("儲存") { _, _ ->
+                val to = etTo.text.toString().trim()
+                val fromRaw = etFrom.text.toString().trim()
+                if (to.isBlank()) {
+                    Toast.makeText(this, R.string.toast_dict_target_word_empty, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val from = if (fromRaw.isNotBlank()) fromRaw else to
+                if (from != existingFrom) {
+                    UserDictionary.remove(this, existingFrom)
+                }
+                UserDictionary.add(this, from, to)
+                refreshList()
+                HapticUtil.click(this)
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     inner class DictAdapter(
         private var items: List<Pair<String, String>>,
-        private val onDelete: (String) -> Unit,
+        private val onDelete: (String, String) -> Unit,
+        private val onEdit: (String, String) -> Unit,
     ) : RecyclerView.Adapter<DictAdapter.VH>() {
 
         fun update(newItems: List<Pair<String, String>>) {
@@ -163,7 +212,8 @@ class DictSettingsActivity : AppCompatActivity() {
             } else {
                 holder.tvMapping.visibility = View.GONE
             }
-            holder.btnDel.setOnClickListener { onDelete(from) }
+            holder.itemView.setOnClickListener { onEdit(from, to) }
+            holder.btnDel.setOnClickListener { onDelete(from, to) }
         }
     }
 }
