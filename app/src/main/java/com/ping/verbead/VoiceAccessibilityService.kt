@@ -341,40 +341,32 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
         }
 
-        // 3. 虛擬選取能力探測（Selection Buffer Probe - 解決手打文字與佔位符同字的極端邊界條件）
-        // 核心原理：在 Android TextView 架構下，空欄位的真實緩衝區（mText）長度為 0。
-        // 即使 AccessibilityNodeInfo 回傳了佔位字（如「輸入訊息」），嘗試將選取範圍設定為 (0, initialText.length)
-        // 在空欄位只會被系統自動 clamp 回 (0, 0)，選取長度為 0；
-        // 反之若為使用者手打之內容（即使內容剛好也是「輸入訊息」），mText 長度為 4，選取將成功變為 (0, 4)。
-        // 此探測完全不抹除任何文字內容，能精準分辨手打文字與佔位符。
+        // 3. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）
+        // 核心原理：在 Android TextView 架構下 (TextView.canSelectText())：
+        // 唯有文字緩衝區有內容（mText.length() > 0）時，canSelectText() 才會返回 true，
+        // 允許執行 ACTION_SET_SELECTION（返回 true）；
+        // 當欄位實質為空時（mText.length() == 0，僅顯示偽裝的佔位文字），
+        // canSelectText() 必為 false，執行 ACTION_SET_SELECTION 必然被系統拒絕返回 false！
+        // 因此：canSelect == false 代表空欄位佔位符（替換）；canSelect == true 代表真實使用者文字（保留）！
         val len = initialText.length
         try {
             val selArgs = Bundle().apply {
                 putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
                 putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, len)
             }
-            val selSuccess = target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
-            if (selSuccess) {
-                target.refresh()
-                val probedSelStart = target.textSelectionStart
-                val probedSelEnd = target.textSelectionEnd
-                val selectedLen = (probedSelEnd - probedSelStart).coerceAtLeast(0)
+            val canSelect = target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
+            val isPlaceholder = TextInsertion.evaluateSelectionProbe(len, canSelect)
+            Log.d(TAG, "Selection capability probe: initial='$initialText', len=$len, canSelect=$canSelect, isPlaceholder=$isPlaceholder")
 
-                val probeResult = TextInsertion.evaluateSelectionProbe(len, selectedLen)
-                Log.d(TAG, "Selection probe: initial='$initialText', len=$len, probedStart=$probedSelStart, probedEnd=$probedSelEnd, selectedLen=$selectedLen, isPlaceholder=$probeResult")
-
-                if (probeResult != null) {
-                    // 若判定為真實使用者文字，還原游標狀態（若有）
-                    if (!probeResult && rawSelStart >= 0) {
-                        val restoreArgs = Bundle().apply {
-                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, rawSelStart)
-                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, rawSelEnd)
-                        }
-                        target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, restoreArgs)
-                    }
-                    return probeResult
+            if (!isPlaceholder && rawSelStart >= 0) {
+                // 若判定為真實手打文字，將游標還原為原先位置
+                val restoreArgs = Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, rawSelStart)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, rawSelEnd)
                 }
+                target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, restoreArgs)
             }
+            return isPlaceholder
         } catch (e: Exception) {
             Log.w(TAG, "Selection probe exception: ${e.message}")
         }

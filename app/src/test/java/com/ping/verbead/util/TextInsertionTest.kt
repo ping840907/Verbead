@@ -306,10 +306,10 @@ class TextInsertionTest {
     @Test
     fun testEvaluateSelectionProbeForHandTypedTextIdenticalToPlaceholder() {
         // 極端情況：佔位符為「輸入訊息」的欄位中，使用者手動打入「輸入訊息」
-        // 由於真實字串緩衝區 mText 長度為 4，全選探測成功選取長度 4，精準判定為真實內容而非佔位符！
+        // 由於真實字串緩衝區 mText 長度為 4，系統具備選取能力 (canSelect = true)，判定為真實內容而非佔位符！
         val isPlaceholder = TextInsertion.evaluateSelectionProbe(
             textLength = 4, // "輸入訊息".length
-            selectedLength = 4
+            canSelect = true
         )
         // 必須為 false（代表非佔位符，是使用者手打內容，保留不替換！）
         org.junit.Assert.assertEquals(false, isPlaceholder)
@@ -318,10 +318,10 @@ class TextInsertionTest {
     @Test
     fun testEvaluateSelectionProbeForEmptyFieldWithPlaceholder() {
         // 一般情況：欄位為空，但 AccessibilityNodeInfo 將佔位符「輸入訊息」回傳為 text
-        // 由於真實字串緩衝區 mText 長度為 0，全選探測只能被 clamp 為 0，選取長度為 0，判定為佔位符！
+        // 由於真實字串緩衝區 mText 長度為 0，TextView.canSelectText() 為 false，系統拒絕選取動作 (canSelect = false)！
         val isPlaceholder = TextInsertion.evaluateSelectionProbe(
             textLength = 4, // "輸入訊息".length
-            selectedLength = 0
+            canSelect = false
         )
         // 必須為 true（代表底層空緩衝區的佔位提示，進行清空替換！）
         org.junit.Assert.assertEquals(true, isPlaceholder)
@@ -331,13 +331,13 @@ class TextInsertionTest {
     fun testEvaluateSelectionProbeForGeneralText() {
         val isReal = TextInsertion.evaluateSelectionProbe(
             textLength = 10,
-            selectedLength = 10
+            canSelect = true
         )
         org.junit.Assert.assertEquals(false, isReal)
 
         val isPlaceholder = TextInsertion.evaluateSelectionProbe(
             textLength = 10,
-            selectedLength = 0
+            canSelect = false
         )
         org.junit.Assert.assertEquals(true, isPlaceholder)
     }
