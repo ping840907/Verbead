@@ -332,24 +332,41 @@ class VoiceAccessibilityService : AccessibilityService() {
 
         // Ensure focused
         if (!target.isFocused) {
-            runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }
+            val focused = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }.getOrDefault(false)
+            if (focused) {
+                runCatching { target.refresh() }
+            }
         }
 
         isAutomatedActionInProgress = true
         try {
-            // 判斷是否顯示 HintText，避免把提示文字誤當成欄位原文
-            val isHint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // 判斷是否顯示 HintText / Placeholder，避免把通訊軟體或輸入框的提示文字（如「輸入訊息」）誤當成欄位原文
+            val isShowingHint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 target.isShowingHintText
             } else {
                 false
             }
+            val hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                target.hintText
+            } else {
+                null
+            }
+
+            val isHint = TextInsertion.isHintText(
+                originalText = target.text,
+                hintText = hintText,
+                isShowingHintText = isShowingHint,
+                contentDescription = target.contentDescription
+            )
 
             val insertion = TextInsertion.insert(
                 originalText = target.text,
                 rawSelStart = target.textSelectionStart,
                 rawSelEnd = target.textSelectionEnd,
                 insertedText = text,
-                isHint = isHint
+                isHint = isHint,
+                hintText = hintText,
+                contentDescription = target.contentDescription
             )
 
             // §6.1 快照捕捉時機點：在執行輸入動作前捕捉

@@ -2825,15 +2825,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     val processed = results.joinToString(sep)
                     HapticUtil.heavyClick(this@FloatingBubbleService)
 
+                    dismissOcrSnapshot(hideX = false)
+                    stopOcrMode(hideX = false)
+                    stopScannerMode(hideX = false)
+
                     val injected = VoiceAccessibilityService.instance?.inputText(processed) ?: false
                     if (ModelConfig.isOcrAutoEnterEnabled(this@FloatingBubbleService)) {
                         delay(100)
                         VoiceAccessibilityService.instance?.sendEnterKey()
                     }
-
-                    dismissOcrSnapshot(hideX = false)
-                    stopOcrMode(hideX = false)
-                    stopScannerMode(hideX = false)
 
                     // 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo 復原
                     setState(State.PASTED)
