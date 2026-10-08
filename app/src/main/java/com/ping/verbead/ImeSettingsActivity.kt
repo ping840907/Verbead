@@ -623,7 +623,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             openWebUrl("https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m")
         }
         findViewById<View?>(R.id.row_credit_qwen)?.setOnClickListener {
-            openWebUrl("https://github.com/QwenLM")
+            openWebUrl("https://github.com/QwenLM/Qwen3-ASR")
         }
         findViewById<View?>(R.id.row_credit_onnx)?.setOnClickListener {
             openWebUrl("https://github.com/microsoft/onnxruntime")
