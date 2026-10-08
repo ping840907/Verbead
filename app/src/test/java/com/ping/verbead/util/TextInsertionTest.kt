@@ -181,49 +181,19 @@ class TextInsertionTest {
     }
 
     @Test
-    fun testInputMessagePlaceholderIsReplacedWithoutPrepending() {
-        // 模擬通訊軟體（如 LINE）預設文字「輸入訊息」未標記為 Hint 時，自動識別為 Placeholder 並清空替換
+    fun testInputMessagePlaceholderIsReplacedWhenHintFlagged() {
+        // 當無障礙服務透過互動探測判定為 Placeholder 時（傳入 isHint = true），清空替換而非附加在後
         val result = TextInsertion.insert(
             originalText = "輸入訊息",
-            rawSelStart = 4,
-            rawSelEnd = 4,
+            rawSelStart = 0,
+            rawSelEnd = 0,
             insertedText = "明天下午兩點見",
-            isHint = false
+            isHint = true
         )
         assertEquals("明天下午兩點見", result.text)
         assertEquals(7, result.cursorPosition)
         assertEquals(0, result.normalizedSelStart)
         assertEquals(0, result.normalizedSelEnd)
-    }
-
-    @Test
-    fun testInputMessageWithEllipsisIsReplaced() {
-        val resultDot = TextInsertion.insert(
-            originalText = "輸入訊息...",
-            rawSelStart = -1,
-            rawSelEnd = -1,
-            insertedText = "語音識別結果"
-        )
-        assertEquals("語音識別結果", resultDot.text)
-
-        val resultEllipsis = TextInsertion.insert(
-            originalText = "輸入訊息…",
-            rawSelStart = 0,
-            rawSelEnd = 0,
-            insertedText = "OCR文字"
-        )
-        assertEquals("OCR文字", resultEllipsis.text)
-    }
-
-    @Test
-    fun testInputTextPlaceholderIsReplaced() {
-        val result = TextInsertion.insert(
-            originalText = "輸入文字",
-            rawSelStart = -1,
-            rawSelEnd = -1,
-            insertedText = "條碼結果"
-        )
-        assertEquals("條碼結果", result.text)
     }
 
     @Test
@@ -248,17 +218,6 @@ class TextInsertionTest {
             contentDescription = "搜尋"
         )
         assertEquals("搜尋關鍵字", result.text)
-    }
-
-    @Test
-    fun testEnglishPlaceholderIsReplaced() {
-        val result = TextInsertion.insert(
-            originalText = "Type a message...",
-            rawSelStart = -1,
-            rawSelEnd = -1,
-            insertedText = "Hello World"
-        )
-        assertEquals("Hello World", result.text)
     }
 
     @Test

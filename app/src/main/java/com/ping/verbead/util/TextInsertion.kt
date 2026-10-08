@@ -13,24 +13,6 @@ object TextInsertion {
         val normalizedSelEnd: Int
     )
 
-    private val KNOWN_PLACEHOLDER_REGEX = Regex(
-        "^(?:" +
-            // Chinese placeholders (常見通訊軟體與輸入框預設文字)
-            "(?:請?(?:在此)?(?:輸入|傳送|發送|留下|回覆)(?:訊息|文字|內容|留言|評論|關鍵字|網址)?)" +
-            "|(?:搜尋(?:或輸入網址)?)" +
-            "|(?:留個言吧)" +
-            // English placeholders
-            "|(?:(?:type|send|write|enter)\\s+(?:a\\s+)?(?:message|text|comment))" +
-            "|(?:type\\s+(?:something|here))" +
-            "|(?:enter\\s+text(?:\\s+here)?)" +
-            "|(?:search(?:\\s+or\\s+type\\s+(?:web\\s+)?url)?)" +
-            "|(?:add\\s+a\\s+comment)" +
-            "|(?:leave\\s+a\\s+comment)" +
-            "|(?:reply)" +
-        ")$",
-        RegexOption.IGNORE_CASE
-    )
-
     /**
      * Normalizes text by trimming whitespace, trailing ellipsis, colons, etc.
      */
@@ -49,7 +31,6 @@ object TextInsertion {
      * 1. Explicit [isShowingHintText] flag from AccessibilityNodeInfo (Android 8.0+)
      * 2. Equivalence between [originalText] and [hintText] (ignoring whitespace and trailing ellipses/punctuation)
      * 3. Equivalence between [originalText] and [contentDescription]
-     * 4. Known common placeholder texts (e.g. "輸入訊息", "請輸入訊息", "Type a message", etc.)
      */
     fun isHintText(
         originalText: CharSequence?,
@@ -77,11 +58,6 @@ object TextInsertion {
             if (origNorm.equals(descNorm, ignoreCase = true)) {
                 return true
             }
-        }
-
-        // 3. Check against known placeholder patterns
-        if (KNOWN_PLACEHOLDER_REGEX.matches(origNorm)) {
-            return true
         }
 
         return false
