@@ -984,7 +984,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     // 懸浮按鈕 X 鍵點擊事件
-    private fun onXButtonClick() {
+    internal fun onXButtonClick() {
         HapticUtil.click(this)
         when {
             state == State.PASTED || VoiceAccessibilityService.instance?.hasValidSnapshot() == true -> {
@@ -1068,7 +1068,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     // 獨立懸浮 X 鍵視窗（完全獨立 WindowManager 視窗，徹底消除氣泡視窗高度變更產生的任何擠壓或閃爍）
-    private fun showXButton() {
+    internal fun showXButton() {
         xButtonAutoHideJob?.cancel()
         if (isTucked) {
             untuckBubble(animate = false)
@@ -1791,7 +1791,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
-    private fun setState(s: State) {
+    internal fun setState(s: State) {
         stateMachine.transitionTo(s)
         if (state == State.RECORDING) {
             showPulseView()
@@ -1833,6 +1833,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 updateBubbleIconForMode(currentMode)
                 ivBubbleIcon.visibility = View.VISIBLE
                 progressBubble.visibility = View.GONE
+            }
+        }
+    }
+
+    internal fun showPastedStateForTest() {
+        setState(State.PASTED)
+        showXButton()
+        xButtonAutoHideJob?.cancel()
+        xButtonAutoHideJob = scope.launch {
+            delay(15_000)
+            if (state == State.PASTED) {
+                hideXButton()
+                setState(State.IDLE)
             }
         }
     }

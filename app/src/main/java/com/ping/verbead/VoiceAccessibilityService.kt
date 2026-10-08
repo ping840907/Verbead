@@ -141,6 +141,11 @@ class VoiceAccessibilityService : AccessibilityService() {
                 }
                 return
             }
+            if (intent.getBooleanExtra("clickX", false)) {
+                Log.d(TAG, "TestReceiver received clickX request")
+                FloatingBubbleService.instance?.onXButtonClick()
+                return
+            }
             if (intent.getBooleanExtra("undo", false)) {
                 Log.d(TAG, "TestReceiver received undo request")
                 restoreLastSnapshot()
@@ -148,7 +153,10 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
             val text = intent.getStringExtra("text") ?: return
             Log.d(TAG, "TestReceiver received text: $text")
-            inputText(text)
+            val injected = inputText(text)
+            if (injected) {
+                FloatingBubbleService.instance?.showPastedStateForTest()
+            }
         }
     }
 
@@ -371,6 +379,87 @@ class VoiceAccessibilityService : AccessibilityService() {
         return null
     }
 
+    private fun isUndoButton(node: AccessibilityNodeInfo): Boolean {
+        if (!node.isEnabled) return false
+
+        val desc = node.contentDescription?.toString()?.trim() ?: ""
+        val text = node.text?.toString()?.trim() ?: ""
+        val viewId = node.viewIdResourceName?.lowercase() ?: ""
+
+        if (desc.isEmpty() && text.isEmpty() && viewId.isEmpty()) return false
+
+        // Redo keywords to explicitly exclude
+        val redoKeywords = listOf("redo", "重做", "取消復原", "取消撤销", "取消撤銷")
+        if (redoKeywords.any { desc.contains(it, ignoreCase = true) || text.contains(it, ignoreCase = true) || viewId.contains(it) }) {
+            return false
+        }
+
+        // Undo keywords in various languages
+        val undoKeywords = listOf("復原", "撤銷", "撤销", "元に戻す", "실행취소", "실행 취소", "deshacer")
+        if (undoKeywords.any { desc.contains(it, ignoreCase = true) || text.contains(it, ignoreCase = true) }) {
+            return true
+        }
+
+        if (desc.equals("undo", ignoreCase = true) ||
+            desc.startsWith("undo ", ignoreCase = true) ||
+            desc.endsWith(" undo", ignoreCase = true) ||
+            text.equals("undo", ignoreCase = true) ||
+            viewId.contains("undo")
+        ) {
+            return true
+        }
+
+        return false
+    }
+
+    private fun searchUndoButton(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+        if (node == null) return null
+        if (isUndoButton(node)) {
+            if (node.isClickable) return node
+            var parent = node.parent
+            while (parent != null) {
+                if (parent.isClickable) return parent
+                parent = parent.parent
+            }
+            return node
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val found = searchUndoButton(child)
+            if (found != null) return found
+        }
+        return null
+    }
+
+    private fun findNativeUndoButton(target: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+        // 1. Check parent tree of target node first
+        var targetRoot: AccessibilityNodeInfo? = target
+        while (targetRoot?.parent != null) {
+            targetRoot = targetRoot.parent
+        }
+        targetRoot?.let { root ->
+            val found = searchUndoButton(root)
+            if (found != null) return found
+        }
+
+        // 2. Check rootInActiveWindow
+        rootInActiveWindow?.let { root ->
+            val found = searchUndoButton(root)
+            if (found != null) return found
+        }
+
+        // 3. Search other windows
+        val windowList = runCatching { windows }.getOrNull() ?: emptyList()
+        for (window in windowList) {
+            if (window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD) continue
+            val root = window.root ?: continue
+            val found = searchUndoButton(root)
+            if (found != null) return found
+        }
+
+        return null
+    }
+
     /**
      * 互動式判斷 target 節點當前文字是否為佔位文字（Placeholder / Hint）。
      *
@@ -378,11 +467,9 @@ class VoiceAccessibilityService : AccessibilityService() {
      * 1. 游標判定：若游標位置大於 0（rawSelStart > 0 || rawSelEnd > 0），空欄位在 Android 中游標必為 0 或 -1，
      *    因此有正數游標代表使用者已實際輸入內容，直接判定為非佔位符。
      * 2. 官方屬性判定：檢查 Android 8.0+ isShowingHintText 與 hintText 特徵。
-     * 3. 互動式探測（Interactive Probing）：
-     *    - 透過 ACTION_SET_TEXT 嘗試寫入空白 " "，若節點為佔位文字，輸入非空內容將使佔位文字消失（內容改變）。
-     *    - 接著將內容清空為 ""。若該文字為佔位文字，清空後節點文字將動態復原為原本的提示文字（或 isShowingHintText 轉為 true）。
-     *    - 真實使用者文字被清空後，絕不會在清空狀態下自動復原為原本文字。
-     * 4. 備援機制：若互動探測未成功執行，退回 TextInsertion.isHintText 作為備援保護。
+     * 3. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）：
+     *    - 僅在節點支援 ACTION_SET_SELECTION 時執行，避免自繪引擎（如 Google Docs）因不支援選取而被誤判為佔位符。
+     * 4. 備援機制：若選取探測未執行或發生例外，退回 TextInsertion.isHintText 作為備援保護。
      */
     private fun isNodeTextPlaceholder(
         target: AccessibilityNodeInfo,
@@ -403,34 +490,33 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
 
         // 3. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）
-        // 核心原理：在 Android TextView 架構下 (TextView.canSelectText())：
-        // 唯有文字緩衝區有內容（mText.length() > 0）時，canSelectText() 才會返回 true，
-        // 允許執行 ACTION_SET_SELECTION（返回 true）；
-        // 當欄位實質為空時（mText.length() == 0，僅顯示偽裝的佔位文字），
-        // canSelectText() 必為 false，執行 ACTION_SET_SELECTION 必然被系統拒絕返回 false！
-        // 因此：canSelect == false 代表空欄位佔位符（替換）；canSelect == true 代表真實使用者文字（保留）！
         val len = initialText.length
         Log.d(TAG, "isNodeTextPlaceholder: pkg=${target.packageName}, cls=${target.className}, text='$initialText', rawSelStart=$rawSelStart, rawSelEnd=$rawSelEnd, hint='${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else ""}', isShowingHint=${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false}, actions=${target.actionList.map { it.id }}")
-        try {
-            val selArgs = Bundle().apply {
-                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, len)
-            }
-            val canSelect = target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
-            val isPlaceholder = TextInsertion.evaluateSelectionProbe(len, canSelect)
-            Log.d(TAG, "Selection capability probe: initial='$initialText', len=$len, canSelect=$canSelect, isPlaceholder=$isPlaceholder")
-
-            if (!isPlaceholder && rawSelStart >= 0) {
-                // 若判定為真實手打文字，將游標還原為原先位置
-                val restoreArgs = Bundle().apply {
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, rawSelStart)
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, rawSelEnd)
+        val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
+        if (supportsSelection) {
+            try {
+                val selArgs = Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, len)
                 }
-                target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, restoreArgs)
+                val canSelect = target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
+                val isPlaceholder = TextInsertion.evaluateSelectionProbe(len, canSelect)
+                Log.d(TAG, "Selection capability probe: initial='$initialText', len=$len, canSelect=$canSelect, isPlaceholder=$isPlaceholder")
+
+                if (!isPlaceholder && rawSelStart >= 0) {
+                    // 若判定為真實手打文字，將游標還原為原先位置
+                    val restoreArgs = Bundle().apply {
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, rawSelStart)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, rawSelEnd)
+                    }
+                    target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, restoreArgs)
+                }
+                return isPlaceholder
+            } catch (e: Exception) {
+                Log.w(TAG, "Selection probe exception: ${e.message}")
             }
-            return isPlaceholder
-        } catch (e: Exception) {
-            Log.w(TAG, "Selection probe exception: ${e.message}")
+        } else {
+            Log.d(TAG, "Node does not support ACTION_SET_SELECTION, skipping selection probe")
         }
 
         // 4. 備援機制
@@ -575,7 +661,20 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
         }
         if (target == null) {
-            Log.w(TAG, "restoreLastSnapshot: failed to find active or cached editable node")
+            Log.w(TAG, "restoreLastSnapshot: failed to find active or cached editable node, attempting native undo fallback")
+            val nativeUndoBtn = findNativeUndoButton(null)
+            if (nativeUndoBtn != null) {
+                val restored = runCatching {
+                    nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                }.getOrDefault(false)
+                Log.i(TAG, "restoreLastSnapshot: native undo button clicked without active target: result=$restored")
+                if (restored) {
+                    lastSnapshot = null
+                    lastInjectedText = null
+                    lastInjectedCursorPos = -1
+                    return true
+                }
+            }
             return false
         }
 
@@ -593,28 +692,44 @@ class VoiceAccessibilityService : AccessibilityService() {
             Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
 
             if (!restored) {
-                // Fallback for custom views or WebViews: select all and cut/paste
-                val currentLen = target.text?.length ?: 10000
-                val selAll = Bundle().apply {
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
+                // Priority 1 fallback: Try native application Undo button (for Google Docs, Word, Office apps, etc.)
+                val nativeUndoBtn = findNativeUndoButton(target)
+                if (nativeUndoBtn != null) {
+                    restored = runCatching {
+                        nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    }.getOrDefault(false)
+                    Log.i(TAG, "restoreLastSnapshot: native undo button clicked: result=$restored, desc='${nativeUndoBtn.contentDescription}', id='${nativeUndoBtn.viewIdResourceName}'")
                 }
-                target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll)
-                if (snapshot.originalText.isEmpty()) {
-                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
-                } else {
-                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            description.extras = PersistableBundle().apply {
-                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+
+            if (!restored) {
+                // Priority 2 fallback: Selection-based cut/paste (for custom views or WebViews that support selection)
+                val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
+                if (supportsSelection) {
+                    val currentLen = target.text?.length ?: 10000
+                    val selAll = Bundle().apply {
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
+                    }
+                    val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
+                    if (canSelect) {
+                        if (snapshot.originalText.isEmpty()) {
+                            restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
+                        } else {
+                            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    description.extras = PersistableBundle().apply {
+                                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                    }
+                                }
                             }
+                            clipboard.setPrimaryClip(clip)
+                            restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
                         }
                     }
-                    clipboard.setPrimaryClip(clip)
-                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
+                    Log.i(TAG, "restoreLastSnapshot: fallback select-all cut/paste result: $restored")
                 }
-                Log.i(TAG, "restoreLastSnapshot: fallback select-all cut/paste result: $restored")
             }
 
             if (restored && snapshot.selectionStart >= 0 && snapshot.selectionEnd >= 0) {
