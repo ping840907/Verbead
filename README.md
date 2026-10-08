@@ -154,7 +154,7 @@ app/src/main/java/com/ping/verbead/
 |---|---|---|---|
 | **[X-ASR (zh-tw-en-streaming)](https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m)** | [Luigi](https://huggingface.co/Luigi) | Apache 2.0 | 感謝 Luigi 訓練並開源針對台灣繁體中文、國台語及英語最佳化之串流語音模型 |
 | **[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** | [Next-gen Kaldi (k2-fsa)](https://github.com/k2-fsa) | Apache 2.0 | 提供強大且高效的跨平台 On-Device 語音辨識 Runtime |
-| **[Qwen3-ASR](https://github.com/QwenLM)** | Alibaba Qwen Team | Apache 2.0 | 提供優異表現的開源語音辨識大模型 |
+| **[Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR)** | [Alibaba Qwen Team](https://github.com/QwenLM) | Apache 2.0 | 提供優異表現的開源語音辨識大模型 |
 | **[PaddleOCR (PP-OCRv6)](https://github.com/PaddlePaddle/PaddleOCR)** | [PaddlePaddle 團隊 (百度飛槳)](https://github.com/PaddlePaddle) | Apache 2.0 | 提供業界頂尖之端側輕量化 OCR 文字偵測與文字辨識模型（PP-OCRv6 Det & Rec），實現全離線文字提取 |
 | **[zxing-cpp](https://github.com/zxing-cpp/zxing-cpp)** | [zxing-cpp 團隊 / Axel Waggershauser](https://github.com/zxing-cpp) | Apache 2.0 | 高效能 C++ 一維與二維條碼 / QR Code 辨識引擎（提供 Android AAR 封裝），實現毫秒級即時掃描與解碼 |
 | **[ONNX Runtime](https://github.com/microsoft/onnxruntime)** | [Microsoft](https://github.com/microsoft) | MIT | 跨平台高效能端側神經網路推論引擎，支援 PP-OCR 視覺模型於本機高效運算 |
