@@ -41,11 +41,11 @@ class PpOcrEngine(private val context: Context) {
          * Pure evaluation function for deciding whether to adopt a 180-degree flipped OCR candidate over 0-degree upright.
          *
          * Design guarantees zero regression:
-         * 1. Strong upright prior: If 0 deg result has good confidence (>= 0.78 with valid chars, or >= 0.85),
-         *    it is ALWAYS kept, guaranteeing zero regression for upright text and avoiding misinverting symmetric
-         *    characters like '6'/'9', 'no'/'on', etc.
-         * 2. Strict asymmetric bar: 180 deg is only adopted when 0 deg is weak/failing and 180 deg demonstrates
-         *    substantially more valid characters and higher confidence.
+         * 1. Strong upright prior: If 0 deg result has good confidence (>= 0.75 for multi-character, >= 0.70 for Chinese,
+         *    >= 0.40 for single digits/letters), it is ALWAYS kept, guaranteeing zero regression for upright text and avoiding
+         *    misinverting symmetric characters like '6'/'9', 'no'/'on', etc.
+         * 2. Comprehensive upside-down Chinese & alphanumeric support: 180 deg is adopted when 180 deg demonstrates
+         *    more valid characters with good confidence, or when 0 deg was poor/hallucinated and 180 deg is distinctly superior.
          */
         fun shouldAdopt180Rotation(
             text0: String,
@@ -56,24 +56,65 @@ class PpOcrEngine(private val context: Context) {
             val t0 = text0.trim()
             val t180 = text180.trim()
 
-            val validChars0 = t0.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
-            val validChars180 = t180.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
+            val cjk0 = t0.count { it in '\u4e00'..'\u9fa5' }
+            val cjk180 = t180.count { it in '\u4e00'..'\u9fa5' }
 
-            // Fast-path guard: if upright is confident and valid, never flip
-            if (conf0 >= 0.78f && validChars0 >= 2) return false
-            if (conf0 >= 0.85f && validChars0 >= 1) return false
+            val alnum0 = t0.count { it.isLetterOrDigit() }
+            val alnum180 = t180.count { it.isLetterOrDigit() }
 
-            // Strict asymmetric adoption criteria:
-            // Condition A: 180 deg has more valid characters, and good confidence (>= 0.65) that is at least 0.15 higher than 0 deg
-            if (validChars180 > validChars0 && conf180 >= 0.65f && conf180 > conf0 + 0.15f) return true
+            val valid0 = cjk0 + alnum0
+            val valid180 = cjk180 + alnum180
 
-            // Condition B: 0 deg produced ZERO valid characters (gibberish/empty/punctuation only), while 180 deg produced valid characters with decent confidence
-            if (validChars180 > 0 && validChars0 == 0 && conf180 >= 0.55f) return true
+            // 1. If 180-deg candidate produced no valid characters, never adopt 180
+            if (valid180 == 0) return false
 
-            // Condition C: Equal character count (>= 2), but 180 deg is very high confidence (>= 0.80) while 0 deg was poor (< 0.45)
-            if (validChars180 == validChars0 && validChars180 >= 2 && conf180 >= 0.80f && conf0 < 0.45f) return true
+            // 2. If 0-deg candidate produced no valid characters (empty, noise, or punctuation only),
+            //    adopt 180 if it produced valid characters with reasonable confidence
+            if (valid0 == 0) {
+                return conf180 >= 0.50f
+            }
 
-            return false
+            // 3. Strong upright prior:
+            //    If 0-deg has strictly more valid characters than 180-deg, upright always wins.
+            if (valid0 > valid180) return false
+
+            // 4. Equal character count (valid180 == valid0):
+            if (valid180 == valid0) {
+                // 4a. Single character (valid0 == 1):
+                //     Protect against flipping symmetric characters ('6'/'9', 'no'/'on', '口'/'田'/'十').
+                if (valid0 == 1) {
+                    val isDigitOrLatin = t0.any { it.isDigit() || (it in 'a'..'z' || it in 'A'..'Z') }
+                    if (isDigitOrLatin) {
+                        // Strict protection for single digits and Latin letters:
+                        // Never flip if 0-deg has even minimal confidence (>= 0.40f)
+                        if (conf0 >= 0.40f) return false
+                        return conf180 >= 0.75f && conf180 > conf0 + 0.35f
+                    } else {
+                        // Single Chinese character:
+                        // Never flip if 0-deg is reasonably confident (>= 0.70f)
+                        if (conf0 >= 0.70f) return false
+                        return conf180 >= 0.78f && conf180 > conf0 + 0.20f
+                    }
+                }
+
+                // 4b. Multiple characters (valid0 >= 2):
+                //     If 0-deg is confident (>= 0.75f), upright prior wins (protects "no" vs "on", etc.)
+                if (conf0 >= 0.75f) return false
+
+                //     If 0-deg was poor (< 0.75f), adopt 180 if 180-deg is confident and distinctly better
+                return conf180 >= 0.78f && conf180 >= conf0 + 0.15f
+            }
+
+            // 5. 180-deg has strictly more valid characters (valid180 > valid0):
+            // 5a. 180-deg has at least 2 more valid characters (e.g. 4 vs 2, 3 vs 1):
+            //     Strong physical evidence that 180-deg reconstructed the full text line.
+            if (valid180 >= valid0 + 2) {
+                return conf180 >= 0.65f && conf180 >= conf0 - 0.05f
+            }
+
+            // 5b. 180-deg has 1 more valid character (valid180 == valid0 + 1):
+            //     Adopt if 180-deg has good confidence and improves over 0-deg
+            return conf180 >= 0.65f && conf180 >= conf0 + 0.05f
         }
     }
 
@@ -482,9 +523,28 @@ class PpOcrEngine(private val context: Context) {
                         rot90.recycle()
                     }
 
+                    // Candidate 5: Rotated 180 degrees directly (for upside-down single characters)
+                    val matrix180 = Matrix().apply { postRotate(180f) }
+                    val rot180 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix180, true)
+                    val cand180 = if (origH <= origW * 1.55f) {
+                        recognizeHorizontalStrip(rot180)
+                    } else {
+                        "" to 0f
+                    }
+
+                    // Candidate 6: Upside-down vertical text unrolled into horizontal strip
+                    val unrolled180 = unrollVerticalToHorizontal(rot180)
+                    val candUnroll180 = if (unrolled180 != null) recognizeHorizontalStrip(unrolled180) else ("" to 0f)
+                    if (unrolled180 != null && unrolled180 != rot180) {
+                        unrolled180.recycle()
+                    }
+                    if (rot180 != crop) {
+                        rot180.recycle()
+                    }
+
                     // Score candidates: prioritize high confidence (>0.85), valid CJK/alphanumeric characters,
                     // favor natural unsliced candidates, and penalize noise punctuation/fragments and length that physically exceeds box capacity.
-                    fun score(cand: Pair<String, Float>, isUnsliced: Boolean): Float {
+                    fun score(cand: Pair<String, Float>, isUnsliced: Boolean, is180: Boolean = false): Float {
                         val text = cand.first.trim()
                         if (text.isEmpty()) return -1f
                         val avgConf = cand.second
@@ -508,6 +568,12 @@ class PpOcrEngine(private val context: Context) {
                         if (isUnsliced) {
                             s *= 1.3f // Strong preference for natural unsliced candidates
                         }
+                        if (is180) {
+                            // Upright prior: 180-deg candidates require good confidence (>= 0.65f)
+                            // and have a slight discount to strictly avoid false inversions of upright columns
+                            if (avgConf < 0.65f) return -1f
+                            s *= 0.85f
+                        }
                         if (text.length > maxPossibleChars) {
                             s -= (text.length - maxPossibleChars) * 15f
                         }
@@ -518,14 +584,18 @@ class PpOcrEngine(private val context: Context) {
                     val scoreUnroll = score(candUnroll, isUnsliced = false)
                     val scoreUpright = score(candUpright, isUnsliced = true)
                     val score90 = score(cand90, isUnsliced = true)
+                    val score180 = score(cand180, isUnsliced = true, is180 = true)
+                    val scoreUnroll180 = score(candUnroll180, isUnsliced = false, is180 = true)
 
-                    Log.d(TAG, "Vertical candidates for [${origW}x${origH}]: 270='${cand270.first}' (conf=${cand270.second}, s=$score270), unroll='${candUnroll.first}' (conf=${candUnroll.second}, s=$scoreUnroll), upright='${candUpright.first}' (conf=${candUpright.second}, s=$scoreUpright), 90='${cand90.first}' (conf=${cand90.second}, s=$score90)")
+                    Log.d(TAG, "Vertical candidates for [${origW}x${origH}]: 270='${cand270.first}' (conf=${cand270.second}, s=$score270), unroll='${candUnroll.first}' (conf=${candUnroll.second}, s=$scoreUnroll), upright='${candUpright.first}' (conf=${candUpright.second}, s=$scoreUpright), 90='${cand90.first}' (conf=${cand90.second}, s=$score90), 180='${cand180.first}' (conf=${cand180.second}, s=$score180), unroll180='${candUnroll180.first}' (conf=${candUnroll180.second}, s=$scoreUnroll180)")
 
                     val candidates = listOf(
                         Triple(cand270.first, score270, cand270.second),
                         Triple(candUnroll.first, scoreUnroll, candUnroll.second),
                         Triple(candUpright.first, scoreUpright, candUpright.second),
-                        Triple(cand90.first, score90, cand90.second)
+                        Triple(cand90.first, score90, cand90.second),
+                        Triple(cand180.first, score180, cand180.second),
+                        Triple(candUnroll180.first, scoreUnroll180, candUnroll180.second)
                     )
 
                     val best = candidates.filter { it.second > 0f }.maxByOrNull { it.second }
@@ -554,9 +624,9 @@ class PpOcrEngine(private val context: Context) {
         val validChars0 = text0.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
 
         // Fast-path short-circuit:
-        // High-confidence upright text skips 180-degree bitmap creation and inference entirely.
-        if (conf0 >= 0.78f && validChars0 >= 2) return text0
-        if (conf0 >= 0.85f && validChars0 >= 1) return text0
+        // Only skip 180-deg evaluation if upright is overwhelmingly decisive
+        // (at least 4 valid characters with >= 0.92 confidence, where upside-down hallucinations are statistically impossible).
+        if (conf0 >= 0.92f && validChars0 >= 4) return text0
 
         var rot180: Bitmap? = null
         return try {
@@ -565,10 +635,11 @@ class PpOcrEngine(private val context: Context) {
             val cand180 = recognizeHorizontalStrip(rot180)
             val text180 = cand180.first.trim()
             val conf180 = cand180.second
+            val validChars180 = text180.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
 
             val adopt180 = shouldAdopt180Rotation(text0, conf0, text180, conf180)
+            Log.d(TAG, "Smart orientation check [${origW}x${origH}]: 0deg='$text0' (conf=$conf0, valid=$validChars0) vs 180deg='$text180' (conf=$conf180, valid=$validChars180) -> adopt180=$adopt180")
             if (adopt180) {
-                Log.d(TAG, "Smart 180-deg orientation adopted: '$text0' (conf=$conf0) -> '$text180' (conf=$conf180)")
                 text180
             } else {
                 text0
