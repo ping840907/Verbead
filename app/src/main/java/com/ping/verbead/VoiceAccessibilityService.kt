@@ -341,43 +341,42 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
         }
 
-        // 3. 互動式探測（Interactive Probing）
+        // 3. 虛擬選取能力探測（Selection Buffer Probe - 解決手打文字與佔位符同字的極端邊界條件）
+        // 核心原理：在 Android TextView 架構下，空欄位的真實緩衝區（mText）長度為 0。
+        // 即使 AccessibilityNodeInfo 回傳了佔位字（如「輸入訊息」），嘗試將選取範圍設定為 (0, initialText.length)
+        // 在空欄位只會被系統自動 clamp 回 (0, 0)，選取長度為 0；
+        // 反之若為使用者手打之內容（即使內容剛好也是「輸入訊息」），mText 長度為 4，選取將成功變為 (0, 4)。
+        // 此探測完全不抹除任何文字內容，能精準分辨手打文字與佔位符。
+        val len = initialText.length
         try {
-            val spaceArgs = Bundle().apply {
-                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, " ")
+            val selArgs = Bundle().apply {
+                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, len)
             }
-            val spaceSuccess = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, spaceArgs)
-            if (spaceSuccess) {
+            val selSuccess = target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
+            if (selSuccess) {
                 target.refresh()
-                val textWithSpace = target.text?.toString() ?: ""
+                val probedSelStart = target.textSelectionStart
+                val probedSelEnd = target.textSelectionEnd
+                val selectedLen = (probedSelEnd - probedSelStart).coerceAtLeast(0)
 
-                val emptyArgs = Bundle().apply {
-                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "")
-                }
-                target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, emptyArgs)
-                target.refresh()
+                val probeResult = TextInsertion.evaluateSelectionProbe(len, selectedLen)
+                Log.d(TAG, "Selection probe: initial='$initialText', len=$len, probedStart=$probedSelStart, probedEnd=$probedSelEnd, selectedLen=$selectedLen, isPlaceholder=$probeResult")
 
-                val textAfterClear = target.text?.toString() ?: ""
-                val isHintAfterClear = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false
-
-                val isProbePlaceholder = TextInsertion.evaluateProbeResult(
-                    initialText = initialText,
-                    textWithSpace = textWithSpace,
-                    textAfterClear = textAfterClear,
-                    isHintAfterClear = isHintAfterClear
-                )
-
-                Log.d(TAG, "isNodeTextPlaceholder probe: initial='$initialText', withSpace='$textWithSpace', afterClear='$textAfterClear', isPlaceholder=$isProbePlaceholder")
-                if (isProbePlaceholder) {
-                    return true
-                }
-                // 若輸入空白後內容實質改變，且清空後文字不是 initialText，代表 initialText 是真實使用者文字（清空後消失）
-                if (textWithSpace != initialText && !textAfterClear.equals(initialText, ignoreCase = true)) {
-                    return false
+                if (probeResult != null) {
+                    // 若判定為真實使用者文字，還原游標狀態（若有）
+                    if (!probeResult && rawSelStart >= 0) {
+                        val restoreArgs = Bundle().apply {
+                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, rawSelStart)
+                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, rawSelEnd)
+                        }
+                        target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, restoreArgs)
+                    }
+                    return probeResult
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Interactive placeholder probe exception: ${e.message}")
+            Log.w(TAG, "Selection probe exception: ${e.message}")
         }
 
         // 4. 備援機制

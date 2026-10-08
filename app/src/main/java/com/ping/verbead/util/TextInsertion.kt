@@ -100,6 +100,31 @@ object TextInsertion {
     }
 
     /**
+     * Evaluates selection probe results to determine if [textLength] represents a placeholder or real user text.
+     *
+     * Principles:
+     * - In Android TextView architecture, even if an accessibility node returns hint text
+     *   as its text property, its underlying buffer (mText) has length 0.
+     * - Attempting to select (0, textLength) on an empty field will clamp to (0, 0),
+     *   yielding a selected length of 0.
+     * - If the user actually hand-typed text (even if identical to the placeholder),
+     *   the underlying buffer has length equal to textLength, so the selection succeeds
+     *   and yields selectedLength == textLength.
+     *
+     * @param textLength The length of the text reported by target.text
+     * @param selectedLength The length of the text selection after requesting (0, textLength)
+     * @return true if the selection probe definitively proves the text is a placeholder,
+     *         false if it definitively proves the text is real user input,
+     *         null if indeterminate
+     */
+    fun evaluateSelectionProbe(textLength: Int, selectedLength: Int): Boolean? {
+        if (textLength <= 0) return false
+        if (selectedLength == textLength) return false // Definitively real user text!
+        if (selectedLength == 0) return true // Definitively placeholder!
+        return null
+    }
+
+    /**
      * Inserts [insertedText] into [originalText] at the range specified by [rawSelStart] and [rawSelEnd].
      *
      * Handles:
