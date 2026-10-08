@@ -57,6 +57,7 @@ import kotlin.math.roundToInt
 import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.RectF
 import android.net.Uri
@@ -2680,6 +2681,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val ivSnapshot = ocrView.findViewById<ImageView>(R.id.iv_ocr_snapshot)
         val boxesOverlay = ocrView.findViewById<OcrBoxesOverlayView>(R.id.view_ocr_boxes)
         val btnCloseOcr = ocrView.findViewById<ImageButton>(R.id.btn_close_ocr)
+        val btnRotateOcr = ocrView.findViewById<ImageButton>(R.id.btn_rotate_ocr)
         val tvStatus = ocrView.findViewById<TextView>(R.id.tv_ocr_status)
         val progress = ocrView.findViewById<ProgressBar>(R.id.progress_ocr)
         val frameContainer = ocrView.findViewById<View>(R.id.container_snapshot_frame)
@@ -2699,6 +2701,114 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             dismissOcrSnapshot()
         }
 
+        boxesOverlay.onSelectionChanged = { selectedIndices ->
+            val count = selectedIndices.size
+            if (count > 0) {
+                if (bottomBar.visibility != View.VISIBLE) {
+                    bottomBar.visibility = View.VISIBLE
+                    bottomBar.alpha = 0f
+                    bottomBar.translationY = 30f
+                    bottomBar.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(160)
+                        .start()
+                }
+                tvStatus.text = "已選取 $count 個區塊 (按序號組合)，點「辨識並輸入」"
+                btnConfirm.text = if (count == 1) "辨識並輸入" else "辨識並輸入 ($count)"
+            } else {
+                if (bottomBar.visibility == View.VISIBLE) {
+                    bottomBar.animate()
+                        .alpha(0f)
+                        .translationY(30f)
+                        .setDuration(140)
+                        .withEndAction { bottomBar.visibility = View.GONE }
+                        .start()
+                }
+                tvStatus.text = "點選欲輸入之文字區塊 (可多選)"
+            }
+        }
+
+        boxesOverlay.onQuickConfirm = { selectedBox, _ ->
+            HapticUtil.click(this@FloatingBubbleService)
+            val currentBitmap = currentSnapshotBitmap ?: bitmap
+            onOcrBoxesSelected(currentBitmap, listOf(selectedBox), tvStatus, progress)
+        }
+
+        btnSelectAll.setOnClickListener {
+            HapticUtil.click(this@FloatingBubbleService)
+            boxesOverlay.selectAll()
+        }
+
+        btnClear.setOnClickListener {
+            HapticUtil.click(this@FloatingBubbleService)
+            boxesOverlay.clearSelection()
+        }
+
+        btnConfirm.setOnClickListener {
+            HapticUtil.click(this@FloatingBubbleService)
+            val selectedBoxes = boxesOverlay.getSelectedBoxes()
+            if (selectedBoxes.isNotEmpty()) {
+                val currentBitmap = currentSnapshotBitmap ?: bitmap
+                onOcrBoxesSelected(currentBitmap, selectedBoxes, tvStatus, progress)
+            }
+        }
+
+        var detectJob: Job? = null
+        fun startDetection(targetBitmap: Bitmap, statusPrefix: String = "正在偵測文字區塊…") {
+            detectJob?.cancel()
+            boxesOverlay.clearBoxes()
+            bottomBar.visibility = View.GONE
+            tvStatus.text = statusPrefix
+            progress.visibility = View.VISIBLE
+
+            detectJob = scope.launch {
+                try {
+                    if (!ppOcrEngine.isReady) {
+                        val loaded = ppOcrEngine.load()
+                        if (!loaded) {
+                            progress.visibility = View.GONE
+                            val reason = ppOcrEngine.lastLoadError ?: "請確認模型檔案完整"
+                            tvStatus.text = "PP-OCR 模型載入失敗: $reason"
+                            return@launch
+                        }
+                    }
+
+                    val detectedRects = withContext(Dispatchers.Default) {
+                        ppOcrEngine.detectText(targetBitmap)
+                    }
+
+                    progress.visibility = View.GONE
+                    if (detectedRects.isEmpty()) {
+                        tvStatus.text = "未偵測到清晰文字，可嘗試翻轉 180° 或重試"
+                    } else {
+                        tvStatus.text = "點選欲輸入之文字區塊 (可多選，共 ${detectedRects.size} 處)"
+                        boxesOverlay.setDetectedBoxes(detectedRects, targetBitmap.width, targetBitmap.height)
+                    }
+                } catch (e: Throwable) {
+                    Log.e(TAG, "OCR detection error: ${e.message}", e)
+                    progress.visibility = View.GONE
+                    tvStatus.text = "OCR 處理發生錯誤 (${e.javaClass.simpleName}): ${e.localizedMessage ?: e.message ?: "未知錯誤"}"
+                }
+            }
+        }
+
+        btnRotateOcr?.setOnClickListener {
+            HapticUtil.click(this)
+            val current = currentSnapshotBitmap ?: return@setOnClickListener
+            if (current.isRecycled) return@setOnClickListener
+
+            val matrix = Matrix().apply { postRotate(180f) }
+            val rotated = Bitmap.createBitmap(current, 0, 0, current.width, current.height, matrix, true)
+            currentSnapshotBitmap = rotated
+            if (current !== rotated) {
+                current.recycle()
+            }
+
+            ivSnapshot.setImageBitmap(rotated)
+            startDetection(rotated, "已翻轉 180°，正在重新偵測文字…")
+        }
+
         frameContainer.alpha = 0f
         frameContainer.scaleX = 0.6f
         frameContainer.scaleY = 0.6f
@@ -2714,86 +2824,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .setInterpolator(DecelerateInterpolator())
             .start()
 
-        scope.launch {
-            try {
-                if (!ppOcrEngine.isReady) {
-                    val loaded = ppOcrEngine.load()
-                    if (!loaded) {
-                        progress.visibility = View.GONE
-                        val reason = ppOcrEngine.lastLoadError ?: "請確認模型檔案完整"
-                        tvStatus.text = "PP-OCR 模型載入失敗: $reason"
-                        return@launch
-                    }
-                }
-
-                val detectedRects = withContext(Dispatchers.Default) {
-                    ppOcrEngine.detectText(bitmap)
-                }
-
-                progress.visibility = View.GONE
-                if (detectedRects.isEmpty()) {
-                    tvStatus.text = "未偵測到清晰文字，點擊關閉重試"
-                } else {
-                    tvStatus.text = "點選欲輸入之文字區塊 (可多選，共 ${detectedRects.size} 處)"
-                    boxesOverlay.setDetectedBoxes(detectedRects, bitmap.width, bitmap.height)
-
-                    boxesOverlay.onSelectionChanged = { selectedIndices ->
-                        val count = selectedIndices.size
-                        if (count > 0) {
-                            if (bottomBar.visibility != View.VISIBLE) {
-                                bottomBar.visibility = View.VISIBLE
-                                bottomBar.alpha = 0f
-                                bottomBar.translationY = 30f
-                                bottomBar.animate()
-                                    .alpha(1f)
-                                    .translationY(0f)
-                                    .setDuration(160)
-                                    .start()
-                            }
-                            tvStatus.text = "已選取 $count 個區塊 (按序號組合)，點「辨識並輸入」"
-                            btnConfirm.text = if (count == 1) "辨識並輸入" else "辨識並輸入 ($count)"
-                        } else {
-                            if (bottomBar.visibility == View.VISIBLE) {
-                                bottomBar.animate()
-                                    .alpha(0f)
-                                    .translationY(30f)
-                                    .setDuration(140)
-                                    .withEndAction { bottomBar.visibility = View.GONE }
-                                    .start()
-                            }
-                            tvStatus.text = "點選欲輸入之文字區塊 (可多選，共 ${detectedRects.size} 處)"
-                        }
-                    }
-
-                    boxesOverlay.onQuickConfirm = { selectedBox, _ ->
-                        HapticUtil.click(this@FloatingBubbleService)
-                        onOcrBoxesSelected(bitmap, listOf(selectedBox), tvStatus, progress)
-                    }
-
-                    btnSelectAll.setOnClickListener {
-                        HapticUtil.click(this@FloatingBubbleService)
-                        boxesOverlay.selectAll()
-                    }
-
-                    btnClear.setOnClickListener {
-                        HapticUtil.click(this@FloatingBubbleService)
-                        boxesOverlay.clearSelection()
-                    }
-
-                    btnConfirm.setOnClickListener {
-                        HapticUtil.click(this@FloatingBubbleService)
-                        val selectedBoxes = boxesOverlay.getSelectedBoxes()
-                        if (selectedBoxes.isNotEmpty()) {
-                            onOcrBoxesSelected(bitmap, selectedBoxes, tvStatus, progress)
-                        }
-                    }
-                }
-            } catch (e: Throwable) {
-                Log.e(TAG, "OCR detection error: ${e.message}", e)
-                progress.visibility = View.GONE
-                tvStatus.text = "OCR 處理發生錯誤 (${e.javaClass.simpleName}): ${e.localizedMessage ?: e.message ?: "未知錯誤"}"
-            }
-        }
+        startDetection(bitmap)
     }
 
     private fun onOcrBoxesSelected(

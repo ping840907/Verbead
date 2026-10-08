@@ -36,6 +36,45 @@ class PpOcrEngine(private val context: Context) {
         private const val DB_THRESH = 0.2f
         private const val BOX_THRESH = 0.4f
         private const val UNCLIP_RATIO = 1.6f
+
+        /**
+         * Pure evaluation function for deciding whether to adopt a 180-degree flipped OCR candidate over 0-degree upright.
+         *
+         * Design guarantees zero regression:
+         * 1. Strong upright prior: If 0 deg result has good confidence (>= 0.78 with valid chars, or >= 0.85),
+         *    it is ALWAYS kept, guaranteeing zero regression for upright text and avoiding misinverting symmetric
+         *    characters like '6'/'9', 'no'/'on', etc.
+         * 2. Strict asymmetric bar: 180 deg is only adopted when 0 deg is weak/failing and 180 deg demonstrates
+         *    substantially more valid characters and higher confidence.
+         */
+        fun shouldAdopt180Rotation(
+            text0: String,
+            conf0: Float,
+            text180: String,
+            conf180: Float
+        ): Boolean {
+            val t0 = text0.trim()
+            val t180 = text180.trim()
+
+            val validChars0 = t0.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
+            val validChars180 = t180.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
+
+            // Fast-path guard: if upright is confident and valid, never flip
+            if (conf0 >= 0.78f && validChars0 >= 2) return false
+            if (conf0 >= 0.85f && validChars0 >= 1) return false
+
+            // Strict asymmetric adoption criteria:
+            // Condition A: 180 deg has more valid characters, and good confidence (>= 0.65) that is at least 0.15 higher than 0 deg
+            if (validChars180 > validChars0 && conf180 >= 0.65f && conf180 > conf0 + 0.15f) return true
+
+            // Condition B: 0 deg produced ZERO valid characters (gibberish/empty/punctuation only), while 180 deg produced valid characters with decent confidence
+            if (validChars180 > 0 && validChars0 == 0 && conf180 >= 0.55f) return true
+
+            // Condition C: Equal character count (>= 2), but 180 deg is very high confidence (>= 0.80) while 0 deg was poor (< 0.45)
+            if (validChars180 == validChars0 && validChars180 >= 2 && conf180 >= 0.80f && conf0 < 0.45f) return true
+
+            return false
+        }
     }
 
     private var env: OrtEnvironment? = null
@@ -492,14 +531,54 @@ class PpOcrEngine(private val context: Context) {
                     val best = candidates.filter { it.second > 0f }.maxByOrNull { it.second }
                     best?.first ?: cand270.first.ifEmpty { candUnroll.first.ifEmpty { candUpright.first } }
                 } else {
-                    // Normal horizontal text box
-                    recognizeHorizontalStrip(crop).first
+                    // Normal horizontal text box with smart 180-degree orientation detection
+                    recognizeHorizontalWithSmartOrientation(crop, origW, origH)
                 }
 
                 resultText
             } catch (e: Throwable) {
                 Log.e(TAG, "Recognition error: ${e.message}", e)
                 ""
+            }
+        }
+    }
+
+    /**
+     * Recognizes horizontal text crops with smart 180-degree orientation detection.
+     */
+    private fun recognizeHorizontalWithSmartOrientation(crop: Bitmap, origW: Int, origH: Int): String {
+        val cand0 = recognizeHorizontalStrip(crop)
+        val text0 = cand0.first.trim()
+        val conf0 = cand0.second
+
+        val validChars0 = text0.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
+
+        // Fast-path short-circuit:
+        // High-confidence upright text skips 180-degree bitmap creation and inference entirely.
+        if (conf0 >= 0.78f && validChars0 >= 2) return text0
+        if (conf0 >= 0.85f && validChars0 >= 1) return text0
+
+        var rot180: Bitmap? = null
+        return try {
+            val matrix180 = Matrix().apply { postRotate(180f) }
+            rot180 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix180, true)
+            val cand180 = recognizeHorizontalStrip(rot180)
+            val text180 = cand180.first.trim()
+            val conf180 = cand180.second
+
+            val adopt180 = shouldAdopt180Rotation(text0, conf0, text180, conf180)
+            if (adopt180) {
+                Log.d(TAG, "Smart 180-deg orientation adopted: '$text0' (conf=$conf0) -> '$text180' (conf=$conf180)")
+                text180
+            } else {
+                text0
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "180-deg candidate evaluation failed: ${e.message}")
+            text0
+        } finally {
+            if (rot180 != null && rot180 !== crop) {
+                rot180.recycle()
             }
         }
     }
