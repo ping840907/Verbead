@@ -24,6 +24,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.util.TextInsertion
 
 class VoiceAccessibilityService : AccessibilityService() {
@@ -149,6 +150,11 @@ class VoiceAccessibilityService : AccessibilityService() {
             if (intent.getBooleanExtra("undo", false)) {
                 Log.d(TAG, "TestReceiver received undo request")
                 restoreLastSnapshot()
+                return
+            }
+            if (intent.getBooleanExtra("enter", false)) {
+                Log.d(TAG, "TestReceiver received enter request")
+                sendEnterKey()
                 return
             }
             val text = intent.getStringExtra("text") ?: return
@@ -489,9 +495,19 @@ class VoiceAccessibilityService : AccessibilityService() {
             if (target.isShowingHintText) return true
         }
 
-        // 3. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）
+        val hint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null
+        val hintNorm = TextInsertion.normalizeHint(hint)
+        val origNorm = TextInsertion.normalizeHint(initialText)
+
+        // 3. 防禦性過濾：若節點有定義提示文字（如 Google Keep 裡的「記事」），且目前文字（如「ABC」）與提示文字完全不相符，
+        // 代表該欄位已包含使用者輸入的內容，絕非佔位符。立即返回 false，避免執行選取探測干擾游標與 Spannable 狀態。
+        if (hintNorm.isNotEmpty() && !origNorm.equals(hintNorm, ignoreCase = true)) {
+            return false
+        }
+
+        // 4. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）
         val len = initialText.length
-        Log.d(TAG, "isNodeTextPlaceholder: pkg=${target.packageName}, cls=${target.className}, text='$initialText', rawSelStart=$rawSelStart, rawSelEnd=$rawSelEnd, hint='${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else ""}', isShowingHint=${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false}, actions=${target.actionList.map { it.id }}")
+        Log.d(TAG, "isNodeTextPlaceholder: pkg=${target.packageName}, cls=${target.className}, text='$initialText', rawSelStart=$rawSelStart, rawSelEnd=$rawSelEnd, hint='$hint', isShowingHint=${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false}, actions=${target.actionList.map { it.id }}")
         val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
         if (supportsSelection) {
             try {
@@ -516,13 +532,28 @@ class VoiceAccessibilityService : AccessibilityService() {
                 Log.w(TAG, "Selection probe exception: ${e.message}")
             }
         } else {
+            // 節點不包含 ACTION_SET_SELECTION。
+            // 在 Telegram 等通訊軟體中，當輸入框為空時，底層文字緩衝區長度為 0，TextView 不會將 ACTION_SET_SELECTION 加入 actions。
+            // 但若使用者手動輸入了與佔位文字相同的文字（如手打「輸入訊息」），文字緩衝區長度 > 0，ACTION_SET_SELECTION 就會存在。
+            // 因此當 supportsSelection 為 false 且游標 <= 0 時：
+            // 若為 Telegram，或支援 ACTION_SET_TEXT 且游標未初始化（rawSelStart < 0），判定為動態佔位文字！
+            val isTelegram = target.packageName?.contains("telegram", ignoreCase = true) == true
+            val supportsSetText = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_TEXT }
+            if (isTelegram && supportsSetText && rawSelStart <= 0 && rawSelEnd <= 0) {
+                Log.d(TAG, "isNodeTextPlaceholder: Telegram empty input detected without ACTION_SET_SELECTION ('$initialText')")
+                return true
+            }
+            if (rawSelStart < 0 && rawSelEnd < 0 && supportsSetText) {
+                Log.d(TAG, "isNodeTextPlaceholder: uninitialized cursor node without ACTION_SET_SELECTION detected as placeholder ('$initialText')")
+                return true
+            }
             Log.d(TAG, "Node does not support ACTION_SET_SELECTION, skipping selection probe")
         }
 
-        // 4. 備援機制
+        // 5. 備援機制
         return TextInsertion.isHintText(
             originalText = initialText,
-            hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null,
+            hintText = hint,
             isShowingHintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false,
             contentDescription = target.contentDescription
         )
@@ -571,6 +602,53 @@ class VoiceAccessibilityService : AccessibilityService() {
             // 採用互動判斷邏輯（Interactive Probing）比對輸入反應，動態決定是否移除佔位文字
             val isHint = isNodeTextPlaceholder(target, initialText, rawSelStart, rawSelEnd)
 
+            val isPasteMode = ModelConfig.isPasteModeEnabled(this)
+
+            if (isPasteMode) {
+                // ── 模式 2: 剪貼簿貼上 (Text Paste) ──
+                if (createSnapshot) {
+                    lastSnapshot = EditorSnapshot(
+                        node = target,
+                        originalText = if (isHint) "" else initialText,
+                        selectionStart = rawSelStart,
+                        selectionEnd = rawSelEnd
+                    )
+                    lastInjectedText = text
+                    lastInjectedCursorPos = -1
+                }
+
+                // 若欄位為佔位符（如 Telegram 的提示字）且支援選取，先全選以確保貼上時覆蓋佔位文字
+                if (isHint && initialText.isNotEmpty() && target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }) {
+                    val selAll = Bundle().apply {
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, initialText.length)
+                    }
+                    runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }
+                }
+
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("text", text).apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        description.extras = PersistableBundle().apply {
+                            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                        }
+                    }
+                }
+                clipboard.setPrimaryClip(clip)
+
+                val pasted = runCatching {
+                    target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+                }.getOrDefault(false)
+                Log.i(TAG, "Paste mode ACTION_PASTE result: $pasted")
+                if (!pasted) {
+                    mainHandler.post {
+                        Toast.makeText(this, R.string.toast_fallback_clipboard, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                return pasted
+            }
+
+            // ── 模式 1: 無障礙直接填入 (SetText) ──
             val insertion = TextInsertion.insert(
                 originalText = initialText,
                 rawSelStart = rawSelStart,
@@ -610,7 +688,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 return true
             }
 
-            // SET_TEXT 失敗（部分 WebView 或自繪編輯器）時才退回剪貼簿，並加上 EXTRA_IS_SENSITIVE 標記與使用者提示
+            // SET_TEXT 失敗（部分 WebView 或自繪編輯器如 Google Docs）時才退回剪貼簿，並加上 EXTRA_IS_SENSITIVE 標記與使用者提示
             Log.w(TAG, "ACTION_SET_TEXT failed, falling back to clipboard paste with EXTRA_IS_SENSITIVE")
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("text", text).apply {
@@ -753,14 +831,19 @@ class VoiceAccessibilityService : AccessibilityService() {
      */
     fun sendEnterKey(): Boolean {
         val target = findActiveEditableNode() ?: return false
-        val imeAction = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            runCatching {
-                target.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
-            }.getOrDefault(false)
-        } else {
-            false
+        // 多行文字框（例如 Google Keep 筆記區、各類多行備忘錄與自繪文件）：
+        // Enter 鍵在多行編輯器中代表換行（\n），若送出 ACTION_IME_ENTER 會觸發 IME_ACTION_NEXT（跳至下一個欄位/字元）而無法換行。
+        // 故在 isMultiLine 為 true 時直接注入換行字元 \n；僅單行文字框（搜尋列、網址列等）才觸發 ACTION_IME_ENTER。
+        if (!target.isMultiLine) {
+            val imeAction = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                runCatching {
+                    target.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
+                }.getOrDefault(false)
+            } else {
+                false
+            }
+            if (imeAction) return true
         }
-        if (imeAction) return true
         return inputText("\n", createSnapshot = false)
     }
 }

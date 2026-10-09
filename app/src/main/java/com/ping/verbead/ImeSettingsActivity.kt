@@ -98,6 +98,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnGrantAccessibility: MaterialButton
     private lateinit var tvRestrictedSettingsHelp: TextView
     private lateinit var switchShowOnlyOnKeyboard: MaterialSwitch
+    private lateinit var switchPasteMode: MaterialSwitch
 
     // Node 3: Engines
     // X-ASR
@@ -293,6 +294,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnGrantAccessibility     = findViewById(R.id.btn_grant_accessibility)
         tvRestrictedSettingsHelp  = findViewById(R.id.tv_restricted_settings_help)
         switchShowOnlyOnKeyboard  = findViewById(R.id.switch_show_only_on_keyboard)
+        switchPasteMode           = findViewById(R.id.switch_paste_mode)
 
         // Node 3: Engines
         cardXAsr = findViewById(R.id.card_x_asr)
@@ -437,6 +439,10 @@ class ImeSettingsActivity : AppCompatActivity() {
         switchShowOnlyOnKeyboard.setOnCheckedChangeListener { _, isChecked ->
             ModelConfig.setShowOnlyOnKeyboard(this, isChecked)
             FloatingBubbleService.instance?.applyKeyboardOnlySetting()
+        }
+
+        switchPasteMode.setOnCheckedChangeListener { _, isChecked ->
+            ModelConfig.setPasteModeEnabled(this, isChecked)
         }
 
         // Node 3: Engine Select Buttons (§2.2 點擊邏輯與聯鎖防呆)
@@ -848,6 +854,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
+        switchPasteMode.isChecked = ModelConfig.isPasteModeEnabled(this)
 
         val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
         val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)

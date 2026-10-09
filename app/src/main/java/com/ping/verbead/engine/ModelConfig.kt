@@ -695,4 +695,24 @@ object ModelConfig {
     fun setShowOnlyOnKeyboard(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_SHOW_ONLY_ON_KEYBOARD, enabled).apply()
+
+    // ── Text Injection Settings ───────────────────────────────────────────────
+    private const val PREF_INJECTION_SETTINGS = "injection_settings"
+    const val KEY_TEXT_INJECTION_METHOD = "text_injection_method"
+    const val INJECTION_SET_TEXT = "set_text"
+    const val INJECTION_PASTE = "text_paste"
+
+    fun getTextInjectionMethod(context: Context): String =
+        context.getSharedPreferences(PREF_INJECTION_SETTINGS, Context.MODE_PRIVATE)
+            .getString(KEY_TEXT_INJECTION_METHOD, INJECTION_SET_TEXT) ?: INJECTION_SET_TEXT
+
+    fun setTextInjectionMethod(context: Context, method: String) =
+        context.getSharedPreferences(PREF_INJECTION_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_TEXT_INJECTION_METHOD, method).apply()
+
+    fun isPasteModeEnabled(context: Context): Boolean =
+        getTextInjectionMethod(context) == INJECTION_PASTE
+
+    fun setPasteModeEnabled(context: Context, enabled: Boolean) =
+        setTextInjectionMethod(context, if (enabled) INJECTION_PASTE else INJECTION_SET_TEXT)
 }
