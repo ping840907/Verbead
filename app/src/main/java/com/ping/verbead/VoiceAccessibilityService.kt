@@ -595,35 +595,26 @@ class VoiceAccessibilityService : AccessibilityService() {
 
         isAutomatedActionInProgress = true
         try {
-            val initialText = target.text?.toString() ?: ""
-            val rawSelStart = target.textSelectionStart
-            val rawSelEnd = target.textSelectionEnd
-
-            // 採用互動判斷邏輯（Interactive Probing）比對輸入反應，動態決定是否移除佔位文字
-            val isHint = isNodeTextPlaceholder(target, initialText, rawSelStart, rawSelEnd)
-
             val isPasteMode = ModelConfig.isPasteModeEnabled(this)
 
             if (isPasteMode) {
                 // ── 模式 2: 剪貼簿貼上 (Text Paste) ──
+                // 完全 bypass 所有為了解決 SET_TEXT 而設置的迂迴解方：
+                // 不執行 isNodeTextPlaceholder 佔位符探測與選取干擾，
+                // 不執行強制全選，不執行字串拼接與游標計算，
+                // 直接透過剪貼簿以原生效能與原生游標狀態貼上！
                 if (createSnapshot) {
+                    val initialText = target.text?.toString() ?: ""
+                    val rawSelStart = target.textSelectionStart
+                    val rawSelEnd = target.textSelectionEnd
                     lastSnapshot = EditorSnapshot(
                         node = target,
-                        originalText = if (isHint) "" else initialText,
+                        originalText = initialText,
                         selectionStart = rawSelStart,
                         selectionEnd = rawSelEnd
                     )
                     lastInjectedText = text
                     lastInjectedCursorPos = -1
-                }
-
-                // 若欄位為佔位符（如 Telegram 的提示字）且支援選取，先全選以確保貼上時覆蓋佔位文字
-                if (isHint && initialText.isNotEmpty() && target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }) {
-                    val selAll = Bundle().apply {
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, initialText.length)
-                    }
-                    runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }
                 }
 
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -649,6 +640,12 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
 
             // ── 模式 1: 無障礙直接填入 (SetText) ──
+            val initialText = target.text?.toString() ?: ""
+            val rawSelStart = target.textSelectionStart
+            val rawSelEnd = target.textSelectionEnd
+
+            // 採用互動判斷邏輯（Interactive Probing）比對輸入反應，動態決定是否移除佔位文字
+            val isHint = isNodeTextPlaceholder(target, initialText, rawSelStart, rawSelEnd)
             val insertion = TextInsertion.insert(
                 originalText = initialText,
                 rawSelStart = rawSelStart,
@@ -763,54 +760,103 @@ class VoiceAccessibilityService : AccessibilityService() {
                 runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }
                 runCatching { target.refresh() }
             }
-            val args = Bundle().apply {
-                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
-            }
-            var restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
-            Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
 
-            if (!restored) {
-                // Priority 1 fallback: Try native application Undo button (for Google Docs, Word, Office apps, etc.)
-                val nativeUndoBtn = findNativeUndoButton(target)
-                if (nativeUndoBtn != null) {
-                    restored = runCatching {
-                        nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    }.getOrDefault(false)
-                    Log.i(TAG, "restoreLastSnapshot: native undo button clicked: result=$restored, desc='${nativeUndoBtn.contentDescription}', id='${nativeUndoBtn.viewIdResourceName}'")
+            var restored = false
+            var wasNativeUndo = false
+
+            // 1. 若目標應用程式有原生 Undo 按鈕（如 Google Docs、Word 等自繪/辦公室編輯器）：
+            // 原生 Undo 按鈕是最乾淨的復原方式，由應用程式自身的 Edit Stack 完整管理文字與游標位置。
+            val nativeUndoBtn = findNativeUndoButton(target)
+            if (nativeUndoBtn != null) {
+                restored = runCatching {
+                    nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                }.getOrDefault(false)
+                if (restored) {
+                    wasNativeUndo = true
+                    Log.i(TAG, "restoreLastSnapshot: native undo button clicked successfully: desc='${nativeUndoBtn.contentDescription}'")
                 }
             }
 
+            val isPasteMode = ModelConfig.isPasteModeEnabled(this)
+
             if (!restored) {
-                // Priority 2 fallback: Selection-based cut/paste (for custom views or WebViews that support selection)
-                val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
-                if (supportsSelection) {
-                    val currentLen = target.text?.length ?: 10000
-                    val selAll = Bundle().apply {
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
+                if (isPasteMode) {
+                    // ── 剪貼簿模式下的還原 ──
+                    // 若沒有原生 Undo 按鈕，且節點支援 ACTION_SET_TEXT，還原原始文字
+                    val args = Bundle().apply {
+                        putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
                     }
-                    val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
-                    if (canSelect) {
-                        if (snapshot.originalText.isEmpty()) {
-                            restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
-                        } else {
-                            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    description.extras = PersistableBundle().apply {
-                                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
+                    if (!restored) {
+                        // 剪貼簿備援：若支援選取，全選後貼上原文字或剪下清空
+                        val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
+                        if (supportsSelection) {
+                            val currentLen = target.text?.length ?: 10000
+                            val selAll = Bundle().apply {
+                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
+                            }
+                            val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
+                            if (canSelect) {
+                                if (snapshot.originalText.isEmpty()) {
+                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
+                                } else {
+                                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                            description.extras = PersistableBundle().apply {
+                                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                            }
+                                        }
                                     }
+                                    clipboard.setPrimaryClip(clip)
+                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
                                 }
                             }
-                            clipboard.setPrimaryClip(clip)
-                            restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
                         }
                     }
-                    Log.i(TAG, "restoreLastSnapshot: fallback select-all cut/paste result: $restored")
+                } else {
+                    // ── SET_TEXT 模式下的還原 ──
+                    val args = Bundle().apply {
+                        putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
+                    }
+                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
+                    Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
+
+                    if (!restored) {
+                        val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
+                        if (supportsSelection) {
+                            val currentLen = target.text?.length ?: 10000
+                            val selAll = Bundle().apply {
+                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
+                            }
+                            val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
+                            if (canSelect) {
+                                if (snapshot.originalText.isEmpty()) {
+                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
+                                } else {
+                                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                            description.extras = PersistableBundle().apply {
+                                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                            }
+                                        }
+                                    }
+                                    clipboard.setPrimaryClip(clip)
+                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            if (restored && snapshot.selectionStart >= 0 && snapshot.selectionEnd >= 0) {
+            // 關鍵修復：只有在「非原生 Undo」且原始游標有效時，才還原游標！
+            // 若為原生 Undo（如 Google Docs），應用程式內部已經維護好正確的游標位置；
+            // 若在此時呼叫 ACTION_SET_SELECTION，會因為 Docs 回報 selectionStart=0 而將游標強行重設至文件開頭 (0)！
+            if (restored && !wasNativeUndo && snapshot.selectionStart >= 0 && snapshot.selectionEnd >= 0) {
                 val selArgs = Bundle().apply {
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, snapshot.selectionStart)
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, snapshot.selectionEnd)
