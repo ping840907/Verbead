@@ -253,47 +253,122 @@ class OnboardingActivity : AppCompatActivity() {
     // ── Slide 1: Capsule Menu Animation (Translates entire capsule pill) ─────
     private fun startCapsuleMenuAnimation(view: View) {
         val capsulePill = view.findViewById<View>(R.id.layout_mock_capsule_pill) ?: return
+        val cardModeInfo = view.findViewById<View>(R.id.card_mock_mode_info)
         val tvModeTitle = view.findViewById<TextView>(R.id.tv_mock_active_mode_title)
         val tvModeDesc = view.findViewById<TextView>(R.id.tv_mock_active_mode_desc)
         val ivModeIcon = view.findViewById<ImageView>(R.id.iv_mock_active_mode_icon)
+        val tvModeBadge = view.findViewById<TextView>(R.id.tv_mock_mode_badge)
+        val tvFeatureTags = view.findViewById<TextView>(R.id.tv_mock_feature_tags)
+        val layoutScreen = view.findViewById<View>(R.id.layout_mock_screen_clickable)
+
+        val itemVoice = view.findViewById<View>(R.id.mock_item_voice)
+        val itemBarcode = view.findViewById<View>(R.id.mock_item_barcode)
+        val itemOcr = view.findViewById<View>(R.id.mock_item_ocr)
+        val itemPhrases = view.findViewById<View>(R.id.mock_item_phrases)
 
         val density = resources.displayMetrics.density
         val itemPitchPx = 56f * density
 
-        currentAnimJob = activityScope.launch {
-            var modeIndex = 0
-            while (isActive) {
-                // Dragging the capsule: bringing item modeIndex to center anchor
-                // Item 0 is at offset 0, Item 1 requires translating up by -56dp, Item 2 by -112dp
-                val targetTranslationY = -modeIndex * itemPitchPx
+        var currentModeIndex = 0
+
+        fun updateModeContent(mode: Int) {
+            when (mode) {
+                0 -> {
+                    tvModeTitle?.text = "語音即時輸入"
+                    tvModeDesc?.text = "高精準度離線語音辨識，輕觸即開始聽寫並直接貼上"
+                    ivModeIcon?.setImageResource(R.drawable.ic_mic)
+                    tvModeBadge?.text = "模式 1/4 · 輕觸切換"
+                    tvFeatureTags?.text = "• 離線 ASR 雙模型即時轉譯\n• 支援自動標點與自訂專屬詞彙\n• 耳機外接音訊倍率增益"
+                }
+                1 -> {
+                    tvModeTitle?.text = "條碼與 QR 掃描"
+                    tvModeDesc?.text = "極速本機條碼讀取，瞄準即辨識並自動填入"
+                    ivModeIcon?.setImageResource(R.drawable.ic_barcode)
+                    tvModeBadge?.text = "模式 2/4 · 輕觸切換"
+                    tvFeatureTags?.text = "• 支援 QR Code 及各類一維條碼\n• 支援相機雙指縮放與閃光燈\n• 掃描完成後可設定自動換行"
+                }
+                2 -> {
+                    tvModeTitle?.text = "文字辨識"
+                    tvModeDesc?.text = "凍結畫面框選文字，離線高精度字元擷取"
+                    ivModeIcon?.setImageResource(R.drawable.ic_ocr)
+                    tvModeBadge?.text = "模式 3/4 · 輕觸切換"
+                    tvFeatureTags?.text = "• 本機端 PP-OCR 離線模型架構\n• 可自訂換行或空格分隔符\n• 框選預覽與即時觸覺反饋"
+                }
+                3 -> {
+                    tvModeTitle?.text = "常用語與歷史紀錄"
+                    tvModeDesc?.text = "自訂片語隨點即貼，自動回溯最近輸入內容"
+                    ivModeIcon?.setImageResource(R.drawable.ic_quick_phrases)
+                    tvModeBadge?.text = "模式 4/4 · 輕觸切換"
+                    tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯\n• 抽屜直接對齊懸浮球位置流暢展開"
+                }
+            }
+        }
+
+        fun applyModeDisplay(mode: Int, animate: Boolean) {
+            currentModeIndex = mode
+            val targetTranslationY = -mode * itemPitchPx
+            if (animate) {
                 capsulePill.animate()
                     .translationY(targetTranslationY)
-                    .setDuration(450)
+                    .setDuration(380)
                     .setInterpolator(AccelerateDecelerateInterpolator())
                     .start()
 
-                when (modeIndex) {
-                    0 -> {
-                        tvModeTitle?.text = "語音即時輸入"
-                        tvModeDesc?.text = "高精準度離線語音辨識，輕觸即開始聽寫"
-                        ivModeIcon?.setImageResource(R.drawable.ic_mic)
+                cardModeInfo?.animate()
+                    ?.alpha(0.35f)
+                    ?.scaleX(0.96f)
+                    ?.scaleY(0.96f)
+                    ?.setDuration(120)
+                    ?.withEndAction {
+                        updateModeContent(mode)
+                        cardModeInfo.animate()
+                            ?.alpha(1f)
+                            ?.scaleX(1f)
+                            ?.scaleY(1f)
+                            ?.setDuration(180)
+                            ?.start()
                     }
-                    1 -> {
-                        tvModeTitle?.text = "條碼與 QR 掃描"
-                        tvModeDesc?.text = "極速本機掃瞄，瞄準即讀取並自動填入"
-                        ivModeIcon?.setImageResource(R.drawable.ic_barcode)
-                    }
-                    2 -> {
-                        tvModeTitle?.text = "螢幕文字辨識 (OCR)"
-                        tvModeDesc?.text = "凍結畫面框選文字，離線高精度字元辨識"
-                        ivModeIcon?.setImageResource(R.drawable.ic_ocr)
-                    }
-                }
-
-                delay(2200)
-                modeIndex = (modeIndex + 1) % 3
+                    ?.start()
+            } else {
+                capsulePill.translationY = targetTranslationY
+                updateModeContent(mode)
             }
         }
+
+        fun startAutoAdvanceLoop(initialMode: Int) {
+            currentAnimJob?.cancel()
+            currentAnimJob = activityScope.launch {
+                var mode = initialMode
+                while (isActive) {
+                    delay(2600)
+                    if (!isActive) break
+                    mode = (mode + 1) % 4
+                    applyModeDisplay(mode, animate = true)
+                }
+            }
+        }
+
+        fun onModeSelectedByUser(mode: Int) {
+            HapticUtil.click(this@OnboardingActivity)
+            applyModeDisplay(mode, animate = true)
+            startAutoAdvanceLoop(mode)
+        }
+
+        itemVoice?.setOnClickListener { onModeSelectedByUser(0) }
+        itemBarcode?.setOnClickListener { onModeSelectedByUser(1) }
+        itemOcr?.setOnClickListener { onModeSelectedByUser(2) }
+        itemPhrases?.setOnClickListener { onModeSelectedByUser(3) }
+
+        val advanceToNext = {
+            val next = (currentModeIndex + 1) % 4
+            onModeSelectedByUser(next)
+        }
+        cardModeInfo?.setOnClickListener { advanceToNext() }
+        layoutScreen?.setOnClickListener { advanceToNext() }
+
+        // 初始狀態：載入模式 0 並啟動自動輪播
+        applyModeDisplay(0, animate = false)
+        startAutoAdvanceLoop(0)
     }
 
     // ── Slide 2: Undo Input via Small X Button Mockup Animation ─────────────
