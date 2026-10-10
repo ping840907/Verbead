@@ -89,7 +89,7 @@
     <string name="preview_no_text_detected">未偵測到文字</string>
     <string name="preview_copied">已複製</string>
     <string name="preview_mode_voice">語音模式</string>
-    <string name="preview_mode_ocr">文字辨識 (OCR)</string>
+    <string name="preview_mode_ocr">文字辨識</string>
     <string name="preview_mode_barcode">條碼掃描</string>
     <string name="preview_copied_barcode">已複製條碼</string>
     <string name="preview_copied_with_text">已複製：%1$s</string>
