@@ -981,9 +981,7 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_dual_engine"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:clickable="false"
-                    android:focusable="false" />
+                    android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -1074,9 +1072,7 @@
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switch_prefer_external_audio"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:clickable="false"
-                        android:focusable="false" />
+                        android:layout_height="wrap_content" />
                 </LinearLayout>
 
                 <!-- External audio gain slider -->
@@ -1295,9 +1291,7 @@
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switch_filter_punctuation"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:clickable="false"
-                        android:focusable="false" />
+                        android:layout_height="wrap_content" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

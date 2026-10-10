@@ -132,6 +132,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var sbVadSilence: SeekBar
 
     // Qwen3 preferences
+    private lateinit var layoutFilterPunctuationToggle: View
     private lateinit var switchFilterPunctuation: MaterialSwitch
 
     // Node 4: Vocabulary
@@ -196,6 +197,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (isGranted) {
             ModelConfig.setPreferExternalAudio(this, true)
             switchPreferExternalAudio.isChecked = true
+            HapticUtil.click(this)
             Toast.makeText(this, "已開啟優先使用外部音訊", Toast.LENGTH_SHORT).show()
         } else {
             ModelConfig.setPreferExternalAudio(this, false)
@@ -334,7 +336,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         sbVadSilence                    = findViewById(R.id.sb_vad_silence)
 
         // Qwen3 preferences
-        switchFilterPunctuation = findViewById(R.id.switch_filter_punctuation)
+        layoutFilterPunctuationToggle = findViewById(R.id.layout_filter_punctuation_toggle)
+        switchFilterPunctuation       = findViewById(R.id.switch_filter_punctuation)
 
         // Node 4: Vocabulary
         btnOpenDict = findViewById(R.id.btn_open_dict)
@@ -444,24 +447,26 @@ class ImeSettingsActivity : AppCompatActivity() {
             showRestrictedSettingsDialog()
         }
 
-        layoutShowOnlyOnKeyboardToggle.setOnClickListener {
-            switchShowOnlyOnKeyboard.isChecked = !switchShowOnlyOnKeyboard.isChecked
-            HapticUtil.click(this)
-        }
-
-        switchShowOnlyOnKeyboard.setOnCheckedChangeListener { _, isChecked ->
+        // 1. Show only when keyboard is visible
+        switchShowOnlyOnKeyboard.setOnClickListener {
+            val isChecked = switchShowOnlyOnKeyboard.isChecked
             ModelConfig.setShowOnlyOnKeyboard(this, isChecked)
             FloatingBubbleService.instance?.applyKeyboardOnlySetting()
-        }
-
-        layoutPasteModeToggle.setOnClickListener {
-            switchPasteMode.isChecked = !switchPasteMode.isChecked
             HapticUtil.click(this)
         }
+        layoutShowOnlyOnKeyboardToggle.setOnClickListener {
+            switchShowOnlyOnKeyboard.performClick()
+        }
 
-        switchPasteMode.setOnCheckedChangeListener { _, isChecked ->
+        // 2. Clipboard paste mode
+        switchPasteMode.setOnClickListener {
+            val isChecked = switchPasteMode.isChecked
             ModelConfig.setPasteModeEnabled(this, isChecked)
             updatePasteModeDesc(isChecked)
+            HapticUtil.click(this)
+        }
+        layoutPasteModeToggle.setOnClickListener {
+            switchPasteMode.performClick()
         }
 
         // Node 3: Engine Select Cards & Buttons (§2.2 點擊邏輯與聯鎖防呆)
@@ -488,14 +493,17 @@ class ImeSettingsActivity : AppCompatActivity() {
             handleDownloadButtonClick(ModelConfig.ENGINE_QWEN3)
         }
 
-        // Dual Engine Toggle Click Logic (§2.2)
+        // 3. Dual Engine Toggle Click Logic (§2.2)
+        switchDualEngine.setOnClickListener {
+            onDualEngineToggleClick()
+        }
         layoutDualEngineToggle.setOnClickListener {
             onDualEngineToggleClick()
         }
 
-        // Speech general preferences: External audio
+        // 4. Speech general preferences: External audio
         fun togglePreferExternalAudio() {
-            val willEnable = !switchPreferExternalAudio.isChecked
+            val willEnable = !ModelConfig.isPreferExternalAudio(this)
             if (willEnable) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     val hasBt = ContextCompat.checkSelfPermission(
@@ -503,19 +511,25 @@ class ImeSettingsActivity : AppCompatActivity() {
                         Manifest.permission.BLUETOOTH_CONNECT
                     ) == PackageManager.PERMISSION_GRANTED
                     if (!hasBt) {
+                        switchPreferExternalAudio.isChecked = false
                         requestExternalAudioPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
                         return
                     }
                 }
                 ModelConfig.setPreferExternalAudio(this, true)
                 switchPreferExternalAudio.isChecked = true
+                HapticUtil.click(this)
             } else {
                 ModelConfig.setPreferExternalAudio(this, false)
                 switchPreferExternalAudio.isChecked = false
+                HapticUtil.click(this)
             }
             updateAllStatus()
         }
         layoutPreferExternalAudioToggle.setOnClickListener {
+            togglePreferExternalAudio()
+        }
+        switchPreferExternalAudio.setOnClickListener {
             togglePreferExternalAudio()
         }
 
@@ -557,15 +571,14 @@ class ImeSettingsActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
 
-        // Qwen3 settings: Punctuation filter
-        findViewById<View?>(R.id.layout_filter_punctuation_toggle)?.setOnClickListener {
-            val nextState = !switchFilterPunctuation.isChecked
-            switchFilterPunctuation.isChecked = nextState
-            ModelConfig.setFilterPunctuationEnabled(this, nextState)
-        }
-        switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
-        switchFilterPunctuation.setOnCheckedChangeListener { _, isChecked ->
+        // 5. Qwen3 settings: Punctuation filter
+        switchFilterPunctuation.setOnClickListener {
+            val isChecked = switchFilterPunctuation.isChecked
             ModelConfig.setFilterPunctuationEnabled(this, isChecked)
+            HapticUtil.click(this)
+        }
+        layoutFilterPunctuationToggle.setOnClickListener {
+            switchFilterPunctuation.performClick()
         }
 
         // Vocabulary
@@ -575,28 +588,42 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // OCR & Scanner
         btnSelectOcrTiny.setOnClickListener {
+            val prev = ModelConfig.selectedOcrModel(this)
             ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_TINY)
+            if (prev != ModelConfig.ENGINE_PP_OCR_TINY) {
+                HapticUtil.click(this)
+            }
             updateAllStatus()
         }
         btnSelectOcrSmall.setOnClickListener {
+            val prev = ModelConfig.selectedOcrModel(this)
             ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_SMALL)
+            if (prev != ModelConfig.ENGINE_PP_OCR_SMALL) {
+                HapticUtil.click(this)
+            }
             updateAllStatus()
         }
         btnDownloadOcr.setOnClickListener {
             val engine = ModelConfig.selectedOcrModel(this)
             handleDownloadButtonClick(engine)
         }
-        layoutOcrAutoEnterToggle.setOnClickListener {
-            switchOcrAutoEnter.isChecked = !switchOcrAutoEnter.isChecked
+
+        // 6. OCR & Scanner: Auto enter
+        switchOcrAutoEnter.setOnClickListener {
+            val isChecked = switchOcrAutoEnter.isChecked
+            ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
             HapticUtil.click(this)
         }
-
-        switchOcrAutoEnter.setOnCheckedChangeListener { _, isChecked ->
-            ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
+        layoutOcrAutoEnterToggle.setOnClickListener {
+            switchOcrAutoEnter.performClick()
         }
 
         fun updateOcrSepSelection(sep: String) {
+            val prev = ModelConfig.ocrSeparator(this)
             ModelConfig.setOcrSeparator(this, sep)
+            if (prev != sep) {
+                HapticUtil.click(this)
+            }
             updateAllStatus()
         }
         btnOcrSepNewline.setOnClickListener { updateOcrSepSelection("\n") }
@@ -992,6 +1019,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             }
         }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
+        switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
 
         val currentSep = ModelConfig.ocrSeparator(this)
         fun styleSepButton(btn: MaterialButton, isSelected: Boolean) {
@@ -1196,8 +1224,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (dualEngineSelectable) {
             val nextState = !ModelConfig.isDualEngineEnabled(this)
             ModelConfig.setDualEngineEnabled(this, nextState)
+            switchDualEngine.isChecked = nextState
+            HapticUtil.click(this)
             updateAllStatus()
         } else if (!xDownloaded || !qDownloaded) {
+            switchDualEngine.isChecked = ModelConfig.isDualEngineEnabled(this)
             val missing = when {
                 !xDownloaded && !qDownloaded -> "X-ASR 即時串流模型 與 Qwen3-ASR 離線主模型"
                 !xDownloaded -> "X-ASR 即時串流模型"
@@ -1209,12 +1240,15 @@ class ImeSettingsActivity : AppCompatActivity() {
                 .setPositiveButton("我知道了", null)
                 .show()
         } else if (selected != ModelConfig.ENGINE_QWEN3) {
+            switchDualEngine.isChecked = ModelConfig.isDualEngineEnabled(this)
             AlertDialog.Builder(this)
                 .setTitle("切換為雙引擎模式")
                 .setMessage("雙引擎模式需以 Qwen3-ASR 作為核心辨識引擎，並由 X-ASR 提供即時文字預覽。\n\n是否立即將辨識引擎切換為 Qwen3-ASR 並開啟雙引擎模式？")
                 .setPositiveButton("切換並開啟") { _, _ ->
                     ModelConfig.setSelectedEngine(this, ModelConfig.ENGINE_QWEN3)
                     ModelConfig.setDualEngineEnabled(this, true)
+                    switchDualEngine.isChecked = true
+                    HapticUtil.click(this)
                     updateAllStatus()
                     Toast.makeText(this, R.string.toast_switched_to_qwen3_dual, Toast.LENGTH_SHORT).show()
                 }
