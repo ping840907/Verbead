@@ -777,76 +777,38 @@ class VoiceAccessibilityService : AccessibilityService() {
                 }
             }
 
-            val isPasteMode = ModelConfig.isPasteModeEnabled(this)
-
+            // 2. 若無原生 Undo 按鈕，嘗試透過 ACTION_SET_TEXT 還原原始文字
             if (!restored) {
-                if (isPasteMode) {
-                    // ── 剪貼簿模式下的還原 ──
-                    // 若沒有原生 Undo 按鈕，且節點支援 ACTION_SET_TEXT，還原原始文字
-                    val args = Bundle().apply {
-                        putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
-                    }
-                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
-                    if (!restored) {
-                        // 剪貼簿備援：若支援選取，全選後貼上原文字或剪下清空
-                        val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
-                        if (supportsSelection) {
-                            val currentLen = target.text?.length ?: 10000
-                            val selAll = Bundle().apply {
-                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
-                            }
-                            val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
-                            if (canSelect) {
-                                if (snapshot.originalText.isEmpty()) {
-                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
-                                } else {
-                                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                            description.extras = PersistableBundle().apply {
-                                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                                            }
-                                        }
-                                    }
-                                    clipboard.setPrimaryClip(clip)
-                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // ── SET_TEXT 模式下的還原 ──
-                    val args = Bundle().apply {
-                        putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
-                    }
-                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
-                    Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
+                val args = Bundle().apply {
+                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
+                }
+                restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
+                Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
 
-                    if (!restored) {
-                        val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
-                        if (supportsSelection) {
-                            val currentLen = target.text?.length ?: 10000
-                            val selAll = Bundle().apply {
-                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
-                            }
-                            val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
-                            if (canSelect) {
-                                if (snapshot.originalText.isEmpty()) {
-                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
-                                } else {
-                                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                            description.extras = PersistableBundle().apply {
-                                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                                            }
+                // 3. 備援：若節點不支援 SET_TEXT，但支援選取，透過全選進行 CUT 或 PASTE 還原
+                if (!restored) {
+                    val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
+                    if (supportsSelection) {
+                        val currentLen = target.text?.length ?: 10000
+                        val selAll = Bundle().apply {
+                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
+                        }
+                        val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
+                        if (canSelect) {
+                            if (snapshot.originalText.isEmpty()) {
+                                restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
+                            } else {
+                                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        description.extras = PersistableBundle().apply {
+                                            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
                                         }
                                     }
-                                    clipboard.setPrimaryClip(clip)
-                                    restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
                                 }
+                                clipboard.setPrimaryClip(clip)
+                                restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
                             }
                         }
                     }

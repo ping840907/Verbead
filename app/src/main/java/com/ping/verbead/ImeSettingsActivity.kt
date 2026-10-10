@@ -97,7 +97,10 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvAccessibilityStatus: TextView
     private lateinit var btnGrantAccessibility: MaterialButton
     private lateinit var tvRestrictedSettingsHelp: TextView
+    private lateinit var layoutShowOnlyOnKeyboardToggle: View
     private lateinit var switchShowOnlyOnKeyboard: MaterialSwitch
+    private lateinit var layoutPasteModeToggle: View
+    private lateinit var tvInjectionMethodDesc: TextView
     private lateinit var switchPasteMode: MaterialSwitch
 
     // Node 3: Engines
@@ -145,6 +148,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnDownloadOcr: MaterialButton
     private lateinit var progressDownloadOcr: LinearProgressIndicator
     private lateinit var tvDownloadStatusOcr: TextView
+    private lateinit var layoutOcrAutoEnterToggle: View
     private lateinit var switchOcrAutoEnter: MaterialSwitch
     private lateinit var btnOcrSepNewline: MaterialButton
     private lateinit var btnOcrSepSpace: MaterialButton
@@ -293,8 +297,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvAccessibilityStatus     = findViewById(R.id.tv_accessibility_status)
         btnGrantAccessibility     = findViewById(R.id.btn_grant_accessibility)
         tvRestrictedSettingsHelp  = findViewById(R.id.tv_restricted_settings_help)
-        switchShowOnlyOnKeyboard  = findViewById(R.id.switch_show_only_on_keyboard)
-        switchPasteMode           = findViewById(R.id.switch_paste_mode)
+        layoutShowOnlyOnKeyboardToggle = findViewById(R.id.layout_show_only_on_keyboard_toggle)
+        switchShowOnlyOnKeyboard       = findViewById(R.id.switch_show_only_on_keyboard)
+        layoutPasteModeToggle          = findViewById(R.id.layout_paste_mode_toggle)
+        tvInjectionMethodDesc          = findViewById(R.id.tv_injection_method_desc)
+        switchPasteMode                = findViewById(R.id.switch_paste_mode)
 
         // Node 3: Engines
         cardXAsr = findViewById(R.id.card_x_asr)
@@ -343,7 +350,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnDownloadOcr       = findViewById(R.id.btn_download_ocr)
         progressDownloadOcr  = findViewById(R.id.progress_download_ocr)
         tvDownloadStatusOcr  = findViewById(R.id.tv_download_status_ocr)
-        switchOcrAutoEnter   = findViewById(R.id.switch_ocr_auto_enter)
+        layoutOcrAutoEnterToggle = findViewById(R.id.layout_ocr_auto_enter_toggle)
+        switchOcrAutoEnter       = findViewById(R.id.switch_ocr_auto_enter)
         btnOcrSepNewline     = findViewById(R.id.btn_ocr_sep_newline)
         btnOcrSepSpace       = findViewById(R.id.btn_ocr_sep_space)
         btnOcrSepNone        = findViewById(R.id.btn_ocr_sep_none)
@@ -436,20 +444,37 @@ class ImeSettingsActivity : AppCompatActivity() {
             showRestrictedSettingsDialog()
         }
 
+        layoutShowOnlyOnKeyboardToggle.setOnClickListener {
+            switchShowOnlyOnKeyboard.isChecked = !switchShowOnlyOnKeyboard.isChecked
+            HapticUtil.click(this)
+        }
+
         switchShowOnlyOnKeyboard.setOnCheckedChangeListener { _, isChecked ->
             ModelConfig.setShowOnlyOnKeyboard(this, isChecked)
             FloatingBubbleService.instance?.applyKeyboardOnlySetting()
         }
 
-        switchPasteMode.setOnCheckedChangeListener { _, isChecked ->
-            ModelConfig.setPasteModeEnabled(this, isChecked)
+        layoutPasteModeToggle.setOnClickListener {
+            switchPasteMode.isChecked = !switchPasteMode.isChecked
+            HapticUtil.click(this)
         }
 
-        // Node 3: Engine Select Buttons (§2.2 點擊邏輯與聯鎖防呆)
+        switchPasteMode.setOnCheckedChangeListener { _, isChecked ->
+            ModelConfig.setPasteModeEnabled(this, isChecked)
+            updatePasteModeDesc(isChecked)
+        }
+
+        // Node 3: Engine Select Cards & Buttons (§2.2 點擊邏輯與聯鎖防呆)
+        cardXAsr.setOnClickListener {
+            onSelectButtonClick(ModelConfig.ENGINE_X_ASR)
+        }
         btnSelectXasr.setOnClickListener {
             onSelectButtonClick(ModelConfig.ENGINE_X_ASR)
         }
 
+        cardQwen3.setOnClickListener {
+            onSelectButtonClick(ModelConfig.ENGINE_QWEN3)
+        }
         btnSelectQwen3.setOnClickListener {
             onSelectButtonClick(ModelConfig.ENGINE_QWEN3)
         }
@@ -561,6 +586,11 @@ class ImeSettingsActivity : AppCompatActivity() {
             val engine = ModelConfig.selectedOcrModel(this)
             handleDownloadButtonClick(engine)
         }
+        layoutOcrAutoEnterToggle.setOnClickListener {
+            switchOcrAutoEnter.isChecked = !switchOcrAutoEnter.isChecked
+            HapticUtil.click(this)
+        }
+
         switchOcrAutoEnter.setOnCheckedChangeListener { _, isChecked ->
             ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
         }
@@ -854,7 +884,9 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
-        switchPasteMode.isChecked = ModelConfig.isPasteModeEnabled(this)
+        val isPasteMode = ModelConfig.isPasteModeEnabled(this)
+        switchPasteMode.isChecked = isPasteMode
+        updatePasteModeDesc(isPasteMode)
 
         val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
         val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)
@@ -1136,6 +1168,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         if (downloaded) {
+            val previousEngine = ModelConfig.selectedEngine(this)
             ModelConfig.setSelectedEngine(this, targetEngine)
             // 聯鎖防呆：若切換引擎導致雙引擎條件不成立，強制關閉開關以防殘留
             val dualEngineSelectable = ModelConfig.isXAsrReady(this) &&
@@ -1143,6 +1176,9 @@ class ImeSettingsActivity : AppCompatActivity() {
                     (targetEngine == ModelConfig.ENGINE_QWEN3)
             if (!dualEngineSelectable) {
                 ModelConfig.setDualEngineEnabled(this, false)
+            }
+            if (previousEngine != targetEngine) {
+                HapticUtil.click(this)
             }
             updateAllStatus()
         } else {
@@ -1361,6 +1397,14 @@ class ImeSettingsActivity : AppCompatActivity() {
         val m = totalSeconds / 60
         val s = totalSeconds % 60
         return if (m > 0) "${m} 分 ${s} 秒" else "${s} 秒"
+    }
+
+    private fun updatePasteModeDesc(isPaste: Boolean) {
+        if (isPaste) {
+            tvInjectionMethodDesc.text = "剪貼簿貼上模式：相容性最佳，原生支援 Google Docs、自繪編輯器與特殊換行"
+        } else {
+            tvInjectionMethodDesc.text = "無障礙填入模式：隱私性最高，直接寫入輸入框而不經由系統剪貼簿"
+        }
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {

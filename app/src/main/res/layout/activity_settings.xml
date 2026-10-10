@@ -556,9 +556,13 @@
 
                 <!-- Show only when keyboard is visible -->
                 <LinearLayout
+                    android:id="@+id/layout_show_only_on_keyboard_toggle"
                     style="@style/Verbead.Row"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         style="@style/Verbead.RowIcon"
@@ -602,9 +606,13 @@
 
                 <!-- Text injection method: set_text vs text_paste -->
                 <LinearLayout
+                    android:id="@+id/layout_paste_mode_toggle"
                     style="@style/Verbead.Row"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         style="@style/Verbead.RowIcon"
@@ -761,7 +769,9 @@
             style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="12dp"
+            android:clickable="true"
+            android:focusable="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -844,7 +854,9 @@
             style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="12dp"
+            android:clickable="true"
+            android:focusable="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1453,10 +1465,14 @@
 
                 <!-- Auto enter -->
                 <LinearLayout
+                    android:id="@+id/layout_ocr_auto_enter_toggle"
                     style="@style/Verbead.Row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="64dp">
+                    android:minHeight="64dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <LinearLayout
                         android:layout_width="0dp"

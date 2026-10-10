@@ -230,6 +230,9 @@ class CapsuleMenuController(
 
         val targetMode = indexToMode(currentHoveredIndex)
         val isModeChanged = (targetMode != currentMode)
+        if (isModeChanged) {
+            HapticUtil.click(context)
+        }
 
         val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill)
         if (pill != null) {

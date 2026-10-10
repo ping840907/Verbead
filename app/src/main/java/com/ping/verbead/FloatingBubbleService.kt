@@ -7,11 +7,15 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.PersistableBundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -995,6 +999,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 setState(State.IDLE)
                 hideXButton()
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
             isOcrSnapshotActive -> {
                 // 關閉文字辨識快照與視窗
@@ -1761,6 +1766,38 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    /**
+     * Copies text to system clipboard with sensitive flag as fallback when direct injection is unavailable.
+     */
+    private fun copyToClipboardFallback(text: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        val clip = ClipData.newPlainText("transcription", text).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                description.extras = PersistableBundle().apply {
+                    putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                }
+            }
+        }
+        clipboard.setPrimaryClip(clip)
+    }
+
+    /**
+     * Transitions to PASTED state, reveals the floating X button, and schedules auto-dismiss after [delayMs].
+     */
+    internal fun enterPastedState(delayMs: Long = 10_000) {
+        setState(State.PASTED)
+        showXButton()
+        xButtonAutoHideJob?.cancel()
+        xButtonAutoHideJob = scope.launch {
+            delay(delayMs)
+            if (state == State.PASTED) {
+                hideXButton()
+                setState(State.IDLE)
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
+            }
+        }
+    }
+
     private fun onTranscriptionDone(text: String) {
         if (text.isBlank()) {
             setState(State.IDLE)
@@ -1773,20 +1810,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val accService = VoiceAccessibilityService.instance
         val injected = accService?.inputText(text) ?: false
 
-        // §6 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo
-        setState(State.PASTED)
-        showXButton()
-        xButtonAutoHideJob?.cancel()
-        xButtonAutoHideJob = scope.launch {
-            delay(10_000)
-            if (state == State.PASTED) {
-                hideXButton()
-                setState(State.IDLE)
-                checkAndHideBubbleIfKeyboardClosed(animate = true)
-            }
-        }
-
-        if (!injected) {
+        if (injected) {
+            // §6 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo
+            enterPastedState()
+        } else {
+            // 若未找到焦點輸入框或無障礙服務不可用，備援複製至剪貼簿（具備 EXTRA_IS_SENSITIVE 隱私標記）
+            copyToClipboardFallback(text)
+            setState(State.IDLE)
+            hideXButton()
             showPreviewText(getString(R.string.preview_copied), autoHide = true)
         }
     }
@@ -1838,16 +1869,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     internal fun showPastedStateForTest() {
-        setState(State.PASTED)
-        showXButton()
-        xButtonAutoHideJob?.cancel()
-        xButtonAutoHideJob = scope.launch {
-            delay(15_000)
-            if (state == State.PASTED) {
-                hideXButton()
-                setState(State.IDLE)
-            }
-        }
+        enterPastedState(15_000)
     }
 
     private fun getIconAndDescForMode(mode: Int): Pair<Int, String> {
@@ -2603,29 +2625,21 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun onBarcodeDetected(code: String) {
         HapticUtil.heavyClick(this)
         val injected = VoiceAccessibilityService.instance?.inputText(code) ?: false
-        if (ModelConfig.isOcrAutoEnterEnabled(this)) {
-            Handler(Looper.getMainLooper()).postDelayed({
-                VoiceAccessibilityService.instance?.sendEnterKey()
-            }, 100)
-        }
-        stopScannerMode(hideX = false)
-
-        // 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo 復原
-        setState(State.PASTED)
-        showXButton()
-        xButtonAutoHideJob?.cancel()
-        xButtonAutoHideJob = scope.launch {
-            delay(10_000)
-            if (state == State.PASTED) {
-                hideXButton()
-                setState(State.IDLE)
-                checkAndHideBubbleIfKeyboardClosed(animate = true)
+        if (injected) {
+            if (ModelConfig.isOcrAutoEnterEnabled(this)) {
+                Handler(Looper.getMainLooper()).postDelayed({
+                    VoiceAccessibilityService.instance?.sendEnterKey()
+                }, 100)
             }
-        }
-
-        if (!injected) {
+            enterPastedState()
+        } else {
+            copyToClipboardFallback(code)
+            setState(State.IDLE)
+            hideXButton()
             showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
         }
+        stopScannerMode(hideX = !injected)
+
         Handler(Looper.getMainLooper()).postDelayed({
             isProcessingBarcode = false
         }, 800)
@@ -2879,25 +2893,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     stopScannerMode(hideX = false)
 
                     val injected = VoiceAccessibilityService.instance?.inputText(processed) ?: false
-                    if (ModelConfig.isOcrAutoEnterEnabled(this@FloatingBubbleService)) {
-                        delay(100)
-                        VoiceAccessibilityService.instance?.sendEnterKey()
-                    }
-
-                    // 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo 復原
-                    setState(State.PASTED)
-                    showXButton()
-                    xButtonAutoHideJob?.cancel()
-                    xButtonAutoHideJob = scope.launch {
-                        delay(10_000)
-                        if (state == State.PASTED) {
-                            hideXButton()
-                            setState(State.IDLE)
-                            checkAndHideBubbleIfKeyboardClosed(animate = true)
+                    if (injected) {
+                        if (ModelConfig.isOcrAutoEnterEnabled(this@FloatingBubbleService)) {
+                            delay(100)
+                            VoiceAccessibilityService.instance?.sendEnterKey()
                         }
-                    }
-
-                    if (!injected) {
+                        enterPastedState()
+                    } else {
+                        copyToClipboardFallback(processed)
+                        setState(State.IDLE)
+                        hideXButton()
                         val previewMsg = if (processed.length > 25) "${processed.take(25)}…" else processed
                         showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
                     }

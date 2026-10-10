@@ -102,17 +102,6 @@ object ModelConfig {
         context.getSharedPreferences(PREF_ENGINE, Context.MODE_PRIVATE)
             .edit().putString(KEY_ENGINE, engine).apply()
 
-    // ── Floating Bubble Mode ──────────────────────────────────────────────────
-    private const val PREF_BUBBLE = "bubble_settings"
-    private const val KEY_BUBBLE_ENABLED = "bubble_enabled"
-
-    fun isFloatingBubbleEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREF_BUBBLE, Context.MODE_PRIVATE)
-            .getBoolean(KEY_BUBBLE_ENABLED, false)
-
-    fun setFloatingBubbleEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREF_BUBBLE, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_BUBBLE_ENABLED, enabled).apply()
 
     // ── Dual Engine Mode ──────────────────────────────────────────────────────
     private const val PREF_DUAL_ENGINE = "dual_engine_settings"
