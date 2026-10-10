@@ -704,4 +704,28 @@ object ModelConfig {
 
     fun setPasteModeEnabled(context: Context, enabled: Boolean) =
         setTextInjectionMethod(context, if (enabled) INJECTION_PASTE else INJECTION_SET_TEXT)
+
+    // ── Quick Phrases & History Settings ──────────────────────────────────────
+    const val DEFAULT_HISTORY_LIMIT = 6
+    const val MIN_HISTORY_LIMIT = 1
+    const val MAX_HISTORY_LIMIT = 12
+    const val KEY_HISTORY_ENABLED = "history_enabled"
+    const val KEY_HISTORY_LIMIT = "history_limit"
+
+    fun isHistoryEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_HISTORY_ENABLED, true)
+
+    fun setHistoryEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_HISTORY_ENABLED, enabled).apply()
+
+    fun getHistoryLimit(context: Context): Int =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getInt(KEY_HISTORY_LIMIT, DEFAULT_HISTORY_LIMIT)
+            .coerceIn(MIN_HISTORY_LIMIT, MAX_HISTORY_LIMIT)
+
+    fun setHistoryLimit(context: Context, limit: Int) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_HISTORY_LIMIT, limit.coerceIn(MIN_HISTORY_LIMIT, MAX_HISTORY_LIMIT)).apply()
 }

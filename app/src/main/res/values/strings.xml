@@ -109,7 +109,9 @@
     <string name="toast_phrase_deleted">已刪除常用語</string>
     <string name="toast_history_cleared">已清除近期紀錄</string>
     <string name="toast_phrase_saved_from_history">已將紀錄加入常用語</string>
-    <string name="header_recent_history">近期紀錄 (最多 6 筆)</string>
+    <string name="toast_history_enabled">已開啟常用語抽屜輸入紀錄</string>
+    <string name="toast_history_disabled">已關閉常用語抽屜輸入紀錄</string>
+    <string name="header_recent_history">近期紀錄 (最多 %1$d 筆)</string>
     <string name="header_quick_phrases">常用片語 (長按可拖曳排序)</string>
     <string name="action_clear_history">清除</string>
     <string name="empty_quick_phrases">尚無常用語與紀錄\n點擊右上角「+」立即新增</string>

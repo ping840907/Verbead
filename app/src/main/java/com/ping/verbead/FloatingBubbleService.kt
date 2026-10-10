@@ -3314,9 +3314,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         drawerItems.clear()
 
-        // 歷史紀錄置頂（最多保留六項）
+        // 歷史紀錄置頂（依設定保留筆數）
         if (history.isNotEmpty()) {
-            drawerItems.add(DrawerItem.Header(getString(R.string.header_recent_history), canClear = true))
+            val historyLimit = ModelConfig.getHistoryLimit(this)
+            drawerItems.add(DrawerItem.Header(getString(R.string.header_recent_history, historyLimit), canClear = true))
             history.forEachIndexed { i, text ->
                 drawerItems.add(DrawerItem.History(text, i))
             }

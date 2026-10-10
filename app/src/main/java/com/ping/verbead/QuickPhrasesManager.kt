@@ -1,6 +1,7 @@
 package com.ping.verbead
 
 import android.content.Context
+import com.ping.verbead.engine.ModelConfig
 import org.json.JSONArray
 
 /**
@@ -103,6 +104,8 @@ object QuickPhrasesManager {
     // ─── Input History (從其他模式輸入的內容，最多保留六項) ───
 
     fun loadHistory(context: Context): List<String> {
+        if (!ModelConfig.isHistoryEnabled(context)) return emptyList()
+        val limit = ModelConfig.getHistoryLimit(context)
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val json = prefs.getString(KEY_HISTORY, null) ?: return emptyList()
         return try {
@@ -114,15 +117,16 @@ object QuickPhrasesManager {
                     list.add(item)
                 }
             }
-            list.take(MAX_HISTORY_SIZE)
+            list.take(limit)
         } catch (_: Exception) {
             emptyList()
         }
     }
 
     fun saveHistory(context: Context, history: List<String>) {
+        val limit = ModelConfig.getHistoryLimit(context)
         val array = JSONArray()
-        history.take(MAX_HISTORY_SIZE).forEach { item ->
+        history.take(limit).forEach { item ->
             if (item.isNotBlank()) {
                 array.put(item.trim())
             }
@@ -134,13 +138,15 @@ object QuickPhrasesManager {
     }
 
     fun addHistory(context: Context, text: String) {
+        if (!ModelConfig.isHistoryEnabled(context)) return
         val trimmed = text.trim()
         if (trimmed.isBlank()) return
+        val limit = ModelConfig.getHistoryLimit(context)
         val current = loadHistory(context).toMutableList()
         // 去除重複，移至最前端
         current.removeAll { it == trimmed }
         current.add(0, trimmed)
-        val trimmedList = current.take(MAX_HISTORY_SIZE)
+        val trimmedList = current.take(limit)
         saveHistory(context, trimmedList)
     }
 
