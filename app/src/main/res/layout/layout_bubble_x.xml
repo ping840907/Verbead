@@ -19,6 +19,6 @@
             android:layout_height="20dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_close"
-            android:contentDescription="取消或復原" />
+            android:contentDescription="關閉" />
     </FrameLayout>
 </FrameLayout>

@@ -356,4 +356,105 @@ class TextInsertionTest {
         )
         org.junit.Assert.assertEquals(true, isPlaceholder)
     }
+
+    @Test
+    fun testIsUndoCandidateRejectsSelfPackage() {
+        // 核心防護：Verbead 自身的任何元件，即便含有「復原」或「取消或復原」，絕對不可被視為目標應用的 Undo 按鈕
+        val isSelf = TextInsertion.isUndoCandidate(
+            nodePackageName = "com.ping.verbead",
+            servicePackageName = "com.ping.verbead",
+            viewId = "com.ping.verbead:id/btn_bubble_x",
+            contentDescription = "取消或復原",
+            text = null
+        )
+        org.junit.Assert.assertFalse(isSelf)
+    }
+
+    @Test
+    fun testIsUndoCandidateRejectsSelfBubbleViews() {
+        val isBubble = TextInsertion.isUndoCandidate(
+            nodePackageName = null,
+            servicePackageName = "com.ping.verbead",
+            viewId = "com.ping.verbead:id/btn_bubble_x",
+            contentDescription = "復原",
+            text = null
+        )
+        org.junit.Assert.assertFalse(isBubble)
+    }
+
+    @Test
+    fun testIsUndoCandidateRejectsCloseDescription() {
+        val isClose = TextInsertion.isUndoCandidate(
+            nodePackageName = "com.some.app",
+            servicePackageName = "com.ping.verbead",
+            viewId = "com.some.app:id/close_btn",
+            contentDescription = "關閉",
+            text = null
+        )
+        org.junit.Assert.assertFalse(isClose)
+    }
+
+    @Test
+    fun testIsUndoCandidateAcceptsDocsUndoButton() {
+        // Google Docs / Office 中的原生 Undo 按鈕
+        val isDocsZh = TextInsertion.isUndoCandidate(
+            nodePackageName = "com.google.android.apps.docs",
+            servicePackageName = "com.ping.verbead",
+            viewId = null,
+            contentDescription = "復原",
+            text = null
+        )
+        org.junit.Assert.assertTrue(isDocsZh)
+
+        val isDocsEn = TextInsertion.isUndoCandidate(
+            nodePackageName = "com.google.android.apps.docs",
+            servicePackageName = "com.ping.verbead",
+            viewId = null,
+            contentDescription = "Undo",
+            text = null
+        )
+        org.junit.Assert.assertTrue(isDocsEn)
+
+        val isDocsJa = TextInsertion.isUndoCandidate(
+            nodePackageName = "com.google.android.apps.docs",
+            servicePackageName = "com.ping.verbead",
+            viewId = null,
+            contentDescription = "元に戻す",
+            text = null
+        )
+        org.junit.Assert.assertTrue(isDocsJa)
+    }
+
+    @Test
+    fun testIsUndoCandidateRejectsRedoButton() {
+        val isRedoZh = TextInsertion.isUndoCandidate(
+            nodePackageName = "com.google.android.apps.docs",
+            servicePackageName = "com.ping.verbead",
+            viewId = null,
+            contentDescription = "重做",
+            text = null
+        )
+        org.junit.Assert.assertFalse(isRedoZh)
+
+        val isCancelUndo = TextInsertion.isUndoCandidate(
+            nodePackageName = "com.google.android.apps.docs",
+            servicePackageName = "com.ping.verbead",
+            viewId = null,
+            contentDescription = "取消復原",
+            text = null
+        )
+        org.junit.Assert.assertFalse(isCancelUndo)
+    }
+
+    @Test
+    fun testIsUndoCandidateRejectsGeneralButtons() {
+        val isSend = TextInsertion.isUndoCandidate(
+            nodePackageName = "org.telegram.messenger",
+            servicePackageName = "com.ping.verbead",
+            viewId = "org.telegram.messenger:id/send_button",
+            contentDescription = "傳送",
+            text = "傳送"
+        )
+        org.junit.Assert.assertFalse(isSend)
+    }
 }

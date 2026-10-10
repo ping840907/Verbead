@@ -162,6 +162,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // Standalone floating X button overlay window
     private var xButtonView: View? = null
     private var xButtonLayoutParams: WindowManager.LayoutParams? = null
+    private var isRestoringSnapshot = false
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     // Standalone outer pulse ring volume indicator window
     private var pulseView: View? = null
@@ -989,17 +991,26 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     // 懸浮按鈕 X 鍵點擊事件
     internal fun onXButtonClick() {
+        if (isRestoringSnapshot) {
+            Log.w(TAG, "onXButtonClick: snapshot restore already in progress, debouncing")
+            return
+        }
         HapticUtil.click(this)
         when {
             state == State.PASTED || VoiceAccessibilityService.instance?.hasValidSnapshot() == true -> {
-                // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
-                val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
-                if (restored) {
-                    showPreviewText(getString(R.string.preview_restored), autoHide = true)
+                isRestoringSnapshot = true
+                try {
+                    // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
+                    val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
+                    if (restored) {
+                        showPreviewText(getString(R.string.preview_restored), autoHide = true)
+                    }
+                    setState(State.IDLE)
+                    hideXButton()
+                    checkAndHideBubbleIfKeyboardClosed(animate = true)
+                } finally {
+                    mainHandler.postDelayed({ isRestoringSnapshot = false }, 500)
                 }
-                setState(State.IDLE)
-                hideXButton()
-                checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
             isOcrSnapshotActive -> {
                 // 關閉文字辨識快照與視窗

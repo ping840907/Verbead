@@ -187,4 +187,58 @@ object TextInsertion {
             normalizedSelEnd = selEnd
         )
     }
+
+    /**
+     * Determines whether an accessibility node's metadata identifies it as a native Undo button.
+     * Strictly excludes:
+     * - The service's own package
+     * - The service's floating UI elements (bubble, x button, etc.)
+     * - Redo buttons (e.g. "重做", "redo", "取消復原")
+     */
+    fun isUndoCandidate(
+        nodePackageName: CharSequence?,
+        servicePackageName: String,
+        viewId: CharSequence?,
+        contentDescription: CharSequence?,
+        text: CharSequence?
+    ): Boolean {
+        if (nodePackageName != null && nodePackageName == servicePackageName) {
+            return false
+        }
+
+        val vId = viewId?.toString()?.lowercase() ?: ""
+        if (vId.contains("bubble_x") || vId.contains("verbead")) {
+            return false
+        }
+
+        val desc = contentDescription?.toString()?.trim() ?: ""
+        val txt = text?.toString()?.trim() ?: ""
+
+        if (desc.isEmpty() && txt.isEmpty() && vId.isEmpty()) {
+            return false
+        }
+
+        // Redo keywords to explicitly exclude
+        val redoKeywords = listOf("redo", "重做", "取消復原", "取消撤销", "取消撤銷")
+        if (redoKeywords.any { desc.contains(it, ignoreCase = true) || txt.contains(it, ignoreCase = true) || vId.contains(it) }) {
+            return false
+        }
+
+        // Undo keywords in various languages
+        val undoKeywords = listOf("復原", "撤銷", "撤销", "元に戻す", "실행취소", "실행 취소", "deshacer")
+        if (undoKeywords.any { desc.contains(it, ignoreCase = true) || txt.contains(it, ignoreCase = true) }) {
+            return true
+        }
+
+        if (desc.equals("undo", ignoreCase = true) ||
+            desc.startsWith("undo ", ignoreCase = true) ||
+            desc.endsWith(" undo", ignoreCase = true) ||
+            txt.equals("undo", ignoreCase = true) ||
+            vId.contains("undo")
+        ) {
+            return true
+        }
+
+        return false
+    }
 }

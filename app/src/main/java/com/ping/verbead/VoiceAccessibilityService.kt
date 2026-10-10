@@ -387,43 +387,23 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun isUndoButton(node: AccessibilityNodeInfo): Boolean {
         if (!node.isEnabled) return false
-
-        val desc = node.contentDescription?.toString()?.trim() ?: ""
-        val text = node.text?.toString()?.trim() ?: ""
-        val viewId = node.viewIdResourceName?.lowercase() ?: ""
-
-        if (desc.isEmpty() && text.isEmpty() && viewId.isEmpty()) return false
-
-        // Redo keywords to explicitly exclude
-        val redoKeywords = listOf("redo", "重做", "取消復原", "取消撤销", "取消撤銷")
-        if (redoKeywords.any { desc.contains(it, ignoreCase = true) || text.contains(it, ignoreCase = true) || viewId.contains(it) }) {
-            return false
-        }
-
-        // Undo keywords in various languages
-        val undoKeywords = listOf("復原", "撤銷", "撤销", "元に戻す", "실행취소", "실행 취소", "deshacer")
-        if (undoKeywords.any { desc.contains(it, ignoreCase = true) || text.contains(it, ignoreCase = true) }) {
-            return true
-        }
-
-        if (desc.equals("undo", ignoreCase = true) ||
-            desc.startsWith("undo ", ignoreCase = true) ||
-            desc.endsWith(" undo", ignoreCase = true) ||
-            text.equals("undo", ignoreCase = true) ||
-            viewId.contains("undo")
-        ) {
-            return true
-        }
-
-        return false
+        return TextInsertion.isUndoCandidate(
+            nodePackageName = node.packageName,
+            servicePackageName = packageName,
+            viewId = node.viewIdResourceName,
+            contentDescription = node.contentDescription,
+            text = node.text
+        )
     }
 
     private fun searchUndoButton(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
         if (node == null) return null
+        if (node.packageName == packageName) return null
         if (isUndoButton(node)) {
             if (node.isClickable) return node
             var parent = node.parent
             while (parent != null) {
+                if (parent.packageName == packageName) return null
                 if (parent.isClickable) return parent
                 parent = parent.parent
             }
@@ -438,27 +418,35 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun findNativeUndoButton(target: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+        val targetPkg = target?.packageName?.toString()
+
         // 1. Check parent tree of target node first
         var targetRoot: AccessibilityNodeInfo? = target
         while (targetRoot?.parent != null) {
             targetRoot = targetRoot.parent
         }
         targetRoot?.let { root ->
-            val found = searchUndoButton(root)
-            if (found != null) return found
+            if (root.packageName != packageName) {
+                val found = searchUndoButton(root)
+                if (found != null) return found
+            }
         }
 
         // 2. Check rootInActiveWindow
         rootInActiveWindow?.let { root ->
-            val found = searchUndoButton(root)
-            if (found != null) return found
+            if (root.packageName != packageName && (targetPkg == null || root.packageName == targetPkg)) {
+                val found = searchUndoButton(root)
+                if (found != null) return found
+            }
         }
 
-        // 3. Search other windows
+        // 3. Search other windows (strictly ignoring overlays, IME, and non-target packages)
         val windowList = runCatching { windows }.getOrNull() ?: emptyList()
         for (window in windowList) {
-            if (window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD) continue
+            if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION) continue
             val root = window.root ?: continue
+            if (root.packageName == packageName) continue
+            if (targetPkg != null && root.packageName != targetPkg) continue
             val found = searchUndoButton(root)
             if (found != null) return found
         }
@@ -717,44 +705,48 @@ class VoiceAccessibilityService : AccessibilityService() {
      * §6.1 Undo the last paste using the captured snapshot.
      */
     fun restoreLastSnapshot(): Boolean {
+        if (isAutomatedActionInProgress) {
+            Log.w(TAG, "restoreLastSnapshot: automated action already in progress, ignoring")
+            return false
+        }
         val snapshot = lastSnapshot ?: run {
             Log.w(TAG, "restoreLastSnapshot: lastSnapshot is null")
             return false
         }
-        Log.i(TAG, "restoreLastSnapshot called: originalText='${snapshot.originalText}', sel=${snapshot.selectionStart}..${snapshot.selectionEnd}")
-
-        var target = findActiveEditableNode()
-        if (target == null) {
-            val cachedNode = snapshot.node
-            if (cachedNode != null) {
-                val refreshed = runCatching { cachedNode.refresh() }.getOrDefault(false)
-                if (refreshed && isEditableNode(cachedNode)) {
-                    target = cachedNode
-                } else if (isEditableNode(cachedNode)) {
-                    target = cachedNode
-                }
-            }
-        }
-        if (target == null) {
-            Log.w(TAG, "restoreLastSnapshot: failed to find active or cached editable node, attempting native undo fallback")
-            val nativeUndoBtn = findNativeUndoButton(null)
-            if (nativeUndoBtn != null) {
-                val restored = runCatching {
-                    nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                }.getOrDefault(false)
-                Log.i(TAG, "restoreLastSnapshot: native undo button clicked without active target: result=$restored")
-                if (restored) {
-                    lastSnapshot = null
-                    lastInjectedText = null
-                    lastInjectedCursorPos = -1
-                    return true
-                }
-            }
-            return false
-        }
+        // Consume snapshot immediately to prevent any re-entrant or recursive calls
+        lastSnapshot = null
+        lastInjectedText = null
+        lastInjectedCursorPos = -1
 
         isAutomatedActionInProgress = true
         try {
+            Log.i(TAG, "restoreLastSnapshot called: originalText='${snapshot.originalText}', sel=${snapshot.selectionStart}..${snapshot.selectionEnd}")
+
+            var target = findActiveEditableNode()
+            if (target == null) {
+                val cachedNode = snapshot.node
+                if (cachedNode != null) {
+                    val refreshed = runCatching { cachedNode.refresh() }.getOrDefault(false)
+                    if (refreshed && isEditableNode(cachedNode)) {
+                        target = cachedNode
+                    } else if (isEditableNode(cachedNode)) {
+                        target = cachedNode
+                    }
+                }
+            }
+            if (target == null) {
+                Log.w(TAG, "restoreLastSnapshot: failed to find active or cached editable node, attempting native undo fallback")
+                val nativeUndoBtn = findNativeUndoButton(null)
+                if (nativeUndoBtn != null) {
+                    val restored = runCatching {
+                        nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    }.getOrDefault(false)
+                    Log.i(TAG, "restoreLastSnapshot: native undo button clicked without active target: result=$restored")
+                    return restored
+                }
+                return false
+            }
+
             runCatching { target.refresh() }
             if (!target.isFocused) {
                 runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }
@@ -825,9 +817,6 @@ class VoiceAccessibilityService : AccessibilityService() {
                 }
                 runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs) }
             }
-            lastSnapshot = null
-            lastInjectedText = null
-            lastInjectedCursorPos = -1
             return restored
         } finally {
             mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
