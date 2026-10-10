@@ -299,7 +299,7 @@ class OnboardingActivity : AppCompatActivity() {
                     tvModeDesc?.text = "自訂片語隨點即貼，自動回溯最近輸入內容"
                     ivModeIcon?.setImageResource(R.drawable.ic_quick_phrases)
                     tvModeBadge?.text = "模式 4/4"
-                    tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯\n• 抽屜直接對齊懸浮球位置流暢展開"
+                    tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯"
                 }
             }
         }
