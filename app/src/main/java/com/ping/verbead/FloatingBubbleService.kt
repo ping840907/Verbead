@@ -92,6 +92,7 @@ import android.view.ViewGroup
 import android.widget.EditText
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.ItemTouchHelper
 import com.ping.verbead.ocr.OcrBoxesOverlayView
 import com.ping.verbead.ocr.PpOcrEngine
 import com.ping.verbead.util.HapticUtil
@@ -222,7 +223,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var phrasesDrawerLayoutParams: WindowManager.LayoutParams? = null
     private var isPhrasesDrawerActive = false
     private var quickPhrasesAdapter: QuickPhrasesAdapter? = null
-    private var phrasesList: MutableList<String> = mutableListOf()
+    private var drawerItems: MutableList<DrawerItem> = mutableListOf()
+    private var phrasesItemTouchHelper: ItemTouchHelper? = null
 
     // Touch sampling & screen-space velocity tracking
     private data class TouchPoint(val time: Long, val rawX: Float, val rawY: Float)
@@ -1842,6 +1844,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
 
+        QuickPhrasesManager.addHistory(this, text)
+
         // 透過無障礙服務安全直接填入（避免污染剪貼簿）
         val accService = VoiceAccessibilityService.instance
         val injected = accService?.inputText(text) ?: false
@@ -2677,6 +2681,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun onBarcodeDetected(code: String) {
         HapticUtil.heavyClick(this)
+        if (code.isNotBlank()) {
+            QuickPhrasesManager.addHistory(this, code)
+        }
         val injected = VoiceAccessibilityService.instance?.inputText(code) ?: false
         if (injected) {
             if (ModelConfig.isOcrAutoEnterEnabled(this)) {
@@ -2940,6 +2947,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
                     val processed = results.joinToString(sep)
                     HapticUtil.heavyClick(this@FloatingBubbleService)
+                    if (processed.isNotBlank()) {
+                        QuickPhrasesManager.addHistory(this@FloatingBubbleService, processed)
+                    }
 
                     dismissOcrSnapshot(hideX = false)
                     stopOcrMode(hideX = false)
@@ -3084,23 +3094,44 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             showAddPhraseDialog()
         }
 
-        phrasesList = QuickPhrasesManager.load(this).toMutableList()
         quickPhrasesAdapter = QuickPhrasesAdapter(
-            phrases = phrasesList,
-            onItemClick = { phrase ->
-                insertQuickPhrase(phrase)
+            items = drawerItems,
+            onItemClick = { text ->
+                insertQuickPhrase(text)
             },
-            onEditClick = { index, phrase ->
+            onEditPhrase = { phrase ->
                 HapticUtil.click(this)
-                showEditPhraseDialog(index, phrase)
+                showEditPhraseDialog(phrase)
             },
-            onDeleteClick = { index, phrase ->
+            onDeletePhrase = { phrase ->
                 HapticUtil.click(this)
-                showDeletePhraseDialog(index, phrase)
+                showDeletePhraseDialog(phrase)
+            },
+            onSaveHistoryAsPhrase = { text ->
+                HapticUtil.click(this)
+                QuickPhrasesManager.add(this, text)
+                Toast.makeText(this, R.string.toast_phrase_saved_from_history, Toast.LENGTH_SHORT).show()
+                refreshPhrasesList()
+            },
+            onDeleteHistory = { historyIndex ->
+                HapticUtil.click(this)
+                QuickPhrasesManager.removeHistoryAt(this, historyIndex)
+                refreshPhrasesList()
+            },
+            onClearHistory = {
+                HapticUtil.click(this)
+                QuickPhrasesManager.clearHistory(this)
+                Toast.makeText(this, R.string.toast_history_cleared, Toast.LENGTH_SHORT).show()
+                refreshPhrasesList()
+            },
+            onStartDrag = { viewHolder ->
+                phrasesItemTouchHelper?.startDrag(viewHolder)
             }
         )
         rvPhrases.layoutManager = LinearLayoutManager(themedCtx)
         rvPhrases.adapter = quickPhrasesAdapter
+
+        setupDragAndDrop(rvPhrases)
         refreshPhrasesList()
 
         if (isDockedOnRight) {
@@ -3133,6 +3164,86 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    private fun setupDragAndDrop(recyclerView: RecyclerView) {
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun isLongPressDragEnabled(): Boolean = true
+            override fun isItemViewSwipeEnabled(): Boolean = false
+
+            override fun getMovementFlags(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+                return if (viewHolder is QuickPhrasesAdapter.PhraseViewHolder) {
+                    makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+                } else {
+                    0
+                }
+            }
+
+            override fun canDropOver(
+                rv: RecyclerView,
+                current: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return target is QuickPhrasesAdapter.PhraseViewHolder
+            }
+
+            override fun onMove(
+                rv: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val fromPos = viewHolder.bindingAdapterPosition
+                val toPos = target.bindingAdapterPosition
+                if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false
+                if (viewHolder !is QuickPhrasesAdapter.PhraseViewHolder || target !is QuickPhrasesAdapter.PhraseViewHolder) return false
+
+                quickPhrasesAdapter?.moveItem(fromPos, toPos)
+                HapticUtil.tick(this@FloatingBubbleService)
+                return true
+            }
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+                    HapticUtil.heavyClick(this@FloatingBubbleService)
+                    viewHolder.itemView.animate()
+                        .scaleX(1.03f)
+                        .scaleY(1.03f)
+                        .setDuration(120)
+                        .start()
+                    viewHolder.itemView.translationZ = 12f * resources.displayMetrics.density
+                    viewHolder.itemView.setBackgroundResource(R.drawable.bg_phrase_item_dragging)
+                }
+            }
+
+            override fun clearView(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(rv, viewHolder)
+                viewHolder.itemView.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(120)
+                    .start()
+                viewHolder.itemView.translationZ = 0f
+                viewHolder.itemView.setBackgroundResource(R.drawable.bg_phrase_item)
+                HapticUtil.click(this@FloatingBubbleService)
+                persistPhrasesFromAdapter()
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+        }
+
+        phrasesItemTouchHelper = ItemTouchHelper(callback).also {
+            it.attachToRecyclerView(recyclerView)
+        }
+    }
+
+    private fun persistPhrasesFromAdapter() {
+        val updatedPhrases = drawerItems
+            .filterIsInstance<DrawerItem.Phrase>()
+            .map { it.text }
+        QuickPhrasesManager.save(this, updatedPhrases)
+    }
+
     private fun closePhrasesDrawer(hideX: Boolean = true) {
         if (!isPhrasesDrawerActive) return
         isPhrasesDrawerActive = false
@@ -3157,6 +3268,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     }
                 }
                 phrasesDrawerView = null
+                phrasesItemTouchHelper = null
                 checkAndHideBubbleIfKeyboardClosed(animate = true)
             }
             .start()
@@ -3197,10 +3309,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val emptyView = drawer.findViewById<View>(R.id.ll_empty_phrases)
         val rvPhrases = drawer.findViewById<RecyclerView>(R.id.rv_phrases) ?: return
 
-        phrasesList.clear()
-        phrasesList.addAll(QuickPhrasesManager.load(this))
+        val history = QuickPhrasesManager.loadHistory(this)
+        val phrases = QuickPhrasesManager.load(this)
 
-        if (phrasesList.isEmpty()) {
+        drawerItems.clear()
+
+        // 歷史紀錄置頂（最多保留六項）
+        if (history.isNotEmpty()) {
+            drawerItems.add(DrawerItem.Header(getString(R.string.header_recent_history), canClear = true))
+            history.forEachIndexed { i, text ->
+                drawerItems.add(DrawerItem.History(text, i))
+            }
+        }
+
+        // 常用片語區段
+        if (phrases.isNotEmpty()) {
+            drawerItems.add(DrawerItem.Header(getString(R.string.header_quick_phrases), canClear = false))
+            phrases.forEachIndexed { i, text ->
+                drawerItems.add(DrawerItem.Phrase(text, i))
+            }
+        }
+
+        if (drawerItems.isEmpty()) {
             emptyView?.visibility = View.VISIBLE
             rvPhrases.visibility = View.GONE
         } else {
@@ -3208,8 +3338,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             rvPhrases.visibility = View.VISIBLE
             val density = resources.displayMetrics.density
             rvPhrases.layoutParams = rvPhrases.layoutParams.apply {
-                height = if (phrasesList.size >= 5) {
-                    (260 * density).toInt()
+                height = if (drawerItems.size >= 5) {
+                    (280 * density).toInt()
                 } else {
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 }
@@ -3265,7 +3395,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         etPhrase.requestFocus()
     }
 
-    private fun showEditPhraseDialog(index: Int, currentPhrase: String) {
+    private fun showEditPhraseDialog(currentPhrase: String) {
         val dialogView = LayoutInflater.from(themedCtx).inflate(R.layout.dialog_phrase_entry, null)
         val etPhrase = dialogView.findViewById<EditText>(R.id.et_phrase)
         etPhrase.setText(currentPhrase)
@@ -3276,9 +3406,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .setView(dialogView)
             .setPositiveButton(R.string.btn_save) { _, _ ->
                 HapticUtil.click(this)
-                val text = etPhrase.text.toString().trim()
-                if (text.isNotBlank()) {
-                    QuickPhrasesManager.update(this, index, text)
+                val newText = etPhrase.text.toString().trim()
+                if (newText.isNotBlank()) {
+                    val currentPhrases = QuickPhrasesManager.load(this).toMutableList()
+                    val idx = currentPhrases.indexOf(currentPhrase)
+                    if (idx >= 0) {
+                        currentPhrases[idx] = newText
+                        QuickPhrasesManager.save(this, currentPhrases)
+                    }
                     Toast.makeText(this, R.string.toast_phrase_updated, Toast.LENGTH_SHORT).show()
                     refreshPhrasesList()
                 }
@@ -3300,13 +3435,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         etPhrase.requestFocus()
     }
 
-    private fun showDeletePhraseDialog(index: Int, phrase: String) {
+    private fun showDeletePhraseDialog(phrase: String) {
         val dialog = MaterialAlertDialogBuilder(themedCtx)
             .setTitle(R.string.dialog_phrase_delete_title)
             .setMessage(getString(R.string.dialog_phrase_delete_confirm, phrase))
             .setPositiveButton(R.string.btn_delete) { _, _ ->
                 HapticUtil.click(this)
-                QuickPhrasesManager.removeAt(this, index)
+                val currentPhrases = QuickPhrasesManager.load(this).toMutableList()
+                currentPhrases.remove(phrase)
+                QuickPhrasesManager.save(this, currentPhrases)
                 Toast.makeText(this, R.string.toast_phrase_deleted, Toast.LENGTH_SHORT).show()
                 refreshPhrasesList()
             }
@@ -3325,40 +3462,108 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         dialog.show()
     }
 
-    private class QuickPhrasesAdapter(
-        private val phrases: MutableList<String>,
-        private val onItemClick: (String) -> Unit,
-        private val onEditClick: (Int, String) -> Unit,
-        private val onDeleteClick: (Int, String) -> Unit
-    ) : RecyclerView.Adapter<QuickPhrasesAdapter.ViewHolder>() {
+    private sealed class DrawerItem {
+        data class Header(val title: String, val canClear: Boolean = false) : DrawerItem()
+        data class History(val text: String, val originalIndex: Int) : DrawerItem()
+        data class Phrase(val text: String, val originalIndex: Int) : DrawerItem()
+    }
 
-        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    private class QuickPhrasesAdapter(
+        private val items: MutableList<DrawerItem>,
+        private val onItemClick: (String) -> Unit,
+        private val onEditPhrase: (String) -> Unit,
+        private val onDeletePhrase: (String) -> Unit,
+        private val onSaveHistoryAsPhrase: (String) -> Unit,
+        private val onDeleteHistory: (Int) -> Unit,
+        private val onClearHistory: () -> Unit,
+        private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
+    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        companion object {
+            private const val TYPE_HEADER = 0
+            private const val TYPE_HISTORY = 1
+            private const val TYPE_PHRASE = 2
+        }
+
+        class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val tvTitle: TextView = view.findViewById(R.id.tv_header_title)
+            val btnAction: TextView = view.findViewById(R.id.btn_header_action)
+        }
+
+        class HistoryViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val root: View = view.findViewById(R.id.layout_history_item)
+            val tvText: TextView = view.findViewById(R.id.tv_history_text)
+            val btnSave: ImageButton = view.findViewById(R.id.btn_save_as_phrase)
+            val btnDelete: ImageButton = view.findViewById(R.id.btn_delete_history)
+        }
+
+        class PhraseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val root: View = view.findViewById(R.id.layout_phrase_item)
             val tvText: TextView = view.findViewById(R.id.tv_phrase_text)
             val btnEdit: ImageButton = view.findViewById(R.id.btn_edit_phrase)
             val btnDelete: ImageButton = view.findViewById(R.id.btn_delete_phrase)
+            val ivDragHandle: ImageView = view.findViewById(R.id.iv_drag_handle)
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_quick_phrase, parent, false)
-            return ViewHolder(view)
+        override fun getItemViewType(position: Int): Int = when (items[position]) {
+            is DrawerItem.Header -> TYPE_HEADER
+            is DrawerItem.History -> TYPE_HISTORY
+            is DrawerItem.Phrase -> TYPE_PHRASE
         }
 
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val phrase = phrases[position]
-            holder.tvText.text = phrase
-            holder.root.setOnClickListener {
-                onItemClick(phrase)
-            }
-            holder.btnEdit.setOnClickListener {
-                onEditClick(holder.bindingAdapterPosition, phrase)
-            }
-            holder.btnDelete.setOnClickListener {
-                onDeleteClick(holder.bindingAdapterPosition, phrase)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            val inflater = LayoutInflater.from(parent.context)
+            return when (viewType) {
+                TYPE_HEADER -> HeaderViewHolder(inflater.inflate(R.layout.item_drawer_header, parent, false))
+                TYPE_HISTORY -> HistoryViewHolder(inflater.inflate(R.layout.item_quick_history, parent, false))
+                else -> PhraseViewHolder(inflater.inflate(R.layout.item_quick_phrase, parent, false))
             }
         }
 
-        override fun getItemCount(): Int = phrases.size
+        @SuppressLint("ClickableViewAccessibility")
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (val item = items[position]) {
+                is DrawerItem.Header -> {
+                    val h = holder as HeaderViewHolder
+                    h.tvTitle.text = item.title
+                    if (item.canClear) {
+                        h.btnAction.visibility = View.VISIBLE
+                        h.btnAction.setOnClickListener { onClearHistory() }
+                    } else {
+                        h.btnAction.visibility = View.GONE
+                    }
+                }
+                is DrawerItem.History -> {
+                    val h = holder as HistoryViewHolder
+                    h.tvText.text = item.text
+                    h.root.setOnClickListener { onItemClick(item.text) }
+                    h.btnSave.setOnClickListener { onSaveHistoryAsPhrase(item.text) }
+                    h.btnDelete.setOnClickListener { onDeleteHistory(item.originalIndex) }
+                }
+                is DrawerItem.Phrase -> {
+                    val h = holder as PhraseViewHolder
+                    h.tvText.text = item.text
+                    h.root.setOnClickListener { onItemClick(item.text) }
+                    h.btnEdit.setOnClickListener { onEditPhrase(item.text) }
+                    h.btnDelete.setOnClickListener { onDeletePhrase(item.text) }
+                    h.ivDragHandle.setOnTouchListener { _, event ->
+                        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                            onStartDrag(holder)
+                        }
+                        false
+                    }
+                }
+            }
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        fun moveItem(fromPos: Int, toPos: Int) {
+            if (fromPos == toPos) return
+            val item = items.removeAt(fromPos)
+            items.add(toPos, item)
+            notifyItemMoved(fromPos, toPos)
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

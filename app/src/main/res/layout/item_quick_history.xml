@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/layout_phrase_item"
+    android:id="@+id/layout_history_item"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="8dp"
@@ -14,18 +14,26 @@
     android:clickable="true"
     android:focusable="true">
 
+    <ImageView
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="10dp"
+        android:src="@drawable/ic_history"
+        app:tint="#80FFFFFF"
+        android:contentDescription="歷史紀錄" />
+
     <TextView
-        android:id="@+id/tv_phrase_text"
+        android:id="@+id/tv_history_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:paddingStart="12dp"
+        android:paddingStart="8dp"
         android:paddingEnd="4dp"
         android:paddingTop="9dp"
         android:paddingBottom="9dp"
-        android:textColor="#FFFFFFFF"
-        android:textSize="14sp"
-        android:maxLines="3"
+        android:textColor="#E6FFFFFF"
+        android:textSize="13.5sp"
+        android:maxLines="2"
         android:ellipsize="end" />
 
     <LinearLayout
@@ -36,33 +44,24 @@
         android:paddingEnd="4dp">
 
         <ImageButton
-            android:id="@+id/btn_edit_phrase"
+            android:id="@+id/btn_save_as_phrase"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="編輯常用語"
+            android:contentDescription="加入常用語"
             android:padding="7dp"
-            android:src="@drawable/ic_edit"
-            app:tint="#B3FFFFFF" />
+            android:src="@drawable/ic_add"
+            app:tint="#80FFFFFF" />
 
         <ImageButton
-            android:id="@+id/btn_delete_phrase"
+            android:id="@+id/btn_delete_history"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="刪除常用語"
+            android:contentDescription="刪除此紀錄"
             android:padding="7dp"
             android:src="@drawable/ic_delete"
-            app:tint="#B3FFFFFF" />
-
-        <ImageView
-            android:id="@+id/iv_drag_handle"
-            android:layout_width="24dp"
-            android:layout_height="32dp"
-            android:padding="6dp"
-            android:src="@drawable/ic_drag_handle"
-            app:tint="#66FFFFFF"
-            android:contentDescription="拖曳排序" />
+            app:tint="#80FFFFFF" />
     </LinearLayout>
 
 </LinearLayout>
