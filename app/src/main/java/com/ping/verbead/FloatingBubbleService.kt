@@ -3061,30 +3061,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        val estimatedHeight = (280 * density).toInt()
-        val micY = windowLayoutParams.y + (30 * density).toInt()
-        val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinY(),
-            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
-        )
-
-        phrasesDrawerLayoutParams = WindowManager.LayoutParams(
-            drawerWidth,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            if (isDockedOnRight) {
-                gravity = Gravity.TOP or Gravity.RIGHT
-                x = bubbleWidthPx + gap
-            } else {
-                gravity = Gravity.TOP or Gravity.LEFT
-                x = bubbleWidthPx + gap
-            }
-            y = targetY
-        }
-
         val btnClose = drawer.findViewById<ImageButton>(R.id.btn_close_phrases_drawer)
         val btnAdd = drawer.findViewById<ImageButton>(R.id.btn_add_phrase)
         val rvPhrases = drawer.findViewById<RecyclerView>(R.id.rv_phrases)
@@ -3139,17 +3115,49 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         setupDragAndDrop(rvPhrases)
         refreshPhrasesList()
 
+        // 測量抽屜實際高度以計算貼齊懸浮球的精確 Y 座標與縮放軸心
+        drawer.measure(
+            View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
+
+        // 優先對齊懸浮球頂部 (windowLayoutParams.y)，若接近螢幕底緣則向上微調避免超出邊界
+        val maxAllowedY = screenHeight - actualHeight - (16 * density).toInt()
+        val targetY = windowLayoutParams.y.coerceIn(getMinY(), maxOf(getMinY(), maxAllowedY))
+
+        phrasesDrawerLayoutParams = WindowManager.LayoutParams(
+            drawerWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            if (isDockedOnRight) {
+                gravity = Gravity.TOP or Gravity.RIGHT
+                x = bubbleWidthPx + gap
+            } else {
+                gravity = Gravity.TOP or Gravity.LEFT
+                x = bubbleWidthPx + gap
+            }
+            y = targetY
+        }
+
+        // 以懸浮球垂直中心為軸心展開動畫，營造從懸浮球直接呼出的視覺感受
+        val bubbleCenterY = windowLayoutParams.y + (30 * density)
+        val relativePivotY = (bubbleCenterY - targetY).coerceIn(0f, actualHeight.toFloat())
+
         if (isDockedOnRight) {
             drawer.pivotX = drawerWidth.toFloat()
-            drawer.translationX = (40 * density)
+            drawer.translationX = (24 * density)
         } else {
             drawer.pivotX = 0f
-            drawer.translationX = -(40 * density)
+            drawer.translationX = -(24 * density)
         }
-        drawer.pivotY = (140 * density)
+        drawer.pivotY = relativePivotY
         drawer.alpha = 0f
-        drawer.scaleX = 0.7f
-        drawer.scaleY = 0.7f
+        drawer.scaleX = 0.6f
+        drawer.scaleY = 0.6f
 
         try {
             windowManager.addView(drawer, phrasesDrawerLayoutParams)
@@ -3257,12 +3265,18 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         val drawer = phrasesDrawerView ?: return
         val density = resources.displayMetrics.density
-        val targetTranslationX = if (isDockedOnRight) (40 * density) else -(40 * density)
+        val targetTranslationX = if (isDockedOnRight) (24 * density) else -(24 * density)
+        val bubbleCenterY = windowLayoutParams.y + (30 * density)
+        val currentTargetY = phrasesDrawerLayoutParams?.y ?: windowLayoutParams.y
+        val drawerHeight = drawer.height.toFloat().takeIf { it > 0f } ?: (100 * density)
+        drawer.pivotY = (bubbleCenterY - currentTargetY).coerceIn(0f, drawerHeight)
+        drawer.pivotX = if (isDockedOnRight) (drawer.width.toFloat().takeIf { it > 0f } ?: (260 * density)) else 0f
+
         drawer.animate()
             .alpha(0f)
             .translationX(targetTranslationX)
-            .scaleX(0.7f)
-            .scaleY(0.7f)
+            .scaleX(0.6f)
+            .scaleY(0.6f)
             .setDuration(180)
             .withEndAction {
                 if (drawer.isAttachedToWindow) {
@@ -3286,8 +3300,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
         val screenHeight = getScreenHeight()
-        val estimatedHeight = (280 * density).toInt()
-        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val drawerWidth = (260 * density).toInt()
+
+        drawer.measure(
+            View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
 
         if (isDockedOnRight) {
             lp.gravity = Gravity.TOP or Gravity.RIGHT
@@ -3296,10 +3315,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             lp.gravity = Gravity.TOP or Gravity.LEFT
             lp.x = bubbleWidthPx + gap
         }
-        lp.y = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinY(),
-            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
-        )
+        val maxAllowedY = screenHeight - actualHeight - (16 * density).toInt()
+        lp.y = windowLayoutParams.y.coerceIn(getMinY(), maxOf(getMinY(), maxAllowedY))
         if (drawer.isAttachedToWindow) {
             try {
                 windowManager.updateViewLayout(drawer, lp)
