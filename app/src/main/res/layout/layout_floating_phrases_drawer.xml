@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_phrases_drawer_root"
+    android:layout_width="260dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_scanner_window"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Top Header Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginBottom="6dp">
+
+        <ImageButton
+            android:id="@+id/btn_close_phrases_drawer"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="關閉常用語"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/tv_phrases_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="常用語"
+            android:textColor="#EEFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btn_add_phrase"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="新增常用語"
+            android:padding="6dp"
+            android:src="@drawable/ic_add"
+            app:tint="#FFFFFFFF" />
+    </RelativeLayout>
+
+    <!-- Content: Phrases List & Empty State -->
+    <FrameLayout
+        android:id="@+id/container_phrases_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_phrases"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:overScrollMode="never"
+            android:scrollbars="vertical" />
+
+        <LinearLayout
+            android:id="@+id/ll_empty_phrases"
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_quick_phrases"
+                app:tint="#66FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/empty_quick_phrases"
+                android:textColor="#80FFFFFF"
+                android:textSize="12sp"
+                android:lineSpacingExtra="2dp" />
+        </LinearLayout>
+    </FrameLayout>
+
+</LinearLayout>
