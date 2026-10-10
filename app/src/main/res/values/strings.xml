@@ -38,8 +38,8 @@
     <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始辨識；懸浮球轉為紅色代表正在聆聽，開口說話即自動辨識並填入文字！</string>
     <string name="onboarding_page1_tip">💡 提示：點擊懸浮球後底色轉為紅色即開始收音聆聽，再次點擊或靜音自動完成填入。</string>
     <string name="onboarding_page2_title">垂直膠囊 · 四大模式隨心切換</string>
-    <string name="onboarding_page2_desc">長按懸浮球可展開垂直功能膠囊，滑動或輕點對齊即可快速切換：包含「語音即時輸入」、「條碼掃描」、「文字辨識」，以及全新「常用語抽屜」（支援常用片語長按拖曳排序，並自動置頂保留最近輸入紀錄）。</string>
-    <string name="onboarding_page2_tip">💡 提示：長按懸浮球展開膠囊並滑動切換模式；輕觸上方動態卡片或膠囊圖示即可探索各模式功能詳情。</string>
+    <string name="onboarding_page2_desc">長按懸浮球可展開垂直功能膠囊，上下滑動對齊即可切換模式：包含「語音即時輸入」、「條碼掃描」、「文字辨識」，以及全新「常用語抽屜」（支援常用片語長按拖曳排序，並自動置頂保留最近輸入紀錄）。</string>
+    <string name="onboarding_page2_tip">💡 提示：長按懸浮球即可展開功能膠囊；上下滑動膠囊帶動選項對齊，鬆開手指即可立即切換模式。</string>
     <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回輸入</string>
     <string name="onboarding_page3_desc">當語音辨識或文字填入不如預期時，無需手動逐字刪除！懸浮球上方會自動出現小型 ✕ 鍵，輕點即可瞬間撤回並復原欄位原本的文字內容。</string>
     <string name="onboarding_page3_tip">💡 提示：填入文字後懸浮球上方會顯示 ✕ 鍵，點擊即可執行 Undo 復原。</string>

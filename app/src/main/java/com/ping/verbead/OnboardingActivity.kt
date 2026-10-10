@@ -277,28 +277,28 @@ class OnboardingActivity : AppCompatActivity() {
                     tvModeTitle?.text = "語音即時輸入"
                     tvModeDesc?.text = "高精準度離線語音辨識，輕觸即開始聽寫並直接貼上"
                     ivModeIcon?.setImageResource(R.drawable.ic_mic)
-                    tvModeBadge?.text = "模式 1/4 · 輕觸切換"
+                    tvModeBadge?.text = "模式 1/4"
                     tvFeatureTags?.text = "• 離線 ASR 雙模型即時轉譯\n• 支援自動標點與自訂專屬詞彙\n• 耳機外接音訊倍率增益"
                 }
                 1 -> {
                     tvModeTitle?.text = "條碼與 QR 掃描"
                     tvModeDesc?.text = "極速本機條碼讀取，瞄準即辨識並自動填入"
                     ivModeIcon?.setImageResource(R.drawable.ic_barcode)
-                    tvModeBadge?.text = "模式 2/4 · 輕觸切換"
+                    tvModeBadge?.text = "模式 2/4"
                     tvFeatureTags?.text = "• 支援 QR Code 及各類一維條碼\n• 支援相機雙指縮放與閃光燈\n• 掃描完成後可設定自動換行"
                 }
                 2 -> {
                     tvModeTitle?.text = "文字辨識"
                     tvModeDesc?.text = "凍結畫面框選文字，離線高精度字元擷取"
                     ivModeIcon?.setImageResource(R.drawable.ic_ocr)
-                    tvModeBadge?.text = "模式 3/4 · 輕觸切換"
+                    tvModeBadge?.text = "模式 3/4"
                     tvFeatureTags?.text = "• 本機端 PP-OCR 離線模型架構\n• 可自訂換行或空格分隔符\n• 框選預覽與即時觸覺反饋"
                 }
                 3 -> {
                     tvModeTitle?.text = "常用語與歷史紀錄"
                     tvModeDesc?.text = "自訂片語隨點即貼，自動回溯最近輸入內容"
                     ivModeIcon?.setImageResource(R.drawable.ic_quick_phrases)
-                    tvModeBadge?.text = "模式 4/4 · 輕觸切換"
+                    tvModeBadge?.text = "模式 4/4"
                     tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯\n• 抽屜直接對齊懸浮球位置流暢展開"
                 }
             }
