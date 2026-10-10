@@ -402,26 +402,42 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         btnOpenOnboarding.setOnClickListener {
+            HapticUtil.click(this)
             startActivity(Intent(this, OnboardingActivity::class.java))
         }
 
         // Status indicator click to smooth scroll
-        itemStatusMic.setOnClickListener { scrollToView(cardMicRoot) }
-        itemStatusOverlay.setOnClickListener { scrollToView(cardBubbleModule) }
-        itemStatusAccessibility.setOnClickListener { scrollToView(btnGrantAccessibility) }
-        itemStatusModel.setOnClickListener { scrollToView(cardImportModels) }
+        itemStatusMic.setOnClickListener {
+            HapticUtil.click(this)
+            scrollToView(cardMicRoot)
+        }
+        itemStatusOverlay.setOnClickListener {
+            HapticUtil.click(this)
+            scrollToView(cardBubbleModule)
+        }
+        itemStatusAccessibility.setOnClickListener {
+            HapticUtil.click(this)
+            scrollToView(btnGrantAccessibility)
+        }
+        itemStatusModel.setOnClickListener {
+            HapticUtil.click(this)
+            scrollToView(cardImportModels)
+        }
 
         // Node 1: Mic & Camera Permissions
         btnGrantMic.setOnClickListener {
+            HapticUtil.click(this)
             requestMic.launch(Manifest.permission.RECORD_AUDIO)
         }
         btnGrantCamera.setOnClickListener {
+            HapticUtil.click(this)
             requestCamera.launch(Manifest.permission.CAMERA)
         }
 
 
         // Node 2: Bubble & §3.2.1 高亮跳轉
         btnGrantOverlay.setOnClickListener {
+            HapticUtil.click(this)
             try {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -434,6 +450,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         btnGrantAccessibility.setOnClickListener {
+            HapticUtil.click(this)
             try {
                 val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
                     val compName = ComponentName(packageName, VoiceAccessibilityService::class.java.name).flattenToString()
@@ -450,6 +467,7 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // §3.2.2 備援連結與受限制設定指引
         tvRestrictedSettingsHelp.setOnClickListener {
+            HapticUtil.click(this)
             showRestrictedSettingsDialog()
         }
 
@@ -503,10 +521,12 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Downloads
         btnDownloadXasr.setOnClickListener {
+            HapticUtil.click(this)
             handleDownloadButtonClick(ModelConfig.ENGINE_X_ASR)
         }
 
         btnDownloadQwen3.setOnClickListener {
+            HapticUtil.click(this)
             handleDownloadButtonClick(ModelConfig.ENGINE_QWEN3)
         }
 
@@ -608,22 +628,17 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // OCR & Scanner
         btnSelectOcrTiny.setOnClickListener {
-            val prev = ModelConfig.selectedOcrModel(this)
             ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_TINY)
-            if (prev != ModelConfig.ENGINE_PP_OCR_TINY) {
-                HapticUtil.click(this)
-            }
+            HapticUtil.click(this)
             updateAllStatus()
         }
         btnSelectOcrSmall.setOnClickListener {
-            val prev = ModelConfig.selectedOcrModel(this)
             ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_SMALL)
-            if (prev != ModelConfig.ENGINE_PP_OCR_SMALL) {
-                HapticUtil.click(this)
-            }
+            HapticUtil.click(this)
             updateAllStatus()
         }
         btnDownloadOcr.setOnClickListener {
+            HapticUtil.click(this)
             val engine = ModelConfig.selectedOcrModel(this)
             handleDownloadButtonClick(engine)
         }
@@ -639,11 +654,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         fun updateOcrSepSelection(sep: String) {
-            val prev = ModelConfig.ocrSeparator(this)
             ModelConfig.setOcrSeparator(this, sep)
-            if (prev != sep) {
-                HapticUtil.click(this)
-            }
+            HapticUtil.click(this)
             updateAllStatus()
         }
         btnOcrSepNewline.setOnClickListener { updateOcrSepSelection("\n") }
@@ -652,6 +664,7 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Model Package ZIP Import
         btnImportModelsZip.setOnClickListener {
+            HapticUtil.click(this)
             try {
                 pickZipFileLauncher.launch(
                     arrayOf(
@@ -666,6 +679,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         btnQuickImportDownload.setOnClickListener {
+            HapticUtil.click(this)
             val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
             if (quickFile != null) {
                 runModelPackageImport(file = quickFile)
@@ -686,6 +700,7 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // 開源專案與致謝連結
         fun openWebUrl(url: String) {
+            HapticUtil.click(this)
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             } catch (ex: Exception) {
@@ -1215,6 +1230,8 @@ class ImeSettingsActivity : AppCompatActivity() {
             ModelConfig.isQwen3Ready(this)
         }
 
+        HapticUtil.click(this)
+
         if (downloaded) {
             val previousEngine = ModelConfig.selectedEngine(this)
             ModelConfig.setSelectedEngine(this, targetEngine)
@@ -1224,9 +1241,6 @@ class ImeSettingsActivity : AppCompatActivity() {
                     (targetEngine == ModelConfig.ENGINE_QWEN3)
             if (!dualEngineSelectable) {
                 ModelConfig.setDualEngineEnabled(this, false)
-            }
-            if (previousEngine != targetEngine) {
-                HapticUtil.click(this)
             }
             updateAllStatus()
         } else {
@@ -1289,6 +1303,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                         "4. 完成後返回系統無障礙服務清單即可正常開啟服務。"
             )
             .setPositiveButton("前往應用程式資訊") { _, _ ->
+                HapticUtil.click(this)
                 val intent = Intent(
                     Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.parse("package:$packageName")
@@ -1354,6 +1369,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                             "文字辨識與語音轉譯全程在裝置本機執行，僅下載步驟需使用網路。$conflictNotice\n\n是否繼續？"
                 )
                 .setPositiveButton(if (hasConflict) "替換並下載" else "開始下載") { _, _ ->
+                    HapticUtil.click(this@ImeSettingsActivity)
                     if (engine == ModelConfig.ENGINE_PP_OCR_TINY) {
                         ModelConfig.deleteOcrModel(this@ImeSettingsActivity, ModelConfig.ENGINE_PP_OCR_SMALL)
                     } else if (engine == ModelConfig.ENGINE_PP_OCR_SMALL) {

@@ -266,6 +266,7 @@ class CapsuleMenuController(
     fun selectMode(mode: Int) {
         val targetIndex = modeToIndex(mode)
         val isModeChanged = (mode != currentMode)
+        HapticUtil.click(context)
 
         val menu = capsuleMenuView ?: run {
             dismiss()

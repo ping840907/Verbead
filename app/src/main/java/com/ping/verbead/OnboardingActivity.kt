@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.util.HapticUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -81,16 +82,19 @@ class OnboardingActivity : AppCompatActivity() {
         )
 
         btnSkip.setOnClickListener {
+            HapticUtil.click(this)
             completeOnboarding()
         }
 
         btnPrev.setOnClickListener {
+            HapticUtil.click(this)
             if (vpOnboarding.currentItem > 0) {
                 vpOnboarding.currentItem = vpOnboarding.currentItem - 1
             }
         }
 
         btnNext.setOnClickListener {
+            HapticUtil.click(this)
             if (vpOnboarding.currentItem < 4) {
                 vpOnboarding.currentItem = vpOnboarding.currentItem + 1
             } else {

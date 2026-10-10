@@ -61,7 +61,10 @@ class DictSettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_dict_settings)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener {
+            HapticUtil.click(this)
+            finish()
+        }
 
         emptyState = findViewById(R.id.ll_empty_state)
         recycler = findViewById(R.id.rv_dict)
@@ -89,9 +92,13 @@ class DictSettingsActivity : AppCompatActivity() {
         recycler.adapter = adapter
         refreshList()
 
-        findViewById<View>(R.id.btn_add_entry).setOnClickListener { showAddDialog() }
+        findViewById<View>(R.id.btn_add_entry).setOnClickListener {
+            HapticUtil.click(this)
+            showAddDialog()
+        }
 
         findViewById<View>(R.id.btn_import_csv).setOnClickListener {
+            HapticUtil.click(this)
             try {
                 importCsvLauncher.launch(
                     arrayOf(
@@ -107,6 +114,7 @@ class DictSettingsActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btn_export_csv).setOnClickListener {
+            HapticUtil.click(this)
             try {
                 exportCsvLauncher.launch("verbead_user_dict.csv")
             } catch (e: Exception) {
@@ -144,6 +152,7 @@ class DictSettingsActivity : AppCompatActivity() {
                 val from = if (fromRaw.isNotBlank()) fromRaw else to
                 UserDictionary.add(this, from, to)
                 refreshList()
+                HapticUtil.click(this)
             }
             .setNegativeButton("取消", null)
             .show()
@@ -212,8 +221,14 @@ class DictSettingsActivity : AppCompatActivity() {
             } else {
                 holder.tvMapping.visibility = View.GONE
             }
-            holder.itemView.setOnClickListener { onEdit(from, to) }
-            holder.btnDel.setOnClickListener { onDelete(from, to) }
+            holder.itemView.setOnClickListener {
+                HapticUtil.click(holder.itemView)
+                onEdit(from, to)
+            }
+            holder.btnDel.setOnClickListener {
+                HapticUtil.click(holder.btnDel)
+                onDelete(from, to)
+            }
         }
     }
 }

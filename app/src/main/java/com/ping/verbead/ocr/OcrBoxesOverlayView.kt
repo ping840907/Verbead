@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.ocr
+package com.ping.verbead.ocr
 
 import android.content.Context
 import android.graphics.Canvas
@@ -8,6 +8,7 @@ import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import com.ping.verbead.util.HapticUtil
 import kotlin.math.max
 import kotlin.math.min
 
@@ -218,6 +219,7 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
 
                 if (isDoubleTap) {
                     // Double tap: immediately quick confirm this single box
+                    HapticUtil.click(context)
                     selectedIndices.clear()
                     selectedIndices.add(hitIndex)
                     invalidate()
@@ -227,6 +229,7 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
                 }
 
                 // Single tap: toggle selection
+                HapticUtil.tick(context)
                 if (selectedIndices.contains(hitIndex)) {
                     selectedIndices.remove(hitIndex)
                 } else {
