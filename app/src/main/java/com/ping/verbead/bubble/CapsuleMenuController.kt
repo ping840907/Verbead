@@ -237,6 +237,7 @@ class CapsuleMenuController(
 
         val targetMode = indexToMode(currentHoveredIndex)
         val isModeChanged = (targetMode != currentMode)
+        val shouldNotify = isModeChanged || (targetMode != MODE_VOICE)
         if (isModeChanged) {
             HapticUtil.click(context)
         }
@@ -254,14 +255,14 @@ class CapsuleMenuController(
                 .setInterpolator(DecelerateInterpolator(1.5f))
                 .withEndAction {
                     dismiss()
-                    if (isModeChanged) {
+                    if (shouldNotify) {
                         listener.onModeSelected(targetMode)
                     }
                 }
                 .start()
         } else {
             dismiss()
-            if (isModeChanged) {
+            if (shouldNotify) {
                 listener.onModeSelected(targetMode)
             }
         }
@@ -272,14 +273,11 @@ class CapsuleMenuController(
      */
     fun selectMode(mode: Int) {
         val targetIndex = modeToIndex(mode)
-        val isModeChanged = (mode != currentMode)
         HapticUtil.click(context)
 
         val menu = capsuleMenuView ?: run {
             dismiss()
-            if (isModeChanged) {
-                listener.onModeSelected(mode)
-            }
+            listener.onModeSelected(mode)
             return
         }
 
@@ -296,16 +294,12 @@ class CapsuleMenuController(
                 .setInterpolator(DecelerateInterpolator(1.5f))
                 .withEndAction {
                     dismiss()
-                    if (isModeChanged) {
-                        listener.onModeSelected(mode)
-                    }
+                    listener.onModeSelected(mode)
                 }
                 .start()
         } else {
             dismiss()
-            if (isModeChanged) {
-                listener.onModeSelected(mode)
-            }
+            listener.onModeSelected(mode)
         }
     }
 

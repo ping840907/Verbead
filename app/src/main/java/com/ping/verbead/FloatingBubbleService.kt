@@ -2017,12 +2017,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 showPreviewText(getString(R.string.preview_mode_ocr), autoHide = true)
                 stopScannerMode()
                 closePhrasesDrawer()
+                startOcrMode()
             }
             MODE_BARCODE -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_barcode), autoHide = true)
                 stopOcrMode()
                 closePhrasesDrawer()
+                startScannerMode()
             }
             MODE_PHRASES -> {
                 setState(State.IDLE)
@@ -2046,6 +2048,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun startScannerMode() {
+        if (isScannerModeActive) return
         hidePreviewText()
         if (isTucked) {
             untuckBubble(animate = false)
@@ -2373,6 +2376,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun startOcrMode() {
+        if (isOcrModeActive) return
         hidePreviewText()
         if (isTucked) {
             untuckBubble(animate = false)
@@ -3027,6 +3031,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun openPhrasesDrawer() {
+        if (isPhrasesDrawerActive) return
         hidePreviewText()
         if (isTucked) {
             untuckBubble(animate = false)
