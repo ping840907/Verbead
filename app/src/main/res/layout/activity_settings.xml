@@ -554,6 +554,59 @@
                     android:layout_height="1dp"
                     android:layout_marginStart="76dp" />
 
+                <!-- 應用程式資訊 / 解除受限制的設定 -->
+                <LinearLayout
+                    android:id="@+id/layout_app_info_row"
+                    style="@style/Verbead.Row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        style="@style/Verbead.RowIcon"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginEnd="16dp"
+                        android:src="@drawable/ic_info" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/Verbead.Text.Title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="應用程式資訊" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:lineSpacingExtra="2dp"
+                            android:text="若「顯示在上層」或「無障礙服務」開關被系統反灰鎖定，請點此前往應用程式資訊頁面，點選畫面右上角「︙」（三點選單）並選擇「允許受限制的設定」即可解除鎖定" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_open_app_info"
+                        style="@style/Verbead.Button.Compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="前往資訊" />
+                </LinearLayout>
+
+                <View
+                    style="@style/Verbead.Divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="76dp" />
+
                 <!-- Show only when keyboard is visible -->
                 <LinearLayout
                     android:id="@+id/layout_show_only_on_keyboard_toggle"
@@ -1202,6 +1255,59 @@
                         android:paddingEnd="4dp"
                         android:progress="6" />
                 </LinearLayout>
+
+                <View
+                    style="@style/Verbead.Divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="76dp" />
+
+                <!-- 自訂專屬詞彙 -->
+                <LinearLayout
+                    android:id="@+id/layout_dict_toggle"
+                    style="@style/Verbead.Row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        style="@style/Verbead.RowIcon"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginEnd="16dp"
+                        android:src="@drawable/ic_book" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/Verbead.Text.Title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="自訂專屬詞彙" />
+
+                        <TextView
+                            android:id="@+id/tv_vocab_desc"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="加入常用人名、專有名詞或修正字" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_open_dict"
+                        style="@style/Verbead.Button.Compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="管理詞彙" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -1564,66 +1670,6 @@
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <!-- ══════════════════════ 詞彙管理 ══════════════════════ -->
-        <TextView
-            style="@style/Verbead.Text.Section"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginBottom="8dp"
-            android:text="詞彙管理" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_vocabulary"
-            style="@style/Verbead.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
-
-            <LinearLayout
-                style="@style/Verbead.Row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <ImageView
-                    style="@style/Verbead.RowIcon"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:layout_marginEnd="16dp"
-                    android:src="@drawable/ic_book" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        style="@style/Verbead.Text.Title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="自訂專屬詞彙" />
-
-                    <TextView
-                        android:id="@+id/tv_vocab_desc"
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="加入常用人名、專有名詞或修正字" />
-                </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_open_dict"
-                    style="@style/Verbead.Button.Compact"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="管理詞彙" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
 
         <!-- ══════════════════════ 開源致謝 ══════════════════════ -->
         <com.google.android.material.card.MaterialCardView

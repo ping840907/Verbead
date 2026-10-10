@@ -97,6 +97,8 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvAccessibilityStatus: TextView
     private lateinit var btnGrantAccessibility: MaterialButton
     private lateinit var tvRestrictedSettingsHelp: TextView
+    private lateinit var layoutAppInfoRow: View
+    private lateinit var btnOpenAppInfo: MaterialButton
     private lateinit var layoutShowOnlyOnKeyboardToggle: View
     private lateinit var switchShowOnlyOnKeyboard: MaterialSwitch
     private lateinit var layoutPasteModeToggle: View
@@ -136,6 +138,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var switchFilterPunctuation: MaterialSwitch
 
     // Node 4: Vocabulary
+    private lateinit var layoutDictToggle: View
     private lateinit var btnOpenDict: MaterialButton
 
     // Camera
@@ -299,6 +302,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvAccessibilityStatus     = findViewById(R.id.tv_accessibility_status)
         btnGrantAccessibility     = findViewById(R.id.btn_grant_accessibility)
         tvRestrictedSettingsHelp  = findViewById(R.id.tv_restricted_settings_help)
+        layoutAppInfoRow          = findViewById(R.id.layout_app_info_row)
+        btnOpenAppInfo            = findViewById(R.id.btn_open_app_info)
         layoutShowOnlyOnKeyboardToggle = findViewById(R.id.layout_show_only_on_keyboard_toggle)
         switchShowOnlyOnKeyboard       = findViewById(R.id.switch_show_only_on_keyboard)
         layoutPasteModeToggle          = findViewById(R.id.layout_paste_mode_toggle)
@@ -340,7 +345,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         switchFilterPunctuation       = findViewById(R.id.switch_filter_punctuation)
 
         // Node 4: Vocabulary
-        btnOpenDict = findViewById(R.id.btn_open_dict)
+        layoutDictToggle = findViewById(R.id.layout_dict_toggle)
+        btnOpenDict      = findViewById(R.id.btn_open_dict)
 
         // Camera
         tvCameraStatus       = findViewById(R.id.tv_camera_status)
@@ -446,6 +452,17 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvRestrictedSettingsHelp.setOnClickListener {
             showRestrictedSettingsDialog()
         }
+
+        val openAppInfoAction = {
+            HapticUtil.click(this)
+            val intent = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+        }
+        btnOpenAppInfo.setOnClickListener { openAppInfoAction() }
+        layoutAppInfoRow.setOnClickListener { openAppInfoAction() }
 
         // 1. Show only when keyboard is visible
         switchShowOnlyOnKeyboard.setOnClickListener {
@@ -582,9 +599,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         // Vocabulary
-        btnOpenDict.setOnClickListener {
+        val openDictAction = {
+            HapticUtil.click(this)
             startActivity(Intent(this, DictSettingsActivity::class.java))
         }
+        btnOpenDict.setOnClickListener { openDictAction() }
+        layoutDictToggle.setOnClickListener { openDictAction() }
 
         // OCR & Scanner
         btnSelectOcrTiny.setOnClickListener {
