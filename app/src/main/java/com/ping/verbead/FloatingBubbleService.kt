@@ -87,6 +87,12 @@ import com.ping.verbead.camera.FrameMetrics
 import com.ping.verbead.camera.setCovered
 import com.ping.verbead.camera.setFrameRoi
 import com.ping.verbead.engine.AudioRoutingManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.view.ViewGroup
+import android.widget.EditText
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.ItemTouchHelper
 import com.ping.verbead.ocr.OcrBoxesOverlayView
 import com.ping.verbead.ocr.PpOcrEngine
 import com.ping.verbead.util.HapticUtil
@@ -105,6 +111,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
         const val MODE_SCANNER = 2
+        const val MODE_PHRASES = 3
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
         private const val KEY_MODE = "current_mode"
 
@@ -211,6 +218,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var ocrSnapshotLayoutParams: WindowManager.LayoutParams? = null
     private var isOcrSnapshotActive = false
 
+    // Quick Phrases Drawer
+    private var phrasesDrawerView: View? = null
+    private var phrasesDrawerLayoutParams: WindowManager.LayoutParams? = null
+    private var isPhrasesDrawerActive = false
+    private var quickPhrasesAdapter: QuickPhrasesAdapter? = null
+    private var drawerItems: MutableList<DrawerItem> = mutableListOf()
+    private var phrasesItemTouchHelper: ItemTouchHelper? = null
+
     // Touch sampling & screen-space velocity tracking
     private data class TouchPoint(val time: Long, val rawX: Float, val rawY: Float)
     private val recentTouchSamples = ArrayList<TouchPoint>()
@@ -311,7 +326,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         routingManager.start()
         currentMode = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).getInt(KEY_MODE, MODE_VOICE)
-        if (currentMode !in listOf(MODE_VOICE, MODE_OCR, MODE_BARCODE)) {
+        if (currentMode !in listOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)) {
             currentMode = MODE_VOICE
         }
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -519,6 +534,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         isDragging = true
                         hidePreviewText()
                         hideXButtonImmediately()
+                        if (isPhrasesDrawerActive) {
+                            closePhrasesDrawer()
+                        }
                         initialX = windowLayoutParams.x
                         initialYPos = windowLayoutParams.y
                     }
@@ -713,7 +731,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     fun setBubbleVisible(visible: Boolean, animate: Boolean = true) {
         if (!::bubbleView.isInitialized) return
-        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isCapsuleMenuShowing)) {
+        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing)) {
             return
         }
         val isCurrentlyShowing = bubbleView.visibility == View.VISIBLE && bubbleView.alpha > 0.99f
@@ -736,7 +754,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             hideXButtonImmediately()
             if (animate) {
                 bubbleView.animate().alpha(0f).setDuration(180).withEndAction {
-                    if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive) {
+                    if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive) {
                         bubbleView.visibility = View.GONE
                     } else {
                         bubbleView.alpha = 1f
@@ -765,7 +783,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
         val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
+        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
             setBubbleVisible(false, animate = animate)
         }
     }
@@ -867,7 +885,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val tuckRightX = getTuckRightX().toFloat()
         val hiddenWidthPx = getHiddenWidthPx().toFloat()
 
-        val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive
+        val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive
         val shouldTuck = if (!allowTuck) {
             false
         } else if (targetOnRight) {
@@ -979,7 +997,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     }
                     updatePreviewPosition()
                     updateSystemGestureExclusion()
-                    if (!isTucked && (isScannerModeActive || isOcrModeActive || state == State.PASTED || state == State.RECORDING || state == State.TRANSCRIBING)) {
+                    if (!isTucked && (isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive || state == State.PASTED || state == State.RECORDING || state == State.TRANSCRIBING)) {
                         showXButton()
                     }
                     HapticUtil.click(this@FloatingBubbleService)
@@ -1011,6 +1029,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 } finally {
                     mainHandler.postDelayed({ isRestoringSnapshot = false }, 500)
                 }
+            }
+            isPhrasesDrawerActive -> {
+                // 關閉常用語抽屜視窗
+                closePhrasesDrawer()
+                hideXButton()
             }
             isOcrSnapshotActive -> {
                 // 關閉文字辨識快照與視窗
@@ -1427,6 +1450,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             hideXButton()
             setState(State.IDLE)
         }
+        if (currentMode == MODE_PHRASES || isPhrasesDrawerActive) {
+            togglePhrasesDrawer()
+            return
+        }
         if (currentMode == MODE_OCR || isOcrModeActive) {
             toggleOcrMode()
             return
@@ -1817,6 +1844,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
 
+        QuickPhrasesManager.addHistory(this, text)
+
         // 透過無障礙服務安全直接填入（避免污染剪貼簿）
         val accService = VoiceAccessibilityService.instance
         val injected = accService?.inputText(text) ?: false
@@ -1887,6 +1916,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         return when (mode) {
             MODE_OCR -> R.drawable.ic_ocr to "懸浮文字辨識"
             MODE_BARCODE -> R.drawable.ic_barcode to "懸浮條碼掃描"
+            MODE_PHRASES -> R.drawable.ic_quick_phrases to "常用語抽屜"
             else -> R.drawable.ic_mic to "懸浮語音輸入"
         }
     }
@@ -1980,16 +2010,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 showPreviewText(getString(R.string.preview_mode_voice), autoHide = true)
                 stopScannerMode()
                 stopOcrMode()
+                closePhrasesDrawer()
             }
             MODE_OCR -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_ocr), autoHide = true)
                 stopScannerMode()
+                closePhrasesDrawer()
+                startOcrMode()
             }
             MODE_BARCODE -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_barcode), autoHide = true)
                 stopOcrMode()
+                closePhrasesDrawer()
+                startScannerMode()
+            }
+            MODE_PHRASES -> {
+                setState(State.IDLE)
+                showPreviewText(getString(R.string.preview_mode_phrases), autoHide = true)
+                stopScannerMode()
+                stopOcrMode()
+                openPhrasesDrawer()
             }
         }
     }
@@ -2006,6 +2048,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun startScannerMode() {
+        if (isScannerModeActive) return
         hidePreviewText()
         if (isTucked) {
             untuckBubble(animate = false)
@@ -2021,6 +2064,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         if (isOcrModeActive) {
             stopOcrMode()
+        }
+        if (isPhrasesDrawerActive) {
+            closePhrasesDrawer()
         }
 
         if (scannerView == null) {
@@ -2330,6 +2376,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun startOcrMode() {
+        if (isOcrModeActive) return
         hidePreviewText()
         if (isTucked) {
             untuckBubble(animate = false)
@@ -2345,6 +2392,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         if (isScannerModeActive) {
             stopScannerMode()
+        }
+        if (isPhrasesDrawerActive) {
+            closePhrasesDrawer()
         }
 
         if (ocrWindowView == null) {
@@ -2635,6 +2685,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun onBarcodeDetected(code: String) {
         HapticUtil.heavyClick(this)
+        if (code.isNotBlank()) {
+            QuickPhrasesManager.addHistory(this, code)
+        }
         val injected = VoiceAccessibilityService.instance?.inputText(code) ?: false
         if (injected) {
             if (ModelConfig.isOcrAutoEnterEnabled(this)) {
@@ -2898,6 +2951,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
                     val processed = results.joinToString(sep)
                     HapticUtil.heavyClick(this@FloatingBubbleService)
+                    if (processed.isNotBlank()) {
+                        QuickPhrasesManager.addHistory(this@FloatingBubbleService, processed)
+                    }
 
                     dismissOcrSnapshot(hideX = false)
                     stopOcrMode(hideX = false)
@@ -2963,6 +3019,576 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .start()
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // Quick Phrases Drawer Methods
+    // ══════════════════════════════════════════════════════════════════
+    private fun togglePhrasesDrawer() {
+        if (isPhrasesDrawerActive) {
+            closePhrasesDrawer()
+        } else {
+            openPhrasesDrawer()
+        }
+    }
+
+    private fun openPhrasesDrawer() {
+        if (isPhrasesDrawerActive) return
+        hidePreviewText()
+        if (isTucked) {
+            untuckBubble(animate = false)
+        }
+        if (isScannerModeActive) {
+            stopScannerMode()
+        }
+        if (isOcrModeActive) {
+            stopOcrMode()
+        }
+
+        if (phrasesDrawerView == null) {
+            phrasesDrawerView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_phrases_drawer, null)
+        }
+        val drawer = phrasesDrawerView ?: return
+
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+        val screenHeight = getScreenHeight()
+        val drawerWidth = (260 * density).toInt()
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val btnClose = drawer.findViewById<ImageButton>(R.id.btn_close_phrases_drawer)
+        val btnAdd = drawer.findViewById<ImageButton>(R.id.btn_add_phrase)
+        val rvPhrases = drawer.findViewById<RecyclerView>(R.id.rv_phrases)
+
+        btnClose.setOnClickListener {
+            HapticUtil.click(this)
+            closePhrasesDrawer()
+        }
+
+        btnAdd.setOnClickListener {
+            HapticUtil.click(this)
+            showAddPhraseDialog()
+        }
+
+        quickPhrasesAdapter = QuickPhrasesAdapter(
+            items = drawerItems,
+            onItemClick = { text ->
+                insertQuickPhrase(text)
+            },
+            onEditPhrase = { phrase ->
+                HapticUtil.click(this)
+                showEditPhraseDialog(phrase)
+            },
+            onDeletePhrase = { phrase ->
+                HapticUtil.click(this)
+                showDeletePhraseDialog(phrase)
+            },
+            onSaveHistoryAsPhrase = { text ->
+                HapticUtil.click(this)
+                QuickPhrasesManager.add(this, text)
+                Toast.makeText(this, R.string.toast_phrase_saved_from_history, Toast.LENGTH_SHORT).show()
+                refreshPhrasesList()
+            },
+            onDeleteHistory = { historyIndex ->
+                HapticUtil.click(this)
+                QuickPhrasesManager.removeHistoryAt(this, historyIndex)
+                refreshPhrasesList()
+            },
+            onClearHistory = {
+                HapticUtil.click(this)
+                QuickPhrasesManager.clearHistory(this)
+                Toast.makeText(this, R.string.toast_history_cleared, Toast.LENGTH_SHORT).show()
+                refreshPhrasesList()
+            },
+            onStartDrag = { viewHolder ->
+                phrasesItemTouchHelper?.startDrag(viewHolder)
+            }
+        )
+        rvPhrases.layoutManager = LinearLayoutManager(themedCtx)
+        rvPhrases.adapter = quickPhrasesAdapter
+
+        setupDragAndDrop(rvPhrases)
+        refreshPhrasesList()
+
+        // 測量抽屜實際高度以計算貼齊懸浮球的精確 Y 座標與縮放軸心
+        drawer.measure(
+            View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
+
+        // 優先對齊懸浮球頂部 (windowLayoutParams.y)，若接近螢幕底緣則向上微調避免超出邊界
+        val maxAllowedY = screenHeight - actualHeight - (16 * density).toInt()
+        val targetY = windowLayoutParams.y.coerceIn(getMinY(), maxOf(getMinY(), maxAllowedY))
+
+        phrasesDrawerLayoutParams = WindowManager.LayoutParams(
+            drawerWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            if (isDockedOnRight) {
+                gravity = Gravity.TOP or Gravity.RIGHT
+                x = bubbleWidthPx + gap
+            } else {
+                gravity = Gravity.TOP or Gravity.LEFT
+                x = bubbleWidthPx + gap
+            }
+            y = targetY
+        }
+
+        // 以懸浮球垂直中心為軸心展開動畫，營造從懸浮球直接呼出的視覺感受
+        val bubbleCenterY = windowLayoutParams.y + (30 * density)
+        val relativePivotY = (bubbleCenterY - targetY).coerceIn(0f, actualHeight.toFloat())
+
+        if (isDockedOnRight) {
+            drawer.pivotX = drawerWidth.toFloat()
+            drawer.translationX = (24 * density)
+        } else {
+            drawer.pivotX = 0f
+            drawer.translationX = -(24 * density)
+        }
+        drawer.pivotY = relativePivotY
+        drawer.alpha = 0f
+        drawer.scaleX = 0.6f
+        drawer.scaleY = 0.6f
+
+        try {
+            windowManager.addView(drawer, phrasesDrawerLayoutParams)
+            isPhrasesDrawerActive = true
+            showXButton()
+
+            drawer.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(240)
+                .setInterpolator(DecelerateInterpolator(1.5f))
+                .start()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to add phrasesDrawerView", e)
+        }
+    }
+
+    private fun setupDragAndDrop(recyclerView: RecyclerView) {
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun isLongPressDragEnabled(): Boolean = true
+            override fun isItemViewSwipeEnabled(): Boolean = false
+
+            override fun getMovementFlags(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+                return if (viewHolder is QuickPhrasesAdapter.PhraseViewHolder) {
+                    makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+                } else {
+                    0
+                }
+            }
+
+            override fun canDropOver(
+                rv: RecyclerView,
+                current: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return target is QuickPhrasesAdapter.PhraseViewHolder
+            }
+
+            override fun onMove(
+                rv: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val fromPos = viewHolder.bindingAdapterPosition
+                val toPos = target.bindingAdapterPosition
+                if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false
+                if (viewHolder !is QuickPhrasesAdapter.PhraseViewHolder || target !is QuickPhrasesAdapter.PhraseViewHolder) return false
+
+                quickPhrasesAdapter?.moveItem(fromPos, toPos)
+                HapticUtil.tick(this@FloatingBubbleService)
+                return true
+            }
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+                    HapticUtil.heavyClick(this@FloatingBubbleService)
+                    viewHolder.itemView.animate()
+                        .scaleX(1.03f)
+                        .scaleY(1.03f)
+                        .setDuration(120)
+                        .start()
+                    viewHolder.itemView.translationZ = 12f * resources.displayMetrics.density
+                    viewHolder.itemView.setBackgroundResource(R.drawable.bg_phrase_item_dragging)
+                }
+            }
+
+            override fun clearView(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(rv, viewHolder)
+                viewHolder.itemView.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(120)
+                    .start()
+                viewHolder.itemView.translationZ = 0f
+                viewHolder.itemView.setBackgroundResource(R.drawable.bg_phrase_item)
+                HapticUtil.click(this@FloatingBubbleService)
+                persistPhrasesFromAdapter()
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+        }
+
+        phrasesItemTouchHelper = ItemTouchHelper(callback).also {
+            it.attachToRecyclerView(recyclerView)
+        }
+    }
+
+    private fun persistPhrasesFromAdapter() {
+        val updatedPhrases = drawerItems
+            .filterIsInstance<DrawerItem.Phrase>()
+            .map { it.text }
+        QuickPhrasesManager.save(this, updatedPhrases)
+    }
+
+    private fun closePhrasesDrawer(hideX: Boolean = true) {
+        if (!isPhrasesDrawerActive) return
+        isPhrasesDrawerActive = false
+        if (hideX) {
+            hideXButton()
+        }
+        val drawer = phrasesDrawerView ?: return
+        val density = resources.displayMetrics.density
+        val targetTranslationX = if (isDockedOnRight) (24 * density) else -(24 * density)
+        val bubbleCenterY = windowLayoutParams.y + (30 * density)
+        val currentTargetY = phrasesDrawerLayoutParams?.y ?: windowLayoutParams.y
+        val drawerHeight = drawer.height.toFloat().takeIf { it > 0f } ?: (100 * density)
+        drawer.pivotY = (bubbleCenterY - currentTargetY).coerceIn(0f, drawerHeight)
+        drawer.pivotX = if (isDockedOnRight) (drawer.width.toFloat().takeIf { it > 0f } ?: (260 * density)) else 0f
+
+        drawer.animate()
+            .alpha(0f)
+            .translationX(targetTranslationX)
+            .scaleX(0.6f)
+            .scaleY(0.6f)
+            .setDuration(180)
+            .withEndAction {
+                if (drawer.isAttachedToWindow) {
+                    try {
+                        windowManager.removeView(drawer)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove phrasesDrawerView", e)
+                    }
+                }
+                phrasesDrawerView = null
+                phrasesItemTouchHelper = null
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
+            }
+            .start()
+    }
+
+    private fun updatePhrasesDrawerPosition() {
+        val drawer = phrasesDrawerView ?: return
+        val lp = phrasesDrawerLayoutParams ?: return
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+        val screenHeight = getScreenHeight()
+        val drawerWidth = (260 * density).toInt()
+
+        drawer.measure(
+            View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
+
+        if (isDockedOnRight) {
+            lp.gravity = Gravity.TOP or Gravity.RIGHT
+            lp.x = bubbleWidthPx + gap
+        } else {
+            lp.gravity = Gravity.TOP or Gravity.LEFT
+            lp.x = bubbleWidthPx + gap
+        }
+        val maxAllowedY = screenHeight - actualHeight - (16 * density).toInt()
+        lp.y = windowLayoutParams.y.coerceIn(getMinY(), maxOf(getMinY(), maxAllowedY))
+        if (drawer.isAttachedToWindow) {
+            try {
+                windowManager.updateViewLayout(drawer, lp)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to update phrasesDrawerView layout", e)
+            }
+        }
+    }
+
+    private fun refreshPhrasesList() {
+        val drawer = phrasesDrawerView ?: return
+        val emptyView = drawer.findViewById<View>(R.id.ll_empty_phrases)
+        val rvPhrases = drawer.findViewById<RecyclerView>(R.id.rv_phrases) ?: return
+
+        val history = QuickPhrasesManager.loadHistory(this)
+        val phrases = QuickPhrasesManager.load(this)
+
+        drawerItems.clear()
+
+        // 歷史紀錄置頂（依設定保留筆數）
+        if (history.isNotEmpty()) {
+            val historyLimit = ModelConfig.getHistoryLimit(this)
+            drawerItems.add(DrawerItem.Header(getString(R.string.header_recent_history, historyLimit), canClear = true))
+            history.forEachIndexed { i, text ->
+                drawerItems.add(DrawerItem.History(text, i))
+            }
+        }
+
+        // 常用片語區段
+        if (phrases.isNotEmpty()) {
+            drawerItems.add(DrawerItem.Header(getString(R.string.header_quick_phrases), canClear = false))
+            phrases.forEachIndexed { i, text ->
+                drawerItems.add(DrawerItem.Phrase(text, i))
+            }
+        }
+
+        if (drawerItems.isEmpty()) {
+            emptyView?.visibility = View.VISIBLE
+            rvPhrases.visibility = View.GONE
+        } else {
+            emptyView?.visibility = View.GONE
+            rvPhrases.visibility = View.VISIBLE
+            val density = resources.displayMetrics.density
+            rvPhrases.layoutParams = rvPhrases.layoutParams.apply {
+                height = if (drawerItems.size >= 5) {
+                    (280 * density).toInt()
+                } else {
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                }
+            }
+            quickPhrasesAdapter?.notifyDataSetChanged()
+        }
+    }
+
+    private fun insertQuickPhrase(phrase: String) {
+        HapticUtil.click(this)
+        val injected = VoiceAccessibilityService.instance?.inputText(phrase) ?: false
+        if (injected) {
+            showPreviewText(getString(R.string.preview_inserted_phrase), autoHide = true)
+            enterPastedState()
+        } else {
+            copyToClipboardFallback(phrase)
+            setState(State.IDLE)
+            showPreviewText(getString(R.string.toast_fallback_clipboard), autoHide = true)
+        }
+        closePhrasesDrawer(hideX = !injected)
+    }
+
+    private fun showAddPhraseDialog() {
+        val dialogView = LayoutInflater.from(themedCtx).inflate(R.layout.dialog_phrase_entry, null)
+        val etPhrase = dialogView.findViewById<EditText>(R.id.et_phrase)
+
+        val dialog = MaterialAlertDialogBuilder(themedCtx)
+            .setTitle(R.string.dialog_phrase_add_title)
+            .setView(dialogView)
+            .setPositiveButton(R.string.btn_save) { _, _ ->
+                HapticUtil.click(this)
+                val text = etPhrase.text.toString().trim()
+                if (text.isNotBlank()) {
+                    QuickPhrasesManager.add(this, text)
+                    Toast.makeText(this, R.string.toast_phrase_added, Toast.LENGTH_SHORT).show()
+                    refreshPhrasesList()
+                }
+            }
+            .setNegativeButton(R.string.btn_cancel) { _, _ ->
+                HapticUtil.click(this)
+            }
+            .create()
+
+        val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        dialog.window?.setType(windowType)
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        dialog.show()
+        etPhrase.requestFocus()
+    }
+
+    private fun showEditPhraseDialog(currentPhrase: String) {
+        val dialogView = LayoutInflater.from(themedCtx).inflate(R.layout.dialog_phrase_entry, null)
+        val etPhrase = dialogView.findViewById<EditText>(R.id.et_phrase)
+        etPhrase.setText(currentPhrase)
+        etPhrase.setSelection(currentPhrase.length)
+
+        val dialog = MaterialAlertDialogBuilder(themedCtx)
+            .setTitle(R.string.dialog_phrase_edit_title)
+            .setView(dialogView)
+            .setPositiveButton(R.string.btn_save) { _, _ ->
+                HapticUtil.click(this)
+                val newText = etPhrase.text.toString().trim()
+                if (newText.isNotBlank()) {
+                    val currentPhrases = QuickPhrasesManager.load(this).toMutableList()
+                    val idx = currentPhrases.indexOf(currentPhrase)
+                    if (idx >= 0) {
+                        currentPhrases[idx] = newText
+                        QuickPhrasesManager.save(this, currentPhrases)
+                    }
+                    Toast.makeText(this, R.string.toast_phrase_updated, Toast.LENGTH_SHORT).show()
+                    refreshPhrasesList()
+                }
+            }
+            .setNegativeButton(R.string.btn_cancel) { _, _ ->
+                HapticUtil.click(this)
+            }
+            .create()
+
+        val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        dialog.window?.setType(windowType)
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        dialog.show()
+        etPhrase.requestFocus()
+    }
+
+    private fun showDeletePhraseDialog(phrase: String) {
+        val dialog = MaterialAlertDialogBuilder(themedCtx)
+            .setTitle(R.string.dialog_phrase_delete_title)
+            .setMessage(getString(R.string.dialog_phrase_delete_confirm, phrase))
+            .setPositiveButton(R.string.btn_delete) { _, _ ->
+                HapticUtil.click(this)
+                val currentPhrases = QuickPhrasesManager.load(this).toMutableList()
+                currentPhrases.remove(phrase)
+                QuickPhrasesManager.save(this, currentPhrases)
+                Toast.makeText(this, R.string.toast_phrase_deleted, Toast.LENGTH_SHORT).show()
+                refreshPhrasesList()
+            }
+            .setNegativeButton(R.string.btn_cancel) { _, _ ->
+                HapticUtil.click(this)
+            }
+            .create()
+
+        val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        dialog.window?.setType(windowType)
+        dialog.show()
+    }
+
+    private sealed class DrawerItem {
+        data class Header(val title: String, val canClear: Boolean = false) : DrawerItem()
+        data class History(val text: String, val originalIndex: Int) : DrawerItem()
+        data class Phrase(val text: String, val originalIndex: Int) : DrawerItem()
+    }
+
+    private class QuickPhrasesAdapter(
+        private val items: MutableList<DrawerItem>,
+        private val onItemClick: (String) -> Unit,
+        private val onEditPhrase: (String) -> Unit,
+        private val onDeletePhrase: (String) -> Unit,
+        private val onSaveHistoryAsPhrase: (String) -> Unit,
+        private val onDeleteHistory: (Int) -> Unit,
+        private val onClearHistory: () -> Unit,
+        private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
+    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        companion object {
+            private const val TYPE_HEADER = 0
+            private const val TYPE_HISTORY = 1
+            private const val TYPE_PHRASE = 2
+        }
+
+        class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val tvTitle: TextView = view.findViewById(R.id.tv_header_title)
+            val btnAction: TextView = view.findViewById(R.id.btn_header_action)
+        }
+
+        class HistoryViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val root: View = view.findViewById(R.id.layout_history_item)
+            val tvText: TextView = view.findViewById(R.id.tv_history_text)
+            val btnSave: ImageButton = view.findViewById(R.id.btn_save_as_phrase)
+            val btnDelete: ImageButton = view.findViewById(R.id.btn_delete_history)
+        }
+
+        class PhraseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val root: View = view.findViewById(R.id.layout_phrase_item)
+            val tvText: TextView = view.findViewById(R.id.tv_phrase_text)
+            val btnEdit: ImageButton = view.findViewById(R.id.btn_edit_phrase)
+            val btnDelete: ImageButton = view.findViewById(R.id.btn_delete_phrase)
+            val ivDragHandle: ImageView = view.findViewById(R.id.iv_drag_handle)
+        }
+
+        override fun getItemViewType(position: Int): Int = when (items[position]) {
+            is DrawerItem.Header -> TYPE_HEADER
+            is DrawerItem.History -> TYPE_HISTORY
+            is DrawerItem.Phrase -> TYPE_PHRASE
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            val inflater = LayoutInflater.from(parent.context)
+            return when (viewType) {
+                TYPE_HEADER -> HeaderViewHolder(inflater.inflate(R.layout.item_drawer_header, parent, false))
+                TYPE_HISTORY -> HistoryViewHolder(inflater.inflate(R.layout.item_quick_history, parent, false))
+                else -> PhraseViewHolder(inflater.inflate(R.layout.item_quick_phrase, parent, false))
+            }
+        }
+
+        @SuppressLint("ClickableViewAccessibility")
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (val item = items[position]) {
+                is DrawerItem.Header -> {
+                    val h = holder as HeaderViewHolder
+                    h.tvTitle.text = item.title
+                    if (item.canClear) {
+                        h.btnAction.visibility = View.VISIBLE
+                        h.btnAction.setOnClickListener { onClearHistory() }
+                    } else {
+                        h.btnAction.visibility = View.GONE
+                    }
+                }
+                is DrawerItem.History -> {
+                    val h = holder as HistoryViewHolder
+                    h.tvText.text = item.text
+                    h.root.setOnClickListener { onItemClick(item.text) }
+                    h.btnSave.setOnClickListener { onSaveHistoryAsPhrase(item.text) }
+                    h.btnDelete.setOnClickListener { onDeleteHistory(item.originalIndex) }
+                }
+                is DrawerItem.Phrase -> {
+                    val h = holder as PhraseViewHolder
+                    h.tvText.text = item.text
+                    h.root.setOnClickListener { onItemClick(item.text) }
+                    h.btnEdit.setOnClickListener { onEditPhrase(item.text) }
+                    h.btnDelete.setOnClickListener { onDeletePhrase(item.text) }
+                    h.ivDragHandle.setOnTouchListener { _, event ->
+                        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                            onStartDrag(holder)
+                        }
+                        false
+                    }
+                }
+            }
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        fun moveItem(fromPos: Int, toPos: Int) {
+            if (fromPos == toPos) return
+            val item = items.removeAt(fromPos)
+            items.add(toPos, item)
+            notifyItemMoved(fromPos, toPos)
+        }
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
@@ -2992,6 +3618,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isOcrModeActive) {
             setOcrEnlarged(isOcrEnlarged)
         }
+        if (isPhrasesDrawerActive) {
+            updatePhrasesDrawerPosition()
+        }
     }
 
     override fun onDestroy() {
@@ -3004,6 +3633,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             safely("routingManager") { routingManager.stop() }
             safely("scanner") { stopScannerMode() }
             safely("ocr") { stopOcrMode() }
+            safely("phrasesDrawer") { closePhrasesDrawer() }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }
             safely("snapshot") { dismissOcrSnapshot() }
             safely("camera") { cameraExecutor?.shutdown() }

@@ -104,6 +104,13 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var layoutPasteModeToggle: View
     private lateinit var tvInjectionMethodDesc: TextView
     private lateinit var switchPasteMode: MaterialSwitch
+    private lateinit var layoutHistoryEnabledToggle: View
+    private lateinit var tvHistoryEnabledDesc: TextView
+    private lateinit var switchHistoryEnabled: MaterialSwitch
+    private lateinit var dividerHistoryLimit: View
+    private lateinit var layoutHistoryLimit: View
+    private lateinit var tvHistoryLimitValue: TextView
+    private lateinit var sbHistoryLimit: SeekBar
 
     // Node 3: Engines
     // X-ASR
@@ -309,6 +316,13 @@ class ImeSettingsActivity : AppCompatActivity() {
         layoutPasteModeToggle          = findViewById(R.id.layout_paste_mode_toggle)
         tvInjectionMethodDesc          = findViewById(R.id.tv_injection_method_desc)
         switchPasteMode                = findViewById(R.id.switch_paste_mode)
+        layoutHistoryEnabledToggle     = findViewById(R.id.layout_history_enabled_toggle)
+        tvHistoryEnabledDesc           = findViewById(R.id.tv_history_enabled_desc)
+        switchHistoryEnabled           = findViewById(R.id.switch_history_enabled)
+        dividerHistoryLimit            = findViewById(R.id.divider_history_limit)
+        layoutHistoryLimit             = findViewById(R.id.layout_history_limit)
+        tvHistoryLimitValue            = findViewById(R.id.tv_history_limit_value)
+        sbHistoryLimit                 = findViewById(R.id.sb_history_limit)
 
         // Node 3: Engines
         cardXAsr = findViewById(R.id.card_x_asr)
@@ -503,6 +517,32 @@ class ImeSettingsActivity : AppCompatActivity() {
         layoutPasteModeToggle.setOnClickListener {
             switchPasteMode.performClick()
         }
+
+        // 3. Quick phrases drawer input history toggle
+        switchHistoryEnabled.setOnClickListener {
+            val isChecked = switchHistoryEnabled.isChecked
+            ModelConfig.setHistoryEnabled(this, isChecked)
+            updateHistoryUI(isChecked)
+            HapticUtil.click(this)
+        }
+        layoutHistoryEnabledToggle.setOnClickListener {
+            switchHistoryEnabled.performClick()
+        }
+
+        // Quick phrases drawer history limit slider (1 ~ 12)
+        sbHistoryLimit.max = ModelConfig.MAX_HISTORY_LIMIT - ModelConfig.MIN_HISTORY_LIMIT
+        sbHistoryLimit.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                val limit = progress + ModelConfig.MIN_HISTORY_LIMIT
+                tvHistoryLimitValue.text = "${limit} 筆"
+                if (fromUser) {
+                    ModelConfig.setHistoryLimit(this@ImeSettingsActivity, limit)
+                    HapticUtil.tick(this@ImeSettingsActivity)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
 
         // Node 3: Engine Select Cards & Buttons (§2.2 點擊邏輯與聯鎖防呆)
         cardXAsr.setOnClickListener {
@@ -949,6 +989,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         val isPasteMode = ModelConfig.isPasteModeEnabled(this)
         switchPasteMode.isChecked = isPasteMode
         updatePasteModeDesc(isPasteMode)
+
+        val isHistoryEnabled = ModelConfig.isHistoryEnabled(this)
+        updateHistoryUI(isHistoryEnabled)
+        val historyLimit = ModelConfig.getHistoryLimit(this)
+        sbHistoryLimit.progress = historyLimit - ModelConfig.MIN_HISTORY_LIMIT
+        tvHistoryLimitValue.text = "${historyLimit} 筆"
 
         val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
         val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)
@@ -1474,6 +1520,19 @@ class ImeSettingsActivity : AppCompatActivity() {
             tvInjectionMethodDesc.text = "剪貼簿貼上模式：相容性最佳，原生支援 Google Docs、自繪編輯器與特殊換行"
         } else {
             tvInjectionMethodDesc.text = "無障礙填入模式：隱私性最高，直接寫入輸入框而不經由系統剪貼簿"
+        }
+    }
+
+    private fun updateHistoryUI(enabled: Boolean) {
+        switchHistoryEnabled.isChecked = enabled
+        if (enabled) {
+            tvHistoryEnabledDesc.text = "開啟時自動暫存其他模式 (語音/辨識/條碼) 輸入內容於常用語抽屜"
+            dividerHistoryLimit.visibility = View.VISIBLE
+            layoutHistoryLimit.visibility = View.VISIBLE
+        } else {
+            tvHistoryEnabledDesc.text = "關閉時不記錄輸入歷史，常用語抽屜僅顯示自訂片語"
+            dividerHistoryLimit.visibility = View.GONE
+            layoutHistoryLimit.visibility = View.GONE
         }
     }
 

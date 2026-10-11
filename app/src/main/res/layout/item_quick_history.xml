@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_history_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginTop="3dp"
+    android:layout_marginBottom="3dp"
+    android:background="@drawable/bg_phrase_item"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:clickable="true"
+    android:focusable="true">
+
+    <ImageView
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="10dp"
+        android:src="@drawable/ic_history"
+        app:tint="#80FFFFFF"
+        android:contentDescription="歷史紀錄" />
+
+    <TextView
+        android:id="@+id/tv_history_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:paddingStart="8dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="9dp"
+        android:paddingBottom="9dp"
+        android:textColor="#E6FFFFFF"
+        android:textSize="13.5sp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingEnd="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_save_as_phrase"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="加入常用語"
+            android:padding="7dp"
+            android:src="@drawable/ic_add"
+            app:tint="#80FFFFFF" />
+
+        <ImageButton
+            android:id="@+id/btn_delete_history"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="刪除此紀錄"
+            android:padding="7dp"
+            android:src="@drawable/ic_delete"
+            app:tint="#80FFFFFF" />
+    </LinearLayout>
+
+</LinearLayout>

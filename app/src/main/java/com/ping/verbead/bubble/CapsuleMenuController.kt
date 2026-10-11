@@ -39,11 +39,15 @@ class CapsuleMenuController(
         const val MODE_VOICE = 0
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
+        const val MODE_PHRASES = 3
+
+        const val ITEM_COUNT = 4
 
         fun modeToIndex(mode: Int): Int = when (mode) {
             MODE_VOICE -> 0
             MODE_BARCODE -> 1
             MODE_OCR -> 2
+            MODE_PHRASES -> 3
             else -> 0
         }
 
@@ -51,6 +55,7 @@ class CapsuleMenuController(
             0 -> MODE_VOICE
             1 -> MODE_BARCODE
             2 -> MODE_OCR
+            3 -> MODE_PHRASES
             else -> MODE_VOICE
         }
     }
@@ -91,10 +96,12 @@ class CapsuleMenuController(
         val itemVoice = menu.findViewById<FrameLayout>(R.id.item_capsule_voice)
         val itemBarcode = menu.findViewById<FrameLayout>(R.id.item_capsule_barcode)
         val itemOcr = menu.findViewById<FrameLayout>(R.id.item_capsule_ocr)
+        val itemPhrases = menu.findViewById<FrameLayout>(R.id.item_capsule_phrases)
 
         itemVoice?.setOnClickListener { selectMode(MODE_VOICE) }
         itemBarcode?.setOnClickListener { selectMode(MODE_BARCODE) }
         itemOcr?.setOnClickListener { selectMode(MODE_OCR) }
+        itemPhrases?.setOnClickListener { selectMode(MODE_PHRASES) }
 
         val bubbleCenterY = bubbleY + (bubbleHeightPx / 2f)
         cachedMicCenterY = bubbleCenterY
@@ -103,7 +110,7 @@ class CapsuleMenuController(
         currentHoveredIndex = currentIndex
 
         val windowWidth = bubbleWidthPx
-        val windowHeight = (192 * density).toInt()
+        val windowHeight = (248 * density).toInt()
 
         // In layout_capsule_menu.xml:
         // Window padding top is 12dp. Pill height is 168dp (3 items * 56dp).
@@ -186,7 +193,7 @@ class CapsuleMenuController(
 
         // When dragging up (dy < 0), items below (higher index) move up toward bubble
         // When dragging down (dy > 0), items above (lower index) move down toward bubble
-        val maxUpDrag = -(2 - currentIndex) * itemPitchPx
+        val maxUpDrag = -((ITEM_COUNT - 1) - currentIndex) * itemPitchPx
         val maxDownDrag = currentIndex * itemPitchPx
 
         val effectiveDy = when {
@@ -205,7 +212,7 @@ class CapsuleMenuController(
         // Find which item's screen center is closest to bubble center
         var closestIndex = currentIndex
         var minDistance = Float.MAX_VALUE
-        for (i in 0..2) {
+        for (i in 0 until ITEM_COUNT) {
             val itemCenterOnScreen = lp.y + (40f + i * 56f) * density
             val dist = abs(itemCenterOnScreen - cachedMicCenterY)
             if (dist < minDistance) {
@@ -230,6 +237,7 @@ class CapsuleMenuController(
 
         val targetMode = indexToMode(currentHoveredIndex)
         val isModeChanged = (targetMode != currentMode)
+        val shouldNotify = isModeChanged || (targetMode != MODE_VOICE)
         if (isModeChanged) {
             HapticUtil.click(context)
         }
@@ -247,14 +255,14 @@ class CapsuleMenuController(
                 .setInterpolator(DecelerateInterpolator(1.5f))
                 .withEndAction {
                     dismiss()
-                    if (isModeChanged) {
+                    if (shouldNotify) {
                         listener.onModeSelected(targetMode)
                     }
                 }
                 .start()
         } else {
             dismiss()
-            if (isModeChanged) {
+            if (shouldNotify) {
                 listener.onModeSelected(targetMode)
             }
         }
@@ -265,14 +273,11 @@ class CapsuleMenuController(
      */
     fun selectMode(mode: Int) {
         val targetIndex = modeToIndex(mode)
-        val isModeChanged = (mode != currentMode)
         HapticUtil.click(context)
 
         val menu = capsuleMenuView ?: run {
             dismiss()
-            if (isModeChanged) {
-                listener.onModeSelected(mode)
-            }
+            listener.onModeSelected(mode)
             return
         }
 
@@ -289,16 +294,12 @@ class CapsuleMenuController(
                 .setInterpolator(DecelerateInterpolator(1.5f))
                 .withEndAction {
                     dismiss()
-                    if (isModeChanged) {
-                        listener.onModeSelected(mode)
-                    }
+                    listener.onModeSelected(mode)
                 }
                 .start()
         } else {
             dismiss()
-            if (isModeChanged) {
-                listener.onModeSelected(mode)
-            }
+            listener.onModeSelected(mode)
         }
     }
 
@@ -336,15 +337,17 @@ class CapsuleMenuController(
         val indicators = arrayOf(
             menu.findViewById<View>(R.id.indicator_capsule_voice),
             menu.findViewById<View>(R.id.indicator_capsule_barcode),
-            menu.findViewById<View>(R.id.indicator_capsule_ocr)
+            menu.findViewById<View>(R.id.indicator_capsule_ocr),
+            menu.findViewById<View>(R.id.indicator_capsule_phrases)
         )
         val icons = arrayOf(
             menu.findViewById<ImageView>(R.id.iv_capsule_voice),
             menu.findViewById<ImageView>(R.id.iv_capsule_barcode),
-            menu.findViewById<ImageView>(R.id.iv_capsule_ocr)
+            menu.findViewById<ImageView>(R.id.iv_capsule_ocr),
+            menu.findViewById<ImageView>(R.id.iv_capsule_phrases)
         )
 
-        for (i in 0..2) {
+        for (i in 0 until ITEM_COUNT) {
             val isSelected = (i == selectedIndex)
             val targetIndAlpha = if (isSelected) 1.0f else 0.0f
             val targetIconAlpha = if (isSelected) 1.0f else 0.65f

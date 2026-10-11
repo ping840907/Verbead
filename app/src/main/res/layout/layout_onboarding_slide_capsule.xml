@@ -11,11 +11,14 @@
 
     <!-- Mockup Animation Card -->
     <FrameLayout
+        android:id="@+id/layout_mock_screen_clickable"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="@drawable/bg_mockup_screen"
         android:clipChildren="true"
+        android:clickable="true"
+        android:focusable="true"
         android:padding="16dp">
 
         <LinearLayout
@@ -60,6 +63,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="68dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
                 app:cardBackgroundColor="@color/surface_card"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
@@ -73,7 +79,7 @@
                     android:padding="14dp">
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
@@ -89,10 +95,21 @@
                         <TextView
                             android:id="@+id/tv_mock_active_mode_title"
                             style="@style/Verbead.Text.Title"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="1"
                             android:text="語音即時輸入"
                             android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tv_mock_mode_badge"
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_recommend"
+                            android:text="模式 1/4"
+                            android:textColor="@color/tag_recommend"
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <TextView
@@ -100,10 +117,27 @@
                         style="@style/Verbead.Text.Caption"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="6dp"
                         android:lineSpacingMultiplier="1.2"
-                        android:text="高精準度離線語音辨識，輕觸即開始聽寫"
+                        android:text="高精準度離線語音辨識，輕觸即開始聽寫並直接貼上"
                         android:textColor="@color/text_secondary" />
+
+                    <View
+                        style="@style/Verbead.Divider"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/tv_mock_feature_tags"
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingMultiplier="1.25"
+                        android:text="• 離線 ASR 雙模型即時轉譯\n• 支援自動標點與自訂專屬詞彙\n• 耳機外接音訊倍率增益"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -127,18 +161,18 @@
         <FrameLayout
             android:id="@+id/layout_mock_capsule_container"
             android:layout_width="60dp"
-            android:layout_height="280dp"
+            android:layout_height="400dp"
             android:layout_gravity="end|center_vertical"
             android:layout_marginEnd="4dp"
             android:clipChildren="false">
 
-            <!-- The movable continuous vertical capsule pill (56dp wide, 168dp tall) -->
+            <!-- The movable continuous vertical capsule pill (56dp wide, 224dp tall for 4 items) -->
             <LinearLayout
                 android:id="@+id/layout_mock_capsule_pill"
                 android:layout_width="56dp"
-                android:layout_height="168dp"
+                android:layout_height="224dp"
                 android:layout_gravity="center_horizontal|top"
-                android:layout_marginTop="112dp"
+                android:layout_marginTop="172dp"
                 android:background="@drawable/bg_capsule_menu"
                 android:elevation="10dp"
                 android:orientation="vertical">
@@ -147,7 +181,10 @@
                 <FrameLayout
                     android:id="@+id/mock_item_voice"
                     android:layout_width="56dp"
-                    android:layout_height="56dp">
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         android:id="@+id/mock_icon_voice"
@@ -162,7 +199,10 @@
                 <FrameLayout
                     android:id="@+id/mock_item_barcode"
                     android:layout_width="56dp"
-                    android:layout_height="56dp">
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         android:id="@+id/mock_icon_barcode"
@@ -177,7 +217,10 @@
                 <FrameLayout
                     android:id="@+id/mock_item_ocr"
                     android:layout_width="56dp"
-                    android:layout_height="56dp">
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         android:id="@+id/mock_icon_ocr"
@@ -185,6 +228,24 @@
                         android:layout_height="26dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_ocr"
+                        app:tint="@android:color/white" />
+                </FrameLayout>
+
+                <!-- Quick Phrases Mode (Item 3) -->
+                <FrameLayout
+                    android:id="@+id/mock_item_phrases"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/mock_icon_phrases"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_quick_phrases"
                         app:tint="@android:color/white" />
                 </FrameLayout>
             </LinearLayout>
