@@ -363,6 +363,7 @@ object ModelConfig {
     const val KEY_OCR_MODEL_SELECTION = "ocr_model_selection"
     const val KEY_OCR_AUTO_ENTER = "ocr_auto_enter"
     const val KEY_OCR_SEPARATOR = "ocr_separator"
+    const val KEY_OCR_SMART_STITCH = "ocr_smart_stitch"
 
     fun selectedOcrModel(context: Context): String {
         val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
@@ -384,6 +385,14 @@ object ModelConfig {
     fun setOcrAutoEnterEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_OCR_AUTO_ENTER, enabled).apply()
+
+    fun isOcrSmartStitchEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_SMART_STITCH, true)
+
+    fun setOcrSmartStitchEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_SMART_STITCH, enabled).apply()
 
     fun ocrSeparator(context: Context): String =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)

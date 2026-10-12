@@ -157,6 +157,8 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvDownloadStatusOcr: TextView
     private lateinit var layoutOcrAutoEnterToggle: View
     private lateinit var switchOcrAutoEnter: MaterialSwitch
+    private lateinit var layoutOcrSmartStitchToggle: View
+    private lateinit var switchOcrSmartStitch: MaterialSwitch
     private lateinit var btnOcrSepNewline: MaterialButton
     private lateinit var btnOcrSepSpace: MaterialButton
     private lateinit var btnOcrSepNone: MaterialButton
@@ -373,6 +375,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvDownloadStatusOcr  = findViewById(R.id.tv_download_status_ocr)
         layoutOcrAutoEnterToggle = findViewById(R.id.layout_ocr_auto_enter_toggle)
         switchOcrAutoEnter       = findViewById(R.id.switch_ocr_auto_enter)
+        layoutOcrSmartStitchToggle = findViewById(R.id.layout_ocr_smart_stitch_toggle)
+        switchOcrSmartStitch       = findViewById(R.id.switch_ocr_smart_stitch)
         btnOcrSepNewline     = findViewById(R.id.btn_ocr_sep_newline)
         btnOcrSepSpace       = findViewById(R.id.btn_ocr_sep_space)
         btnOcrSepNone        = findViewById(R.id.btn_ocr_sep_none)
@@ -685,7 +689,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             handleDownloadButtonClick(engine)
         }
 
-        // 6. OCR & Scanner: Auto enter
+        // 6. OCR & Scanner: Auto enter & Smart Stitch
         switchOcrAutoEnter.setOnClickListener {
             val isChecked = switchOcrAutoEnter.isChecked
             ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
@@ -693,6 +697,15 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
         layoutOcrAutoEnterToggle.setOnClickListener {
             switchOcrAutoEnter.performClick()
+        }
+
+        switchOcrSmartStitch.setOnClickListener {
+            val isChecked = switchOcrSmartStitch.isChecked
+            ModelConfig.setOcrSmartStitchEnabled(this, isChecked)
+            HapticUtil.click(this)
+        }
+        layoutOcrSmartStitchToggle.setOnClickListener {
+            switchOcrSmartStitch.performClick()
         }
 
         fun updateOcrSepSelection(sep: String) {
@@ -1098,6 +1111,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             }
         }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
+        switchOcrSmartStitch.isChecked = ModelConfig.isOcrSmartStitchEnabled(this)
         switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
 
         val currentSep = ModelConfig.ocrSeparator(this)

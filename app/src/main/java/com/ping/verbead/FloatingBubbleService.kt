@@ -94,7 +94,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import com.ping.verbead.ocr.OcrBoxesOverlayView
+import com.ping.verbead.ocr.OcrBlock
 import com.ping.verbead.ocr.PpOcrEngine
+import com.ping.verbead.ocr.TextStitcher
 import com.ping.verbead.util.HapticUtil
 import de.markusfisch.android.zxingcpp.ZxingCpp
 import java.util.concurrent.ExecutorService
@@ -2904,20 +2906,24 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         scope.launch {
             try {
-                val results = mutableListOf<String>()
+                val recognizedBlocks = mutableListOf<OcrBlock>()
                 withContext(Dispatchers.Default) {
                     for (box in boxes) {
                         val text = ppOcrEngine.recognizeBox(bitmap, box.originalRect)
                         if (text.isNotBlank()) {
-                            results.add(text.trim())
+                            recognizedBlocks.add(OcrBlock(text = text.trim(), rect = box.originalRect))
                         }
                     }
                 }
 
                 progress.visibility = View.GONE
-                if (results.isNotEmpty()) {
+                if (recognizedBlocks.isNotEmpty()) {
                     val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
-                    val processed = results.joinToString(sep)
+                    val processed = if (ModelConfig.isOcrSmartStitchEnabled(this@FloatingBubbleService)) {
+                        TextStitcher.stitch(recognizedBlocks, fallbackSep = sep)
+                    } else {
+                        recognizedBlocks.joinToString(sep) { it.text }
+                    }
                     HapticUtil.heavyClick(this@FloatingBubbleService)
                     if (processed.isNotBlank()) {
                         QuickPhrasesManager.addHistory(this@FloatingBubbleService, processed)
