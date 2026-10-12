@@ -19,11 +19,6 @@ class Qwen3AsrEngine(private val context: Context) {
         private const val TAG        = "Qwen3AsrEngine"
         private const val PREF_NAME  = "asr_engine"
         private const val KEY_PROVIDER = "active_provider"
-
-        /** Read the last-used provider from SharedPreferences (for settings display). */
-        fun savedProvider(context: Context): String =
-            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-                .getString(KEY_PROVIDER, "未載入") ?: "未載入"
     }
 
     @Volatile private var recognizer: OfflineRecognizer? = null
@@ -90,9 +85,6 @@ class Qwen3AsrEngine(private val context: Context) {
                     )
                     loadedHotwords = hotwords
                     activeProvider = provider
-                    // Persist so ImeSettingsActivity can read it without binding the service
-                    context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-                        .edit().putString(KEY_PROVIDER, provider).apply()
                     Log.i(TAG, "Loaded — provider=$provider  threads=${ModelConfig.QWEN3_ASR_THREADS}  hotwords=${hotwords.lines().size} words")
                     return@withContext LoadResult(true, provider = provider)
                 } catch (ex: Throwable) {

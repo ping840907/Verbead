@@ -92,15 +92,6 @@ object QuickPhrasesManager {
         }
     }
 
-    fun movePhrase(context: Context, fromIndex: Int, toIndex: Int) {
-        val list = load(context).toMutableList()
-        if (fromIndex in list.indices && toIndex in list.indices && fromIndex != toIndex) {
-            val item = list.removeAt(fromIndex)
-            list.add(toIndex, item)
-            save(context, list)
-        }
-    }
-
     // ─── Input History (從其他模式輸入的內容，最多保留六項) ───
 
     fun loadHistory(context: Context): List<String> {

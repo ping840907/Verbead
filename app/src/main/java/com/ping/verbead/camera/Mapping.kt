@@ -1,4 +1,4 @@
-﻿package com.ping.verbead.camera
+package com.ping.verbead.camera
 
 import android.graphics.Matrix
 import android.graphics.Rect
@@ -9,9 +9,7 @@ data class FrameMetrics(
     var width: Int = 0,
     var height: Int = 0,
     var orientation: Int = 0
-) {
-    fun isValid() = width > 0 && height > 0
-}
+)
 
 fun Rect.setFrameRoi(
     frameMetrics: FrameMetrics,

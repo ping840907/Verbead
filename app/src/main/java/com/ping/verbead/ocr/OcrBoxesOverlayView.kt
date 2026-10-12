@@ -122,8 +122,6 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
     fun getSelectedBoxes(): List<TextBoundingBox> =
         selectedIndices.mapNotNull { boxes.getOrNull(it) }
 
-    fun getSelectedIndices(): List<Int> = selectedIndices.toList()
-
     /**
      * Selects all detected boxes in natural reading order.
      * For predominantly vertical columns: sorted right-to-left, top-to-bottom.

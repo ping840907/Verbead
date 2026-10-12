@@ -55,9 +55,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         private val _keyboardStateFlow = MutableSharedFlow<KeyboardInfo>(replay = 1, extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
         val keyboardStateFlow: SharedFlow<KeyboardInfo> = _keyboardStateFlow.asSharedFlow()
 
-        private val _inputFocusStateFlow = MutableSharedFlow<Boolean>(replay = 1, extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-        val inputFocusStateFlow: SharedFlow<Boolean> = _inputFocusStateFlow.asSharedFlow()
-
         private val _manualTypingFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
         val manualTypingFlow: SharedFlow<Unit> = _manualTypingFlow.asSharedFlow()
 
@@ -82,9 +79,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         val snap = lastSnapshot ?: return false
         return (System.currentTimeMillis() - snap.capturedAtMs) < 15_000
     }
-
-    fun isInputFocused(): Boolean = currentInputState == true
-    fun getKeyboardInfo(): KeyboardInfo = currentKeyboardInfo
 
     private var isKeyboardCheckScheduled = false
     private val keyboardCheckRunnable = Runnable {
@@ -261,19 +255,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (currentInputState == hasInputFocus) return
         currentInputState = hasInputFocus
         Log.i(TAG, "notifyInputState: hasInputFocus=$hasInputFocus")
-        _inputFocusStateFlow.tryEmit(hasInputFocus)
         if (!hasInputFocus) {
             _inputFocusLostFlow.tryEmit(Unit)
-        }
-    }
-
-    fun checkActiveWindowInputState() {
-        val target = findActiveEditableNode()
-        if (target != null) {
-            lastFocusedNode = target
-            notifyInputState(true)
-        } else {
-            notifyInputState(false)
         }
     }
 

@@ -640,13 +640,6 @@ object ModelConfig {
         return files.all { java.io.File(it).exists() } && java.io.File(qwen3AsrTokenizerDir(context)).isDirectory
     }
 
-    fun isModelReady(context: Context, engine: String): Boolean =
-        when (engine) {
-            ENGINE_X_ASR -> isXAsrReady(context)
-            OCR_MODEL_TINY, OCR_MODEL_SMALL -> isOcrReady(context, engine)
-            else -> isQwen3Ready(context)
-        }
-
     fun areAllModelsReady(context: Context): Boolean =
         isXAsrReady(context) && isQwen3Ready(context) && isOcrReady(context)
 
@@ -664,10 +657,6 @@ object ModelConfig {
     fun setOnboardingCompleted(context: Context, completed: Boolean) =
         context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply()
-
-    fun getOnboardingMode(context: Context): String =
-        context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
-            .getString(KEY_ONBOARDING_MODE, MODE_BUBBLE) ?: MODE_BUBBLE
 
     fun setOnboardingMode(context: Context, mode: String = MODE_BUBBLE) =
         context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)

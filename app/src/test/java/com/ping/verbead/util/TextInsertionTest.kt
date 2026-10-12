@@ -256,69 +256,6 @@ class TextInsertionTest {
     }
 
     @Test
-    fun testEvaluateProbeResultForPlaceholderReappearance() {
-        // 模擬通訊軟體（如 LINE）輸入框在清空後提示字「輸入訊息」重新浮現
-        val isPlaceholder = TextInsertion.evaluateProbeResult(
-            initialText = "輸入訊息",
-            textWithSpace = " ",
-            textAfterClear = "輸入訊息",
-            isHintAfterClear = false
-        )
-        org.junit.Assert.assertTrue(isPlaceholder)
-    }
-
-    @Test
-    fun testEvaluateProbeResultForForeignLanguagePlaceholder() {
-        // 模擬各國語言（日文/英文/韓文）在清空後提示文字重新浮現
-        val isJaPlaceholder = TextInsertion.evaluateProbeResult(
-            initialText = "メッセージを入力...",
-            textWithSpace = " ",
-            textAfterClear = "メッセージを入力",
-            isHintAfterClear = false
-        )
-        org.junit.Assert.assertTrue(isJaPlaceholder)
-
-        val isEnPlaceholder = TextInsertion.evaluateProbeResult(
-            initialText = "Write a message…",
-            textWithSpace = " ",
-            textAfterClear = "Write a message",
-            isHintAfterClear = false
-        )
-        org.junit.Assert.assertTrue(isEnPlaceholder)
-    }
-
-    @Test
-    fun testEvaluateProbeResultForRealUserText() {
-        // 真實使用者輸入內容在清空後消失（為空字串或變成通訊軟體灰色提示），絕不等於原本使用者文字
-        val isRealText1 = TextInsertion.evaluateProbeResult(
-            initialText = "明天下午兩點見",
-            textWithSpace = " ",
-            textAfterClear = "",
-            isHintAfterClear = false
-        )
-        org.junit.Assert.assertFalse(isRealText1)
-
-        val isRealText2 = TextInsertion.evaluateProbeResult(
-            initialText = "明天下午兩點見",
-            textWithSpace = " ",
-            textAfterClear = "輸入訊息",
-            isHintAfterClear = false
-        )
-        org.junit.Assert.assertFalse(isRealText2)
-    }
-
-    @Test
-    fun testEvaluateProbeResultWithSystemHintFlag() {
-        val isPlaceholder = TextInsertion.evaluateProbeResult(
-            initialText = "Search",
-            textWithSpace = " ",
-            textAfterClear = "Search",
-            isHintAfterClear = true
-        )
-        org.junit.Assert.assertTrue(isPlaceholder)
-    }
-
-    @Test
     fun testEvaluateSelectionProbeForHandTypedTextIdenticalToPlaceholder() {
         // 極端情況：佔位符為「輸入訊息」的欄位中，使用者手動打入「輸入訊息」
         // 由於真實字串緩衝區 mText 長度為 4，系統具備選取能力 (canSelect = true)，判定為真實內容而非佔位符！

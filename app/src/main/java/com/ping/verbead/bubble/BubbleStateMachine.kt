@@ -31,9 +31,6 @@ class BubbleStateMachine(initialState: BubbleState = BubbleState.IDLE) {
     val canStartRecording: Boolean
         get() = state == BubbleState.IDLE || state == BubbleState.PASTED
 
-    val canCancelToIdle: Boolean
-        get() = state != BubbleState.IDLE
-
     fun canTransitionTo(target: BubbleState): Boolean {
         if (state == target) return true
         return when (state) {

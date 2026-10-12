@@ -45,12 +45,6 @@ import kotlinx.coroutines.launch
 
 class ImeSettingsActivity : AppCompatActivity() {
 
-    companion object {
-        private const val TOAST_MODEL_NOT_DOWNLOADED = "請先下載此模型，再選取為辨識引擎"
-        private const val TOAST_DUAL_ENGINE_NEED_DOWNLOAD = "請先下載 X-ASR 與 Qwen3-ASR 兩個模型，才能開啟雙引擎模式"
-        private const val TOAST_DUAL_ENGINE_NEED_QWEN3_SELECTED = "請先將辨識引擎切換為 Qwen3-ASR，才能開啟雙引擎模式"
-    }
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val downloader by lazy { ModelDownloader(this) }
     private var observeJob: Job? = null
@@ -876,16 +870,11 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // 1. 輸入路徑線路（懸浮語音球）
         val bubbleModuleLineActive = micGranted && overlayGranted && accessibilityEnabled
-        val inputPathReady = bubbleModuleLineActive
 
         // 自動確保懸浮泡泡服務在系統條件就緒時運行
         if (overlayGranted && accessibilityEnabled && !FloatingBubbleService.isRunning) {
             FloatingBubbleService.start(this)
         }
-
-        // 2. 模型就緒主線路
-        val xAsrReadyLineActive = xAsrDownloaded
-        val qwen3ReadyLineActive = qwen3Downloaded
 
         // 3. 雙引擎可用條件判定與聯鎖防呆
         val dualEngineSelectable = xAsrDownloaded && qwen3Downloaded && (selectedEngine == ModelConfig.ENGINE_QWEN3)
@@ -893,12 +882,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             dualEngineToggle = false
             ModelConfig.setDualEngineEnabled(this, false)
         }
-        val dualEngineLineActive = dualEngineSelectable && dualEngineToggle
 
-        // 4. 詞彙線路
-        val currentEngineReady = (selectedEngine == ModelConfig.ENGINE_X_ASR && xAsrDownloaded) ||
-                (selectedEngine == ModelConfig.ENGINE_QWEN3 && qwen3Downloaded)
-        val vocabularyLineActive = inputPathReady && currentEngineReady
 
         // ══════════════════════════════════════════════════════════════════════
         // 更新 UI 元件狀態與文案
@@ -1279,7 +1263,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         HapticUtil.click(this)
 
         if (downloaded) {
-            val previousEngine = ModelConfig.selectedEngine(this)
             ModelConfig.setSelectedEngine(this, targetEngine)
             // 聯鎖防呆：若切換引擎導致雙引擎條件不成立，強制關閉開關以防殘留
             val dualEngineSelectable = ModelConfig.isXAsrReady(this) &&

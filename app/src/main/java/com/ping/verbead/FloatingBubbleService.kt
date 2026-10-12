@@ -110,7 +110,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         const val MODE_VOICE = 0
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
-        const val MODE_SCANNER = 2
         const val MODE_PHRASES = 3
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
         private const val KEY_MODE = "current_mode"
@@ -196,7 +195,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var camera: Camera? = null
     private var isFlashOn = false
     @Volatile private var isProcessingBarcode = false
-    private var useLocalAverage = false
     private val readerOptions = ZxingCpp.ReaderOptions(
         tryHarder = true,
         tryRotate = true,
@@ -229,7 +227,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // Touch sampling & screen-space velocity tracking
     private data class TouchPoint(val time: Long, val rawX: Float, val rawY: Float)
     private val recentTouchSamples = ArrayList<TouchPoint>()
-    private var dragDistanceSinceTick = 0f
 
     private fun recordTouchSample(rawX: Float, rawY: Float) {
         val now = android.os.SystemClock.uptimeMillis()
@@ -300,8 +297,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun getTuckLeftX(): Int = -getHiddenWidthPx()
     private fun getTuckRightX(): Int = getScreenWidth() - getVisibleWidthPx()
-    private fun getNormalLeftX(): Int = 0
-    private fun getNormalRightX(): Int = getScreenWidth() - (60 * resources.displayMetrics.density).toInt()
 
     // §6 狀態機: RECORDING, TRANSCRIBING, PASTED, SCANNING
     private val stateMachine = BubbleStateMachine()
@@ -439,7 +434,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         val displayMetrics = resources.displayMetrics
         val density = displayMetrics.density
-        val edgeMargin = (16 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
         val bubbleHeightPx = (60 * density).toInt()
 
@@ -786,11 +780,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
             setBubbleVisible(false, animate = animate)
         }
-    }
-
-    private fun updateLayoutForEdge(onRightEdge: Boolean) {
-        isDockedOnRight = onRightEdge
-        updatePreviewPosition()
     }
 
     private fun untuckBubble(animate: Boolean = true, onComplete: (() -> Unit)? = null) {
@@ -1336,21 +1325,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             ?.start()
 
         viewPulseWave?.animate()?.alpha(0f)?.setDuration(120)?.start()
-    }
-
-    private fun hidePulseViewImmediately() {
-        if (!isPulseShowing) return
-        isPulseShowing = false
-        val view = pulseView ?: return
-        viewPulseRing?.animate()?.cancel()
-        viewPulseWave?.animate()?.cancel()
-        if (view.isAttachedToWindow) {
-            try {
-                windowManager.removeView(view)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove pulseView immediately", e)
-            }
-        }
     }
 
     private fun onAudioRmsUpdate(rms: Float) {
@@ -1991,12 +1965,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             mode = currentMode,
             startRawY = startRawY
         )
-    }
-
-    private fun dismissCapsuleMenu() {
-        if (::capsuleMenuController.isInitialized) {
-            capsuleMenuController.dismiss()
-        }
     }
 
     private fun applyCapsuleSelection(mode: Int) {
