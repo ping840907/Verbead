@@ -107,11 +107,9 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
         if (BuildConfig.DEBUG) {
             val filter = IntentFilter("com.ping.verbead.TEST_INPUT")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(testReceiver, filter, Context.RECEIVER_EXPORTED)
-            } else {
-                registerReceiver(testReceiver, filter)
-            }
+            androidx.core.content.ContextCompat.registerReceiver(
+                this, testReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            )
         }
     }
 

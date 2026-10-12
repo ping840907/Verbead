@@ -519,12 +519,6 @@ object ModelConfig {
     fun ocrDetPath(context: Context, model: String = selectedOcrModel(context)): String =
         findSpecificOcrPaths(context, model)?.detPath ?: "${ocrDir(context)}/${model}_det.onnx"
 
-    fun ocrRecPath(context: Context, model: String = selectedOcrModel(context)): String =
-        findSpecificOcrPaths(context, model)?.recPath ?: "${ocrDir(context)}/${model}_rec.onnx"
-
-    fun ocrDictPath(context: Context, model: String = selectedOcrModel(context)): String =
-        findSpecificOcrPaths(context, model)?.dictPath ?: "${ocrDir(context)}/${model}_dict.txt"
-
     /** 嚴格判斷特定 OCR 模型（Tiny 或 Small）是否已下載並完整就緒。 */
     fun isOcrModelStrictlyReady(context: Context, model: String): Boolean {
         if (findSpecificOcrPaths(context, model) != null) return true

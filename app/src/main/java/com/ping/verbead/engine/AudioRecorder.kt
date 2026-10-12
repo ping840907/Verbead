@@ -46,6 +46,8 @@ class AudioRecorder(private val context: Context? = null) {
         }
     }
 
+    // RECORD_AUDIO 權限由呼叫端於錄音前檢查
+    @SuppressLint("MissingPermission")
     private fun createAudioRecord(bufSize: Int): AudioRecord {
         try {
             val record = AudioRecord(
