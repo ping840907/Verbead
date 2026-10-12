@@ -88,9 +88,11 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvBubbleBadge: TextView
     private lateinit var tvOverlayStatus: TextView
     private lateinit var btnGrantOverlay: MaterialButton
+    private lateinit var tvOverlayRestrictedHelp: TextView
     private lateinit var tvAccessibilityStatus: TextView
     private lateinit var btnGrantAccessibility: MaterialButton
     private lateinit var tvRestrictedSettingsHelp: TextView
+    private lateinit var dividerAppInfoRow: View
     private lateinit var layoutAppInfoRow: View
     private lateinit var btnOpenAppInfo: MaterialButton
     private lateinit var layoutShowOnlyOnKeyboardToggle: View
@@ -300,9 +302,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvBubbleBadge             = findViewById(R.id.tv_bubble_badge)
         tvOverlayStatus           = findViewById(R.id.tv_overlay_status)
         btnGrantOverlay           = findViewById(R.id.btn_grant_overlay)
+        tvOverlayRestrictedHelp   = findViewById(R.id.tv_overlay_restricted_help)
         tvAccessibilityStatus     = findViewById(R.id.tv_accessibility_status)
         btnGrantAccessibility     = findViewById(R.id.btn_grant_accessibility)
         tvRestrictedSettingsHelp  = findViewById(R.id.tv_restricted_settings_help)
+        dividerAppInfoRow         = findViewById(R.id.divider_app_info_row)
         layoutAppInfoRow          = findViewById(R.id.layout_app_info_row)
         btnOpenAppInfo            = findViewById(R.id.btn_open_app_info)
         layoutShowOnlyOnKeyboardToggle = findViewById(R.id.layout_show_only_on_keyboard_toggle)
@@ -474,6 +478,10 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         // §3.2.2 備援連結與受限制設定指引
+        tvOverlayRestrictedHelp.setOnClickListener {
+            HapticUtil.click(this)
+            showRestrictedSettingsDialog()
+        }
         tvRestrictedSettingsHelp.setOnClickListener {
             HapticUtil.click(this)
             showRestrictedSettingsDialog()
@@ -951,10 +959,12 @@ class ImeSettingsActivity : AppCompatActivity() {
             tvOverlayStatus.text = "懸浮視窗權限已授予"
             tvOverlayStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
             btnGrantOverlay.text = "已授權"
+            tvOverlayRestrictedHelp.visibility = View.GONE
         } else {
             tvOverlayStatus.text = "允許顯示在其他應用程式上層"
             tvOverlayStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
             btnGrantOverlay.text = "前往授權"
+            tvOverlayRestrictedHelp.visibility = View.VISIBLE
         }
 
         if (accessibilityEnabled) {
@@ -968,6 +978,10 @@ class ImeSettingsActivity : AppCompatActivity() {
             btnGrantAccessibility.text = "前往開啟"
             tvRestrictedSettingsHelp.visibility = View.VISIBLE
         }
+
+        val hasUnrestrictedNeeds = !overlayGranted || !accessibilityEnabled
+        layoutAppInfoRow.visibility = if (hasUnrestrictedNeeds) View.VISIBLE else View.GONE
+        dividerAppInfoRow.visibility = if (hasUnrestrictedNeeds) View.VISIBLE else View.GONE
 
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
         val isPasteMode = ModelConfig.isPasteModeEnabled(this)
@@ -1323,13 +1337,13 @@ class ImeSettingsActivity : AppCompatActivity() {
     // §3.2.2 受限制設定提示彈窗
     private fun showRestrictedSettingsDialog() {
         AlertDialog.Builder(this)
-            .setTitle("啟用受限制的設定 (Android 13+)")
+            .setTitle("解除受限制的設定 (Android 13+)")
             .setMessage(
-                "若無障礙服務開關呈現灰階鎖定，請依照以下步驟解除限制：\n\n" +
+                "若「顯示在上層」或「自動填入」開關呈現灰階鎖定，請依照以下步驟解除限制：\n\n" +
                         "1. 點擊下方按鈕前往「應用程式資訊」頁面。\n" +
                         "2. 點選畫面右上角「⋮」（三點選單）。\n" +
-                        "3. 點選「允許受限制的設定」並輸入螢幕鎖定密碼解鎖。\n" +
-                        "4. 完成後返回系統無障礙服務清單即可正常開啟服務。"
+                        "3. 點選「解除受限制的設定」並輸入螢幕鎖定密碼解鎖。\n" +
+                        "4. 完成後返回即可正常開啟權限與服務。"
             )
             .setPositiveButton("前往應用程式資訊") { _, _ ->
                 HapticUtil.click(this)

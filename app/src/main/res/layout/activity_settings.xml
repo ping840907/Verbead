@@ -474,6 +474,21 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="允許顯示在其他應用程式上層" />
+
+                        <TextView
+                            android:id="@+id/tv_overlay_restricted_help"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="無法開啟顯示在上層？點此查看解除受限制設定指引"
+                            android:textColor="@color/md_theme_light_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
@@ -534,7 +549,7 @@
                             android:focusable="true"
                             android:paddingTop="4dp"
                             android:paddingBottom="4dp"
-                            android:text="無法開啟無障礙服務？點此查看指引"
+                            android:text="無法開啟自動填入？點此查看解除受限制設定指引"
                             android:textColor="@color/md_theme_light_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -549,6 +564,7 @@
                 </LinearLayout>
 
                 <View
+                    android:id="@+id/divider_app_info_row"
                     style="@style/Verbead.Divider"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
@@ -582,7 +598,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="應用程式資訊" />
+                            android:text="解除受限制的設定" />
 
                         <TextView
                             style="@style/Verbead.Text.Caption"
@@ -590,7 +606,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:lineSpacingExtra="2dp"
-                            android:text="若「顯示在上層」或「無障礙服務」開關被系統反灰鎖定，請點此前往應用程式資訊頁面，點選畫面右上角「︙」（三點選單）並選擇「允許受限制的設定」即可解除鎖定" />
+                            android:text="若「顯示在上層」或「自動填入」開關被系統反灰鎖定，請點此前往應用程式資訊頁面，點選畫面右上角「︙」（三點選單）並選擇「解除受限制的設定」即可解除鎖定" />
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
@@ -598,7 +614,7 @@
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="前往資訊" />
+                        android:text="前往解除" />
                 </LinearLayout>
 
                 <View
