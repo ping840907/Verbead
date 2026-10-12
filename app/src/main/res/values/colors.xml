@@ -8,26 +8,22 @@
     <color name="md_theme_light_secondary">#475569</color>
     <color name="md_theme_light_onSecondary">#FFFFFF</color>
     <color name="md_theme_light_secondaryContainer">#F1F5F9</color>
-    <color name="md_theme_light_onSecondaryContainer">#1E293B</color>
     <color name="md_theme_light_surface">#F8FAFC</color>
     <color name="md_theme_light_onSurface">#0F172A</color>
     <color name="md_theme_light_surfaceVariant">#F1F5F9</color>
     <color name="md_theme_light_onSurfaceVariant">#64748B</color>
-    <color name="md_theme_light_outline">#CBD5E1</color>
     <color name="md_theme_light_outlineVariant">#E2E8F0</color>
 
     <!-- Semantic / Status Colors -->
     <color name="status_success">#10B981</color>
     <color name="status_success_container">#ECFDF5</color>
     <color name="status_success_text">#047857</color>
-    <color name="status_warning">#F59E0B</color>
     <color name="status_warning_container">#FFFBEB</color>
     <color name="status_warning_text">#B45309</color>
     <color name="tag_recommend">#6366F1</color>
     <color name="tag_recommend_container">#EEF2FF</color>
 
     <!-- General Surface & Text -->
-    <color name="white">#FFFFFF</color>
     <color name="background">#F8FAFC</color>
     <color name="surface_card">#FFFFFF</color>
     <color name="surface_card_stroke">#E2E8F0</color>

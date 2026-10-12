@@ -1,9 +1,6 @@
 <resources>
     <string name="app_name">珠璣</string>
-    <string name="accessibility_service_label">珠璣 離線輸入輔助</string>
     <string name="accessibility_service_desc">允許珠璣懸浮球將辨識出的文字直接填入任何應用程式的輸入框中，無需切換目前使用的輸入法。</string>
-    <string name="bubble_service_title">珠璣 懸浮泡泡執行中</string>
-    <string name="bubble_service_content">點擊螢幕邊緣的懸浮球即可隨時辨識出字</string>
     <string name="bubble_notification_channel">懸浮輸入服務</string>
 
     <!-- Notifications -->
@@ -30,10 +27,6 @@
 
     <!-- Onboarding Tour -->
     <string name="onboarding_tour_title">操作導覽</string>
-    <string name="onboarding_skip">略過</string>
-    <string name="onboarding_prev">上一步</string>
-    <string name="onboarding_next">下一步</string>
-    <string name="onboarding_start_main_settings">前往主設定開始使用</string>
     <string name="onboarding_page1_title">隨處懸浮 · 點擊即說</string>
     <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始辨識；懸浮球轉為紅色代表正在聆聽，開口說話即自動辨識並填入文字！</string>
     <string name="onboarding_page1_tip">💡 提示：點擊懸浮球後底色轉為紅色即開始收音聆聽，再次點擊或靜音自動完成填入。</string>
@@ -51,16 +44,11 @@
     <string name="onboarding_page5_tip">🔒 隱私保障：極致辨識速度與最高端側資安，點擊下方前往主設定開始使用。</string>
 
     <!-- Onboarding Toasts -->
-    <string name="toast_mic_permission_required">請先授予麥克風權限以利後續功能使用</string>
-    <string name="toast_mic_permission_ready">麥克風權限已就緒</string>
-    <string name="toast_camera_permission_ready">相機權限已就緒</string>
     <string name="toast_file_picker_error">無法開啟檔案選擇器: %1$s</string>
-    <string name="toast_models_extracted_success">所有模型已成功解壓並復原！</string>
     <string name="toast_model_download_done">%1$s 模型下載完成</string>
     <string name="toast_model_download_failed">%1$s 下載失敗: %2$s</string>
 
     <!-- ImeSettings Toasts -->
-    <string name="toast_bt_headset_allowed">此 Android 版本已預設允許藍牙耳機</string>
     <string name="toast_url_open_error">無法開啟連結：%1$s</string>
     <string name="toast_model_not_downloaded">尚未下載此模型，請先點擊下方下載</string>
     <string name="toast_switched_to_qwen3_dual">已切換為 Qwen3-ASR 並啟用雙引擎模式</string>
@@ -109,8 +97,6 @@
     <string name="toast_phrase_deleted">已刪除常用語</string>
     <string name="toast_history_cleared">已清除近期紀錄</string>
     <string name="toast_phrase_saved_from_history">已將紀錄加入常用語</string>
-    <string name="toast_history_enabled">已開啟常用語抽屜輸入紀錄</string>
-    <string name="toast_history_disabled">已關閉常用語抽屜輸入紀錄</string>
     <string name="header_recent_history">近期紀錄 (最多 %1$d 筆)</string>
     <string name="header_quick_phrases">常用片語 (長按可拖曳排序)</string>
     <string name="action_clear_history">清除</string>
