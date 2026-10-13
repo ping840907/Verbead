@@ -2791,7 +2791,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         .withEndAction { bottomBar.visibility = View.GONE }
                         .start()
                 }
-                tvStatus.text = "點選欲輸入之文字區塊 (可多選)"
+                tvStatus.text = "滑動拉框圈選或點選欲輸入之文字區塊"
             }
         }
 
@@ -2848,7 +2848,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (detectedRects.isEmpty()) {
                         tvStatus.text = "未偵測到清晰文字，可嘗試翻轉 180° 或重試"
                     } else {
-                        tvStatus.text = "點選欲輸入之文字區塊 (可多選，共 ${detectedRects.size} 處)"
+                        tvStatus.text = "滑動拉框圈選或點選文字區塊 (共 ${detectedRects.size} 處)"
                         boxesOverlay.setDetectedBoxes(detectedRects, targetBitmap.width, targetBitmap.height)
                     }
                 } catch (e: Throwable) {

@@ -2,19 +2,23 @@ package com.ping.verbead.ocr
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.RectF
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import com.ping.verbead.util.HapticUtil
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
 /**
  * Overlay view that renders detected PP-OCR bounding boxes on top of the frozen camera snapshot.
- * Supports multi-selection with numbered order badges, select-all, and double-tap quick confirm.
+ * Supports multi-selection with numbered order badges, select-all, finger drag-box marquee selection,
+ * and double-tap quick confirm.
  */
 class OcrBoxesOverlayView @JvmOverloads constructor(
     context: Context,
@@ -39,6 +43,14 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
     private var lastTappedIndex = -1
 
     private val density = resources.displayMetrics.density
+
+    // Marquee drag-selection state
+    private var startX = 0f
+    private var startY = 0f
+    private var isDragging = false
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    private val marqueeRect = RectF()
+    private val dragCandidateIndices = mutableSetOf<Int>()
 
     private val boxBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -80,10 +92,25 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
     }
 
+    private val marqueeFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = 0x264CAF50 // Translucent green fill (~15%)
+    }
+
+    private val marqueeBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f * density
+        color = 0xFF4CAF50.toInt()
+        pathEffect = DashPathEffect(floatArrayOf(6f * density, 4f * density), 0f)
+    }
+
     fun setBoxes(newBoxes: List<TextBoundingBox>) {
         boxes.clear()
         boxes.addAll(newBoxes)
         selectedIndices.clear()
+        dragCandidateIndices.clear()
+        marqueeRect.set(0f, 0f, 0f, 0f)
+        isDragging = false
         invalidate()
         onSelectionChanged?.invoke(emptyList())
     }
@@ -115,6 +142,9 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
     fun clearBoxes() {
         boxes.clear()
         selectedIndices.clear()
+        dragCandidateIndices.clear()
+        marqueeRect.set(0f, 0f, 0f, 0f)
+        isDragging = false
         invalidate()
         onSelectionChanged?.invoke(emptyList())
     }
@@ -123,16 +153,16 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
         selectedIndices.mapNotNull { boxes.getOrNull(it) }
 
     /**
-     * Selects all detected boxes in natural reading order.
-     * For predominantly vertical columns: sorted right-to-left, top-to-bottom.
-     * For horizontal lines: sorted top-to-bottom, left-to-right.
+     * Sorts a collection of box indices according to natural reading order:
+     * - For predominantly vertical columns: sorted right-to-left, top-to-bottom.
+     * - For horizontal lines: sorted top-to-bottom, left-to-right.
      */
-    fun selectAll() {
-        if (boxes.isEmpty()) return
+    fun sortIndicesInReadingOrder(indices: Collection<Int>): List<Int> {
+        if (indices.isEmpty()) return emptyList()
         val verticalCount = boxes.count { it.originalRect.height() > it.originalRect.width() * 1.1f }
         val isMostlyVertical = verticalCount > boxes.size / 2
 
-        val sorted = boxes.indices.sortedWith { i1, i2 ->
+        return indices.sortedWith { i1, i2 ->
             val r1 = boxes[i1].originalRect
             val r2 = boxes[i2].originalRect
             if (isMostlyVertical) {
@@ -155,14 +185,24 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Selects all detected boxes in natural reading order.
+     */
+    fun selectAll() {
+        if (boxes.isEmpty()) return
         selectedIndices.clear()
-        selectedIndices.addAll(sorted)
+        selectedIndices.addAll(sortIndicesInReadingOrder(boxes.indices.toList()))
         invalidate()
         onSelectionChanged?.invoke(selectedIndices.toList())
     }
 
     fun clearSelection() {
         selectedIndices.clear()
+        dragCandidateIndices.clear()
+        marqueeRect.set(0f, 0f, 0f, 0f)
+        isDragging = false
         invalidate()
         onSelectionChanged?.invoke(emptyList())
     }
@@ -172,10 +212,20 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
         val badgeRadius = 10f * density
         val textYOffset = (badgeTextPaint.descent() + badgeTextPaint.ascent()) / 2f
 
+        // Precompute candidate ordering during active drag for badge numbering
+        val orderedCandidates = if (isDragging && dragCandidateIndices.isNotEmpty()) {
+            sortIndicesInReadingOrder(dragCandidateIndices)
+        } else {
+            emptyList()
+        }
+
         for (i in boxes.indices) {
             val box = boxes[i]
             val selectionOrder = selectedIndices.indexOf(i)
-            val isSelected = (selectionOrder >= 0)
+            val isPermanentlySelected = (selectionOrder >= 0)
+            val candidateOrder = orderedCandidates.indexOf(i)
+            val isCandidate = (candidateOrder >= 0)
+            val isSelected = isPermanentlySelected || isCandidate
             val rect = box.displayRect
 
             val fill = if (isSelected) selectedFillPaint else boxFillPaint
@@ -185,57 +235,152 @@ class OcrBoxesOverlayView @JvmOverloads constructor(
             canvas.drawRoundRect(rect, 6f * density, 6f * density, border)
 
             if (isSelected) {
+                val badgeNum = if (isPermanentlySelected) {
+                    selectionOrder + 1
+                } else {
+                    selectedIndices.size + candidateOrder + 1
+                }
+
                 // Draw numbered sequence badge at top-left corner
                 val badgeX = max(badgeRadius + 2f * density, min(width - badgeRadius - 2f * density, rect.left + badgeRadius))
                 val badgeY = max(badgeRadius + 2f * density, min(height - badgeRadius - 2f * density, rect.top + badgeRadius))
 
                 canvas.drawCircle(badgeX, badgeY, badgeRadius, badgeBgPaint)
                 canvas.drawCircle(badgeX, badgeY, badgeRadius, badgeStrokePaint)
-                canvas.drawText("${selectionOrder + 1}", badgeX, badgeY - textYOffset, badgeTextPaint)
+                canvas.drawText("$badgeNum", badgeX, badgeY - textYOffset, badgeTextPaint)
             }
+        }
+
+        // Draw active marquee selection rectangle
+        if (isDragging && !marqueeRect.isEmpty) {
+            canvas.drawRoundRect(marqueeRect, 4f * density, 4f * density, marqueeFillPaint)
+            canvas.drawRoundRect(marqueeRect, 4f * density, 4f * density, marqueeBorderPaint)
         }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_UP) {
-            val touchX = event.x
-            val touchY = event.y
-
-            // Touch target with padding for comfortable tapping
-            val pad = 8f * density
-            val hitIndex = boxes.indexOfFirst { box ->
-                val r = box.displayRect
-                touchX >= r.left - pad && touchX <= r.right + pad &&
-                touchY >= r.top - pad && touchY <= r.bottom + pad
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                startX = event.x
+                startY = event.y
+                isDragging = false
+                dragCandidateIndices.clear()
+                marqueeRect.set(0f, 0f, 0f, 0f)
+                return true
             }
 
-            if (hitIndex >= 0) {
-                val now = SystemClock.uptimeMillis()
-                val isDoubleTap = (hitIndex == lastTappedIndex && now - lastTapTime < 350)
-                lastTapTime = now
-                lastTappedIndex = hitIndex
+            MotionEvent.ACTION_MOVE -> {
+                val curX = event.x
+                val curY = event.y
+                val dx = abs(curX - startX)
+                val dy = abs(curY - startY)
 
-                if (isDoubleTap) {
-                    // Double tap: immediately quick confirm this single box
-                    HapticUtil.click(context)
-                    selectedIndices.clear()
-                    selectedIndices.add(hitIndex)
-                    invalidate()
-                    onSelectionChanged?.invoke(selectedIndices.toList())
-                    onQuickConfirm?.invoke(boxes[hitIndex], hitIndex)
+                if (!isDragging && (dx > touchSlop || dy > touchSlop)) {
+                    isDragging = true
+                    HapticUtil.tick(context)
+                }
+
+                if (isDragging) {
+                    marqueeRect.set(
+                        min(startX, curX),
+                        min(startY, curY),
+                        max(startX, curX),
+                        max(startY, curY)
+                    )
+
+                    // Find which unselected boxes intersect with the marquee rectangle
+                    val newlyIntersected = mutableSetOf<Int>()
+                    for (i in boxes.indices) {
+                        val box = boxes[i]
+                        if (!selectedIndices.contains(i)) {
+                            if (RectF.intersects(box.displayRect, marqueeRect)) {
+                                newlyIntersected.add(i)
+                            }
+                        }
+                    }
+
+                    if (newlyIntersected != dragCandidateIndices) {
+                        val addedAny = (newlyIntersected - dragCandidateIndices).isNotEmpty()
+                        dragCandidateIndices.clear()
+                        dragCandidateIndices.addAll(newlyIntersected)
+                        if (addedAny) {
+                            HapticUtil.tick(context)
+                        }
+                        invalidate()
+                    }
+                    return true
+                }
+            }
+
+            MotionEvent.ACTION_UP -> {
+                if (isDragging) {
+                    isDragging = false
+                    marqueeRect.set(0f, 0f, 0f, 0f)
+
+                    if (dragCandidateIndices.isNotEmpty()) {
+                        val sortedNewCandidates = sortIndicesInReadingOrder(dragCandidateIndices)
+                        for (idx in sortedNewCandidates) {
+                            if (!selectedIndices.contains(idx)) {
+                                selectedIndices.add(idx)
+                            }
+                        }
+                        dragCandidateIndices.clear()
+                        HapticUtil.click(context)
+                        invalidate()
+                        onSelectionChanged?.invoke(selectedIndices.toList())
+                    } else {
+                        invalidate()
+                    }
                     return true
                 }
 
-                // Single tap: toggle selection
-                HapticUtil.tick(context)
-                if (selectedIndices.contains(hitIndex)) {
-                    selectedIndices.remove(hitIndex)
-                } else {
-                    selectedIndices.add(hitIndex)
+                // Normal tap / double-tap handling
+                val touchX = event.x
+                val touchY = event.y
+                val pad = 8f * density
+                val hitIndex = boxes.indexOfFirst { box ->
+                    val r = box.displayRect
+                    touchX >= r.left - pad && touchX <= r.right + pad &&
+                    touchY >= r.top - pad && touchY <= r.bottom + pad
                 }
-                invalidate()
-                onSelectionChanged?.invoke(selectedIndices.toList())
-                return true
+
+                if (hitIndex >= 0) {
+                    val now = SystemClock.uptimeMillis()
+                    val isDoubleTap = (hitIndex == lastTappedIndex && now - lastTapTime < 350)
+                    lastTapTime = now
+                    lastTappedIndex = hitIndex
+
+                    if (isDoubleTap) {
+                        // Double tap: immediately quick confirm this single box
+                        HapticUtil.click(context)
+                        selectedIndices.clear()
+                        selectedIndices.add(hitIndex)
+                        invalidate()
+                        onSelectionChanged?.invoke(selectedIndices.toList())
+                        onQuickConfirm?.invoke(boxes[hitIndex], hitIndex)
+                        return true
+                    }
+
+                    // Single tap: toggle selection
+                    HapticUtil.tick(context)
+                    if (selectedIndices.contains(hitIndex)) {
+                        selectedIndices.remove(hitIndex)
+                    } else {
+                        selectedIndices.add(hitIndex)
+                    }
+                    invalidate()
+                    onSelectionChanged?.invoke(selectedIndices.toList())
+                    return true
+                }
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                if (isDragging) {
+                    isDragging = false
+                    marqueeRect.set(0f, 0f, 0f, 0f)
+                    dragCandidateIndices.clear()
+                    invalidate()
+                }
             }
         }
         return true
