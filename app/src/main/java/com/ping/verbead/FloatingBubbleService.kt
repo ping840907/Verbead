@@ -663,13 +663,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         return if (resId > 0) resources.getDimensionPixelSize(resId) else (16 * resources.displayMetrics.density).toInt()
     }
 
+    /**
+     * 各式選單唯一的邊界限制只有真正的畫面邊界 (螢幕全高)。
+     */
     private fun getSafeBottom(): Int {
-        val screenHeight = getScreenHeight()
-        return if (dynamicKeyboardTop in 1 until screenHeight) {
-            dynamicKeyboardTop
-        } else {
-            screenHeight - getNavigationBarHeight()
-        }
+        return getScreenHeight()
     }
 
     private fun getCapsuleMenuDistance(): Int {
@@ -677,32 +675,22 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         return (CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP * density).toInt()
     }
 
-    private fun getMinPopupY(): Int {
-        val density = resources.displayMetrics.density
-        return getStatusBarHeight() + (8 * density).toInt()
-    }
+    /**
+     * 各式選單唯一的邊界限制只有真正的畫面邊界 (頂部為 0)。
+     */
+    private fun getMinPopupY(): Int = 0
 
+    /**
+     * 懸浮球頂部邊界限制 (保留邊界安全間距，選單則不受此限制)。
+     */
     private fun getMinY(): Int {
         val density = resources.displayMetrics.density
-        val screenHeight = getScreenHeight()
-        val defaultMinY = getCapsuleMenuDistance()
-        val safeBottom = getSafeBottom()
-        val bubbleHeight = (60 * density).toInt()
-
-        return if (dynamicKeyboardTop in 1 until screenHeight) {
-            val margin = (8 * density).toInt()
-            val keyboardMax = dynamicKeyboardTop - bubbleHeight - margin
-            if (keyboardMax < defaultMinY) 0 else defaultMinY
-        } else {
-            val available = safeBottom - bubbleHeight
-            if (defaultMinY * 2 > available) {
-                0
-            } else {
-                defaultMinY
-            }
-        }
+        return (8 * density).toInt()
     }
 
+    /**
+     * 懸浮球底部邊界限制：只有懸浮球會受鍵盤邊界的範圍限制 (若鍵盤開啟則停留在鍵盤上方，否則停留在螢幕安全底部)。
+     */
     private fun getMaxY(): Int {
         val density = resources.displayMetrics.density
         val bubbleHeight = (60 * density).toInt()
@@ -712,14 +700,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val calculatedMax = if (dynamicKeyboardTop in 1 until screenHeight) {
             dynamicKeyboardTop - bubbleHeight - margin
         } else {
-            val safeBottom = getSafeBottom()
-            val available = safeBottom - bubbleHeight
-            val capsuleDist = getCapsuleMenuDistance()
-            if (capsuleDist * 2 > available) {
-                safeBottom - bubbleHeight - margin
-            } else {
-                safeBottom - bubbleHeight - capsuleDist
-            }
+            screenHeight - getNavigationBarHeight() - bubbleHeight - margin
         }
         return maxOf(getMinY(), calculatedMax)
     }
@@ -2116,7 +2097,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             preferredY
         }
         val maxAllowedY = safeBottom - btnSize - (4 * density).toInt()
-        val targetY = candidateY.coerceIn(statusBar + (4 * density).toInt(), maxOf(statusBar + (4 * density).toInt(), maxAllowedY))
+        val targetY = candidateY.coerceIn(0, maxOf(0, maxAllowedY))
 
         val xOffset = anchorX + ((bubbleWidthPx - btnSize) / 2)
         val clampedX = xOffset.coerceIn((4 * density).toInt(), maxOf((4 * density).toInt(), screenWidth - btnSize - (4 * density).toInt()))
@@ -2179,7 +2160,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             preferredY
         }
         val maxAllowedY = safeBottom - btnSize - (4 * density).toInt()
-        val targetY = candidateY.coerceIn(statusBar + (4 * density).toInt(), maxOf(statusBar + (4 * density).toInt(), maxAllowedY))
+        val targetY = candidateY.coerceIn(0, maxOf(0, maxAllowedY))
 
         xButtonLayoutParams = WindowManager.LayoutParams(
             btnSize,
@@ -2449,7 +2430,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val estHeight = previewView.measuredHeight.takeIf { it > 0 } ?: (48 * density).toInt()
         val targetY = anchorY + (12 * density).toInt() - padding
         val maxAllowedY = safeBottom - estHeight - (8 * density).toInt()
-        previewLayoutParams.y = targetY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
+        previewLayoutParams.y = targetY.coerceIn(0, maxOf(0, maxAllowedY))
 
         if (previewView.isAttachedToWindow) {
             windowManager.updateViewLayout(previewView, previewLayoutParams)
@@ -3239,8 +3220,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinPopupY(),
-            maxOf(getMinPopupY(), maxAllowedY)
+            0,
+            maxOf(0, maxAllowedY)
         )
 
         scannerLayoutParams = WindowManager.LayoutParams(
@@ -3383,8 +3364,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinPopupY(),
-            maxOf(getMinPopupY(), maxAllowedY)
+            0,
+            maxOf(0, maxAllowedY)
         )
         lp.y = targetY
         lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
@@ -3430,8 +3411,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         lp.y = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinPopupY(),
-            maxOf(getMinPopupY(), maxAllowedY)
+            0,
+            maxOf(0, maxAllowedY)
         )
         lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
         lp.x = bubbleWidthPx + gap
@@ -3628,8 +3609,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinPopupY(),
-            maxOf(getMinPopupY(), maxAllowedY)
+            0,
+            maxOf(0, maxAllowedY)
         )
 
         ocrWindowLayoutParams = WindowManager.LayoutParams(
@@ -3780,8 +3761,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinPopupY(),
-            maxOf(getMinPopupY(), maxAllowedY)
+            0,
+            maxOf(0, maxAllowedY)
         )
         lp.y = targetY
         lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
@@ -3827,8 +3808,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         lp.y = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinPopupY(),
-            maxOf(getMinPopupY(), maxAllowedY)
+            0,
+            maxOf(0, maxAllowedY)
         )
         lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
         lp.x = bubbleWidthPx + gap
@@ -4389,14 +4370,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
-        val maxAllowedHeight = maxOf((120 * density).toInt(), safeBottom - getMinPopupY() - (16 * density).toInt())
+        val maxAllowedHeight = maxOf((120 * density).toInt(), safeBottom - (16 * density).toInt())
         val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
         val finalHeight = actualHeight.coerceAtMost(maxAllowedHeight)
 
         val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
         val maxAllowedY = safeBottom - finalHeight - (8 * density).toInt()
-        val targetY = anchorY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
+        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
 
         phrasesDrawerLayoutParams = WindowManager.LayoutParams(
             drawerWidth,
@@ -4583,7 +4564,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
-        val maxAllowedHeight = maxOf((120 * density).toInt(), safeBottom - getMinPopupY() - (16 * density).toInt())
+        val maxAllowedHeight = maxOf((120 * density).toInt(), safeBottom - (16 * density).toInt())
         val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
         val finalHeight = actualHeight.coerceAtMost(maxAllowedHeight)
 
@@ -4601,7 +4582,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val maxAllowedY = safeBottom - finalHeight - (8 * density).toInt()
         lp.width = drawerWidth
         lp.height = if (actualHeight > maxAllowedHeight) maxAllowedHeight else WindowManager.LayoutParams.WRAP_CONTENT
-        lp.y = anchorY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
+        lp.y = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
         if (drawer.isAttachedToWindow) {
             try {
                 windowManager.updateViewLayout(drawer, lp)
