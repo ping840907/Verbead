@@ -651,6 +651,30 @@ object ModelConfig {
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_SHOW_ONLY_ON_KEYBOARD, enabled).apply()
 
+    // ── Multi Bubble Preferences ──────────────────────────────────────────────
+    const val KEY_MULTI_BUBBLE_ENABLED = "multi_bubble_enabled"
+    const val KEY_MULTI_BUBBLE_COUNT = "multi_bubble_count"
+    const val DEFAULT_MULTI_BUBBLE_COUNT = 4
+    const val MIN_MULTI_BUBBLE_COUNT = 2
+    const val MAX_MULTI_BUBBLE_COUNT = 4
+
+    fun isMultiBubbleEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_MULTI_BUBBLE_ENABLED, false)
+
+    fun setMultiBubbleEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_MULTI_BUBBLE_ENABLED, enabled).apply()
+
+    fun getMultiBubbleCount(context: Context): Int =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getInt(KEY_MULTI_BUBBLE_COUNT, DEFAULT_MULTI_BUBBLE_COUNT)
+            .coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)
+
+    fun setMultiBubbleCount(context: Context, count: Int) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_MULTI_BUBBLE_COUNT, count.coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)).apply()
+
     // ── Text Injection Settings ───────────────────────────────────────────────
     private const val PREF_INJECTION_SETTINGS = "injection_settings"
     const val KEY_TEXT_INJECTION_METHOD = "text_injection_method"
