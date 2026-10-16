@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_delete_zone"
+    android:layout_width="84dp"
+    android:layout_height="84dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- The circular X target container with elevation and smooth scaling -->
+    <FrameLayout
+        android:id="@+id/container_delete_target"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_bubble_delete_zone"
+        android:elevation="10dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <ImageView
+            android:id="@+id/iv_delete_target_icon"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_close"
+            android:contentDescription="移除懸浮球" />
+    </FrameLayout>
+</FrameLayout>

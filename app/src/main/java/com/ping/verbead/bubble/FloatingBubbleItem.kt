@@ -11,7 +11,7 @@ import android.widget.ProgressBar
  * Encapsulates view, layout parameters, and motion state for an individual floating bubble.
  */
 class FloatingBubbleItem(
-    val id: Int,
+    var id: Int,
     var mode: Int,
     val view: View,
     val windowLayoutParams: WindowManager.LayoutParams,

@@ -44,6 +44,8 @@ import com.ping.verbead.bubble.BubbleStateMachine
 import com.ping.verbead.bubble.CapsuleMenuController
 import com.ping.verbead.bubble.BubblePhysics
 import com.ping.verbead.bubble.BubblePosition
+import com.ping.verbead.bubble.BubbleDeleteZoneController
+import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
@@ -189,6 +191,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private val isCapsuleMenuShowing: Boolean
         get() = ::capsuleMenuController.isInitialized && capsuleMenuController.isShowing
     private var currentMode = MODE_VOICE
+
+    // Dynamic multi-bubble shake-to-duplicate & magnetic delete zone
+    private lateinit var bubbleDeleteZoneController: BubbleDeleteZoneController
+    private var shakeDetector: BubbleShakeDetector? = null
+    private var currentlyDraggedBubble: FloatingBubbleItem? = null
 
     // Barcode scanner
     private var scannerView: View? = null
@@ -350,6 +357,41 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (::btnBubbleMic.isInitialized) {
                         btnBubbleMic.alpha = 1f
                     }
+                }
+            }
+        )
+        bubbleDeleteZoneController = BubbleDeleteZoneController(
+            context = themedCtx,
+            windowManager = windowManager
+        )
+
+        val density = resources.displayMetrics.density
+        shakeDetector = BubbleShakeDetector(
+            density = density,
+            onShakeStroke = { strokeCount, _, progress, isHorizontal ->
+                when (strokeCount) {
+                    1 -> HapticUtil.tick(this@FloatingBubbleService)
+                    2 -> HapticUtil.click(this@FloatingBubbleService)
+                    else -> HapticUtil.click(this@FloatingBubbleService)
+                }
+                currentlyDraggedBubble?.let { item ->
+                    if (item.view.isAttachedToWindow) {
+                        val squishScale = 0.16f * progress
+                        val dir = if (strokeCount % 2 == 1) 1f else -1f
+                        if (isHorizontal) {
+                            item.view.scaleX = 1f + squishScale * dir
+                            item.view.scaleY = 1f - squishScale * 0.7f
+                        } else {
+                            item.view.scaleX = 1f - squishScale * 0.7f
+                            item.view.scaleY = 1f + squishScale * dir
+                        }
+                    }
+                }
+            },
+            onShakeTriggered = {
+                currentlyDraggedBubble?.let { item ->
+                    item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    handleShakeToDuplicate(item)
                 }
             }
         )
@@ -869,6 +911,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     @SuppressLint("ClickableViewAccessibility")
     private fun attachBubbleTouchListener(item: FloatingBubbleItem) {
         val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
         val bubbleHeightPx = (60 * density).toInt()
         val initialPositions = mutableMapOf<Int, Pair<Int, Int>>()
         var touchStartX = 0f
@@ -889,6 +932,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         item.btnBubble.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    currentlyDraggedBubble = item
+                    shakeDetector?.reset()
                     v.parent?.requestDisallowInterceptTouchEvent(true)
                     updateSystemGestureExclusion()
                     for (b in bubbleItems) {
@@ -931,8 +976,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (isPhrasesDrawerActive) {
                             closePhrasesDrawer()
                         }
+                        if (bubbleItems.size > 1) {
+                            val deleteZoneTargetY = getMinY() + (24 * density).toInt()
+                            bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
+                        }
                     }
                     if (isDragging) {
+                        shakeDetector?.addSample(event.rawX, event.rawY)
+
                         val screenHeight = getScreenHeight()
                         val safeMinY = getMinY().toFloat()
                         val safeMaxY = getMaxY().toFloat()
@@ -952,10 +1003,34 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         val maxDragY = if (dynamicKeyboardTop in 1 until screenHeight) (safeMaxY + (20 * density)) else (screenHeight - bubbleHeightPx).toFloat()
                         val newY = dampedY.coerceIn(minDragY, maxDragY).toInt()
 
-                        item.windowLayoutParams.x = newX
-                        item.windowLayoutParams.y = newY
+                        val bubbleCenterX = newX + bubbleWidthPx / 2f
+                        val bubbleCenterY = newY + bubbleHeightPx / 2f
 
-                        if (bubbleItems.size > 1) {
+                        val mag = if (bubbleDeleteZoneController.isShowing) {
+                            bubbleDeleteZoneController.updateMagnetism(
+                                bubbleCenterX = bubbleCenterX,
+                                bubbleCenterY = bubbleCenterY,
+                                bubbleRadiusPx = bubbleWidthPx / 2f,
+                                rawBubbleX = newX.toFloat(),
+                                rawBubbleY = newY.toFloat()
+                            )
+                        } else null
+
+                        if (mag?.isAttracted == true) {
+                            item.windowLayoutParams.x = mag.targetX.toInt()
+                            item.windowLayoutParams.y = mag.targetY.toInt()
+                            item.view.scaleX = if (mag.isLocked) 0.82f else 0.90f
+                            item.view.scaleY = if (mag.isLocked) 0.82f else 0.90f
+                        } else {
+                            item.windowLayoutParams.x = newX
+                            item.windowLayoutParams.y = newY
+                            if (shakeDetector?.isShaking == false) {
+                                item.view.scaleX = 1f
+                                item.view.scaleY = 1f
+                            }
+                        }
+
+                        if (mag?.isAttracted != true && bubbleItems.size > 1) {
                             val positions = bubbleItems.map {
                                 BubblePosition(it.id, it.windowLayoutParams.x.toFloat(), it.windowLayoutParams.y.toFloat(), 30f * density)
                             }
@@ -1013,22 +1088,35 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         item.isBubbleMoving = false
                         item.view.setLayerType(View.LAYER_TYPE_NONE, null)
                     } else {
-                        val (vx, vy) = computeScreenVelocity()
-                        if (!isDragging) {
+                        currentlyDraggedBubble = null
+                        shakeDetector?.reset()
+
+                        if (isDragging && bubbleDeleteZoneController.isShowing && bubbleDeleteZoneController.isAttracted) {
                             item.isBubbleMoving = false
                             item.view.setLayerType(View.LAYER_TYPE_NONE, null)
-                            HapticUtil.click(this@FloatingBubbleService)
-                            if (item.isTucked) {
-                                untuckBubble(item, animate = true)
-                            } else {
-                                if (ModelConfig.isMultiBubbleEnabled(this@FloatingBubbleService)) {
-                                    onBubbleClickForMode(item)
-                                } else {
-                                    onBubbleClick()
-                                }
-                            }
+                            handleDeleteBubble(item)
                         } else {
-                            snapBubbleToSafeBoundsWithInertia(item, vx, vy)
+                            item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                            if (bubbleDeleteZoneController.isShowing) {
+                                bubbleDeleteZoneController.hide(animated = true)
+                            }
+                            val (vx, vy) = computeScreenVelocity()
+                            if (!isDragging) {
+                                item.isBubbleMoving = false
+                                item.view.setLayerType(View.LAYER_TYPE_NONE, null)
+                                HapticUtil.click(this@FloatingBubbleService)
+                                if (item.isTucked) {
+                                    untuckBubble(item, animate = true)
+                                } else {
+                                    if (ModelConfig.isMultiBubbleEnabled(this@FloatingBubbleService)) {
+                                        onBubbleClickForMode(item)
+                                    } else {
+                                        onBubbleClick()
+                                    }
+                                }
+                            } else {
+                                snapBubbleToSafeBoundsWithInertia(item, vx, vy)
+                            }
                         }
                     }
                     recentTouchSamples.clear()
@@ -1036,6 +1124,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     longPressHandler.removeCallbacks(longPressRunnable)
+                    item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    currentlyDraggedBubble = null
+                    shakeDetector?.reset()
+                    if (bubbleDeleteZoneController.isShowing) {
+                        bubbleDeleteZoneController.hide(animated = true)
+                    }
                     if (isLongPressTriggered || isCapsuleMenuShowing) {
                         capsuleMenuController.dismiss()
                         isLongPressTriggered = false
@@ -1158,6 +1252,212 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 bubble0.ivIcon.contentDescription = desc
                 activeAnchorBubble = bubble0
             }
+        }
+    }
+
+    private fun handleShakeToDuplicate(parent: FloatingBubbleItem) {
+        if (bubbleItems.size >= ModelConfig.MAX_MULTI_BUBBLE_COUNT) {
+            HapticUtil.tick(this)
+            return
+        }
+
+        val newCount = bubbleItems.size + 1
+        ModelConfig.setMultiBubbleEnabled(this, true)
+        ModelConfig.setMultiBubbleCount(this, newCount)
+
+        val allModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)
+        val usedModes = bubbleItems.map { it.mode }.toSet()
+        val newMode = allModes.firstOrNull { it !in usedModes } ?: MODE_VOICE
+        val newId = bubbleItems.size
+        setBubbleMode(newId, newMode)
+
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+        val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
+        val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
+        val prog = v.findViewById<ProgressBar>(R.id.progress_bubble)
+        val (iconRes, desc) = getIconAndDescForMode(newMode)
+        iv.setImageResource(iconRes)
+        iv.contentDescription = desc
+
+        val initialX = parent.windowLayoutParams.x
+        val initialY = parent.windowLayoutParams.y
+
+        val lp = WindowManager.LayoutParams(
+            bubbleWidthPx,
+            bubbleHeightPx,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = initialX
+            y = initialY
+        }
+
+        val newItem = FloatingBubbleItem(
+            id = newId,
+            mode = newMode,
+            view = v,
+            windowLayoutParams = lp,
+            btnBubble = btn,
+            ivIcon = iv,
+            progress = prog
+        ).apply {
+            this.isDockedOnRight = parent.isDockedOnRight
+        }
+
+        attachBubbleTouchListener(newItem)
+        bubbleItems.add(newItem)
+
+        v.scaleX = 0.2f
+        v.scaleY = 0.2f
+        v.alpha = 0.5f
+
+        windowManager.addView(v, lp)
+
+        // Haptic feedback pop
+        HapticUtil.heavyClick(this)
+
+        // Parent recoil/bounce
+        parent.view.animate().cancel()
+        parent.view.animate()
+            .scaleX(1.18f)
+            .scaleY(1.18f)
+            .setDuration(120L)
+            .withEndAction {
+                parent.view.animate().scaleX(1f).scaleY(1f).setDuration(150L).start()
+            }
+            .start()
+
+        // New bubble expands
+        v.animate()
+            .scaleX(1.15f)
+            .scaleY(1.15f)
+            .alpha(1f)
+            .setDuration(240L)
+            .setInterpolator(OvershootInterpolator(1.25f))
+            .withEndAction {
+                v.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+            }
+            .start()
+
+        // Repulsion displacement (avoid overlap with parent)
+        val repulsionDistance = (68 * density).toInt()
+        val screenMidY = (getMinY() + getMaxY()) / 2
+        val targetRepulsionY = if (initialY < screenMidY) {
+            (initialY + repulsionDistance).coerceIn(getMinY(), getMaxY())
+        } else {
+            (initialY - repulsionDistance).coerceIn(getMinY(), getMaxY())
+        }
+
+        ValueAnimator.ofInt(initialY, targetRepulsionY).apply {
+            duration = 260L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { va ->
+                if (v.isAttachedToWindow) {
+                    lp.y = va.animatedValue as Int
+                    windowManager.updateViewLayout(v, lp)
+                }
+            }
+            start()
+        }
+
+        // Show delete zone if parent is currently being dragged and size > 1
+        if (bubbleItems.size > 1 && !bubbleDeleteZoneController.isShowing) {
+            val deleteZoneTargetY = getMinY() + (24 * density).toInt()
+            bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
+        }
+    }
+
+    private fun handleDeleteBubble(bubbleToDelete: FloatingBubbleItem) {
+        if (bubbleItems.size <= 1) {
+            if (bubbleDeleteZoneController.isShowing) {
+                bubbleDeleteZoneController.hide(animated = true)
+            }
+            return
+        }
+
+        bubbleToDelete.view.animate().cancel()
+        bubbleToDelete.view.animate()
+            .scaleX(0f)
+            .scaleY(0f)
+            .alpha(0f)
+            .setDuration(160L)
+            .start()
+
+        bubbleDeleteZoneController.playDeleteBurst {
+            if (bubbleToDelete.id == 0) {
+                // bubble0 is the service's primary bound bubbleView.
+                // Inherit state from a surviving bubble to preserve windowManager view binding.
+                val survivor = bubbleItems.firstOrNull { it.id != 0 }
+                if (survivor != null) {
+                    bubbleToDelete.mode = survivor.mode
+                    val (iconRes, desc) = getIconAndDescForMode(survivor.mode)
+                    bubbleToDelete.ivIcon.setImageResource(iconRes)
+                    bubbleToDelete.ivIcon.contentDescription = desc
+                    bubbleToDelete.windowLayoutParams.x = survivor.windowLayoutParams.x
+                    bubbleToDelete.windowLayoutParams.y = survivor.windowLayoutParams.y
+                    bubbleToDelete.isDockedOnRight = survivor.isDockedOnRight
+                    bubbleToDelete.isTucked = survivor.isTucked
+                    windowLayoutParams.x = survivor.windowLayoutParams.x
+                    windowLayoutParams.y = survivor.windowLayoutParams.y
+                    isDockedOnRight = survivor.isDockedOnRight
+                    isTucked = survivor.isTucked
+                    setBubbleMode(0, survivor.mode)
+
+                    bubbleToDelete.view.scaleX = 1f
+                    bubbleToDelete.view.scaleY = 1f
+                    bubbleToDelete.view.alpha = 1f
+                    if (bubbleToDelete.view.isAttachedToWindow) {
+                        windowManager.updateViewLayout(bubbleToDelete.view, bubbleToDelete.windowLayoutParams)
+                    }
+
+                    if (survivor.view.isAttachedToWindow) {
+                        removeOverlay("bubble_${survivor.id}", survivor.view)
+                    }
+                    bubbleItems.remove(survivor)
+                    activeAnchorBubble = bubbleToDelete
+                }
+            } else {
+                if (bubbleToDelete.view.isAttachedToWindow) {
+                    removeOverlay("bubble_${bubbleToDelete.id}", bubbleToDelete.view)
+                }
+                bubbleItems.remove(bubbleToDelete)
+                if (activeAnchorBubble?.id == bubbleToDelete.id) {
+                    activeAnchorBubble = bubbleItems.firstOrNull()
+                }
+            }
+
+            // Normalize and save IDs for remaining bubbles
+            bubbleItems.forEachIndexed { index, item ->
+                item.id = index
+                setBubbleMode(index, item.mode)
+            }
+
+            val newCount = bubbleItems.size
+            if (newCount <= 1) {
+                ModelConfig.setMultiBubbleEnabled(this, false)
+                ModelConfig.setMultiBubbleCount(this, 2)
+                bubbleItems.firstOrNull()?.let { b0 ->
+                    currentMode = b0.mode
+                }
+            } else {
+                ModelConfig.setMultiBubbleCount(this, newCount)
+            }
+
+            resolveAndApplyEdgeStacking(animate = true)
         }
     }
 
@@ -4547,6 +4847,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             safely("ocr") { stopOcrMode() }
             safely("phrasesDrawer") { closePhrasesDrawer() }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }
+            safely("deleteZone") { if (::bubbleDeleteZoneController.isInitialized) bubbleDeleteZoneController.hide(animated = false) }
             safely("snapshot") { dismissOcrSnapshot() }
             safely("camera") { cameraExecutor?.shutdown() }
             safely("ppOcr") { ppOcrEngine.release() }
