@@ -27,8 +27,8 @@ class XAsrEngine(private val context: Context) {
 
     fun isLoaded() = recognizer != null
 
-    suspend fun load(): LoadResult = loadMutex.withLock {
-        if (isLoaded()) return@withLock LoadResult(true, provider = activeProvider)
+    suspend fun load(): EngineLoadResult = loadMutex.withLock {
+        if (isLoaded()) return@withLock EngineLoadResult(true, provider = activeProvider)
         withContext(Dispatchers.IO) {
             val encoder = ModelConfig.xAsrEncoderPath(context)
             val decoder = ModelConfig.xAsrDecoderPath(context)
@@ -37,7 +37,7 @@ class XAsrEngine(private val context: Context) {
 
             for (path in listOf(encoder, decoder, joiner, tokens)) {
                 if (!File(path).exists())
-                    return@withContext LoadResult(false, error = "File not found: $path")
+                    return@withContext EngineLoadResult(false, error = "File not found: $path")
             }
 
             // A truncated/mismatched download can leave onnxruntime able to "load" a model
@@ -92,13 +92,13 @@ class XAsrEngine(private val context: Context) {
                     )
                     activeProvider = provider
                     Log.i(TAG, "Loaded — provider=$provider  threads=${ModelConfig.X_ASR_THREADS}")
-                    return@withContext LoadResult(true, provider = provider)
+                    return@withContext EngineLoadResult(true, provider = provider)
                 } catch (ex: Throwable) {
                     Log.w(TAG, "Provider '$provider' failed: ${ex.message}", ex)
                     lastError = ex
                 }
             }
-            LoadResult(false, error = lastError?.message ?: "All providers failed")
+            EngineLoadResult(false, error = lastError?.message ?: "All providers failed")
         }
     }
 
@@ -141,12 +141,6 @@ class XAsrEngine(private val context: Context) {
     /** True if the stream has enough frames buffered to produce output. */
     fun isReady(stream: OnlineStream): Boolean =
         recognizer?.isReady(stream) ?: false
-
-    data class LoadResult(
-        val success: Boolean,
-        val error: String? = null,
-        val provider: String = "unknown",
-    )
 
     companion object {
         private const val TAG = "XAsrEngine"

@@ -36,7 +36,6 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.cardview.widget.CardView
 import androidx.core.app.NotificationCompat
 import com.google.android.material.card.MaterialCardView
 import com.k2fsa.sherpa.onnx.OnlineStream
@@ -83,9 +82,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import com.ping.verbead.camera.FrameMetrics
-import com.ping.verbead.camera.setCovered
-import com.ping.verbead.camera.setFrameRoi
 import com.ping.verbead.engine.AudioRoutingManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.view.ViewGroup
@@ -1938,7 +1934,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             ModelConfig.toTaiwanTraditional(raw)
         }
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
-        val postReplaced = ModelConfig.applyPostRegexReplacements(userReplaced)
+        val postReplaced = if (userReplaced == converted) {
+            converted
+        } else {
+            ModelConfig.applyPostRegexReplacements(userReplaced)
+        }
         return if (ModelConfig.isFilterPunctuationEnabled(this)) {
             ModelConfig.filterChinesePunctuation(postReplaced)
         } else {
@@ -2096,7 +2096,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnAutoEnter = scanner.findViewById<ImageButton>(R.id.btn_scanner_auto_enter)
         val sliderZoom = scanner.findViewById<SeekBar>(R.id.slider_scanner_zoom)
         val viewFinder = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
-        val cardPreview = scanner.findViewById<CardView>(R.id.card_scanner_preview)
+        val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
 
         btnScale?.setImageResource(if (isScannerEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
         cardPreview?.layoutParams = cardPreview?.layoutParams?.apply {
@@ -2195,7 +2195,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val cardSize = targetWidth - (16 * density).toInt()
-        val cardPreview = scanner.findViewById<CardView>(R.id.card_scanner_preview)
+        val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
         cardPreview?.layoutParams?.apply {
             width = cardSize
             height = cardSize
@@ -2425,7 +2425,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnShutter = ocr.findViewById<FrameLayout>(R.id.btn_ocr_shutter)
         val sliderZoom = ocr.findViewById<SeekBar>(R.id.slider_ocr_zoom)
         val viewFinder = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
-        val cardPreview = ocr.findViewById<CardView>(R.id.card_ocr_preview)
+        val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
 
         btnScale.setImageResource(if (isOcrEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
         cardPreview.layoutParams = cardPreview.layoutParams.apply {
@@ -2531,7 +2531,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val cardSize = targetWidth - (16 * density).toInt()
-        val cardPreview = ocr.findViewById<CardView>(R.id.card_ocr_preview)
+        val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
         cardPreview?.layoutParams?.apply {
             width = cardSize
             height = cardSize

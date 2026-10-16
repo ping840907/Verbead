@@ -68,14 +68,15 @@
     </RelativeLayout>
 
     <!-- Center Camera Preview Area (Square) -->
-    <androidx.cardview.widget.CardView
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_scanner_preview"
         android:layout_width="234dp"
         android:layout_height="234dp"
         android:layout_gravity="center_horizontal"
         app:cardBackgroundColor="#000000"
         app:cardCornerRadius="14dp"
-        app:cardElevation="0dp">
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -86,7 +87,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
         </FrameLayout>
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Zooming Slider below camera view -->
     <SeekBar
