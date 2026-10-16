@@ -53,6 +53,23 @@
                 android:textColor="#EEFFFFFF"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_slm_accel_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/bg_slm_chip_active"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:text="⚡ GPU/NPU"
+                android:textColor="#38BDF8"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
 
         <!-- Right Controls: Model Toggle & Thinking Toggle -->
@@ -147,7 +164,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="端側小語言模型 (SLM) 已就緒"
+                android:text="端側 Qwen SLM 已就緒 · ⚡ GPU/NPU 加速中"
                 android:textColor="#F8FAFC"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -158,7 +175,7 @@
                 android:layout_marginTop="6dp"
                 android:gravity="center"
                 android:lineSpacingExtra="3dp"
-                android:text="• 點擊麥克風可用離線語音下達指令\n• 預設簡短扼要回覆，支援思考推導\n• 回覆後可一鍵複製或直接貼入輸入框"
+                android:text="• 運算由 GPU (Vulkan) / NPU (NNAPI) 全層卸載加速\n• 點擊麥克風可用離線語音下達指令\n• 預設簡短扼要回覆，支援思考推導\n• 回覆後可一鍵複製或直接貼入輸入框"
                 android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>

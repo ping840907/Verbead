@@ -4975,6 +4975,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val btnClose = chatView.findViewById<ImageButton>(R.id.btn_close_slm_chat)
+        val tvAccelBadge = chatView.findViewById<TextView>(R.id.tv_slm_accel_badge)
         val btnModelToggle = chatView.findViewById<TextView>(R.id.btn_slm_model_toggle)
         val btnThinkingToggle = chatView.findViewById<LinearLayout>(R.id.btn_slm_thinking_toggle)
         val ivThinkingIcon = chatView.findViewById<ImageView>(R.id.iv_slm_thinking_icon)
@@ -4984,6 +4985,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnMic = chatView.findViewById<ImageButton>(R.id.btn_slm_mic)
         val etPrompt = chatView.findViewById<EditText>(R.id.et_slm_prompt)
         val btnSend = chatView.findViewById<ImageButton>(R.id.btn_slm_send)
+
+        tvAccelBadge?.setOnClickListener {
+            HapticUtil.click(this)
+            val desc = SlmModelConfig.getHardwareAccelDescription(this)
+            Toast.makeText(this, desc, Toast.LENGTH_SHORT).show()
+        }
 
         btnClose.setOnClickListener {
             HapticUtil.click(this)
@@ -5355,12 +5362,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         // 2. Add assistant placeholder
         val selectedModel = SlmModelConfig.getSelectedModel(this)
         val meta = SlmModelConfig.getModelMetadata(selectedModel)
+        val accelTag = SlmModelConfig.getHardwareAccelTag(this)
         val assistantMsg = SlmChatMessage(
             role = SlmChatMessage.Role.ASSISTANT,
             content = "",
             thinkingContent = null,
             isStreaming = true,
-            modelTag = meta.displayName
+            modelTag = "${meta.displayName} · $accelTag"
         )
         slmMessages.add(assistantMsg)
         val assistantPos = slmMessages.size - 1

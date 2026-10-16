@@ -537,6 +537,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             switchMultiBubble.performClick()
         }
 
+        sbMultiBubbleCount.max = ModelConfig.MAX_MULTI_BUBBLE_COUNT - ModelConfig.MIN_MULTI_BUBBLE_COUNT
         sbMultiBubbleCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {

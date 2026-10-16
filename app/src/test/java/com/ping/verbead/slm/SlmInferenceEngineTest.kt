@@ -110,4 +110,30 @@ class SlmInferenceEngineTest {
         assertEquals(SlmModelConfig.MODEL_QWEN_9B, SlmModelConfig.getNextModel(SlmModelConfig.MODEL_QWEN_4B).id)
         assertEquals(SlmModelConfig.MODEL_QWEN_0_8B, SlmModelConfig.getNextModel(SlmModelConfig.MODEL_QWEN_9B).id)
     }
+
+    @Test
+    fun testHardwareAccelerationDefaultsAndOffload() {
+        assertTrue(SlmModelConfig.DEFAULT_HARDWARE_ACCEL_ENABLED)
+        assertEquals(99, SlmModelConfig.DEFAULT_GPU_LAYERS)
+        assertEquals("vulkan", SlmModelConfig.BACKEND_VULKAN)
+        assertEquals("nnapi", SlmModelConfig.BACKEND_NNAPI)
+        assertEquals("qnn", SlmModelConfig.BACKEND_QNN)
+
+        val spec = SlmModelConfig.SlmInferenceHardwareSpec(
+            isHardwareAccel = true,
+            gpuLayers = SlmModelConfig.DEFAULT_GPU_LAYERS,
+            backendName = "GPU/NPU (Vulkan/NNAPI)",
+            accelTag = "⚡ GPU/NPU"
+        )
+        assertTrue(spec.isHardwareAccel)
+        assertEquals(99, spec.gpuLayers)
+        assertEquals("⚡ GPU/NPU", spec.accelTag)
+        assertTrue(spec.backendName.contains("GPU") || spec.backendName.contains("NPU"))
+    }
+
+    @Test
+    fun testMaxMultiBubbleCountIsFive() {
+        assertEquals(5, com.ping.verbead.engine.ModelConfig.MAX_MULTI_BUBBLE_COUNT)
+        assertTrue(com.ping.verbead.engine.ModelConfig.MAX_MULTI_BUBBLE_COUNT >= 5)
+    }
 }

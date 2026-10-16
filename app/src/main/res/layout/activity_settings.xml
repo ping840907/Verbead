@@ -763,7 +763,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="設定同時顯示的懸浮球數量 (2～4 個：語音、辨識、條碼、常用語)" />
+                                android:text="設定同時顯示的懸浮球數量 (2～5 個：語音、辨識、條碼、常用語、SLM對話)" />
                         </LinearLayout>
 
                         <TextView
@@ -781,7 +781,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:max="2"
+                        android:max="3"
                         android:paddingStart="4dp"
                         android:paddingEnd="4dp"
                         android:progress="2" />

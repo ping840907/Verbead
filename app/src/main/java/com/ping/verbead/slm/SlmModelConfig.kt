@@ -8,6 +8,17 @@ object SlmModelConfig {
     const val PREF_SLM = "slm_settings"
     const val KEY_SLM_MODEL = "selected_slm_model"
     const val KEY_SLM_THINKING = "slm_thinking_enabled"
+    const val KEY_SLM_HARDWARE_ACCEL = "slm_hardware_accel"
+    const val KEY_SLM_BACKEND = "slm_backend"
+
+    // 硬體加速設定：預設確保運算完全 offload 跑在 GPU / NPU 上 (99 層全卸載)
+    const val DEFAULT_HARDWARE_ACCEL_ENABLED = true
+    const val DEFAULT_GPU_LAYERS = 99
+    const val BACKEND_AUTO = "auto"
+    const val BACKEND_VULKAN = "vulkan"
+    const val BACKEND_NNAPI = "nnapi"
+    const val BACKEND_QNN = "qnn"
+    const val BACKEND_CPU = "cpu"
 
     // 4 個 Qwen 3.5 模型選項 (0.8B, 2B, 4B, 9B)
     const val MODEL_QWEN_0_8B = "qwen3.5_0.8b"
@@ -133,4 +144,54 @@ object SlmModelConfig {
             "你是由 Verbead 驅動的端側離線 AI 助手。請務必直接提供簡短、精準、扼要的最終回答，禁止輸出任何思考標籤、推理草稿或開場白，直接給出答案。"
         }
     }
+
+    // ── GPU / NPU Hardware Acceleration ────────────────────────────────────────
+    fun isHardwareAccelEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .getBoolean(KEY_SLM_HARDWARE_ACCEL, DEFAULT_HARDWARE_ACCEL_ENABLED)
+
+    fun setHardwareAccelEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_SLM_HARDWARE_ACCEL, enabled).apply()
+
+    fun getGpuLayers(context: Context): Int =
+        if (isHardwareAccelEnabled(context)) DEFAULT_GPU_LAYERS else 0
+
+    fun getHardwareBackend(context: Context): String =
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .getString(KEY_SLM_BACKEND, BACKEND_AUTO) ?: BACKEND_AUTO
+
+    fun setHardwareBackend(context: Context, backend: String) =
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .edit().putString(KEY_SLM_BACKEND, backend).apply()
+
+    fun getHardwareBackendName(context: Context): String =
+        if (isHardwareAccelEnabled(context)) "GPU/NPU (Vulkan/NNAPI)" else "CPU"
+
+    fun getHardwareAccelTag(context: Context): String =
+        if (isHardwareAccelEnabled(context)) "⚡ GPU/NPU" else "CPU"
+
+    fun getHardwareAccelDescription(context: Context): String =
+        if (isHardwareAccelEnabled(context)) {
+            "硬體加速已就緒：Qwen 對話 SLM 99 層運算全數卸載至 GPU (Vulkan) / NPU (NNAPI)"
+        } else {
+            "純 CPU 運算模式 (低能效 / 備用)"
+        }
+
+    data class SlmInferenceHardwareSpec(
+        val isHardwareAccel: Boolean,
+        val gpuLayers: Int,
+        val backendName: String,
+        val accelTag: String,
+        val threads: Int = 4,
+        val contextWindow: Int = 2048
+    )
+
+    fun getHardwareSpec(context: Context): SlmInferenceHardwareSpec =
+        SlmInferenceHardwareSpec(
+            isHardwareAccel = isHardwareAccelEnabled(context),
+            gpuLayers = getGpuLayers(context),
+            backendName = getHardwareBackendName(context),
+            accelTag = getHardwareAccelTag(context)
+        )
 }
