@@ -51,6 +51,10 @@ import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
+import com.ping.verbead.slm.SlmChatAdapter
+import com.ping.verbead.slm.SlmChatMessage
+import com.ping.verbead.slm.SlmInferenceEngine
+import com.ping.verbead.slm.SlmModelConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -114,6 +118,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
+        const val MODE_SLM = 4
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
         private const val KEY_MODE = "current_mode"
 
@@ -236,6 +241,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var drawerItems: MutableList<DrawerItem> = mutableListOf()
     private var phrasesItemTouchHelper: ItemTouchHelper? = null
 
+    // SLM Floating Chat
+    private var slmChatView: View? = null
+    private var slmChatLayoutParams: WindowManager.LayoutParams? = null
+    private var isSlmChatActive = false
+    private val slmMessages = mutableListOf<SlmChatMessage>()
+    private var slmChatAdapter: SlmChatAdapter? = null
+    private val slmInferenceEngine by lazy { SlmInferenceEngine(this, scope) }
+    private var slmVoiceJob: Job? = null
+    private var isSlmVoiceRecording = false
+
     // Touch sampling & screen-space velocity tracking
     private data class TouchPoint(val time: Long, val rawX: Float, val rawY: Float)
     private val recentTouchSamples = ArrayList<TouchPoint>()
@@ -338,7 +353,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         routingManager.start()
         currentMode = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).getInt(KEY_MODE, MODE_VOICE)
-        if (currentMode !in listOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)) {
+        if (currentMode !in listOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES, MODE_SLM)) {
             currentMode = MODE_VOICE
         }
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -742,7 +757,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     fun setBubbleVisible(visible: Boolean, animate: Boolean = true) {
         if (!::bubbleView.isInitialized) return
-        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing)) {
+        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isSlmChatActive || isCapsuleMenuShowing)) {
             return
         }
         for (item in bubbleItems) {
@@ -768,7 +783,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (item.id == 0) hideXButtonImmediately()
                 if (animate) {
                     v.animate().alpha(0f).setDuration(180).withEndAction {
-                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive) {
+                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isSlmChatActive) {
                             v.visibility = View.GONE
                         } else {
                             v.alpha = 1f
@@ -798,7 +813,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
         val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
+        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isSlmChatActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
             setBubbleVisible(false, animate = animate)
         }
     }
@@ -976,6 +991,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (isPhrasesDrawerActive) {
                             closePhrasesDrawer()
                         }
+                        if (isSlmChatActive) {
+                            closeSlmChat()
+                        }
                         if (bubbleItems.size > 1) {
                             val deleteZoneTargetY = getMinY() + (24 * density).toInt()
                             bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
@@ -1042,7 +1060,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (mag?.isAttracted != true && bubbleItems.size > 1) {
                             val tuckLeftX = getTuckLeftX().toFloat()
                             val tuckRightX = getTuckRightX().toFloat()
-                            val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive
+                            val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isSlmChatActive
                             val minDistancePx = (60 * density) + (8 * density)
 
                             // Check if dragged item is actively squeezing an untucked edge bubble into the wall
@@ -1141,6 +1159,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
                             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                            if (isSlmChatActive) updateSlmChatPosition()
                         }
                         if (item.id == 0) {
                             updatePulsePosition()
@@ -1225,7 +1244,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val targetCount = if (enabled) ModelConfig.getMultiBubbleCount(this) else 1
 
         if (enabled) {
-            val defaultModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)
+            val defaultModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES, MODE_SLM)
             val bubble0 = bubbleItems.firstOrNull()
             if (bubble0 != null) {
                 bubble0.mode = getBubbleMode(0, defaultModes[0])
@@ -1334,7 +1353,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         ModelConfig.setMultiBubbleEnabled(this, true)
         ModelConfig.setMultiBubbleCount(this, newCount)
 
-        val allModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)
+        val allModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES, MODE_SLM)
         val usedModes = bubbleItems.map { it.mode }.toSet()
         val newMode = allModes.firstOrNull { it !in usedModes } ?: MODE_VOICE
         val newId = bubbleItems.size
@@ -1659,6 +1678,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 if (isScannerModeActive) stopScannerMode()
                 if (isPhrasesDrawerActive) closePhrasesDrawer()
+                if (isSlmChatActive) closeSlmChat()
                 toggleOcrMode()
             }
             MODE_BARCODE -> {
@@ -1669,6 +1689,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 if (isOcrModeActive) stopOcrMode()
                 if (isPhrasesDrawerActive) closePhrasesDrawer()
+                if (isSlmChatActive) closeSlmChat()
                 toggleScannerMode()
             }
             MODE_PHRASES -> {
@@ -1679,7 +1700,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 if (isScannerModeActive) stopScannerMode()
                 if (isOcrModeActive) stopOcrMode()
+                if (isSlmChatActive) closeSlmChat()
                 togglePhrasesDrawer()
+            }
+            MODE_SLM -> {
+                if (state == State.RECORDING) {
+                    recorder.stopEarly()
+                    hidePreviewText()
+                    setState(State.IDLE)
+                }
+                if (isScannerModeActive) stopScannerMode()
+                if (isOcrModeActive) stopOcrMode()
+                if (isPhrasesDrawerActive) closePhrasesDrawer()
+                toggleSlmChat()
             }
         }
     }
@@ -2042,6 +2075,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 } finally {
                     mainHandler.postDelayed({ isRestoringSnapshot = false }, 500)
                 }
+            }
+            isSlmChatActive -> {
+                // 關閉端側 AI 對話視窗
+                closeSlmChat()
+                hideXButton()
             }
             isPhrasesDrawerActive -> {
                 // 關閉常用語抽屜視窗
@@ -2497,6 +2535,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (state == State.PASTED) {
             hideXButton()
             setState(State.IDLE)
+        }
+        if (currentMode == MODE_SLM || isSlmChatActive) {
+            toggleSlmChat()
+            return
         }
         if (currentMode == MODE_PHRASES || isPhrasesDrawerActive) {
             togglePhrasesDrawer()
@@ -3009,6 +3051,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             MODE_OCR -> R.drawable.ic_ocr to "懸浮文字辨識"
             MODE_BARCODE -> R.drawable.ic_barcode to "懸浮條碼掃描"
             MODE_PHRASES -> R.drawable.ic_quick_phrases to "常用語抽屜"
+            MODE_SLM -> R.drawable.ic_ai_sparkle to "端側 AI 對話"
             else -> R.drawable.ic_mic to "懸浮語音輸入"
         }
     }
@@ -3144,12 +3187,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 stopScannerMode()
                 stopOcrMode()
                 closePhrasesDrawer()
+                closeSlmChat()
             }
             MODE_OCR -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_ocr), autoHide = true)
                 stopScannerMode()
                 closePhrasesDrawer()
+                closeSlmChat()
                 startOcrMode()
             }
             MODE_BARCODE -> {
@@ -3157,6 +3202,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 showPreviewText(getString(R.string.preview_mode_barcode), autoHide = true)
                 stopOcrMode()
                 closePhrasesDrawer()
+                closeSlmChat()
                 startScannerMode()
             }
             MODE_PHRASES -> {
@@ -3164,7 +3210,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 showPreviewText(getString(R.string.preview_mode_phrases), autoHide = true)
                 stopScannerMode()
                 stopOcrMode()
+                closeSlmChat()
                 openPhrasesDrawer()
+            }
+            MODE_SLM -> {
+                setState(State.IDLE)
+                showPreviewText(getString(R.string.preview_mode_slm), autoHide = true)
+                stopScannerMode()
+                stopOcrMode()
+                closePhrasesDrawer()
+                openSlmChat()
             }
         }
     }
@@ -4874,6 +4929,478 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // SLM (Small Language Model) Floating Chat Methods
+    // ══════════════════════════════════════════════════════════════════
+    private fun toggleSlmChat() {
+        if (isSlmChatActive) {
+            closeSlmChat()
+        } else {
+            openSlmChat()
+        }
+    }
+
+    private fun openSlmChat() {
+        if (isSlmChatActive) return
+        hidePreviewText()
+        val anchor = currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
+            untuckBubble(animate = false)
+        }
+        if (isScannerModeActive) stopScannerMode()
+        if (isOcrModeActive) stopOcrMode()
+        if (isPhrasesDrawerActive) closePhrasesDrawer()
+
+        if (slmChatView == null) {
+            slmChatView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_slm_chat, null)
+        }
+        val chatView = slmChatView ?: return
+
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+        val screenHeight = getScreenHeight()
+        val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
+        val maxChatWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val chatWidth = (320 * density).toInt().coerceAtMost(maxChatWidth)
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val btnClose = chatView.findViewById<ImageButton>(R.id.btn_close_slm_chat)
+        val btnModelToggle = chatView.findViewById<TextView>(R.id.btn_slm_model_toggle)
+        val btnThinkingToggle = chatView.findViewById<LinearLayout>(R.id.btn_slm_thinking_toggle)
+        val ivThinkingIcon = chatView.findViewById<ImageView>(R.id.iv_slm_thinking_icon)
+        val tvThinkingLabel = chatView.findViewById<TextView>(R.id.tv_slm_thinking_label)
+        val rvChat = chatView.findViewById<RecyclerView>(R.id.rv_slm_chat)
+        val layoutEmpty = chatView.findViewById<View>(R.id.layout_slm_empty)
+        val btnMic = chatView.findViewById<ImageButton>(R.id.btn_slm_mic)
+        val etPrompt = chatView.findViewById<EditText>(R.id.et_slm_prompt)
+        val btnSend = chatView.findViewById<ImageButton>(R.id.btn_slm_send)
+
+        btnClose.setOnClickListener {
+            HapticUtil.click(this)
+            closeSlmChat()
+        }
+
+        // Refresh Model UI
+        fun updateModelUi() {
+            val selectedModel = SlmModelConfig.getSelectedModel(this)
+            btnModelToggle.text = if (selectedModel == SlmModelConfig.MODEL_QWEN_1_5B) "1.5B 聰明" else "0.5B 能效"
+        }
+        updateModelUi()
+
+        btnModelToggle.setOnClickListener {
+            HapticUtil.click(this)
+            val current = SlmModelConfig.getSelectedModel(this)
+            val next = if (current == SlmModelConfig.MODEL_QWEN_1_5B) SlmModelConfig.MODEL_QWEN_0_5B else SlmModelConfig.MODEL_QWEN_1_5B
+            SlmModelConfig.setSelectedModel(this, next)
+            updateModelUi()
+            val meta = SlmModelConfig.getModelMetadata(next)
+            Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${meta.displayName} (${meta.shortTag})"), Toast.LENGTH_SHORT).show()
+        }
+
+        // Refresh Thinking UI
+        fun updateThinkingUi() {
+            val thinkingEnabled = SlmModelConfig.isThinkingEnabled(this)
+            if (thinkingEnabled) {
+                btnThinkingToggle.setBackgroundResource(R.drawable.bg_slm_chip_active)
+                ivThinkingIcon.setColorFilter(android.graphics.Color.parseColor("#FBBF24"))
+                tvThinkingLabel.setTextColor(android.graphics.Color.parseColor("#FEF3C7"))
+            } else {
+                btnThinkingToggle.setBackgroundResource(R.drawable.bg_slm_chip_inactive)
+                ivThinkingIcon.setColorFilter(android.graphics.Color.parseColor("#94A3B8"))
+                tvThinkingLabel.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+            }
+        }
+        updateThinkingUi()
+
+        btnThinkingToggle.setOnClickListener {
+            HapticUtil.click(this)
+            val next = !SlmModelConfig.isThinkingEnabled(this)
+            SlmModelConfig.setThinkingEnabled(this, next)
+            updateThinkingUi()
+            val msgRes = if (next) R.string.toast_slm_thinking_on else R.string.toast_slm_thinking_off
+            Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
+        }
+
+        // Chat RecyclerView & Adapter
+        slmChatAdapter = SlmChatAdapter(
+            messages = slmMessages,
+            onCopyClick = { msg -> copySlmAnswer(msg) },
+            onPasteClick = { msg -> pasteSlmAnswer(msg) }
+        )
+        rvChat.layoutManager = LinearLayoutManager(themedCtx).apply {
+            stackFromEnd = true
+        }
+        rvChat.adapter = slmChatAdapter
+        layoutEmpty.visibility = if (slmMessages.isEmpty()) View.VISIBLE else View.GONE
+
+        // Mic & Send Buttons
+        btnMic.setOnClickListener {
+            HapticUtil.click(this)
+            startOrStopVoiceForSlm(btnMic, etPrompt)
+        }
+
+        btnSend.setOnClickListener {
+            val text = etPrompt.text.toString().trim()
+            if (text.isNotEmpty()) {
+                HapticUtil.click(this)
+                submitSlmPrompt(text, etPrompt, rvChat, layoutEmpty)
+            }
+        }
+
+        etPrompt.setOnEditorActionListener { _, _, _ ->
+            val text = etPrompt.text.toString().trim()
+            if (text.isNotEmpty()) {
+                HapticUtil.click(this)
+                submitSlmPrompt(text, etPrompt, rvChat, layoutEmpty)
+                true
+            } else {
+                false
+            }
+        }
+
+        // Window Positioning
+        val maxAllowedHeight = maxOf((240 * density).toInt(), safeBottom - getMinPopupY() - (16 * density).toInt())
+        val defaultChatHeight = (440 * density).toInt().coerceAtMost(maxAllowedHeight)
+
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val maxAllowedY = safeBottom - defaultChatHeight - (8 * density).toInt()
+        val targetY = anchorY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
+
+        slmChatLayoutParams = WindowManager.LayoutParams(
+            chatWidth,
+            defaultChatHeight,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            if (isRight) {
+                gravity = Gravity.TOP or Gravity.RIGHT
+                x = bubbleWidthPx + gap
+            } else {
+                gravity = Gravity.TOP or Gravity.LEFT
+                x = bubbleWidthPx + gap
+            }
+            y = targetY
+        }
+
+        val bubbleCenterY = anchorY + (30 * density)
+        val relativePivotY = (bubbleCenterY - targetY).coerceIn(0f, defaultChatHeight.toFloat())
+
+        chatView.pivotX = if (isRight) chatWidth.toFloat() else 0f
+        chatView.pivotY = relativePivotY
+        chatView.alpha = 0f
+        chatView.scaleX = 0.5f
+        chatView.scaleY = 0.5f
+        chatView.translationX = if (isRight) (20 * density) else -(20 * density)
+
+        try {
+            if (chatView.isAttachedToWindow) {
+                windowManager.removeView(chatView)
+            }
+            windowManager.addView(chatView, slmChatLayoutParams)
+            isSlmChatActive = true
+            showXButton()
+
+            chatView.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(240)
+                .setInterpolator(DecelerateInterpolator(1.5f))
+                .start()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to add slmChatView", e)
+        }
+    }
+
+    private fun closeSlmChat(hideX: Boolean = true) {
+        if (!isSlmChatActive) return
+        isSlmChatActive = false
+        if (isSlmVoiceRecording) {
+            val btnMic = slmChatView?.findViewById<ImageButton>(R.id.btn_slm_mic)
+            if (btnMic != null) stopRecordingForSlm(btnMic)
+        }
+        slmInferenceEngine.cancelCurrent()
+
+        if (hideX) {
+            hideXButton()
+        }
+        val chat = slmChatView ?: return
+        val density = resources.displayMetrics.density
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val targetTranslationX = if (isRight) (24 * density) else -(24 * density)
+
+        chat.animate()
+            .alpha(0f)
+            .translationX(targetTranslationX)
+            .scaleX(0.6f)
+            .scaleY(0.6f)
+            .setDuration(180)
+            .withEndAction {
+                if (chat.isAttachedToWindow) {
+                    try {
+                        windowManager.removeView(chat)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove slmChatView", e)
+                    }
+                }
+                slmChatView = null
+                slmChatAdapter = null
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
+            }
+            .start()
+    }
+
+    private fun updateSlmChatPosition() {
+        val chat = slmChatView ?: return
+        val lp = slmChatLayoutParams ?: return
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+        val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
+        val maxChatWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val chatWidth = (320 * density).toInt().coerceAtMost(maxChatWidth)
+        val defaultChatHeight = (440 * density).toInt().coerceAtMost(safeBottom - getMinPopupY() - (16 * density).toInt())
+
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+
+        if (isRight) {
+            lp.gravity = Gravity.TOP or Gravity.RIGHT
+            lp.x = bubbleWidthPx + gap
+        } else {
+            lp.gravity = Gravity.TOP or Gravity.LEFT
+            lp.x = bubbleWidthPx + gap
+        }
+        lp.width = chatWidth
+        lp.height = defaultChatHeight
+        val maxAllowedY = safeBottom - defaultChatHeight - (8 * density).toInt()
+        lp.y = anchorY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
+
+        if (chat.isAttachedToWindow) {
+            try {
+                windowManager.updateViewLayout(chat, lp)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to update slmChatView layout", e)
+            }
+        }
+    }
+
+    private fun startOrStopVoiceForSlm(btnMic: ImageButton, etPrompt: EditText) {
+        if (isSlmVoiceRecording) {
+            stopRecordingForSlm(btnMic)
+            return
+        }
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, R.string.toast_mic_permission_voice, Toast.LENGTH_LONG).show()
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+            return
+        }
+
+        isSlmVoiceRecording = true
+        btnMic.setBackgroundResource(R.drawable.bg_slm_mic_recording)
+        btnMic.setColorFilter(android.graphics.Color.WHITE)
+        etPrompt.hint = "聆聽中...請說話"
+        Toast.makeText(this, R.string.toast_slm_recording_prompt, Toast.LENGTH_SHORT).show()
+
+        val audioBuffer = mutableListOf<FloatArray>()
+        var accumulatedStreaming = ""
+
+        slmVoiceJob = scope.launch {
+            try {
+                val stream = if (xAsr.isLoaded()) xAsr.createStream() else null
+                withContext(Dispatchers.IO) {
+                    recorder.recordStreaming(
+                        silenceSeconds = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService),
+                        onChunk = { chunk ->
+                            if (!isSlmVoiceRecording) return@recordStreaming
+                            audioBuffer.add(chunk.copyOf())
+                            if (stream != null) {
+                                xAsr.acceptWaveform(stream, chunk)
+                                while (xAsr.isReady(stream)) {
+                                    xAsr.decode(stream)
+                                }
+                                val partial = xAsr.getResult(stream)
+                                if (partial.isNotBlank()) {
+                                    mainHandler.post {
+                                        val display = (accumulatedStreaming + partial).trim()
+                                        etPrompt.setText(display)
+                                        etPrompt.setSelection(display.length)
+                                    }
+                                }
+                                if (xAsr.isEndpoint(stream)) {
+                                    accumulatedStreaming += partial
+                                    xAsr.reset(stream)
+                                }
+                            }
+                        }
+                    )
+                }
+
+                if (stream != null) {
+                    runCatching { xAsr.inputFinished(stream) }
+                    runCatching {
+                        while (xAsr.isReady(stream)) {
+                            xAsr.decode(stream)
+                        }
+                    }
+                    val finalPartial = xAsr.getResult(stream).trim()
+                    val totalText = (accumulatedStreaming + finalPartial).trim()
+                    runCatching { stream.release() }
+
+                    val totalSamples = audioBuffer.sumOf { it.size }
+                    var finalText = totalText
+                    if (totalSamples > 0 && qwen3Asr.isLoaded()) {
+                        val combinedAudio = FloatArray(totalSamples)
+                        var offset = 0
+                        for (c in audioBuffer) {
+                            System.arraycopy(c, 0, combinedAudio, offset, c.size)
+                            offset += c.size
+                        }
+                        val qwen3Result = runCatching { qwen3Asr.transcribe(combinedAudio) }.getOrNull()
+                        if (!qwen3Result.isNullOrBlank()) {
+                            finalText = postProcess(qwen3Result)
+                        }
+                    }
+                    if (finalText.isNotBlank()) {
+                        withContext(Dispatchers.Main) {
+                            etPrompt.setText(finalText)
+                            etPrompt.setSelection(finalText.length)
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "SLM voice recording error", e)
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    stopRecordingForSlm(btnMic)
+                    etPrompt.hint = "語音或輸入指令..."
+                }
+            }
+        }
+    }
+
+    private fun stopRecordingForSlm(btnMic: ImageButton) {
+        if (!isSlmVoiceRecording) return
+        isSlmVoiceRecording = false
+        recorder.stopEarly()
+        slmVoiceJob?.cancel()
+        slmVoiceJob = null
+        btnMic.setBackgroundResource(R.drawable.bg_scanner_btn_circle)
+        btnMic.setColorFilter(android.graphics.Color.parseColor("#38BDF8"))
+        HapticUtil.click(this)
+    }
+
+    private fun submitSlmPrompt(
+        prompt: String,
+        etPrompt: EditText,
+        rvChat: RecyclerView,
+        emptyView: View
+    ) {
+        emptyView.visibility = View.GONE
+        etPrompt.text.clear()
+
+        // 1. Add user message
+        val userMsg = SlmChatMessage(
+            role = SlmChatMessage.Role.USER,
+            content = prompt
+        )
+        slmMessages.add(userMsg)
+        slmChatAdapter?.notifyItemInserted(slmMessages.size - 1)
+        rvChat.scrollToPosition(slmMessages.size - 1)
+
+        // 2. Add assistant placeholder
+        val selectedModel = SlmModelConfig.getSelectedModel(this)
+        val meta = SlmModelConfig.getModelMetadata(selectedModel)
+        val assistantMsg = SlmChatMessage(
+            role = SlmChatMessage.Role.ASSISTANT,
+            content = "",
+            thinkingContent = null,
+            isStreaming = true,
+            modelTag = meta.displayName
+        )
+        slmMessages.add(assistantMsg)
+        val assistantPos = slmMessages.size - 1
+        slmChatAdapter?.notifyItemInserted(assistantPos)
+        rvChat.scrollToPosition(assistantPos)
+
+        // 3. Trigger generation
+        slmInferenceEngine.generate(
+            userPrompt = prompt,
+            history = slmMessages.dropLast(2),
+            callback = object : SlmInferenceEngine.StreamCallback {
+                override fun onThinkingUpdate(thinking: String) {
+                    assistantMsg.thinkingContent = thinking
+                    slmChatAdapter?.notifyItemChanged(assistantPos)
+                    rvChat.scrollToPosition(assistantPos)
+                }
+
+                override fun onAnswerUpdate(answer: String) {
+                    assistantMsg.content = answer
+                    slmChatAdapter?.notifyItemChanged(assistantPos)
+                    rvChat.scrollToPosition(assistantPos)
+                }
+
+                override fun onComplete(fullMessage: SlmChatMessage) {
+                    assistantMsg.isStreaming = false
+                    assistantMsg.content = fullMessage.content
+                    assistantMsg.thinkingContent = fullMessage.thinkingContent
+                    slmChatAdapter?.notifyItemChanged(assistantPos)
+                    rvChat.scrollToPosition(assistantPos)
+                }
+
+                override fun onError(error: Throwable) {
+                    assistantMsg.isStreaming = false
+                    assistantMsg.content = "推論失敗：${error.localizedMessage ?: "未知錯誤"}"
+                    slmChatAdapter?.notifyItemChanged(assistantPos)
+                }
+            }
+        )
+    }
+
+    private fun copySlmAnswer(message: SlmChatMessage) {
+        val clean = message.getCleanAnswer()
+        if (clean.isBlank()) return
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("SLM Answer", clean))
+        Toast.makeText(this, R.string.toast_slm_copied, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun pasteSlmAnswer(message: SlmChatMessage) {
+        val clean = message.getCleanAnswer()
+        if (clean.isBlank()) return
+        val injected = VoiceAccessibilityService.instance?.inputText(clean) ?: false
+        if (injected) {
+            showPreviewText(getString(R.string.toast_slm_pasted), autoHide = true)
+            Toast.makeText(this, R.string.toast_slm_pasted, Toast.LENGTH_SHORT).show()
+        } else {
+            copyToClipboardFallback(clean)
+            showPreviewText(getString(R.string.toast_slm_pasted_fallback), autoHide = true)
+            Toast.makeText(this, R.string.toast_slm_pasted_fallback, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
@@ -4913,6 +5440,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isPhrasesDrawerActive) {
             updatePhrasesDrawerPosition()
         }
+        if (isSlmChatActive) {
+            updateSlmChatPosition()
+        }
     }
 
     override fun onDestroy() {
@@ -4926,6 +5456,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             safely("scanner") { stopScannerMode() }
             safely("ocr") { stopOcrMode() }
             safely("phrasesDrawer") { closePhrasesDrawer() }
+            safely("slmChat") { closeSlmChat(hideX = false) }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }
             safely("deleteZone") { if (::bubbleDeleteZoneController.isInitialized) bubbleDeleteZoneController.hide(animated = false) }
             safely("snapshot") { dismissOcrSnapshot() }

@@ -101,4 +101,14 @@
     <string name="header_quick_phrases">常用片語 (長按可拖曳排序)</string>
     <string name="action_clear_history">清除</string>
     <string name="empty_quick_phrases">尚無常用語與紀錄\n點擊右上角「+」立即新增</string>
+
+    <!-- SLM Floating Chat Strings -->
+    <string name="preview_mode_slm">端側 AI 對話</string>
+    <string name="toast_slm_copied">已複製答覆至剪貼簿</string>
+    <string name="toast_slm_pasted">已直接貼入當前文字輸入框</string>
+    <string name="toast_slm_pasted_fallback">未偵測到作用中輸入框，已複製至剪貼簿</string>
+    <string name="toast_slm_switched_model">已切換模型為 %1$s</string>
+    <string name="toast_slm_thinking_on">思考開關：已開啟</string>
+    <string name="toast_slm_thinking_off">思考開關：已關閉</string>
+    <string name="toast_slm_recording_prompt">正在聆聽...請說出您的指令或問題</string>
 </resources>
