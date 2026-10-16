@@ -432,7 +432,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         btnBubbleMic          = bubbleView.findViewById(R.id.btn_bubble_mic)
         ivBubbleIcon          = bubbleView.findViewById(R.id.iv_bubble_icon)
         progressBubble        = bubbleView.findViewById(R.id.progress_bubble)
-        updateBubbleIconForMode(currentMode)
 
         previewView           = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_preview, null)
         cardBubblePreview     = previewView.findViewById(R.id.card_bubble_preview)
@@ -487,9 +486,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         isDockedOnRight = true
 
+        val isMulti = ModelConfig.isMultiBubbleEnabled(this)
+        val initialMode0 = if (isMulti) {
+            getBubbleMode(0, MODE_VOICE)
+        } else {
+            currentMode
+        }
+        val (icon0Res, desc0) = getIconAndDescForMode(initialMode0)
+        ivBubbleIcon.setImageResource(icon0Res)
+        ivBubbleIcon.contentDescription = desc0
+
         val bubble0 = FloatingBubbleItem(
             id = 0,
-            mode = currentMode,
+            mode = initialMode0,
             view = bubbleView,
             windowLayoutParams = windowLayoutParams,
             btnBubble = btnBubbleMic,
@@ -721,6 +730,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (item.id == (currentAnchorBubble?.id ?: 0)) {
                 updateXButtonPosition()
                 updatePreviewPosition()
+                updatePulsePosition()
                 if (isOcrModeActive) updateOcrPosition()
                 if (isScannerModeActive) updateScannerPosition()
                 if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -753,6 +763,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (item.id == (currentAnchorBubble?.id ?: 0)) {
                             updateXButtonPosition()
                             updatePreviewPosition()
+                            updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
                             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -774,6 +785,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (item.id == (currentAnchorBubble?.id ?: 0)) {
                             updateXButtonPosition()
                             updatePreviewPosition()
+                            updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
                             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -920,6 +932,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (item.id == (currentAnchorBubble?.id ?: 0)) {
                             updateXButtonPosition()
                             updatePreviewPosition()
+                            updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
                             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -988,13 +1001,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val targetCount = if (enabled) ModelConfig.getMultiBubbleCount(this) else 1
 
         if (enabled) {
+            val defaultModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)
             val bubble0 = bubbleItems.firstOrNull()
             if (bubble0 != null) {
-                bubble0.mode = MODE_VOICE
+                bubble0.mode = getBubbleMode(0, defaultModes[0])
+                val (iconRes, desc) = getIconAndDescForMode(bubble0.mode)
+                bubble0.ivIcon.setImageResource(iconRes)
+                bubble0.ivIcon.contentDescription = desc
             }
-            updateBubbleIconForMode(MODE_VOICE)
-
-            val allModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)
 
             // Remove bubbles with id >= targetCount
             val it = bubbleItems.iterator()
@@ -1020,7 +1034,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
 
             for (id in bubbleItems.size until targetCount) {
-                val mode = allModes[id]
+                val mode = getBubbleMode(id, defaultModes.getOrElse(id) { MODE_VOICE })
                 val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
                 val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
                 val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
@@ -1078,9 +1092,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             val bubble0 = bubbleItems.firstOrNull()
             if (bubble0 != null) {
                 bubble0.mode = currentMode
+                val (iconRes, desc) = getIconAndDescForMode(currentMode)
+                bubble0.ivIcon.setImageResource(iconRes)
+                bubble0.ivIcon.contentDescription = desc
                 activeAnchorBubble = bubble0
             }
-            updateBubbleIconForMode(currentMode)
         }
     }
 
@@ -1129,8 +1145,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun onBubbleClickForMode(item: FloatingBubbleItem) {
         activeAnchorBubble = item
-        currentMode = item.mode
-        getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, item.mode).apply()
         if (state == State.PASTED) {
             hideXButton()
             setState(State.IDLE)
@@ -1373,6 +1387,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                         if (other.id == (currentAnchorBubble?.id ?: 0)) {
                                             updateXButtonPosition()
                                             updatePreviewPosition()
+                                            updatePulsePosition()
                                             if (isOcrModeActive) updateOcrPosition()
                                             if (isScannerModeActive) updateScannerPosition()
                                             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -1395,6 +1410,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                         if (other.id == (currentAnchorBubble?.id ?: 0)) {
                                             updateXButtonPosition()
                                             updatePreviewPosition()
+                                            updatePulsePosition()
                                             if (isOcrModeActive) updateOcrPosition()
                                             if (isScannerModeActive) updateScannerPosition()
                                             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -1467,6 +1483,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (item.id == (currentAnchorBubble?.id ?: 0)) {
                             updateXButtonPosition()
                             updatePreviewPosition()
+                            updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
                             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -1495,6 +1512,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (item.id == (currentAnchorBubble?.id ?: 0)) {
                         updateXButtonPosition()
                         updatePreviewPosition()
+                        updatePulsePosition()
                         if (isOcrModeActive) updateOcrPosition()
                         if (isScannerModeActive) updateScannerPosition()
                         if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
@@ -1756,8 +1774,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val pulseSize = (104 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
         val bubbleHeightPx = (60 * density).toInt()
-        lp.x = windowLayoutParams.x + ((bubbleWidthPx - pulseSize) / 2)
-        lp.y = windowLayoutParams.y + ((bubbleHeightPx - pulseSize) / 2)
+        val anchor = activeAnchorBubble ?: currentAnchorBubble
+        val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        lp.x = anchorX + ((bubbleWidthPx - pulseSize) / 2)
+        lp.y = anchorY + ((bubbleHeightPx - pulseSize) / 2)
         try {
             windowManager.updateViewLayout(view, lp)
         } catch (e: Exception) {
@@ -1791,8 +1812,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val pulseSize = (104 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
         val bubbleHeightPx = (60 * density).toInt()
-        val xOffset = windowLayoutParams.x + ((bubbleWidthPx - pulseSize) / 2)
-        val yOffset = windowLayoutParams.y + ((bubbleHeightPx - pulseSize) / 2)
+        val anchor = activeAnchorBubble ?: currentAnchorBubble
+        val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val xOffset = anchorX + ((bubbleWidthPx - pulseSize) / 2)
+        val yOffset = anchorY + ((bubbleHeightPx - pulseSize) / 2)
 
         pulseLayoutParams = WindowManager.LayoutParams(
             pulseSize,
@@ -2004,7 +2028,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun startRecording() {
         isAborted = false
-        if (isTucked) {
+        val anchor = activeAnchorBubble ?: currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
             untuckBubble(animate = false)
         }
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -2390,40 +2417,81 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             hidePulseView()
         }
         if (!::btnBubbleMic.isInitialized) return
-        when (state) {
-            State.IDLE -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                updateBubbleIconForMode(currentMode)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
+
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
+        val activeTargetBubble = if (isMultiBubble) {
+            activeAnchorBubble?.takeIf { it.mode == MODE_VOICE }
+                ?: bubbleItems.firstOrNull { it.mode == MODE_VOICE }
+                ?: (activeAnchorBubble ?: bubbleItems.firstOrNull())
+        } else {
+            bubbleItems.firstOrNull()?.apply { mode = currentMode }
+        }
+
+        if (bubbleItems.isEmpty()) {
+            when (state) {
+                State.IDLE, State.PASTED, State.SCANNING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
+                    val (iconRes, desc) = getIconAndDescForMode(currentMode)
+                    ivBubbleIcon.setImageResource(iconRes)
+                    ivBubbleIcon.contentDescription = desc
+                    ivBubbleIcon.visibility = View.VISIBLE
+                    progressBubble.visibility = View.GONE
+                }
+                State.LOADING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
+                    ivBubbleIcon.visibility = View.GONE
+                    progressBubble.visibility = View.VISIBLE
+                }
+                State.RECORDING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
+                    ivBubbleIcon.setImageResource(R.drawable.ic_mic_active)
+                    ivBubbleIcon.visibility = View.VISIBLE
+                    progressBubble.visibility = View.GONE
+                }
+                State.TRANSCRIBING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
+                    ivBubbleIcon.visibility = View.GONE
+                    progressBubble.visibility = View.VISIBLE
+                }
             }
-            State.LOADING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                ivBubbleIcon.visibility = View.GONE
-                progressBubble.visibility = View.VISIBLE
-            }
-            State.RECORDING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
-                ivBubbleIcon.setImageResource(R.drawable.ic_mic_active)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
-            }
-            State.TRANSCRIBING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
-                ivBubbleIcon.visibility = View.GONE
-                progressBubble.visibility = View.VISIBLE
-            }
-            State.PASTED -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                updateBubbleIconForMode(currentMode)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
-            }
-            State.SCANNING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                updateBubbleIconForMode(currentMode)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
+            return
+        }
+
+        for (item in bubbleItems) {
+            if (item == activeTargetBubble) {
+                when (state) {
+                    State.IDLE, State.PASTED, State.SCANNING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
+                        val (iconRes, desc) = getIconAndDescForMode(item.mode)
+                        item.ivIcon.setImageResource(iconRes)
+                        item.ivIcon.contentDescription = desc
+                        item.ivIcon.visibility = View.VISIBLE
+                        item.progress.visibility = View.GONE
+                    }
+                    State.LOADING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
+                        item.ivIcon.visibility = View.GONE
+                        item.progress.visibility = View.VISIBLE
+                    }
+                    State.RECORDING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background_active)
+                        item.ivIcon.setImageResource(R.drawable.ic_mic_active)
+                        item.ivIcon.visibility = View.VISIBLE
+                        item.progress.visibility = View.GONE
+                    }
+                    State.TRANSCRIBING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background_active)
+                        item.ivIcon.visibility = View.GONE
+                        item.progress.visibility = View.VISIBLE
+                    }
+                }
+            } else {
+                item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
+                val (iconRes, desc) = getIconAndDescForMode(item.mode)
+                item.ivIcon.setImageResource(iconRes)
+                item.ivIcon.contentDescription = desc
+                item.ivIcon.visibility = View.VISIBLE
+                item.progress.visibility = View.GONE
             }
         }
     }
@@ -2441,11 +2509,33 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    private fun getBubbleMode(id: Int, defaultMode: Int): Int {
+        val sp = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE)
+        return sp.getInt("bubble_mode_$id", defaultMode)
+    }
+
+    private fun setBubbleMode(id: Int, mode: Int) {
+        val sp = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE)
+        sp.edit().putInt("bubble_mode_$id", mode).apply()
+    }
+
     private fun updateBubbleIconForMode(mode: Int) {
-        if (!::ivBubbleIcon.isInitialized) return
-        val (iconRes, desc) = getIconAndDescForMode(mode)
-        ivBubbleIcon.setImageResource(iconRes)
-        ivBubbleIcon.contentDescription = desc
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
+        val target = if (isMultiBubble) {
+            currentAnchorBubble ?: bubbleItems.firstOrNull()
+        } else {
+            bubbleItems.firstOrNull()
+        }
+        if (target != null) {
+            target.mode = mode
+            val (iconRes, desc) = getIconAndDescForMode(mode)
+            target.ivIcon.setImageResource(iconRes)
+            target.ivIcon.contentDescription = desc
+        } else if (::ivBubbleIcon.isInitialized) {
+            val (iconRes, desc) = getIconAndDescForMode(mode)
+            ivBubbleIcon.setImageResource(iconRes)
+            ivBubbleIcon.contentDescription = desc
+        }
     }
 
     private fun animateModeIconIntoBubble(mode: Int) {
@@ -2523,15 +2613,22 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun applyCapsuleSelection(mode: Int) {
         hidePreviewText()
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
         val anchor = currentAnchorBubble
         if (anchor != null) {
             anchor.mode = mode
             val (iconRes, desc) = getIconAndDescForMode(mode)
             anchor.ivIcon.setImageResource(iconRes)
             anchor.ivIcon.contentDescription = desc
+            if (isMultiBubble) {
+                setBubbleMode(anchor.id, mode)
+            }
         }
-        currentMode = mode
-        getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, mode).apply()
+        if (!isMultiBubble) {
+            currentMode = mode
+            getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, mode).apply()
+            setBubbleMode(0, mode)
+        }
         HapticUtil.click(this)
         when (mode) {
             MODE_VOICE -> {
