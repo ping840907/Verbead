@@ -2920,7 +2920,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (recognizedBlocks.isNotEmpty()) {
                     val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
                     val processed = if (ModelConfig.isOcrSmartStitchEnabled(this@FloatingBubbleService)) {
-                        TextStitcher.stitch(recognizedBlocks, fallbackSep = sep)
+                        TextStitcher.stitch(
+                            recognizedBlocks,
+                            fallbackSep = sep,
+                            panguSpacing = ModelConfig.isOcrPanguSpacingEnabled(this@FloatingBubbleService)
+                        )
                     } else {
                         recognizedBlocks.joinToString(sep) { it.text }
                     }

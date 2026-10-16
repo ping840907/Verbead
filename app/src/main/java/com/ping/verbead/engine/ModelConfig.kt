@@ -394,6 +394,16 @@ object ModelConfig {
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_OCR_SMART_STITCH, enabled).apply()
 
+    const val KEY_OCR_PANGU_SPACING = "ocr_pangu_spacing"
+
+    fun isOcrPanguSpacingEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_PANGU_SPACING, false)
+
+    fun setOcrPanguSpacingEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_PANGU_SPACING, enabled).apply()
+
     fun ocrSeparator(context: Context): String =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .getString(KEY_OCR_SEPARATOR, "\n") ?: "\n"

@@ -71,8 +71,96 @@ class TextStitcherTest {
     }
 
     @Test
+    fun testColonNewline() {
+        // 全形與半形冒號換行判定
+        val cjkColon = OcrBlock("注意事項：", 50f, 100f, 300f, 120f)
+        val cjkContent = OcrBlock("請務必配戴口罩入場", 50f, 130f, 300f, 150f)
+        assertEquals("注意事項：\n請務必配戴口罩入場", TextStitcher.stitch(listOf(cjkColon, cjkContent)))
+
+        val latinColon = OcrBlock("Note:", 50f, 100f, 200f, 120f)
+        val latinContent = OcrBlock("Keep away from fire.", 50f, 130f, 300f, 150f)
+        assertEquals("Note:\nKeep away from fire.", TextStitcher.stitch(listOf(latinColon, latinContent)))
+    }
+
+    @Test
+    fun testStrippingClosingQuotesAndBrackets() {
+        // 帶引號、括號的複合句末標點識別換行
+        val quoted1 = OcrBlock("「這是一個重要的公告。」", 50f, 100f, 350f, 120f)
+        val next1 = OcrBlock("請大家互相轉告配合", 50f, 130f, 300f, 150f)
+        assertEquals("「這是一個重要的公告。」\n請大家互相轉告配合", TextStitcher.stitch(listOf(quoted1, next1)))
+
+        val quotedExclamation = OcrBlock("“Are you ready?”", 50f, 100f, 300f, 120f)
+        val next2 = OcrBlock("Yes, we are.", 50f, 130f, 300f, 150f)
+        assertEquals("“Are you ready?”\nYes, we are.", TextStitcher.stitch(listOf(quotedExclamation, next2)))
+
+        val bracketColon = OcrBlock("（備註事項：）", 50f, 100f, 300f, 120f)
+        val next3 = OcrBlock("逾期不予受理", 50f, 130f, 300f, 150f)
+        assertEquals("（備註事項：）\n逾期不予受理", TextStitcher.stitch(listOf(bracketColon, next3)))
+    }
+
+    @Test
+    fun testHorizontalInlineBoxes() {
+        // 同一水平行橫向相鄰文字框不誤判換行
+        // 姓名： 與 王小明 在同一高度 y: 100f ~ 120f
+        val b1 = OcrBlock("姓名：", 50f, 100f, 110f, 120f)
+        val b2 = OcrBlock("王小明", 115f, 100f, 175f, 120f)
+        assertEquals("姓名：王小明", TextStitcher.stitch(listOf(b1, b2)))
+
+        // 英文橫向相鄰且有間距
+        val b3 = OcrBlock("Name:", 50f, 100f, 100f, 120f)
+        val b4 = OcrBlock("Alice", 115f, 100f, 160f, 120f) // deltaX = 15 > 0.35 * 20 = 7
+        assertEquals("Name: Alice", TextStitcher.stitch(listOf(b3, b4)))
+    }
+
+    @Test
+    fun testEnglishPeriodAndAbbreviation() {
+        // 縮寫不換行
+        val abbr1 = OcrBlock("Please visit Dr.", 50f, 100f, 300f, 120f)
+        val body1 = OcrBlock("Watson at his office.", 50f, 130f, 300f, 150f)
+        assertEquals("Please visit Dr. Watson at his office.", TextStitcher.stitch(listOf(abbr1, body1)))
+
+        val abbr2 = OcrBlock("Buy fruits e.g.", 50f, 100f, 300f, 120f)
+        val body2 = OcrBlock("apples and bananas.", 50f, 130f, 300f, 150f)
+        assertEquals("Buy fruits e.g. apples and bananas.", TextStitcher.stitch(listOf(abbr2, body2)))
+
+        // 正常英文句末且下一行首字大寫：換行
+        val endLine = OcrBlock("This is the first sentence.", 50f, 100f, 350f, 120f)
+        val nextSentence = OcrBlock("Second sentence begins here.", 50f, 130f, 350f, 150f)
+        assertEquals("This is the first sentence.\nSecond sentence begins here.", TextStitcher.stitch(listOf(endLine, nextSentence)))
+    }
+
+    @Test
+    fun testMultiColumnUpwardJump() {
+        // 多欄排版中 Y 軸向上大幅跳躍判定為換行
+        val leftColumnBottom = OcrBlock("左欄底部最後一行文字", 50f, 500f, 250f, 520f)
+        val rightColumnTop = OcrBlock("右欄頂部第一行文字", 300f, 100f, 500f, 120f)
+        assertEquals("左欄底部最後一行文字\n右欄頂部第一行文字", TextStitcher.stitch(listOf(leftColumnBottom, rightColumnTop)))
+    }
+
+    @Test
+    fun testPunctuationSpacingGuard() {
+        // 標點防空格守衛：避免開括號後或閉括號前插入多餘空格
+        val openBracket = OcrBlock("請參考（", 50f, 100f, 200f, 120f)
+        val content = OcrBlock("附錄A）", 50f, 130f, 200f, 150f)
+        assertEquals("請參考（附錄A）", TextStitcher.stitch(listOf(openBracket, content)))
+    }
+
+    @Test
+    fun testPanguSpacingOption() {
+        // 中英混排盤古之白配置
+        val mixed1 = OcrBlock("請購買全新推出的iPhone", 50f, 100f, 350f, 120f)
+        val mixed2 = OcrBlock("保護套與配件", 50f, 130f, 300f, 150f)
+
+        // 預設關閉盤古之白（無縫貼合）
+        assertEquals("請購買全新推出的iPhone保護套與配件", TextStitcher.stitch(listOf(mixed1, mixed2), panguSpacing = false))
+
+        // 開啟盤古之白（中英交界補 1 空格）
+        assertEquals("請購買全新推出的iPhone 保護套與配件", TextStitcher.stitch(listOf(mixed1, mixed2), panguSpacing = true))
+    }
+
+    @Test
     fun testListItemNewline() {
-        // 6. 列表項強制換行
+        // 列表項強制換行
         val line1 = OcrBlock("請確認下列事項：", 50f, 100f, 300f, 120f)
         val item1 = OcrBlock("1. 攜帶身分證明文件", 50f, 130f, 300f, 150f)
         val item2 = OcrBlock("2. 準時抵達會場", 50f, 160f, 300f, 180f)
@@ -84,12 +172,12 @@ class TextStitcherTest {
 
     @Test
     fun testVerticalGapAndIndentation() {
-        // 7. 垂直行距過大（大於 1.2 * height）
+        // 垂直行距過大（大於 1.2 * height）
         val block1 = OcrBlock("段落一內容", 50f, 100f, 300f, 120f) // height = 20, bottom = 120
         val block2 = OcrBlock("段落二內容", 50f, 150f, 300f, 170f) // deltaY = 30 > 24
         assertEquals("段落一內容\n段落二內容", TextStitcher.stitch(listOf(block1, block2)))
 
-        // 8. 顯著縮排（curr.left - prev.left > 1.5 * height）
+        // 顯著縮排（curr.left - prev.left > 1.5 * height）
         val p1 = OcrBlock("前一段落最後一句", 50f, 100f, 300f, 120f) // height = 20
         val p2 = OcrBlock("新段落首行縮排開始", 90f, 130f, 350f, 150f) // deltaX = 40 > 30
         assertEquals("前一段落最後一句\n新段落首行縮排開始", TextStitcher.stitch(listOf(p1, p2)))
@@ -97,7 +185,7 @@ class TextStitcherTest {
 
     @Test
     fun testCjkLatinMixedBoundary() {
-        // 9. CJK 與 Latin / 數字混排交界（無縫貼合）
+        // CJK 與 Latin / 數字混排交界（預設無縫貼合）
         val b1 = OcrBlock("請購買全新推出的iPhone", 50f, 100f, 350f, 120f)
         val b2 = OcrBlock("保護套與配件", 50f, 130f, 300f, 150f)
         assertEquals("請購買全新推出的iPhone保護套與配件", TextStitcher.stitch(listOf(b1, b2)))
@@ -109,7 +197,7 @@ class TextStitcherTest {
 
     @Test
     fun testEnglishNaturalWrap() {
-        // 10. 純 Latin 語言折行（補空格）
+        // 純 Latin 語言折行（補空格）
         val l1 = OcrBlock("This is the first line of an English", 50f, 100f, 350f, 120f)
         val l2 = OcrBlock("paragraph that wraps naturally.", 50f, 130f, 350f, 150f)
         assertEquals("This is the first line of an English paragraph that wraps naturally.", TextStitcher.stitch(listOf(l1, l2)))
@@ -117,7 +205,7 @@ class TextStitcherTest {
 
     @Test
     fun testPerformanceUnderOneMillisecond() {
-        // 11. 極致性能需求：總耗時必須 < 1ms
+        // 極致性能需求：總耗時必須 < 1ms
         val blocks = listOf(
             OcrBlock("在繁華熱鬧的城市中心，人們匆匆忙忙地走過每一個", 50f, 100f, 400f, 120f),
             OcrBlock("轉角與街道，尋找屬於自己的寧靜與溫暖。", 50f, 130f, 380f, 150f),
