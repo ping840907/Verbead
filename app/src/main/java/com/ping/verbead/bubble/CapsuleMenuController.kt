@@ -42,6 +42,9 @@ class CapsuleMenuController(
         const val MODE_PHRASES = 3
 
         const val ITEM_COUNT = 4
+        const val ITEM_HEIGHT_DP = 56
+        const val CAPSULE_MENU_HEIGHT_DP = ITEM_COUNT * ITEM_HEIGHT_DP // 224dp
+        const val CAPSULE_WINDOW_HEIGHT_DP = 248 // 224dp + 12dp top + 12dp bottom padding
 
         fun modeToIndex(mode: Int): Int = when (mode) {
             MODE_VOICE -> 0
