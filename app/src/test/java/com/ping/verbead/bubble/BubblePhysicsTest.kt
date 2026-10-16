@@ -137,4 +137,29 @@ class BubblePhysicsTest {
             assertTrue("Diff between ${sorted[i].key} and ${sorted[i + 1].key} is $diff, expected >= $minDistance", diff >= minDistance - 0.01f)
         }
     }
+
+    @Test
+    fun testEdgeStackingWithKeyboardConstrainedMaxY() {
+        // Keyboard opens, reducing safe maxY from 1800f down to 800f
+        val b0 = BubblePosition(0, 0f, 750f, radius)
+        val b1 = BubblePosition(1, 0f, 790f, radius)
+        val b2 = BubblePosition(2, 0f, 820f, radius)
+        val bubbles = listOf(b0, b1, b2)
+
+        val keyboardMaxY = 800f
+        val minY = 100f
+        val targets = BubblePhysics.resolveEdgeStacking(bubbles, minY = minY, maxY = keyboardMaxY, gap = gap)
+
+        assertEquals(3, targets.size)
+        for ((id, y) in targets) {
+            assertTrue("Bubble $id y ($y) must be <= keyboardMaxY ($keyboardMaxY)", y <= keyboardMaxY + 0.001f)
+            assertTrue("Bubble $id y ($y) must be >= minY ($minY)", y >= minY - 0.001f)
+        }
+
+        val sorted = targets.entries.sortedBy { it.value }
+        for (i in 0 until sorted.size - 1) {
+            val diff = sorted[i + 1].value - sorted[i].value
+            assertTrue("Gap between ${sorted[i].key} and ${sorted[i + 1].key} is $diff, expected >= $minDistance", diff >= minDistance - 0.01f)
+        }
+    }
 }
