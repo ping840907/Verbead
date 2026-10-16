@@ -1,6 +1,5 @@
 package com.ping.verbead.bubble
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
@@ -59,16 +58,20 @@ class BubbleDeleteZoneController(
      * Shows the delete target container with a scale and fade entrance animation.
      */
     fun show(screenWidth: Int, targetY: Int) {
-        if (isShowing) return
+        val currentView = rootView
+        if (isShowing && currentView != null && currentView.isAttachedToWindow) {
+            return
+        }
+
+        cleanupView()
 
         val density = context.resources.displayMetrics.density
         val windowSizePx = (WINDOW_SIZE_DP * density).toInt()
 
-        if (rootView == null) {
-            rootView = LayoutInflater.from(context).inflate(R.layout.layout_bubble_delete_zone, null)
-            containerTarget = rootView?.findViewById(R.id.container_delete_target)
-        }
-        val view = rootView ?: return
+        val view = LayoutInflater.from(context).inflate(R.layout.layout_bubble_delete_zone, null)
+        rootView = view
+        val target = view.findViewById<FrameLayout>(R.id.container_delete_target)
+        containerTarget = target
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -83,7 +86,7 @@ class BubbleDeleteZoneController(
         cachedCenterX = posX + (windowSizePx / 2f)
         cachedCenterY = posY + (windowSizePx / 2f)
 
-        layoutParams = WindowManager.LayoutParams(
+        val lp = WindowManager.LayoutParams(
             windowSizePx,
             windowSizePx,
             layoutFlag,
@@ -96,37 +99,32 @@ class BubbleDeleteZoneController(
             x = posX
             y = posY
         }
+        layoutParams = lp
 
         isAttracted = false
         isLocked = false
 
-        containerTarget?.apply {
-            setBackgroundResource(R.drawable.bg_bubble_delete_zone)
+        target?.apply {
+            alpha = 1f
             scaleX = 1f
             scaleY = 1f
+            setBackgroundResource(R.drawable.bg_bubble_delete_zone)
         }
 
         view.alpha = 0f
         view.scaleX = 0.5f
         view.scaleY = 0.5f
 
-        if (view.isAttachedToWindow) {
-            try {
-                windowManager.removeView(view)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove previous delete zone view", e)
-            }
-        }
-
         try {
-            windowManager.addView(view, layoutParams)
+            windowManager.addView(view, lp)
             isShowing = true
         } catch (e: Exception) {
             Log.w(TAG, "Failed to add delete zone window", e)
+            cleanupView()
             return
         }
 
-        view.animate().cancel()
+        view.animate().setListener(null).cancel()
         view.animate()
             .alpha(1f)
             .scaleX(1f)
@@ -146,7 +144,8 @@ class BubbleDeleteZoneController(
         rawBubbleX: Float,
         rawBubbleY: Float
     ): MagnetismResult {
-        if (!isShowing) {
+        val view = rootView
+        if (!isShowing || view == null || !view.isAttachedToWindow) {
             return MagnetismResult(isAttracted = false, isLocked = false, targetX = rawBubbleX, targetY = rawBubbleY)
         }
 
@@ -165,7 +164,7 @@ class BubbleDeleteZoneController(
                 HapticUtil.click(context)
                 containerTarget?.apply {
                     setBackgroundResource(R.drawable.bg_bubble_delete_zone_active)
-                    animate().cancel()
+                    animate().setListener(null).cancel()
                     animate().scaleX(1.18f).scaleY(1.18f).setDuration(160L).start()
                 }
             }
@@ -197,7 +196,7 @@ class BubbleDeleteZoneController(
                 HapticUtil.tick(context)
                 containerTarget?.apply {
                     setBackgroundResource(R.drawable.bg_bubble_delete_zone)
-                    animate().cancel()
+                    animate().setListener(null).cancel()
                     animate().scaleX(1f).scaleY(1f).setDuration(160L).start()
                 }
             }
@@ -220,7 +219,7 @@ class BubbleDeleteZoneController(
         }
 
         HapticUtil.heavyClick(context)
-        target.animate().cancel()
+        target.animate().setListener(null).cancel()
         target.animate()
             .scaleX(1.35f)
             .scaleY(1.35f)
@@ -238,10 +237,12 @@ class BubbleDeleteZoneController(
     fun hide(animated: Boolean = true, onComplete: (() -> Unit)? = null) {
         val view = rootView ?: run {
             isShowing = false
+            isAttracted = false
+            isLocked = false
             onComplete?.invoke()
             return
         }
-        if (!isShowing) {
+        if (!isShowing && !view.isAttachedToWindow) {
             onComplete?.invoke()
             return
         }
@@ -250,6 +251,46 @@ class BubbleDeleteZoneController(
         isLocked = false
 
         if (!animated || !view.isAttachedToWindow) {
+            cleanupView()
+            onComplete?.invoke()
+            return
+        }
+
+        view.animate().setListener(null).cancel()
+        view.animate()
+            .alpha(0f)
+            .scaleX(0.5f)
+            .scaleY(0.5f)
+            .setDuration(180L)
+            .withEndAction {
+                if (rootView === view) {
+                    cleanupView()
+                } else {
+                    try {
+                        if (view.isAttachedToWindow) {
+                            windowManager.removeView(view)
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove old delete zone view on hide end", e)
+                    }
+                }
+                onComplete?.invoke()
+            }
+            .start()
+    }
+
+    /**
+     * Safely cleans up the root view and detaches it from WindowManager.
+     */
+    private fun cleanupView() {
+        val view = rootView
+        rootView = null
+        val target = containerTarget
+        containerTarget = null
+
+        target?.animate()?.setListener(null)?.cancel()
+        if (view != null) {
+            view.animate().setListener(null).cancel()
             try {
                 if (view.isAttachedToWindow) {
                     windowManager.removeView(view)
@@ -257,26 +298,6 @@ class BubbleDeleteZoneController(
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to remove delete zone view", e)
             }
-            onComplete?.invoke()
-            return
         }
-
-        view.animate().cancel()
-        view.animate()
-            .alpha(0f)
-            .scaleX(0.5f)
-            .scaleY(0.5f)
-            .setDuration(180L)
-            .withEndAction {
-                try {
-                    if (view.isAttachedToWindow) {
-                        windowManager.removeView(view)
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to remove delete zone view on hide end", e)
-                }
-                onComplete?.invoke()
-            }
-            .start()
     }
 }
