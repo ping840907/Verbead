@@ -45,6 +45,10 @@ class CapsuleMenuController(
         const val ITEM_HEIGHT_DP = 56
         const val CAPSULE_MENU_HEIGHT_DP = ITEM_COUNT * ITEM_HEIGHT_DP // 224dp
         const val CAPSULE_WINDOW_HEIGHT_DP = 248 // 224dp + 12dp top + 12dp bottom padding
+        // 懸浮球中心至膠囊視窗頂/底之最大外推距離：
+        // 視窗邊界 248dp，氣泡中心 30dp。Phrases 模式下項目中心在 208dp，往上延伸至視窗頂為 208dp - 30dp = 178dp；
+        // Voice 模式下項目中心在 40dp，往下延伸至視窗底為 (248dp - 40dp) - 30dp = 178dp。
+        const val CAPSULE_MENU_MAX_EXTENT_DP = 178
 
         fun modeToIndex(mode: Int): Int = when (mode) {
             MODE_VOICE -> 0

@@ -633,7 +633,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun getCapsuleMenuDistance(): Int {
         val density = resources.displayMetrics.density
-        return (CapsuleMenuController.CAPSULE_MENU_HEIGHT_DP * density).toInt()
+        return (CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP * density).toInt()
     }
 
     private fun getMinPopupY(): Int {
@@ -645,18 +645,17 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val density = resources.displayMetrics.density
         val screenHeight = getScreenHeight()
         val defaultMinY = getCapsuleMenuDistance()
-        val fallbackMinY = getMinPopupY()
         val safeBottom = getSafeBottom()
         val bubbleHeight = (60 * density).toInt()
 
         return if (dynamicKeyboardTop in 1 until screenHeight) {
             val margin = (8 * density).toInt()
             val keyboardMax = dynamicKeyboardTop - bubbleHeight - margin
-            if (keyboardMax < defaultMinY) fallbackMinY else defaultMinY
+            if (keyboardMax < defaultMinY) 0 else defaultMinY
         } else {
             val available = safeBottom - bubbleHeight
             if (defaultMinY * 2 > available) {
-                fallbackMinY
+                0
             } else {
                 defaultMinY
             }
@@ -2733,7 +2732,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             bubbleHeightPx = (60 * density).toInt(),
             mode = anchor.mode,
             startRawY = startRawY,
-            minY = getMinPopupY(),
+            minY = 0,
             maxY = getSafeBottom(),
             screenWidth = getScreenWidth()
         )
