@@ -34,6 +34,8 @@ import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.ModelDownloader
 import com.ping.verbead.engine.ModelZipInstaller
+import com.ping.verbead.slm.SlmInferenceEngine
+import com.ping.verbead.slm.SlmModelConfig
 import com.ping.verbead.util.HapticUtil
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
@@ -175,6 +177,23 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvImportModelsStatus: TextView
     private lateinit var btnImportModelsZip: MaterialButton
     private lateinit var btnQuickImportDownload: MaterialButton
+
+    // SLM (Small Language Model)
+    private lateinit var cardSlm: MaterialCardView
+    private lateinit var btnSlmModel08b: MaterialButton
+    private lateinit var btnSlmModel2b: MaterialButton
+    private lateinit var btnSlmModel4b: MaterialButton
+    private lateinit var btnSlmModel9b: MaterialButton
+    private lateinit var tvSlmDescription: TextView
+    private lateinit var tvSlmStatus: TextView
+    private lateinit var progressDownloadSlm: LinearProgressIndicator
+    private lateinit var tvDownloadStatusSlm: TextView
+    private lateinit var btnLoadSlmMemory: MaterialButton
+    private lateinit var btnDownloadSlm: MaterialButton
+    private lateinit var layoutSlmThinkingToggle: View
+    private lateinit var switchSlmThinking: MaterialSwitch
+    private lateinit var layoutSlmHardwareAccelToggle: View
+    private lateinit var switchSlmHardwareAccel: MaterialSwitch
 
     private val pickZipFileLauncher = registerForActivityResult(
         object : ActivityResultContracts.OpenDocument() {
@@ -399,6 +418,23 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvImportModelsStatus    = findViewById(R.id.tv_import_models_status)
         btnImportModelsZip      = findViewById(R.id.btn_import_models_zip)
         btnQuickImportDownload  = findViewById(R.id.btn_quick_import_download)
+
+        // SLM
+        cardSlm = findViewById(R.id.card_slm)
+        btnSlmModel08b = findViewById(R.id.btn_slm_model_0_8b)
+        btnSlmModel2b = findViewById(R.id.btn_slm_model_2b)
+        btnSlmModel4b = findViewById(R.id.btn_slm_model_4b)
+        btnSlmModel9b = findViewById(R.id.btn_slm_model_9b)
+        tvSlmDescription = findViewById(R.id.tv_slm_description)
+        tvSlmStatus = findViewById(R.id.tv_slm_status)
+        progressDownloadSlm = findViewById(R.id.progress_download_slm)
+        tvDownloadStatusSlm = findViewById(R.id.tv_download_status_slm)
+        btnLoadSlmMemory = findViewById(R.id.btn_load_slm_memory)
+        btnDownloadSlm = findViewById(R.id.btn_download_slm)
+        layoutSlmThinkingToggle = findViewById(R.id.layout_slm_thinking_toggle)
+        switchSlmThinking = findViewById(R.id.switch_slm_thinking)
+        layoutSlmHardwareAccelToggle = findViewById(R.id.layout_slm_hardware_accel_toggle)
+        switchSlmHardwareAccel = findViewById(R.id.switch_slm_hardware_accel)
     }
 
     private fun scrollToView(target: View) {
@@ -820,6 +856,80 @@ class ImeSettingsActivity : AppCompatActivity() {
         findViewById<View?>(R.id.row_credit_onnx)?.setOnClickListener {
             openWebUrl("https://github.com/microsoft/onnxruntime")
         }
+
+        // SLM (端側小語言模型)
+        btnSlmModel08b.setOnClickListener {
+            SlmModelConfig.setSelectedModel(this, SlmModelConfig.MODEL_QWEN_0_8B)
+            HapticUtil.click(this)
+            updateAllStatus()
+        }
+        btnSlmModel2b.setOnClickListener {
+            SlmModelConfig.setSelectedModel(this, SlmModelConfig.MODEL_QWEN_2B)
+            HapticUtil.click(this)
+            updateAllStatus()
+        }
+        btnSlmModel4b.setOnClickListener {
+            SlmModelConfig.setSelectedModel(this, SlmModelConfig.MODEL_QWEN_4B)
+            HapticUtil.click(this)
+            updateAllStatus()
+        }
+        btnSlmModel9b.setOnClickListener {
+            SlmModelConfig.setSelectedModel(this, SlmModelConfig.MODEL_QWEN_9B)
+            HapticUtil.click(this)
+            updateAllStatus()
+        }
+
+        btnLoadSlmMemory.setOnClickListener {
+            HapticUtil.click(this)
+            val selectedModel = SlmModelConfig.getSelectedModel(this)
+            if (SlmInferenceEngine.isModelLoaded(selectedModel)) {
+                SlmInferenceEngine.unloadModel(this)
+                Toast.makeText(this, getString(R.string.toast_slm_unloaded_memory), Toast.LENGTH_SHORT).show()
+                updateAllStatus()
+            } else {
+                if (SlmModelConfig.isModelDownloaded(this, selectedModel)) {
+                    scope.launch {
+                        btnLoadSlmMemory.isEnabled = false
+                        btnLoadSlmMemory.text = "載入中…"
+                        val result = SlmInferenceEngine.loadModel(this@ImeSettingsActivity, selectedModel)
+                        btnLoadSlmMemory.isEnabled = true
+                        result.onSuccess {
+                            val meta = SlmModelConfig.getModelMetadata(selectedModel)
+                            Toast.makeText(this@ImeSettingsActivity, getString(R.string.toast_slm_loaded_memory, meta.displayName), Toast.LENGTH_SHORT).show()
+                        }.onFailure { ex ->
+                            Toast.makeText(this@ImeSettingsActivity, "記憶體載入失敗: ${ex.message}", Toast.LENGTH_LONG).show()
+                        }
+                        updateAllStatus()
+                    }
+                } else {
+                    Toast.makeText(this, getString(R.string.toast_slm_not_downloaded), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        btnDownloadSlm.setOnClickListener {
+            HapticUtil.click(this)
+            val selectedModel = SlmModelConfig.getSelectedModel(this)
+            handleDownloadButtonClick(selectedModel)
+        }
+
+        switchSlmThinking.setOnClickListener {
+            val isChecked = switchSlmThinking.isChecked
+            SlmModelConfig.setThinkingEnabled(this, isChecked)
+            HapticUtil.click(this)
+        }
+        layoutSlmThinkingToggle.setOnClickListener {
+            switchSlmThinking.performClick()
+        }
+
+        switchSlmHardwareAccel.setOnClickListener {
+            val isChecked = switchSlmHardwareAccel.isChecked
+            SlmModelConfig.setHardwareAccelEnabled(this, isChecked)
+            HapticUtil.click(this)
+        }
+        layoutSlmHardwareAccelToggle.setOnClickListener {
+            switchSlmHardwareAccel.performClick()
+        }
     }
 
     override fun onStart() {
@@ -837,11 +947,17 @@ class ImeSettingsActivity : AppCompatActivity() {
                         ModelConfig.ENGINE_QWEN3 -> "Qwen3-ASR"
                         ModelConfig.ENGINE_PP_OCR_TINY -> "PP-OCRv6 Tiny"
                         ModelConfig.ENGINE_PP_OCR_SMALL -> "PP-OCRv6 Small"
+                        SlmModelConfig.MODEL_QWEN_0_8B -> "Qwen 3.5 0.8B"
+                        SlmModelConfig.MODEL_QWEN_2B -> "Qwen 3.5 2B"
+                        SlmModelConfig.MODEL_QWEN_4B -> "Qwen 3.5 4B"
+                        SlmModelConfig.MODEL_QWEN_9B -> "Qwen 3.5 9B"
                         else -> engine
                     }
                     result.onSuccess {
                         if (engine == ModelConfig.ENGINE_PP_OCR_TINY || engine == ModelConfig.ENGINE_PP_OCR_SMALL) {
                             ModelConfig.setSelectedOcrModel(this@ImeSettingsActivity, engine)
+                        } else if (SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine }) {
+                            SlmInferenceEngine.loadModel(this@ImeSettingsActivity, engine)
                         }
                         Toast.makeText(this@ImeSettingsActivity, getString(R.string.toast_model_download_done, label), Toast.LENGTH_LONG).show()
                     }.onFailure { ex ->
@@ -1269,6 +1385,53 @@ class ImeSettingsActivity : AppCompatActivity() {
         } else {
             btnQuickImportDownload.visibility = View.GONE
         }
+
+        // SLM Section Status Update
+        val selectedSlm = SlmModelConfig.getSelectedModel(this)
+        val slmMeta = SlmModelConfig.getModelMetadata(selectedSlm)
+        val isSlmDownloaded = SlmModelConfig.isModelDownloaded(this, selectedSlm)
+        val isSlmLoaded = SlmInferenceEngine.isModelLoaded(selectedSlm)
+
+        fun styleChoiceButton(btn: MaterialButton, isSelected: Boolean) {
+            if (isSelected) {
+                btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
+                btn.setTextColor(onPrimaryColor)
+            } else {
+                btn.backgroundTintList = ColorStateList.valueOf(tonalColor)
+                btn.setTextColor(onTonalColor)
+            }
+            btn.strokeWidth = 0
+        }
+
+        styleChoiceButton(btnSlmModel08b, selectedSlm == SlmModelConfig.MODEL_QWEN_0_8B)
+        styleChoiceButton(btnSlmModel2b, selectedSlm == SlmModelConfig.MODEL_QWEN_2B)
+        styleChoiceButton(btnSlmModel4b, selectedSlm == SlmModelConfig.MODEL_QWEN_4B)
+        styleChoiceButton(btnSlmModel9b, selectedSlm == SlmModelConfig.MODEL_QWEN_9B)
+
+        tvSlmDescription.text = slmMeta.description
+
+        if (isSlmLoaded) {
+            tvSlmStatus.text = "⚡ 已載入記憶體常駐 (${SlmInferenceEngine.getLoadedMemoryInfo()}) · 隨時可秒級推論"
+            tvSlmStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
+            btnLoadSlmMemory.isEnabled = true
+            btnLoadSlmMemory.text = "釋放記憶體"
+            btnDownloadSlm.text = "重新下載"
+        } else if (isSlmDownloaded) {
+            tvSlmStatus.text = "✓ 已下載就緒 (未常駐於記憶體)"
+            tvSlmStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
+            btnLoadSlmMemory.isEnabled = true
+            btnLoadSlmMemory.text = "載入至記憶體"
+            btnDownloadSlm.text = "重新下載"
+        } else {
+            tvSlmStatus.text = "↓ 未下載 (${slmMeta.quantizedSize})"
+            tvSlmStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnLoadSlmMemory.isEnabled = false
+            btnLoadSlmMemory.text = "載入至記憶體"
+            btnDownloadSlm.text = "下載模型"
+        }
+
+        switchSlmThinking.isChecked = SlmModelConfig.isThinkingEnabled(this)
+        switchSlmHardwareAccel.isChecked = SlmModelConfig.isHardwareAccelEnabled(this)
     }
 
     private fun runModelPackageImport(file: java.io.File? = null, uri: Uri? = null) {
@@ -1427,16 +1590,22 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
 
         val target = ModelDownloadSpec.forEngine(engine)
+        val isSlm = SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine }
         val engineLabel = when (engine) {
             ModelConfig.ENGINE_X_ASR -> "X-ASR (約 138MB)"
             ModelConfig.ENGINE_QWEN3 -> "Qwen3-ASR (約 878MB)"
             ModelConfig.ENGINE_PP_OCR_TINY -> "PP-OCRv6 Tiny (約 11MB)"
             ModelConfig.ENGINE_PP_OCR_SMALL -> "PP-OCRv6 Small (約 22MB)"
+            SlmModelConfig.MODEL_QWEN_0_8B -> "Qwen 3.5 0.8B (約 550MB)"
+            SlmModelConfig.MODEL_QWEN_2B -> "Qwen 3.5 2B (約 1.3GB)"
+            SlmModelConfig.MODEL_QWEN_4B -> "Qwen 3.5 4B (約 2.5GB)"
+            SlmModelConfig.MODEL_QWEN_9B -> "Qwen 3.5 9B (約 5.5GB)"
             else -> engine
         }
-        val btn = when (engine) {
-            ModelConfig.ENGINE_X_ASR -> btnDownloadXasr
-            ModelConfig.ENGINE_QWEN3 -> btnDownloadQwen3
+        val btn = when {
+            engine == ModelConfig.ENGINE_X_ASR -> btnDownloadXasr
+            engine == ModelConfig.ENGINE_QWEN3 -> btnDownloadQwen3
+            isSlm -> btnDownloadSlm
             else -> btnDownloadOcr
         }
         btn.isEnabled = false
@@ -1445,11 +1614,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         scope.launch {
             val bytes = downloader.estimateTotalBytes(target)
             btn.isEnabled = true
-            val ready = when (engine) {
-                ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this@ImeSettingsActivity)
-                ModelConfig.ENGINE_QWEN3 -> ModelConfig.isQwen3Ready(this@ImeSettingsActivity)
-                ModelConfig.ENGINE_PP_OCR_TINY -> ModelConfig.isOcrTinyReady(this@ImeSettingsActivity)
-                ModelConfig.ENGINE_PP_OCR_SMALL -> ModelConfig.isOcrSmallReady(this@ImeSettingsActivity)
+            val ready = when {
+                engine == ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this@ImeSettingsActivity)
+                engine == ModelConfig.ENGINE_QWEN3 -> ModelConfig.isQwen3Ready(this@ImeSettingsActivity)
+                engine == ModelConfig.ENGINE_PP_OCR_TINY -> ModelConfig.isOcrTinyReady(this@ImeSettingsActivity)
+                engine == ModelConfig.ENGINE_PP_OCR_SMALL -> ModelConfig.isOcrSmallReady(this@ImeSettingsActivity)
+                isSlm -> SlmModelConfig.isModelDownloaded(this@ImeSettingsActivity, engine)
                 else -> ModelConfig.isOcrReady(this@ImeSettingsActivity)
             }
             val hasConflict = (engine == ModelConfig.ENGINE_PP_OCR_TINY && ModelConfig.isOcrSmallReady(this@ImeSettingsActivity)) ||
@@ -1464,13 +1634,19 @@ class ImeSettingsActivity : AppCompatActivity() {
                 ""
             }
 
+            val dialogDesc = if (isSlm) {
+                "即將下載約 ${ModelDownloader.formatBytes(bytes)} 的模型檔案，下載會在背景進行，" +
+                        "關閉螢幕或切換應用不會中斷。\n\n" +
+                        "模型推論全程在手機本機 GPU / NPU 上運行，僅下載需使用網路。\n\n是否繼續？"
+            } else {
+                "即將下載約 ${ModelDownloader.formatBytes(bytes)} 的模型檔案，下載會在背景進行，" +
+                        "關閉螢幕或切換應用不會中斷。\n\n" +
+                        "文字辨識與語音轉譯全程在裝置本機執行，僅下載步驟需使用網路。$conflictNotice\n\n是否繼續？"
+            }
+
             AlertDialog.Builder(this@ImeSettingsActivity)
                 .setTitle("下載 $engineLabel 模型")
-                .setMessage(
-                    "即將下載約 ${ModelDownloader.formatBytes(bytes)} 的模型檔案，下載會在背景進行，" +
-                            "關閉螢幕或切換應用不會中斷。\n\n" +
-                            "文字辨識與語音轉譯全程在裝置本機執行，僅下載步驟需使用網路。$conflictNotice\n\n是否繼續？"
-                )
+                .setMessage(dialogDesc)
                 .setPositiveButton(if (hasConflict) "替換並下載" else "開始下載") { _, _ ->
                     HapticUtil.click(this@ImeSettingsActivity)
                     if (engine == ModelConfig.ENGINE_PP_OCR_TINY) {
@@ -1505,25 +1681,30 @@ class ImeSettingsActivity : AppCompatActivity() {
             hideDownloadProgress(ModelConfig.ENGINE_X_ASR)
             hideDownloadProgress(ModelConfig.ENGINE_QWEN3)
             hideDownloadProgress(ModelConfig.ENGINE_PP_OCR_TINY)
+            hideDownloadProgress(SlmModelConfig.getSelectedModel(this))
             updateAllStatus()
             return
         }
 
         val isXasr = active.engine == ModelConfig.ENGINE_X_ASR
         val isQwen3 = active.engine == ModelConfig.ENGINE_QWEN3
+        val isSlm = SlmModelConfig.AVAILABLE_MODELS.any { it.id == active.engine }
         val btn = when {
             isXasr -> btnDownloadXasr
             isQwen3 -> btnDownloadQwen3
+            isSlm -> btnDownloadSlm
             else -> btnDownloadOcr
         }
         val progressIndicator = when {
             isXasr -> progressDownloadXasr
             isQwen3 -> progressDownloadQwen3
+            isSlm -> progressDownloadSlm
             else -> progressDownloadOcr
         }
         val tvStatus = when {
             isXasr -> tvDownloadStatusXasr
             isQwen3 -> tvDownloadStatusQwen3
+            isSlm -> tvDownloadStatusSlm
             else -> tvDownloadStatusOcr
         }
 
@@ -1542,16 +1723,21 @@ class ImeSettingsActivity : AppCompatActivity() {
     }
 
     private fun hideDownloadProgress(engine: String) {
-        when (engine) {
-            ModelConfig.ENGINE_X_ASR -> {
+        when {
+            engine == ModelConfig.ENGINE_X_ASR -> {
                 progressDownloadXasr.visibility = View.GONE
                 tvDownloadStatusXasr.visibility = View.GONE
                 btnDownloadXasr.text = if (ModelConfig.isXAsrReady(this)) "重新下載" else "下載模型"
             }
-            ModelConfig.ENGINE_QWEN3 -> {
+            engine == ModelConfig.ENGINE_QWEN3 -> {
                 progressDownloadQwen3.visibility = View.GONE
                 tvDownloadStatusQwen3.visibility = View.GONE
                 btnDownloadQwen3.text = if (ModelConfig.isQwen3Ready(this)) "重新下載" else "下載模型"
+            }
+            SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine } -> {
+                progressDownloadSlm.visibility = View.GONE
+                tvDownloadStatusSlm.visibility = View.GONE
+                btnDownloadSlm.text = if (SlmModelConfig.isModelDownloaded(this, engine)) "重新下載" else "下載模型"
             }
             else -> {
                 progressDownloadOcr.visibility = View.GONE

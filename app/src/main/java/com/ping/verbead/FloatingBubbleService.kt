@@ -37,7 +37,9 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.k2fsa.sherpa.onnx.OnlineStream
 import com.ping.verbead.bubble.BubbleState as State
 import com.ping.verbead.bubble.BubbleStateMachine
@@ -49,6 +51,7 @@ import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
 import com.ping.verbead.slm.SlmChatAdapter
@@ -4997,19 +5000,119 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             closeSlmChat()
         }
 
-        // Refresh Model UI
+        val tvEmptyTitle = chatView.findViewById<TextView>(R.id.tv_slm_empty_title)
+        val tvEmptyDesc = chatView.findViewById<TextView>(R.id.tv_slm_empty_desc)
+        val btnEmptyDownload = chatView.findViewById<MaterialButton>(R.id.btn_slm_empty_download)
+        val btnEmptyLoad = chatView.findViewById<MaterialButton>(R.id.btn_slm_empty_load)
+        val progressEmpty = chatView.findViewById<LinearProgressIndicator>(R.id.progress_slm_empty)
+        val tvEmptyProgress = chatView.findViewById<TextView>(R.id.tv_slm_empty_progress)
+
+        // Refresh Model UI & Empty State Actions
         fun updateModelUi() {
             val selectedModel = SlmModelConfig.getSelectedModel(this)
             val meta = SlmModelConfig.getModelMetadata(selectedModel)
-            btnModelToggle.text = meta.chipLabel
+            val isDownloaded = SlmModelConfig.isModelDownloaded(this, selectedModel)
+            val isLoaded = slmInferenceEngine.isLoaded(selectedModel)
+
+            val statusTag = when {
+                isLoaded -> "⚡"
+                isDownloaded -> "✓"
+                else -> "↓"
+            }
+            btnModelToggle.text = "${meta.chipLabel} $statusTag"
+
+            val active = ModelDownloadState.active.value
+            if (active != null && active.engine == selectedModel) {
+                btnEmptyDownload.visibility = View.VISIBLE
+                btnEmptyDownload.text = "取消下載"
+                btnEmptyLoad.visibility = View.GONE
+                progressEmpty.visibility = View.VISIBLE
+                progressEmpty.isIndeterminate = active.progress.percent < 0
+                if (active.progress.percent >= 0) progressEmpty.progress = active.progress.percent
+                tvEmptyProgress.visibility = View.VISIBLE
+                tvEmptyProgress.text = "${active.progress.label} (${active.progress.percent}%)"
+                tvEmptyTitle.text = "正在下載 ${meta.displayName}…"
+                tvEmptyDesc.text = "檔案大小約 ${meta.quantizedSize}，下載將於背景進行"
+            } else {
+                progressEmpty.visibility = View.GONE
+                tvEmptyProgress.visibility = View.GONE
+
+                if (isDownloaded) {
+                    btnEmptyDownload.visibility = View.GONE
+                    if (isLoaded) {
+                        btnEmptyLoad.visibility = View.GONE
+                        tvEmptyTitle.text = "端側 ${meta.displayName} 已載入 · ⚡ GPU/NPU 加速中"
+                        tvEmptyDesc.text = "• 運算由 GPU (Vulkan) / NPU (NNAPI) 全層卸載加速\n• 點擊麥克風可用離線語音下達指令\n• 預設簡短扼要回覆，支援思考推導\n• 回覆後可一鍵複製或直接貼入輸入框"
+                    } else {
+                        btnEmptyLoad.visibility = View.VISIBLE
+                        btnEmptyLoad.text = "載入至記憶體"
+                        tvEmptyTitle.text = "端側 ${meta.displayName} 已就緒 (未載入)"
+                        tvEmptyDesc.text = "模型檔案已下載完成。點擊下方按鈕預熱載入至記憶體，或直接發送問題自動載入。"
+                    }
+                } else {
+                    btnEmptyLoad.visibility = View.GONE
+                    btnEmptyDownload.visibility = View.VISIBLE
+                    btnEmptyDownload.text = "下載此模型 (${meta.quantizedSize})"
+                    tvEmptyTitle.text = "端側 ${meta.displayName} 尚未下載 (${meta.parameterCount})"
+                    tvEmptyDesc.text = "${meta.description}\n\n檔案大小：${meta.quantizedSize}，點擊下方按鈕即可下載至手機本機運行。"
+                }
+            }
         }
         updateModelUi()
+
+        btnEmptyDownload.setOnClickListener {
+            HapticUtil.click(this)
+            val current = SlmModelConfig.getSelectedModel(this)
+            val active = ModelDownloadState.active.value
+            if (active != null && active.engine == current) {
+                ModelDownloadService.cancel(this)
+                Toast.makeText(this, R.string.toast_slm_download_cancelled, Toast.LENGTH_SHORT).show()
+            } else {
+                ModelDownloadService.start(this, current)
+                val m = SlmModelConfig.getModelMetadata(current)
+                Toast.makeText(this, getString(R.string.toast_slm_download_started, m.displayName), Toast.LENGTH_SHORT).show()
+            }
+            updateModelUi()
+        }
+
+        btnEmptyLoad.setOnClickListener {
+            HapticUtil.click(this)
+            val current = SlmModelConfig.getSelectedModel(this)
+            scope.launch {
+                btnEmptyLoad.isEnabled = false
+                btnEmptyLoad.text = "載入中…"
+                val res = slmInferenceEngine.loadModel(current)
+                btnEmptyLoad.isEnabled = true
+                if (res.isSuccess) {
+                    val m = SlmModelConfig.getModelMetadata(current)
+                    Toast.makeText(this@FloatingBubbleService, getString(R.string.toast_slm_loaded_memory, m.displayName), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@FloatingBubbleService, getString(R.string.toast_slm_load_failed, res.exceptionOrNull()?.message ?: "未知錯誤"), Toast.LENGTH_SHORT).show()
+                }
+                updateModelUi()
+            }
+        }
+
+        // Listen for download progress updates while SLM chat is open
+        scope.launch {
+            ModelDownloadState.active.collect {
+                if (isSlmChatActive && slmChatView != null) {
+                    updateModelUi()
+                }
+            }
+        }
 
         btnModelToggle.setOnClickListener {
             HapticUtil.click(this)
             val current = SlmModelConfig.getSelectedModel(this)
             val nextMeta = SlmModelConfig.getNextModel(current)
             SlmModelConfig.setSelectedModel(this, nextMeta.id)
+            if (SlmModelConfig.isModelDownloaded(this, nextMeta.id) && !slmInferenceEngine.isLoaded(nextMeta.id)) {
+                scope.launch {
+                    slmInferenceEngine.loadModel(nextMeta.id)
+                    updateModelUi()
+                }
+            }
             updateModelUi()
             Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${nextMeta.displayName} (${nextMeta.shortTag})"), Toast.LENGTH_SHORT).show()
         }
@@ -5020,7 +5123,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             SlmModelConfig.AVAILABLE_MODELS.forEachIndexed { index, meta ->
                 val current = SlmModelConfig.getSelectedModel(this)
                 val checkMark = if (meta.id == current) "✓ " else "   "
-                popup.menu.add(0, index, index, "$checkMark${meta.displayName} (${meta.shortTag}) · ${meta.quantizedSize}")
+                val isDownloaded = SlmModelConfig.isModelDownloaded(this, meta.id)
+                val isLoaded = slmInferenceEngine.isLoaded(meta.id)
+                val statusTag = when {
+                    isLoaded -> "[⚡ 記憶體已載入]"
+                    isDownloaded -> "[已下載就緒]"
+                    else -> "[未下載 · ${meta.quantizedSize}]"
+                }
+                popup.menu.add(0, index, index, "$checkMark${meta.displayName} (${meta.chipLabel}) · $statusTag")
             }
             popup.setOnMenuItemClickListener { menuItem ->
                 HapticUtil.click(this)
@@ -5028,6 +5138,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (selected != null) {
                     SlmModelConfig.setSelectedModel(this, selected.id)
                     updateModelUi()
+                    if (SlmModelConfig.isModelDownloaded(this, selected.id)) {
+                        scope.launch {
+                            slmInferenceEngine.loadModel(selected.id)
+                            updateModelUi()
+                        }
+                    }
                     Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${selected.displayName} (${selected.shortTag})"), Toast.LENGTH_SHORT).show()
                 }
                 true
@@ -5245,60 +5361,181 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
 
-        isSlmVoiceRecording = true
-        btnMic.setBackgroundResource(R.drawable.bg_slm_mic_recording)
-        btnMic.setColorFilter(android.graphics.Color.WHITE)
-        etPrompt.hint = "聆聽中...請說話"
-        Toast.makeText(this, R.string.toast_slm_recording_prompt, Toast.LENGTH_SHORT).show()
+        val isDual = isDualEngineActive()
+        val currentEngine = ModelConfig.selectedEngine(this)
 
-        val audioBuffer = mutableListOf<FloatArray>()
-        var accumulatedStreaming = ""
+        // Validate model readiness per user's active engine preference
+        if (isDual) {
+            val xReady = ModelConfig.isXAsrReady(this)
+            val qReady = ModelConfig.isQwen3Ready(this)
+            if (!xReady || !qReady) {
+                val missing = if (!xReady && !qReady) "X-ASR 與 Qwen3-ASR" else if (!xReady) "X-ASR" else "Qwen3-ASR"
+                Toast.makeText(this, getString(R.string.toast_asr_model_not_ready, missing), Toast.LENGTH_SHORT).show()
+                return
+            }
+        } else if (currentEngine == ModelConfig.ENGINE_X_ASR) {
+            if (!ModelConfig.isXAsrReady(this)) {
+                Toast.makeText(this, getString(R.string.toast_asr_model_not_ready, "X-ASR"), Toast.LENGTH_SHORT).show()
+                return
+            }
+        } else {
+            if (!ModelConfig.isQwen3Ready(this)) {
+                Toast.makeText(this, getString(R.string.toast_asr_model_not_ready, "Qwen3-ASR"), Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
 
         slmVoiceJob = scope.launch {
-            try {
-                val stream = if (xAsr.isLoaded()) xAsr.createStream() else null
+            // 1. Ensure required engine models are loaded into memory
+            val needXAsr = isDual || currentEngine == ModelConfig.ENGINE_X_ASR
+            val needQwen3 = isDual || currentEngine == ModelConfig.ENGINE_QWEN3
+
+            if ((needXAsr && !xAsr.isLoaded()) || (needQwen3 && (!qwen3Asr.isLoaded() || qwen3NeedsReload()))) {
+                etPrompt.hint = "載入語音引擎中…"
                 withContext(Dispatchers.IO) {
-                    recorder.recordStreaming(
-                        silenceSeconds = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService),
-                        onChunk = { chunk ->
-                            if (!isSlmVoiceRecording) return@recordStreaming
-                            audioBuffer.add(chunk.copyOf())
-                            if (stream != null) {
+                    if (needXAsr && !xAsr.isLoaded()) xAsr.load()
+                    if (needQwen3 && (!qwen3Asr.isLoaded() || qwen3NeedsReload())) qwen3Asr.load(buildHotwords())
+                }
+            }
+
+            // 2. Set recording UI state
+            isSlmVoiceRecording = true
+            btnMic.setBackgroundResource(R.drawable.bg_slm_mic_recording)
+            btnMic.setColorFilter(android.graphics.Color.WHITE)
+            HapticUtil.click(this@FloatingBubbleService)
+
+            val vadSilence = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService)
+
+            try {
+                if (isDual) {
+                    // Pipeline: Dual Engine (X-ASR streaming preview + Qwen3-ASR high-accuracy batch finalize)
+                    etPrompt.hint = "聆聽中 (雙引擎)…"
+                    val stream = xAsr.createStream() ?: return@launch
+                    val audioBuffer = mutableListOf<FloatArray>()
+                    var accumulated = ""
+
+                    withContext(Dispatchers.IO) {
+                        recorder.recordStreaming(
+                            silenceSeconds = vadSilence,
+                            onChunk = { chunk ->
+                                if (!isSlmVoiceRecording) return@recordStreaming
+                                audioBuffer.add(chunk.copyOf())
                                 xAsr.acceptWaveform(stream, chunk)
                                 while (xAsr.isReady(stream)) {
                                     xAsr.decode(stream)
                                 }
                                 val partial = xAsr.getResult(stream)
                                 if (partial.isNotBlank()) {
+                                    val fullPreview = postProcess(accumulated + partial)
                                     mainHandler.post {
-                                        val display = (accumulatedStreaming + partial).trim()
-                                        etPrompt.setText(display)
-                                        etPrompt.setSelection(display.length)
+                                        etPrompt.setText(fullPreview)
+                                        etPrompt.setSelection(fullPreview.length)
                                     }
                                 }
                                 if (xAsr.isEndpoint(stream)) {
-                                    accumulatedStreaming += partial
+                                    accumulated += partial
                                     xAsr.reset(stream)
                                 }
                             }
-                        }
-                    )
-                }
+                        )
+                    }
 
-                if (stream != null) {
                     runCatching { xAsr.inputFinished(stream) }
                     runCatching {
                         while (xAsr.isReady(stream)) {
                             xAsr.decode(stream)
                         }
                     }
-                    val finalPartial = xAsr.getResult(stream).trim()
-                    val totalText = (accumulatedStreaming + finalPartial).trim()
+                    val finalStreamPartial = xAsr.getResult(stream).trim()
                     runCatching { stream.release() }
 
                     val totalSamples = audioBuffer.sumOf { it.size }
-                    var finalText = totalText
                     if (totalSamples > 0 && qwen3Asr.isLoaded()) {
+                        withContext(Dispatchers.Main) { etPrompt.hint = "高精轉譯中…" }
+                        val combinedAudio = FloatArray(totalSamples)
+                        var offset = 0
+                        for (c in audioBuffer) {
+                            System.arraycopy(c, 0, combinedAudio, offset, c.size)
+                            offset += c.size
+                        }
+                        val qwen3Result = runCatching { qwen3Asr.transcribe(combinedAudio) }.getOrNull()
+                        val finalText = if (!qwen3Result.isNullOrBlank()) {
+                            postProcess(qwen3Result)
+                        } else {
+                            postProcess(accumulated + finalStreamPartial)
+                        }
+                        if (finalText.isNotBlank()) {
+                            withContext(Dispatchers.Main) {
+                                etPrompt.setText(finalText)
+                                etPrompt.setSelection(finalText.length)
+                            }
+                        }
+                    }
+                } else if (currentEngine == ModelConfig.ENGINE_X_ASR) {
+                    // Pipeline: X-ASR Streaming Transducer
+                    etPrompt.hint = "聆聽中 (X-ASR 串流)…"
+                    val stream = xAsr.createStream() ?: return@launch
+                    var accumulated = ""
+
+                    withContext(Dispatchers.IO) {
+                        recorder.recordStreaming(
+                            silenceSeconds = vadSilence,
+                            onChunk = { chunk ->
+                                if (!isSlmVoiceRecording) return@recordStreaming
+                                xAsr.acceptWaveform(stream, chunk)
+                                while (xAsr.isReady(stream)) {
+                                    xAsr.decode(stream)
+                                }
+                                val partial = xAsr.getResult(stream)
+                                if (partial.isNotBlank()) {
+                                    val fullPreview = postProcess(accumulated + partial)
+                                    mainHandler.post {
+                                        etPrompt.setText(fullPreview)
+                                        etPrompt.setSelection(fullPreview.length)
+                                    }
+                                }
+                                if (xAsr.isEndpoint(stream)) {
+                                    accumulated += partial
+                                    xAsr.reset(stream)
+                                }
+                            }
+                        )
+                    }
+
+                    runCatching { xAsr.inputFinished(stream) }
+                    runCatching {
+                        while (xAsr.isReady(stream)) {
+                            xAsr.decode(stream)
+                        }
+                    }
+                    val finalStreamPartial = xAsr.getResult(stream).trim()
+                    runCatching { stream.release() }
+
+                    val finalText = postProcess(accumulated + finalStreamPartial)
+                    if (finalText.isNotBlank()) {
+                        withContext(Dispatchers.Main) {
+                            etPrompt.setText(finalText)
+                            etPrompt.setSelection(finalText.length)
+                        }
+                    }
+                } else {
+                    // Pipeline: Qwen3-ASR Offline Speech Recognition
+                    etPrompt.hint = "聆聽中 (Qwen3-ASR 離線)…"
+                    val audioBuffer = mutableListOf<FloatArray>()
+
+                    withContext(Dispatchers.IO) {
+                        recorder.recordStreaming(
+                            silenceSeconds = vadSilence,
+                            onChunk = { chunk ->
+                                if (!isSlmVoiceRecording) return@recordStreaming
+                                audioBuffer.add(chunk.copyOf())
+                            }
+                        )
+                    }
+
+                    val totalSamples = audioBuffer.sumOf { it.size }
+                    if (totalSamples > 0 && qwen3Asr.isLoaded()) {
+                        withContext(Dispatchers.Main) { etPrompt.hint = "離線高精辨識中…" }
                         val combinedAudio = FloatArray(totalSamples)
                         var offset = 0
                         for (c in audioBuffer) {
@@ -5307,19 +5544,17 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         }
                         val qwen3Result = runCatching { qwen3Asr.transcribe(combinedAudio) }.getOrNull()
                         if (!qwen3Result.isNullOrBlank()) {
-                            finalText = postProcess(qwen3Result)
-                        }
-                    }
-                    if (finalText.isNotBlank()) {
-                        withContext(Dispatchers.Main) {
-                            etPrompt.setText(finalText)
-                            etPrompt.setSelection(finalText.length)
+                            val finalText = postProcess(qwen3Result)
+                            withContext(Dispatchers.Main) {
+                                etPrompt.setText(finalText)
+                                etPrompt.setSelection(finalText.length)
+                            }
                         }
                     }
                 }
             } catch (e: Throwable) {
                 if (e !is kotlinx.coroutines.CancellationException) {
-                    Log.e(TAG, "SLM voice recording error", e)
+                    Log.e(TAG, "SLM voice pipeline error", e)
                 }
             } finally {
                 withContext(Dispatchers.Main) {

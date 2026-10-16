@@ -161,6 +161,7 @@
                 android:contentDescription="端側小語言模型" />
 
             <TextView
+                android:id="@+id/tv_slm_empty_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -170,6 +171,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tv_slm_empty_desc"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
@@ -178,6 +180,59 @@
                 android:text="• 運算由 GPU (Vulkan) / NPU (NNAPI) 全層卸載加速\n• 點擊麥克風可用離線語音下達指令\n• 預設簡短扼要回覆，支援思考推導\n• 回覆後可一鍵複製或直接貼入輸入框"
                 android:textColor="#94A3B8"
                 android:textSize="11sp" />
+
+            <!-- Dynamic Download & Memory Loading Area -->
+            <LinearLayout
+                android:id="@+id/layout_slm_empty_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_slm_empty_download"
+                        style="@style/Verbead.Button.Compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:text="下載模型"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_slm_empty_load"
+                        style="@style/Verbead.Button.Compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="載入至記憶體"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progress_slm_empty"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    app:indicatorColor="#38BDF8"
+                    app:trackColor="#334155"
+                    app:trackCornerRadius="3dp"
+                    app:trackThickness="5dp" />
+
+                <TextView
+                    android:id="@+id/tv_slm_empty_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#38BDF8"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
     </FrameLayout>
 

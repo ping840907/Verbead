@@ -136,4 +136,28 @@ class SlmInferenceEngineTest {
         assertEquals(5, com.ping.verbead.engine.ModelConfig.MAX_MULTI_BUBBLE_COUNT)
         assertTrue(com.ping.verbead.engine.ModelConfig.MAX_MULTI_BUBBLE_COUNT >= 5)
     }
+
+    @Test
+    fun testSlmModelDownloadSpecForEngine() {
+        for (meta in SlmModelConfig.AVAILABLE_MODELS) {
+            val target = com.ping.verbead.engine.ModelDownloadSpec.forEngine(meta.id)
+            assertEquals(meta.id, target.engine)
+            assertEquals(1, target.files.size)
+            val file = target.files.first()
+            assertEquals(meta.fileName, file.relativePath)
+            assertEquals(meta.downloadUrl, file.url)
+            assertTrue(file.url.startsWith("https://huggingface.co/"))
+            assertTrue(file.relativePath.endsWith(".gguf"))
+        }
+    }
+
+    @Test
+    fun testSlmMemoryStateAndUnload() {
+        SlmInferenceEngine.unloadModel()
+        assertNull(SlmInferenceEngine.loadedModelId)
+        assertEquals(0L, SlmInferenceEngine.loadedMemoryBytes)
+        assertFalse(SlmInferenceEngine.isModelLoaded(SlmModelConfig.MODEL_QWEN_0_8B))
+        assertFalse(SlmInferenceEngine.isModelLoaded(SlmModelConfig.MODEL_QWEN_2B))
+        assertEquals("未載入記憶體", SlmInferenceEngine.getLoadedMemoryInfo())
+    }
 }

@@ -132,7 +132,31 @@ object SlmModelConfig {
     }
 
     fun isModelReady(context: Context, modelId: String): Boolean =
-        getModelFile(context, modelId).exists()
+        isModelDownloaded(context, modelId)
+
+    fun isModelDownloaded(context: Context, modelId: String): Boolean {
+        val file = getModelFile(context, modelId)
+        return file.exists() && file.length() > 0L
+    }
+
+    fun deleteModel(context: Context, modelId: String): Boolean {
+        val file = getModelFile(context, modelId)
+        return if (file.exists()) file.delete() else false
+    }
+
+    const val KEY_LOADED_SLM_MODEL = "loaded_slm_model"
+
+    fun getLoadedModelId(context: Context): String? =
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .getString(KEY_LOADED_SLM_MODEL, null)
+
+    fun setLoadedModelId(context: Context, modelId: String?) {
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .edit().apply {
+                if (modelId != null) putString(KEY_LOADED_SLM_MODEL, modelId)
+                else remove(KEY_LOADED_SLM_MODEL)
+            }.apply()
+    }
 
     /**
      * Builds the injected system prompt tailored for concise mobile answers and thinking state.

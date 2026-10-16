@@ -111,4 +111,11 @@
     <string name="toast_slm_thinking_on">思考開關：已開啟</string>
     <string name="toast_slm_thinking_off">思考開關：已關閉</string>
     <string name="toast_slm_recording_prompt">正在聆聽...請說出您的指令或問題</string>
+    <string name="toast_slm_download_started">開始在背景下載 %1$s 模型…</string>
+    <string name="toast_slm_download_cancelled">已取消 SLM 模型下載</string>
+    <string name="toast_slm_loaded_memory">已成功載入 %1$s 至記憶體 (⚡ 硬體加速)</string>
+    <string name="toast_slm_unloaded_memory">已從記憶體釋放 SLM 模型</string>
+    <string name="toast_slm_load_failed">載入模型失敗：%1$s</string>
+    <string name="toast_slm_not_downloaded">所選模型尚未下載，請先下載模型</string>
+    <string name="toast_asr_model_not_ready">尚未下載語音辨識模型 (%1$s)，請至設定下載</string>
 </resources>

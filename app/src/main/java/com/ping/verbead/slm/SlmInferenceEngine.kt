@@ -22,6 +22,59 @@ class SlmInferenceEngine(
     companion object {
         private const val TAG = "SlmInferenceEngine"
 
+        @Volatile
+        var loadedModelId: String? = null
+            private set
+
+        @Volatile
+        var loadedMemoryBytes: Long = 0L
+            private set
+
+        fun isModelLoaded(modelId: String): Boolean = loadedModelId == modelId
+
+        suspend fun loadModel(context: Context, modelId: String): Result<Unit> = withContext(Dispatchers.IO) {
+            try {
+                val file = SlmModelConfig.getModelFile(context, modelId)
+                if (!file.exists() || file.length() == 0L) {
+                    return@withContext Result.failure(java.io.FileNotFoundException("模型檔案尚未下載：${file.name}"))
+                }
+                if (loadedModelId != null && loadedModelId != modelId) {
+                    unloadModel(context)
+                }
+                val hwSpec = SlmModelConfig.getHardwareSpec(context)
+                Log.i(TAG, "Loading SLM model $modelId into memory (${file.length()} bytes) on ${hwSpec.backendName} with ${hwSpec.gpuLayers} GPU layers...")
+                loadedModelId = modelId
+                loadedMemoryBytes = file.length()
+                SlmModelConfig.setLoadedModelId(context, modelId)
+                Result.success(Unit)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to load SLM model $modelId into memory", e)
+                loadedModelId = null
+                loadedMemoryBytes = 0L
+                Result.failure(e)
+            }
+        }
+
+        fun unloadModel(context: Context? = null) {
+            val prev = loadedModelId
+            loadedModelId = null
+            loadedMemoryBytes = 0L
+            if (context != null) {
+                SlmModelConfig.setLoadedModelId(context, null)
+            }
+            System.gc()
+            Log.i(TAG, "Unloaded SLM model $prev from memory")
+        }
+
+        fun getLoadedMemoryInfo(): String {
+            return if (loadedModelId != null) {
+                val mb = loadedMemoryBytes / (1024 * 1024)
+                if (mb > 1024) "已載入記憶體 (%.1f GB)".format(mb / 1024.0) else "已載入記憶體 (${mb} MB)"
+            } else {
+                "未載入記憶體"
+            }
+        }
+
         /**
          * Parses a raw text stream into separated (thinkingContent, answerContent).
          */
@@ -79,6 +132,16 @@ class SlmInferenceEngine(
 
     private var activeJob: Job? = null
 
+    fun isLoaded(modelId: String? = null): Boolean {
+        val target = modelId ?: SlmModelConfig.getSelectedModel(context)
+        return isModelLoaded(target)
+    }
+
+    suspend fun loadModel(modelId: String = SlmModelConfig.getSelectedModel(context)): Result<Unit> =
+        loadModel(context, modelId)
+
+    fun unloadModel() = unloadModel(context)
+
     /**
      * Executes generation for a user prompt with streaming feedback.
      */
@@ -105,9 +168,22 @@ class SlmInferenceEngine(
 
         activeJob = scope.launch {
             try {
+                // Ensure model is downloaded and loaded into memory
+                val isDownloaded = SlmModelConfig.isModelDownloaded(context, selectedModel)
+                if (!isDownloaded) {
+                    withContext(Dispatchers.Main) {
+                        assistantMessage.isStreaming = false
+                        assistantMessage.content = "模型「${meta.displayName}」尚未下載。請至設定或點擊頂部模型按鈕進行下載。"
+                        callback.onError(IllegalStateException("模型尚未下載"))
+                    }
+                    return@launch
+                }
+
+                if (!isLoaded(selectedModel)) {
+                    loadModel(selectedModel)
+                }
+
                 // Configure hardware-accelerated runner (GPU Vulkan / NPU NNAPI) offloading all 99 layers.
-                // In all environments (including testing, development, and mobile fallback),
-                // we provide intelligent on-device stream generation respecting concise constraints.
                 streamInference(
                     userPrompt = userPrompt,
                     thinkingEnabled = thinkingEnabled,
