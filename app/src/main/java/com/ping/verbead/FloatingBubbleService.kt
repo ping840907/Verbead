@@ -376,14 +376,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 currentlyDraggedBubble?.let { item ->
                     if (item.view.isAttachedToWindow) {
-                        val squishScale = 0.16f * progress
-                        val dir = if (strokeCount % 2 == 1) 1f else -1f
+                        val squish = (0.16f * progress).coerceIn(0f, 0.18f)
                         if (isHorizontal) {
-                            item.view.scaleX = 1f + squishScale * dir
-                            item.view.scaleY = 1f - squishScale * 0.7f
+                            item.view.scaleX = 1f
+                            item.view.scaleY = 1f - squish
                         } else {
-                            item.view.scaleX = 1f - squishScale * 0.7f
-                            item.view.scaleY = 1f + squishScale * dir
+                            item.view.scaleX = 1f - squish
+                            item.view.scaleY = 1f
                         }
                     }
                 }
@@ -1321,36 +1320,34 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         attachBubbleTouchListener(newItem)
         bubbleItems.add(newItem)
 
-        v.scaleX = 0.2f
-        v.scaleY = 0.2f
-        v.alpha = 0.5f
+        v.scaleX = 0.25f
+        v.scaleY = 0.25f
+        v.alpha = 0.3f
 
         windowManager.addView(v, lp)
 
         // Haptic feedback pop
         HapticUtil.heavyClick(this)
 
-        // Parent recoil/bounce
+        // Parent recoil/bounce (squish inward without exceeding 1.0f)
         parent.view.animate().cancel()
         parent.view.animate()
-            .scaleX(1.18f)
-            .scaleY(1.18f)
+            .scaleX(0.88f)
+            .scaleY(0.88f)
             .setDuration(120L)
             .withEndAction {
-                parent.view.animate().scaleX(1f).scaleY(1f).setDuration(150L).start()
+                parent.view.animate().scaleX(1f).scaleY(1f).setDuration(160L).setInterpolator(DecelerateInterpolator()).start()
             }
             .start()
 
-        // New bubble expands
+        // New bubble blooms smoothly to full size (capped at 1.0f so edges are never clipped by the window)
+        v.animate().cancel()
         v.animate()
-            .scaleX(1.15f)
-            .scaleY(1.15f)
+            .scaleX(1f)
+            .scaleY(1f)
             .alpha(1f)
-            .setDuration(240L)
-            .setInterpolator(OvershootInterpolator(1.25f))
-            .withEndAction {
-                v.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
-            }
+            .setDuration(260L)
+            .setInterpolator(DecelerateInterpolator(1.6f))
             .start()
 
         // Repulsion displacement (avoid overlap with parent)
