@@ -4993,18 +4993,40 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         // Refresh Model UI
         fun updateModelUi() {
             val selectedModel = SlmModelConfig.getSelectedModel(this)
-            btnModelToggle.text = if (selectedModel == SlmModelConfig.MODEL_QWEN_1_5B) "1.5B 聰明" else "0.5B 能效"
+            val meta = SlmModelConfig.getModelMetadata(selectedModel)
+            btnModelToggle.text = meta.chipLabel
         }
         updateModelUi()
 
         btnModelToggle.setOnClickListener {
             HapticUtil.click(this)
             val current = SlmModelConfig.getSelectedModel(this)
-            val next = if (current == SlmModelConfig.MODEL_QWEN_1_5B) SlmModelConfig.MODEL_QWEN_0_5B else SlmModelConfig.MODEL_QWEN_1_5B
-            SlmModelConfig.setSelectedModel(this, next)
+            val nextMeta = SlmModelConfig.getNextModel(current)
+            SlmModelConfig.setSelectedModel(this, nextMeta.id)
             updateModelUi()
-            val meta = SlmModelConfig.getModelMetadata(next)
-            Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${meta.displayName} (${meta.shortTag})"), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${nextMeta.displayName} (${nextMeta.shortTag})"), Toast.LENGTH_SHORT).show()
+        }
+
+        btnModelToggle.setOnLongClickListener {
+            HapticUtil.heavyClick(this)
+            val popup = android.widget.PopupMenu(themedCtx, btnModelToggle)
+            SlmModelConfig.AVAILABLE_MODELS.forEachIndexed { index, meta ->
+                val current = SlmModelConfig.getSelectedModel(this)
+                val checkMark = if (meta.id == current) "✓ " else "   "
+                popup.menu.add(0, index, index, "$checkMark${meta.displayName} (${meta.shortTag}) · ${meta.quantizedSize}")
+            }
+            popup.setOnMenuItemClickListener { menuItem ->
+                HapticUtil.click(this)
+                val selected = SlmModelConfig.AVAILABLE_MODELS.getOrNull(menuItem.itemId)
+                if (selected != null) {
+                    SlmModelConfig.setSelectedModel(this, selected.id)
+                    updateModelUi()
+                    Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${selected.displayName} (${selected.shortTag})"), Toast.LENGTH_SHORT).show()
+                }
+                true
+            }
+            popup.show()
+            true
         }
 
         // Refresh Thinking UI

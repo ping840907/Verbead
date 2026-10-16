@@ -9,22 +9,26 @@ object SlmModelConfig {
     const val KEY_SLM_MODEL = "selected_slm_model"
     const val KEY_SLM_THINKING = "slm_thinking_enabled"
 
-    // 1. 最聰明 (Smartest / High reasoning): Qwen2.5-1.5B-Instruct
-    const val MODEL_QWEN_1_5B = "qwen2.5_1.5b"
-    // 2. 能效最高 (Highest Energy Efficiency & Speed): Qwen2.5-0.5B-Instruct
-    const val MODEL_QWEN_0_5B = "qwen2.5_0.5b"
+    // 4 個 Qwen 3.5 模型選項 (0.8B, 2B, 4B, 9B)
+    const val MODEL_QWEN_0_8B = "qwen3.5_0.8b"
+    const val MODEL_QWEN_2B = "qwen3.5_2b"
+    const val MODEL_QWEN_4B = "qwen3.5_4b"
+    const val MODEL_QWEN_9B = "qwen3.5_9b"
 
-    const val DEFAULT_MODEL = MODEL_QWEN_1_5B
+    const val DEFAULT_MODEL = MODEL_QWEN_2B
     const val DEFAULT_THINKING_ENABLED = true
 
     const val SLM_DIR = "slm"
-    const val FILE_QWEN_1_5B_GGUF = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
-    const val FILE_QWEN_0_5B_GGUF = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
+    const val FILE_QWEN_0_8B_GGUF = "qwen3.5-0.8b-instruct-q4_k_m.gguf"
+    const val FILE_QWEN_2B_GGUF = "qwen3.5-2b-instruct-q4_k_m.gguf"
+    const val FILE_QWEN_4B_GGUF = "qwen3.5-4b-instruct-q4_k_m.gguf"
+    const val FILE_QWEN_9B_GGUF = "qwen3.5-9b-instruct-q4_k_m.gguf"
 
     data class ModelMetadata(
         val id: String,
         val displayName: String,
         val shortTag: String,
+        val chipLabel: String,
         val description: String,
         val parameterCount: String,
         val quantizedSize: String,
@@ -34,30 +38,56 @@ object SlmModelConfig {
 
     val AVAILABLE_MODELS = listOf(
         ModelMetadata(
-            id = MODEL_QWEN_1_5B,
-            displayName = "Qwen2.5-1.5B",
-            shortTag = "聰明精準",
-            description = "當前手機端側綜合智力最高之開源小模型，具備優秀邏輯推理、中文理解與精確摘要能力",
-            parameterCount = "1.54B",
-            quantizedSize = "約 940 MB (Q4_K_M)",
-            fileName = FILE_QWEN_1_5B_GGUF,
-            downloadUrl = "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+            id = MODEL_QWEN_0_8B,
+            displayName = "Qwen3.5-0.8B",
+            shortTag = "極致能效",
+            chipLabel = "0.8B 能效",
+            description = "極低功耗與超高速回應，記憶體開銷小於 600MB，適合即時潤飾、語音快答與快速總結",
+            parameterCount = "0.8B",
+            quantizedSize = "約 550 MB (Q4_K_M)",
+            fileName = FILE_QWEN_0_8B_GGUF,
+            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-0.8B-Instruct-GGUF/resolve/main/qwen3.5-0.8b-instruct-q4_k_m.gguf"
         ),
         ModelMetadata(
-            id = MODEL_QWEN_0_5B,
-            displayName = "Qwen2.5-0.5B",
-            shortTag = "極速高能效",
-            description = "極致省電與毫秒級極速回應，記憶體開銷小於 500MB，適合即時潤飾、語句快答與筆記總結",
-            parameterCount = "0.49B",
-            quantizedSize = "約 350 MB (Q4_K_M)",
-            fileName = FILE_QWEN_0_5B_GGUF,
-            downloadUrl = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+            id = MODEL_QWEN_2B,
+            displayName = "Qwen3.5-2B",
+            shortTag = "平衡通用",
+            chipLabel = "2B 平衡",
+            description = "兼顧速度與優秀語言理解力，日常對話、郵件草擬與精準摘要的最佳平衡點",
+            parameterCount = "2.0B",
+            quantizedSize = "約 1.3 GB (Q4_K_M)",
+            fileName = FILE_QWEN_2B_GGUF,
+            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-2B-Instruct-GGUF/resolve/main/qwen3.5-2b-instruct-q4_k_m.gguf"
+        ),
+        ModelMetadata(
+            id = MODEL_QWEN_4B,
+            displayName = "Qwen3.5-4B",
+            shortTag = "聰明精準",
+            chipLabel = "4B 聰明",
+            description = "具備強大邏輯推理與多步驟思維能力，適合複雜問題分析、編程協助與深度思考",
+            parameterCount = "4.0B",
+            quantizedSize = "約 2.5 GB (Q4_K_M)",
+            fileName = FILE_QWEN_4B_GGUF,
+            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-4B-Instruct-GGUF/resolve/main/qwen3.5-4b-instruct-q4_k_m.gguf"
+        ),
+        ModelMetadata(
+            id = MODEL_QWEN_9B,
+            displayName = "Qwen3.5-9B",
+            shortTag = "旗艦智能",
+            chipLabel = "9B 旗艦",
+            description = "旗艦級端側巨量參數量，最高等級多領域通識與智力水準，適合大 RAM 旗艦手機",
+            parameterCount = "9.0B",
+            quantizedSize = "約 5.5 GB (Q4_K_M)",
+            fileName = FILE_QWEN_9B_GGUF,
+            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-9B-Instruct-GGUF/resolve/main/qwen3.5-9b-instruct-q4_k_m.gguf"
         )
     )
 
-    fun getSelectedModel(context: Context): String =
-        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+    fun getSelectedModel(context: Context): String {
+        val saved = context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
             .getString(KEY_SLM_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL
+        return if (AVAILABLE_MODELS.any { it.id == saved }) saved else DEFAULT_MODEL
+    }
 
     fun setSelectedModel(context: Context, modelId: String) =
         context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
@@ -73,6 +103,15 @@ object SlmModelConfig {
 
     fun getModelMetadata(modelId: String): ModelMetadata =
         AVAILABLE_MODELS.find { it.id == modelId } ?: AVAILABLE_MODELS.first()
+
+    /**
+     * Cycles to the next available model in the list.
+     */
+    fun getNextModel(currentModelId: String): ModelMetadata {
+        val currentIndex = AVAILABLE_MODELS.indexOfFirst { it.id == currentModelId }
+        val nextIndex = if (currentIndex != -1) (currentIndex + 1) % AVAILABLE_MODELS.size else 0
+        return AVAILABLE_MODELS[nextIndex]
+    }
 
     fun getModelFile(context: Context, modelId: String): File {
         val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
