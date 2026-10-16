@@ -5082,6 +5082,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
             }
         }
+        scope.launch {
+            ModelDownloadState.results.collect { (engine, _) ->
+                if (isSlmChatActive && slmChatView != null && SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine }) {
+                    updateModelUi()
+                }
+            }
+        }
 
         btnModelToggle.setOnClickListener {
             HapticUtil.click(this)

@@ -318,6 +318,7 @@ class ModelDownloader(private val context: Context? = null) {
             conn.instanceFollowRedirects = false
             conn.connectTimeout = 15_000
             conn.readTimeout = 30_000
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile) Verbead-VoiceIME/1.0")
             if (rangeBytes != null && rangeBytes > 0) {
                 conn.setRequestProperty("Range", "bytes=$rangeBytes-")
             }

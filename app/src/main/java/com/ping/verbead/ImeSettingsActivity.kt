@@ -1596,10 +1596,10 @@ class ImeSettingsActivity : AppCompatActivity() {
             ModelConfig.ENGINE_QWEN3 -> "Qwen3-ASR (約 878MB)"
             ModelConfig.ENGINE_PP_OCR_TINY -> "PP-OCRv6 Tiny (約 11MB)"
             ModelConfig.ENGINE_PP_OCR_SMALL -> "PP-OCRv6 Small (約 22MB)"
-            SlmModelConfig.MODEL_QWEN_0_8B -> "Qwen 3.5 0.8B (約 550MB)"
-            SlmModelConfig.MODEL_QWEN_2B -> "Qwen 3.5 2B (約 1.3GB)"
+            SlmModelConfig.MODEL_QWEN_0_8B -> "Qwen 3.5 0.8B (約 503MB)"
+            SlmModelConfig.MODEL_QWEN_2B -> "Qwen 3.5 2B (約 1.2GB)"
             SlmModelConfig.MODEL_QWEN_4B -> "Qwen 3.5 4B (約 2.5GB)"
-            SlmModelConfig.MODEL_QWEN_9B -> "Qwen 3.5 9B (約 5.5GB)"
+            SlmModelConfig.MODEL_QWEN_9B -> "Qwen 3.5 9B (約 5.2GB)"
             else -> engine
         }
         val btn = when {

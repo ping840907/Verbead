@@ -30,10 +30,10 @@ object SlmModelConfig {
     const val DEFAULT_THINKING_ENABLED = true
 
     const val SLM_DIR = "slm"
-    const val FILE_QWEN_0_8B_GGUF = "qwen3.5-0.8b-instruct-q4_k_m.gguf"
-    const val FILE_QWEN_2B_GGUF = "qwen3.5-2b-instruct-q4_k_m.gguf"
-    const val FILE_QWEN_4B_GGUF = "qwen3.5-4b-instruct-q4_k_m.gguf"
-    const val FILE_QWEN_9B_GGUF = "qwen3.5-9b-instruct-q4_k_m.gguf"
+    const val FILE_QWEN_0_8B_GGUF = "Qwen3.5-0.8B-Q4_K_M.gguf"
+    const val FILE_QWEN_2B_GGUF = "Qwen3.5-2B-Q4_K_M.gguf"
+    const val FILE_QWEN_4B_GGUF = "Qwen3.5-4B-Q4_K_M.gguf"
+    const val FILE_QWEN_9B_GGUF = "Qwen3.5-9B-Q4_K_M.gguf"
 
     data class ModelMetadata(
         val id: String,
@@ -55,9 +55,9 @@ object SlmModelConfig {
             chipLabel = "0.8B 能效",
             description = "極低功耗與超高速回應，記憶體開銷小於 600MB，適合即時潤飾、語音快答與快速總結",
             parameterCount = "0.8B",
-            quantizedSize = "約 550 MB (Q4_K_M)",
+            quantizedSize = "約 503 MB (Q4_K_M)",
             fileName = FILE_QWEN_0_8B_GGUF,
-            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-0.8B-Instruct-GGUF/resolve/main/qwen3.5-0.8b-instruct-q4_k_m.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
         ),
         ModelMetadata(
             id = MODEL_QWEN_2B,
@@ -66,9 +66,9 @@ object SlmModelConfig {
             chipLabel = "2B 平衡",
             description = "兼顧速度與優秀語言理解力，日常對話、郵件草擬與精準摘要的最佳平衡點",
             parameterCount = "2.0B",
-            quantizedSize = "約 1.3 GB (Q4_K_M)",
+            quantizedSize = "約 1.2 GB (Q4_K_M)",
             fileName = FILE_QWEN_2B_GGUF,
-            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-2B-Instruct-GGUF/resolve/main/qwen3.5-2b-instruct-q4_k_m.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf"
         ),
         ModelMetadata(
             id = MODEL_QWEN_4B,
@@ -79,7 +79,7 @@ object SlmModelConfig {
             parameterCount = "4.0B",
             quantizedSize = "約 2.5 GB (Q4_K_M)",
             fileName = FILE_QWEN_4B_GGUF,
-            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-4B-Instruct-GGUF/resolve/main/qwen3.5-4b-instruct-q4_k_m.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf"
         ),
         ModelMetadata(
             id = MODEL_QWEN_9B,
@@ -88,9 +88,9 @@ object SlmModelConfig {
             chipLabel = "9B 旗艦",
             description = "旗艦級端側巨量參數量，最高等級多領域通識與智力水準，適合大 RAM 旗艦手機",
             parameterCount = "9.0B",
-            quantizedSize = "約 5.5 GB (Q4_K_M)",
+            quantizedSize = "約 5.2 GB (Q4_K_M)",
             fileName = FILE_QWEN_9B_GGUF,
-            downloadUrl = "https://huggingface.co/Qwen/Qwen3.5-9B-Instruct-GGUF/resolve/main/qwen3.5-9b-instruct-q4_k_m.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf"
         )
     )
 
@@ -128,7 +128,11 @@ object SlmModelConfig {
         val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
         val slmDir = File(baseDir, SLM_DIR)
         val meta = getModelMetadata(modelId)
-        return File(slmDir, meta.fileName)
+        val primary = File(slmDir, meta.fileName)
+        if (primary.exists() && primary.length() > 0L) return primary
+        val alt = File(slmDir, meta.fileName.lowercase())
+        if (alt.exists() && alt.length() > 0L) return alt
+        return primary
     }
 
     fun isModelReady(context: Context, modelId: String): Boolean =
