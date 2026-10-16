@@ -30,7 +30,7 @@
     <style name="Verbead.Text.Section" parent="">
         <item name="android:textSize">13sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/md_theme_light_primary</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
         <item name="android:letterSpacing">0.04</item>
     </style>
 
@@ -109,7 +109,7 @@
 
     <!-- ══════════ Misc ══════════ -->
     <style name="Verbead.Divider" parent="">
-        <item name="android:background">@color/md_theme_light_outlineVariant</item>
+        <item name="android:background">?attr/colorOutlineVariant</item>
         <item name="android:alpha">0.6</item>
     </style>
 
@@ -128,7 +128,7 @@
         <item name="android:background">@drawable/bg_icon_circle</item>
         <item name="android:padding">10dp</item>
         <item name="android:importantForAccessibility">no</item>
-        <item name="android:tint">@color/md_theme_light_onPrimaryContainer</item>
+        <item name="android:tint">?attr/colorOnPrimaryContainer</item>
     </style>
 
 </resources>

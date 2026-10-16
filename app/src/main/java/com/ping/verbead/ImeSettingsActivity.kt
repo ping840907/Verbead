@@ -97,6 +97,12 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnOpenAppInfo: MaterialButton
     private lateinit var layoutShowOnlyOnKeyboardToggle: View
     private lateinit var switchShowOnlyOnKeyboard: MaterialSwitch
+    private lateinit var layoutMultiBubbleToggle: View
+    private lateinit var switchMultiBubble: MaterialSwitch
+    private lateinit var dividerMultiBubbleCount: View
+    private lateinit var layoutMultiBubbleCount: View
+    private lateinit var tvMultiBubbleCountValue: TextView
+    private lateinit var sbMultiBubbleCount: SeekBar
     private lateinit var layoutPasteModeToggle: View
     private lateinit var tvInjectionMethodDesc: TextView
     private lateinit var switchPasteMode: MaterialSwitch
@@ -157,6 +163,8 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvDownloadStatusOcr: TextView
     private lateinit var layoutOcrAutoEnterToggle: View
     private lateinit var switchOcrAutoEnter: MaterialSwitch
+    private lateinit var layoutOcrSmartStitchToggle: View
+    private lateinit var switchOcrSmartStitch: MaterialSwitch
     private lateinit var btnOcrSepNewline: MaterialButton
     private lateinit var btnOcrSepSpace: MaterialButton
     private lateinit var btnOcrSepNone: MaterialButton
@@ -311,6 +319,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnOpenAppInfo            = findViewById(R.id.btn_open_app_info)
         layoutShowOnlyOnKeyboardToggle = findViewById(R.id.layout_show_only_on_keyboard_toggle)
         switchShowOnlyOnKeyboard       = findViewById(R.id.switch_show_only_on_keyboard)
+        layoutMultiBubbleToggle        = findViewById(R.id.layout_multi_bubble_toggle)
+        switchMultiBubble              = findViewById(R.id.switch_multi_bubble)
+        dividerMultiBubbleCount        = findViewById(R.id.divider_multi_bubble_count)
+        layoutMultiBubbleCount         = findViewById(R.id.layout_multi_bubble_count)
+        tvMultiBubbleCountValue        = findViewById(R.id.tv_multi_bubble_count_value)
+        sbMultiBubbleCount             = findViewById(R.id.sb_multi_bubble_count)
         layoutPasteModeToggle          = findViewById(R.id.layout_paste_mode_toggle)
         tvInjectionMethodDesc          = findViewById(R.id.tv_injection_method_desc)
         switchPasteMode                = findViewById(R.id.switch_paste_mode)
@@ -373,6 +387,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvDownloadStatusOcr  = findViewById(R.id.tv_download_status_ocr)
         layoutOcrAutoEnterToggle = findViewById(R.id.layout_ocr_auto_enter_toggle)
         switchOcrAutoEnter       = findViewById(R.id.switch_ocr_auto_enter)
+        layoutOcrSmartStitchToggle = findViewById(R.id.layout_ocr_smart_stitch_toggle)
+        switchOcrSmartStitch       = findViewById(R.id.switch_ocr_smart_stitch)
         btnOcrSepNewline     = findViewById(R.id.btn_ocr_sep_newline)
         btnOcrSepSpace       = findViewById(R.id.btn_ocr_sep_space)
         btnOcrSepNone        = findViewById(R.id.btn_ocr_sep_none)
@@ -508,6 +524,32 @@ class ImeSettingsActivity : AppCompatActivity() {
         layoutShowOnlyOnKeyboardToggle.setOnClickListener {
             switchShowOnlyOnKeyboard.performClick()
         }
+
+        // Multi Bubble Mode
+        switchMultiBubble.setOnClickListener {
+            val isChecked = switchMultiBubble.isChecked
+            ModelConfig.setMultiBubbleEnabled(this, isChecked)
+            updateMultiBubbleUI(isChecked)
+            FloatingBubbleService.instance?.updateMultiBubbleMode()
+            HapticUtil.click(this)
+        }
+        layoutMultiBubbleToggle.setOnClickListener {
+            switchMultiBubble.performClick()
+        }
+
+        sbMultiBubbleCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    val count = progress + ModelConfig.MIN_MULTI_BUBBLE_COUNT
+                    ModelConfig.setMultiBubbleCount(this@ImeSettingsActivity, count)
+                    tvMultiBubbleCountValue.text = "${count} 個"
+                    FloatingBubbleService.instance?.updateMultiBubbleMode()
+                    HapticUtil.tick(this@ImeSettingsActivity)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
 
         // 2. Clipboard paste mode
         switchPasteMode.setOnClickListener {
@@ -685,7 +727,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             handleDownloadButtonClick(engine)
         }
 
-        // 6. OCR & Scanner: Auto enter
+        // 6. OCR & Scanner: Auto enter & Smart Stitch
         switchOcrAutoEnter.setOnClickListener {
             val isChecked = switchOcrAutoEnter.isChecked
             ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
@@ -693,6 +735,15 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
         layoutOcrAutoEnterToggle.setOnClickListener {
             switchOcrAutoEnter.performClick()
+        }
+
+        switchOcrSmartStitch.setOnClickListener {
+            val isChecked = switchOcrSmartStitch.isChecked
+            ModelConfig.setOcrSmartStitchEnabled(this, isChecked)
+            HapticUtil.click(this)
+        }
+        layoutOcrSmartStitchToggle.setOnClickListener {
+            switchOcrSmartStitch.performClick()
         }
 
         fun updateOcrSepSelection(sep: String) {
@@ -984,6 +1035,13 @@ class ImeSettingsActivity : AppCompatActivity() {
         dividerAppInfoRow.visibility = if (hasUnrestrictedNeeds) View.VISIBLE else View.GONE
 
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
+        switchMultiBubble.isChecked = isMultiBubble
+        updateMultiBubbleUI(isMultiBubble)
+        val bubbleCount = ModelConfig.getMultiBubbleCount(this)
+        sbMultiBubbleCount.progress = bubbleCount - ModelConfig.MIN_MULTI_BUBBLE_COUNT
+        tvMultiBubbleCountValue.text = "${bubbleCount} 個"
+
         val isPasteMode = ModelConfig.isPasteModeEnabled(this)
         switchPasteMode.isChecked = isPasteMode
         updatePasteModeDesc(isPasteMode)
@@ -1098,6 +1156,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             }
         }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
+        switchOcrSmartStitch.isChecked = ModelConfig.isOcrSmartStitchEnabled(this)
         switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
 
         val currentSep = ModelConfig.ocrSeparator(this)
@@ -1518,6 +1577,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         } else {
             tvInjectionMethodDesc.text = "無障礙填入模式：隱私性最高，直接寫入輸入框而不經由系統剪貼簿"
         }
+    }
+
+    private fun updateMultiBubbleUI(enabled: Boolean) {
+        dividerMultiBubbleCount.visibility = if (enabled) View.VISIBLE else View.GONE
+        layoutMultiBubbleCount.visibility = if (enabled) View.VISIBLE else View.GONE
     }
 
     private fun updateHistoryUI(enabled: Boolean) {

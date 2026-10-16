@@ -42,6 +42,13 @@ class CapsuleMenuController(
         const val MODE_PHRASES = 3
 
         const val ITEM_COUNT = 4
+        const val ITEM_HEIGHT_DP = 56
+        const val CAPSULE_MENU_HEIGHT_DP = ITEM_COUNT * ITEM_HEIGHT_DP // 224dp
+        const val CAPSULE_WINDOW_HEIGHT_DP = 248 // 224dp + 12dp top + 12dp bottom padding
+        // 懸浮球中心至膠囊視窗頂/底之最大外推距離：
+        // 視窗邊界 248dp，氣泡中心 30dp。Phrases 模式下項目中心在 208dp，往上延伸至視窗頂為 208dp - 30dp = 178dp；
+        // Voice 模式下項目中心在 40dp，往下延伸至視窗底為 (248dp - 40dp) - 30dp = 178dp。
+        const val CAPSULE_MENU_MAX_EXTENT_DP = 178
 
         fun modeToIndex(mode: Int): Int = when (mode) {
             MODE_VOICE -> 0
@@ -70,6 +77,8 @@ class CapsuleMenuController(
     private var currentHoveredIndex: Int = 0
     private var currentMode: Int = MODE_VOICE
     private var cachedMicCenterY: Float = 0f
+    private var cachedMinY: Int = 0
+    private var cachedMaxY: Int = Int.MAX_VALUE
 
     /**
      * Inflates and shows the capsule menu centered over the floating bubble.
@@ -80,9 +89,15 @@ class CapsuleMenuController(
         bubbleWidthPx: Int,
         bubbleHeightPx: Int,
         mode: Int,
-        startRawY: Float = 0f
+        startRawY: Float = 0f,
+        minY: Int = 0,
+        maxY: Int = Int.MAX_VALUE,
+        screenWidth: Int = Int.MAX_VALUE
     ) {
         if (isShowing) return
+
+        cachedMinY = minY
+        cachedMaxY = maxY
 
         val density = context.resources.displayMetrics.density
         currentMode = mode
@@ -120,7 +135,9 @@ class CapsuleMenuController(
         // initialY = bubbleCenterY - itemWinCenterY
         val itemWinCenterY = (40f + currentIndex * 56f) * density
         val initialY = (bubbleCenterY - itemWinCenterY).toInt()
-        capsuleInitialY = initialY.toFloat()
+        val maxAllowedY = maxOf(minY, maxY - windowHeight)
+        val clampedInitialY = initialY.coerceIn(minY, maxAllowedY)
+        capsuleInitialY = clampedInitialY.toFloat()
         capsuleTouchStartY = if (startRawY > 0f) startRawY else bubbleCenterY
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -130,6 +147,7 @@ class CapsuleMenuController(
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
+        val clampedX = bubbleX.coerceIn(0, maxOf(0, screenWidth - windowWidth))
         capsuleLayoutParams = WindowManager.LayoutParams(
             windowWidth,
             windowHeight,
@@ -140,8 +158,8 @@ class CapsuleMenuController(
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.LEFT
-            x = bubbleX
-            y = initialY
+            x = clampedX
+            y = clampedInitialY
         }
 
         updateItemHighlights(currentIndex, animate = false)
@@ -202,7 +220,8 @@ class CapsuleMenuController(
             else -> dy
         }
 
-        lp.y = (capsuleInitialY + effectiveDy).toInt()
+        val maxAllowedY = maxOf(cachedMinY, cachedMaxY - lp.height)
+        lp.y = (capsuleInitialY + effectiveDy).toInt().coerceIn(cachedMinY, maxAllowedY)
         try {
             windowManager.updateViewLayout(menu, lp)
         } catch (e: Exception) {

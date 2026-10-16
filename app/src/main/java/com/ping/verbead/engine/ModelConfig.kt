@@ -66,17 +66,11 @@ object ModelConfig {
         if (primary != null && (File(primary, OCR_DIR).exists() || File(primary, X_ASR_DIR).exists() || File(primary, QWEN3_ASR_DIR).exists())) {
             return primary.absolutePath
         }
-        val altPaths = listOf(
-            File(context.filesDir, "models"),
-            File("/storage/emulated/0/Android/data/com.ping.verbead/files/models"),
-            File("/sdcard/Android/data/com.ping.verbead/files/models")
-        )
-        for (alt in altPaths) {
-            if (File(alt, OCR_DIR).exists() || File(alt, X_ASR_DIR).exists() || File(alt, QWEN3_ASR_DIR).exists()) {
-                return alt.absolutePath
-            }
+        val internal = File(context.filesDir, "models")
+        if (File(internal, OCR_DIR).exists() || File(internal, X_ASR_DIR).exists() || File(internal, QWEN3_ASR_DIR).exists()) {
+            return internal.absolutePath
         }
-        return primary?.absolutePath ?: (context.filesDir.absolutePath + "/models")
+        return primary?.absolutePath ?: internal.absolutePath
     }
 
     // Qwen3
@@ -301,36 +295,6 @@ object ModelConfig {
         return result
     }
 
-    fun replaceZhan(text: String): String {
-        val rule = CHARACTER_RULES[0]
-        if (text.isEmpty() || !rule.fastCheck(text)) return text
-        return text.replace(rule.regex, rule.replacement)
-    }
-
-    fun replaceHuiYing(text: String): String {
-        val rule = VOCABULARY_RULES[3]
-        if (text.isEmpty() || !rule.fastCheck(text)) return text
-        return text.replace(rule.regex, rule.replacement)
-    }
-
-    fun replaceXie(text: String): String {
-        val rule = CHARACTER_RULES[1]
-        if (text.isEmpty() || !rule.fastCheck(text)) return text
-        return text.replace(rule.regex, rule.replacement)
-    }
-
-    fun replacePin(text: String): String {
-        if (text.isEmpty() || !text.contains('拼')) return text
-        var result = text
-        for (i in 0..2) {
-            val rule = VOCABULARY_RULES[i]
-            if (rule.fastCheck(result)) {
-                result = result.replace(rule.regex, rule.replacement)
-            }
-        }
-        return result
-    }
-
     fun applyPostRegexReplacements(text: String): String {
         if (text.isEmpty()) return text
         // 詞彙規則先執行
@@ -363,6 +327,7 @@ object ModelConfig {
     const val KEY_OCR_MODEL_SELECTION = "ocr_model_selection"
     const val KEY_OCR_AUTO_ENTER = "ocr_auto_enter"
     const val KEY_OCR_SEPARATOR = "ocr_separator"
+    const val KEY_OCR_SMART_STITCH = "ocr_smart_stitch"
 
     fun selectedOcrModel(context: Context): String {
         val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
@@ -375,7 +340,7 @@ object ModelConfig {
 
     fun setSelectedOcrModel(context: Context, model: String) =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .edit().putString(KEY_OCR_MODEL_SELECTION, model).commit()
+            .edit().putString(KEY_OCR_MODEL_SELECTION, model).apply()
 
     fun isOcrAutoEnterEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
@@ -384,6 +349,24 @@ object ModelConfig {
     fun setOcrAutoEnterEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_OCR_AUTO_ENTER, enabled).apply()
+
+    fun isOcrSmartStitchEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_SMART_STITCH, true)
+
+    fun setOcrSmartStitchEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_SMART_STITCH, enabled).apply()
+
+    const val KEY_OCR_PANGU_SPACING = "ocr_pangu_spacing"
+
+    fun isOcrPanguSpacingEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_PANGU_SPACING, false)
+
+    fun setOcrPanguSpacingEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_PANGU_SPACING, enabled).apply()
 
     fun ocrSeparator(context: Context): String =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
@@ -667,6 +650,30 @@ object ModelConfig {
     fun setShowOnlyOnKeyboard(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_SHOW_ONLY_ON_KEYBOARD, enabled).apply()
+
+    // ── Multi Bubble Preferences ──────────────────────────────────────────────
+    const val KEY_MULTI_BUBBLE_ENABLED = "multi_bubble_enabled"
+    const val KEY_MULTI_BUBBLE_COUNT = "multi_bubble_count"
+    const val DEFAULT_MULTI_BUBBLE_COUNT = 4
+    const val MIN_MULTI_BUBBLE_COUNT = 2
+    const val MAX_MULTI_BUBBLE_COUNT = 4
+
+    fun isMultiBubbleEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_MULTI_BUBBLE_ENABLED, false)
+
+    fun setMultiBubbleEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_MULTI_BUBBLE_ENABLED, enabled).apply()
+
+    fun getMultiBubbleCount(context: Context): Int =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getInt(KEY_MULTI_BUBBLE_COUNT, DEFAULT_MULTI_BUBBLE_COUNT)
+            .coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)
+
+    fun setMultiBubbleCount(context: Context, count: Int) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_MULTI_BUBBLE_COUNT, count.coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)).apply()
 
     // ── Text Injection Settings ───────────────────────────────────────────────
     private const val PREF_INJECTION_SETTINGS = "injection_settings"

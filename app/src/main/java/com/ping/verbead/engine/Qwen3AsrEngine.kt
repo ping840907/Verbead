@@ -37,8 +37,8 @@ class Qwen3AsrEngine(private val context: Context) {
      * [hotwords] is a newline-separated list of words/phrases to boost during decoding.
      * If the engine is already loaded with the same hotwords, this is a no-op.
      */
-    suspend fun load(hotwords: String = ""): LoadResult = loadMutex.withLock {
-        if (isLoaded() && loadedHotwords == hotwords) return@withLock LoadResult(true, provider = activeProvider)
+    suspend fun load(hotwords: String = ""): EngineLoadResult = loadMutex.withLock {
+        if (isLoaded() && loadedHotwords == hotwords) return@withLock EngineLoadResult(true, provider = activeProvider)
         withContext(Dispatchers.IO) {
             val convFrontend = ModelConfig.qwen3AsrConvFrontendPath(context)
             val encoder      = ModelConfig.qwen3AsrEncoderPath(context)
@@ -47,10 +47,10 @@ class Qwen3AsrEngine(private val context: Context) {
 
             for (path in listOf(convFrontend, encoder, decoder)) {
                 if (!File(path).exists())
-                    return@withContext LoadResult(false, error = "File not found: $path")
+                    return@withContext EngineLoadResult(false, error = "File not found: $path")
             }
             if (!File(tokenizer).isDirectory)
-                return@withContext LoadResult(false, error = "Tokenizer dir not found: $tokenizer")
+                return@withContext EngineLoadResult(false, error = "Tokenizer dir not found: $tokenizer")
 
             release()
 
@@ -86,13 +86,13 @@ class Qwen3AsrEngine(private val context: Context) {
                     loadedHotwords = hotwords
                     activeProvider = provider
                     Log.i(TAG, "Loaded — provider=$provider  threads=${ModelConfig.QWEN3_ASR_THREADS}  hotwords=${hotwords.lines().size} words")
-                    return@withContext LoadResult(true, provider = provider)
+                    return@withContext EngineLoadResult(true, provider = provider)
                 } catch (ex: Throwable) {
                     Log.w(TAG, "Provider '$provider' failed: ${ex.message}", ex)
                     lastError = ex
                 }
             }
-            LoadResult(false, error = lastError?.message ?: "All providers failed")
+            EngineLoadResult(false, error = lastError?.message ?: "All providers failed")
         }
     }
 
@@ -122,10 +122,4 @@ class Qwen3AsrEngine(private val context: Context) {
             ""
         }
     }
-
-    data class LoadResult(
-        val success: Boolean,
-        val error: String?   = null,
-        val provider: String = "unknown",
-    )
 }

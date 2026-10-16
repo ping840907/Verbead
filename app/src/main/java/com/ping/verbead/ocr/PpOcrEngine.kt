@@ -56,8 +56,8 @@ class PpOcrEngine(private val context: Context) {
             val t0 = text0.trim()
             val t180 = text180.trim()
 
-            val cjk0 = t0.count { it in '\u4e00'..'\u9fa5' }
-            val cjk180 = t180.count { it in '\u4e00'..'\u9fa5' }
+            val cjk0 = t0.count { TextStitcher.isCjk(it) }
+            val cjk180 = t180.count { TextStitcher.isCjk(it) }
 
             val alnum0 = t0.count { it.isLetterOrDigit() }
             val alnum180 = t180.count { it.isLetterOrDigit() }

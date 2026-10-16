@@ -36,13 +36,17 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.cardview.widget.CardView
 import androidx.core.app.NotificationCompat
 import com.google.android.material.card.MaterialCardView
 import com.k2fsa.sherpa.onnx.OnlineStream
 import com.ping.verbead.bubble.BubbleState as State
 import com.ping.verbead.bubble.BubbleStateMachine
 import com.ping.verbead.bubble.CapsuleMenuController
+import com.ping.verbead.bubble.BubblePhysics
+import com.ping.verbead.bubble.BubblePosition
+import com.ping.verbead.bubble.BubbleDeleteZoneController
+import com.ping.verbead.bubble.BubbleShakeDetector
+import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.Qwen3AsrEngine
@@ -83,9 +87,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import com.ping.verbead.camera.FrameMetrics
-import com.ping.verbead.camera.setCovered
-import com.ping.verbead.camera.setFrameRoi
 import com.ping.verbead.engine.AudioRoutingManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.view.ViewGroup
@@ -94,7 +95,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import com.ping.verbead.ocr.OcrBoxesOverlayView
+import com.ping.verbead.ocr.OcrBlock
 import com.ping.verbead.ocr.PpOcrEngine
+import com.ping.verbead.ocr.TextStitcher
 import com.ping.verbead.util.HapticUtil
 import de.markusfisch.android.zxingcpp.ZxingCpp
 import java.util.concurrent.ExecutorService
@@ -155,6 +158,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private lateinit var windowManager: WindowManager
     private lateinit var windowLayoutParams: WindowManager.LayoutParams
     private lateinit var bubbleView: View
+    val bubbleItems = mutableListOf<FloatingBubbleItem>()
+    private var activeAnchorBubble: FloatingBubbleItem? = null
+    private val currentAnchorBubble: FloatingBubbleItem?
+        get() = (activeAnchorBubble?.takeIf { bubbleItems.contains(it) }) ?: bubbleItems.firstOrNull()
 
     private lateinit var previewLayoutParams: WindowManager.LayoutParams
     private lateinit var previewView: View
@@ -184,6 +191,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private val isCapsuleMenuShowing: Boolean
         get() = ::capsuleMenuController.isInitialized && capsuleMenuController.isShowing
     private var currentMode = MODE_VOICE
+
+    // Dynamic multi-bubble shake-to-duplicate & magnetic delete zone
+    private lateinit var bubbleDeleteZoneController: BubbleDeleteZoneController
+    private var shakeDetector: BubbleShakeDetector? = null
+    private var currentlyDraggedBubble: FloatingBubbleItem? = null
 
     // Barcode scanner
     private var scannerView: View? = null
@@ -257,11 +269,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun updateSystemGestureExclusion() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && ::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
-            val w = bubbleView.width
-            val h = bubbleView.height
-            if (w > 0 && h > 0) {
-                bubbleView.systemGestureExclusionRects = listOf(Rect(0, 0, w, h))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            for (item in bubbleItems) {
+                val v = item.view
+                if (v.isAttachedToWindow) {
+                    val w = v.width
+                    val h = v.height
+                    if (w > 0 && h > 0) {
+                        v.systemGestureExclusionRects = listOf(Rect(0, 0, w, h))
+                    }
+                }
             }
         }
     }
@@ -334,9 +351,46 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     animateModeIconIntoBubble(mode)
                 }
                 override fun onDismissed() {
+                    for (b in bubbleItems) {
+                        b.btnBubble.alpha = 1f
+                    }
                     if (::btnBubbleMic.isInitialized) {
                         btnBubbleMic.alpha = 1f
                     }
+                }
+            }
+        )
+        bubbleDeleteZoneController = BubbleDeleteZoneController(
+            context = themedCtx,
+            windowManager = windowManager
+        )
+
+        val density = resources.displayMetrics.density
+        shakeDetector = BubbleShakeDetector(
+            density = density,
+            onShakeStroke = { strokeCount, _, progress, isHorizontal ->
+                when (strokeCount) {
+                    1 -> HapticUtil.tick(this@FloatingBubbleService)
+                    2 -> HapticUtil.click(this@FloatingBubbleService)
+                    else -> HapticUtil.click(this@FloatingBubbleService)
+                }
+                currentlyDraggedBubble?.let { item ->
+                    if (item.view.isAttachedToWindow) {
+                        val squish = (0.16f * progress).coerceIn(0f, 0.18f)
+                        if (isHorizontal) {
+                            item.view.scaleX = 1f
+                            item.view.scaleY = 1f - squish
+                        } else {
+                            item.view.scaleX = 1f - squish
+                            item.view.scaleY = 1f
+                        }
+                    }
+                }
+            },
+            onShakeTriggered = {
+                currentlyDraggedBubble?.let { item ->
+                    item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    handleShakeToDuplicate(item)
                 }
             }
         )
@@ -419,7 +473,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         btnBubbleMic          = bubbleView.findViewById(R.id.btn_bubble_mic)
         ivBubbleIcon          = bubbleView.findViewById(R.id.iv_bubble_icon)
         progressBubble        = bubbleView.findViewById(R.id.progress_bubble)
-        updateBubbleIconForMode(currentMode)
 
         previewView           = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_preview, null)
         cardBubblePreview     = previewView.findViewById(R.id.card_bubble_preview)
@@ -474,134 +527,31 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         isDockedOnRight = true
 
-        var initialX = 0
-        var initialYPos = 0
-        var touchStartX = 0f
-        var touchStartY = 0f
-        var isDragging = false
-        var isLongPressTriggered = false
-        val longPressHandler = Handler(Looper.getMainLooper())
-        val longPressRunnable = Runnable {
-            isLongPressTriggered = true
-            HapticUtil.heavyClick(this)
-            if (isTucked) {
-                untuckBubble(animate = false)
-            }
-            showCapsuleMenu(touchStartY)
+        val isMulti = ModelConfig.isMultiBubbleEnabled(this)
+        val initialMode0 = if (isMulti) {
+            getBubbleMode(0, MODE_VOICE)
+        } else {
+            currentMode
         }
+        val (icon0Res, desc0) = getIconAndDescForMode(initialMode0)
+        ivBubbleIcon.setImageResource(icon0Res)
+        ivBubbleIcon.contentDescription = desc0
 
-        btnBubbleMic.setOnTouchListener { v, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    v.parent?.requestDisallowInterceptTouchEvent(true)
-                    updateSystemGestureExclusion()
-                    snapAnimator?.cancel()
-                    isBubbleMoving = true
-                    bubbleView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
-                    initialX = windowLayoutParams.x
-                    initialYPos = windowLayoutParams.y
-                    touchStartX = event.rawX
-                    touchStartY = event.rawY
-                    isDragging = false
-                    isLongPressTriggered = false
-                    recentTouchSamples.clear()
-                    recordTouchSample(event.rawX, event.rawY)
-                    longPressHandler.removeCallbacks(longPressRunnable)
-                    longPressHandler.postDelayed(longPressRunnable, 350)
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    v.parent?.requestDisallowInterceptTouchEvent(true)
-                    recordTouchSample(event.rawX, event.rawY)
-                    val dx = event.rawX - touchStartX
-                    val dy = event.rawY - touchStartY
-                    val dist = hypot(dx, dy)
-
-                    if (isLongPressTriggered || isCapsuleMenuShowing) {
-                        capsuleMenuController.updateDrag(event.rawX, event.rawY)
-                        return@setOnTouchListener true
-                    }
-
-                    val touchSlop = ViewConfiguration.get(this@FloatingBubbleService).scaledTouchSlop.toFloat().coerceAtMost(8 * density)
-                    if (!isDragging && dist > touchSlop) {
-                        longPressHandler.removeCallbacks(longPressRunnable)
-                        isDragging = true
-                        hidePreviewText()
-                        hideXButtonImmediately()
-                        if (isPhrasesDrawerActive) {
-                            closePhrasesDrawer()
-                        }
-                        initialX = windowLayoutParams.x
-                        initialYPos = windowLayoutParams.y
-                    }
-                    if (isDragging) {
-                        val screenWidth = getScreenWidth()
-                        val screenHeight = getScreenHeight()
-                        val minDragX = getTuckLeftX()
-                        val maxDragX = getTuckRightX()
-                        val minDragY = 0
-                        val maxDragY = screenHeight - bubbleHeightPx
-
-                        val newX = (initialX + (event.rawX - touchStartX)).toInt().coerceIn(minDragX, maxDragX)
-                        val newY = (initialYPos + (event.rawY - touchStartY)).toInt().coerceIn(minDragY, maxDragY)
-                        if (windowLayoutParams.x != newX || windowLayoutParams.y != newY) {
-                            windowLayoutParams.x = newX
-                            windowLayoutParams.y = newY
-                            windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-                            updateXButtonPosition()
-                            updatePulsePosition()
-                        }
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    recordTouchSample(event.rawX, event.rawY)
-                    longPressHandler.removeCallbacks(longPressRunnable)
-                    if (isLongPressTriggered || isCapsuleMenuShowing) {
-                        capsuleMenuController.finishDrag(event.rawX, event.rawY)
-                        isLongPressTriggered = false
-                        isBubbleMoving = false
-                        bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
-                    } else {
-                        val (vx, vy) = computeScreenVelocity()
-
-                        if (!isDragging) {
-                            isBubbleMoving = false
-                            bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
-                            if (isTucked) {
-                                HapticUtil.click(this)
-                                untuckBubble(animate = true)
-                            } else {
-                                HapticUtil.click(this)
-                                onBubbleClick()
-                            }
-                        } else {
-                            snapToSafeBoundsWithInertia(vx, vy)
-                        }
-                    }
-                    recentTouchSamples.clear()
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    longPressHandler.removeCallbacks(longPressRunnable)
-                    if (isLongPressTriggered || isCapsuleMenuShowing) {
-                        capsuleMenuController.dismiss()
-                        isLongPressTriggered = false
-                        isBubbleMoving = false
-                        bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
-                    } else if (isDragging) {
-                        val (vx, vy) = computeScreenVelocity()
-                        snapToSafeBoundsWithInertia(vx, vy)
-                    } else {
-                        isBubbleMoving = false
-                        bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
-                    }
-                    recentTouchSamples.clear()
-                    true
-                }
-                else -> false
-            }
+        val bubble0 = FloatingBubbleItem(
+            id = 0,
+            mode = initialMode0,
+            view = bubbleView,
+            windowLayoutParams = windowLayoutParams,
+            btnBubble = btnBubbleMic,
+            ivIcon = ivBubbleIcon,
+            progress = progressBubble
+        ).apply {
+            this.isDockedOnRight = true
         }
+        activeAnchorBubble = bubble0
+        bubbleItems.clear()
+        bubbleItems.add(bubble0)
+        attachBubbleTouchListener(bubble0)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             bubbleView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
@@ -613,6 +563,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         previewView.visibility = View.GONE
         windowManager.addView(previewView, previewLayoutParams)
         setState(State.IDLE)
+        if (ModelConfig.isMultiBubbleEnabled(this)) {
+            updateMultiBubbleMode()
+        }
 
         // Listen for soft keyboard open/close and dynamic height changes via SharedFlow
         scope.launch {
@@ -625,29 +578,43 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     setBubbleVisible(true, animate = true)
                 }
 
-                if (info.isVisible && ::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
+                if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
                     if (isBubbleMoving || snapAnimator?.isRunning == true) {
                         return@collect
                     }
-                    val safeMax = getMaxY()
-                    if (windowLayoutParams.y > safeMax) {
-                        snapAnimator?.cancel()
-                        val startY = windowLayoutParams.y
-                        ValueAnimator.ofInt(startY, safeMax).apply {
-                            duration = 200
-                            interpolator = DecelerateInterpolator()
-                            addUpdateListener { anim ->
-                                if (bubbleView.isAttachedToWindow) {
-                                    val newY = anim.animatedValue as Int
-                                    if (windowLayoutParams.y != newY) {
-                                        windowLayoutParams.y = newY
-                                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-                                        updateXButtonPosition()
-                                        updatePulsePosition()
+                    if (ModelConfig.isMultiBubbleEnabled(this@FloatingBubbleService)) {
+                        resolveAndApplyEdgeStacking(animate = true)
+                    } else {
+                        val safeMax = getMaxY()
+                        if (windowLayoutParams.y > safeMax) {
+                            snapAnimator?.cancel()
+                            val startY = windowLayoutParams.y
+                            snapAnimator = ValueAnimator.ofInt(startY, safeMax).apply {
+                                duration = 200
+                                interpolator = DecelerateInterpolator()
+                                addUpdateListener { anim ->
+                                    if (bubbleView.isAttachedToWindow) {
+                                        val newY = anim.animatedValue as Int
+                                        if (windowLayoutParams.y != newY) {
+                                            windowLayoutParams.y = newY
+                                            windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                                            updateXButtonPosition()
+                                            updatePulsePosition()
+                                            if (isOcrModeActive) updateOcrPosition()
+                                            if (isScannerModeActive) updateScannerPosition()
+                                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                                            updatePreviewPosition()
+                                        }
                                     }
                                 }
+                                start()
                             }
-                            start()
+                        } else {
+                            if (isOcrModeActive) updateOcrPosition()
+                            if (isScannerModeActive) updateScannerPosition()
+                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                            updateXButtonPosition()
+                            updatePreviewPosition()
                         }
                     }
                 }
@@ -686,24 +653,74 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         return if (resId > 0) resources.getDimensionPixelSize(resId) else (24 * resources.displayMetrics.density).toInt()
     }
 
-    private fun getMinY(): Int {
+    private fun getNavigationBarHeight(): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val insets = windowManager.currentWindowMetrics.windowInsets
+                .getInsetsIgnoringVisibility(android.view.WindowInsets.Type.navigationBars())
+            if (insets.bottom > 0) return insets.bottom
+        }
+        val resId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        return if (resId > 0) resources.getDimensionPixelSize(resId) else (16 * resources.displayMetrics.density).toInt()
+    }
+
+    private fun getSafeBottom(): Int {
+        val screenHeight = getScreenHeight()
+        return if (dynamicKeyboardTop in 1 until screenHeight) {
+            dynamicKeyboardTop
+        } else {
+            screenHeight - getNavigationBarHeight()
+        }
+    }
+
+    private fun getCapsuleMenuDistance(): Int {
+        val density = resources.displayMetrics.density
+        return (CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP * density).toInt()
+    }
+
+    private fun getMinPopupY(): Int {
         val density = resources.displayMetrics.density
         return getStatusBarHeight() + (8 * density).toInt()
     }
 
-    private fun getMaxY(): Int {
+    private fun getMinY(): Int {
         val density = resources.displayMetrics.density
         val screenHeight = getScreenHeight()
+        val defaultMinY = getCapsuleMenuDistance()
+        val safeBottom = getSafeBottom()
+        val bubbleHeight = (60 * density).toInt()
+
+        return if (dynamicKeyboardTop in 1 until screenHeight) {
+            val margin = (8 * density).toInt()
+            val keyboardMax = dynamicKeyboardTop - bubbleHeight - margin
+            if (keyboardMax < defaultMinY) 0 else defaultMinY
+        } else {
+            val available = safeBottom - bubbleHeight
+            if (defaultMinY * 2 > available) {
+                0
+            } else {
+                defaultMinY
+            }
+        }
+    }
+
+    private fun getMaxY(): Int {
+        val density = resources.displayMetrics.density
         val bubbleHeight = (60 * density).toInt()
         val margin = (8 * density).toInt()
+        val screenHeight = getScreenHeight()
 
-        val keyboardTop = if (dynamicKeyboardTop in 1 until screenHeight) {
-            dynamicKeyboardTop
+        val calculatedMax = if (dynamicKeyboardTop in 1 until screenHeight) {
+            dynamicKeyboardTop - bubbleHeight - margin
         } else {
-            (screenHeight * 0.58f).toInt()
+            val safeBottom = getSafeBottom()
+            val available = safeBottom - bubbleHeight
+            val capsuleDist = getCapsuleMenuDistance()
+            if (capsuleDist * 2 > available) {
+                safeBottom - bubbleHeight - margin
+            } else {
+                safeBottom - bubbleHeight - capsuleDist
+            }
         }
-
-        val calculatedMax = keyboardTop - bubbleHeight - margin
         return maxOf(getMinY(), calculatedMax)
     }
 
@@ -728,35 +745,39 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing)) {
             return
         }
-        val isCurrentlyShowing = bubbleView.visibility == View.VISIBLE && bubbleView.alpha > 0.99f
-        if (visible && isCurrentlyShowing) return
-        val isCurrentlyHidden = bubbleView.visibility == View.GONE || (bubbleView.visibility == View.VISIBLE && bubbleView.alpha < 0.01f)
-        if (!visible && isCurrentlyHidden) return
+        for (item in bubbleItems) {
+            val v = item.view
+            if (!v.isAttachedToWindow) continue
+            val isCurrentlyShowing = v.visibility == View.VISIBLE && v.alpha > 0.99f
+            if (visible && isCurrentlyShowing) continue
+            val isCurrentlyHidden = v.visibility == View.GONE || (v.visibility == View.VISIBLE && v.alpha < 0.01f)
+            if (!visible && isCurrentlyHidden) continue
 
-        bubbleView.animate().cancel()
-        if (visible) {
-            bubbleView.visibility = View.VISIBLE
-            if (animate) {
-                bubbleView.animate().alpha(1f).setDuration(180).withEndAction {
-                    updateSystemGestureExclusion()
-                }.start()
+            v.animate().cancel()
+            if (visible) {
+                v.visibility = View.VISIBLE
+                if (animate) {
+                    v.animate().alpha(1f).setDuration(180).withEndAction {
+                        updateSystemGestureExclusion()
+                    }.start()
+                } else {
+                    v.alpha = 1f
+                    v.post { updateSystemGestureExclusion() }
+                }
             } else {
-                bubbleView.alpha = 1f
-                bubbleView.post { updateSystemGestureExclusion() }
-            }
-        } else {
-            hideXButtonImmediately()
-            if (animate) {
-                bubbleView.animate().alpha(0f).setDuration(180).withEndAction {
-                    if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive) {
-                        bubbleView.visibility = View.GONE
-                    } else {
-                        bubbleView.alpha = 1f
-                    }
-                }.start()
-            } else {
-                bubbleView.visibility = View.GONE
-                bubbleView.alpha = 0f
+                if (item.id == 0) hideXButtonImmediately()
+                if (animate) {
+                    v.animate().alpha(0f).setDuration(180).withEndAction {
+                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive) {
+                            v.visibility = View.GONE
+                        } else {
+                            v.alpha = 1f
+                        }
+                    }.start()
+                } else {
+                    v.visibility = View.GONE
+                    v.alpha = 0f
+                }
             }
         }
     }
@@ -783,81 +804,929 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun untuckBubble(animate: Boolean = true, onComplete: (() -> Unit)? = null) {
-        if (!isTucked || !::bubbleView.isInitialized || !bubbleView.isAttachedToWindow) {
-            isTucked = false
+        val target = currentAnchorBubble ?: return
+        untuckBubble(target, animate, onComplete)
+    }
+
+    private fun untuckBubble(item: FloatingBubbleItem, animate: Boolean = true, onComplete: (() -> Unit)? = null) {
+        if (!item.isTucked || !item.view.isAttachedToWindow) {
+            item.isTucked = false
+            if (item.id == 0) isTucked = false
             onComplete?.invoke()
             return
         }
-        isTucked = false
+        item.isTucked = false
+        if (item.id == 0) isTucked = false
         val screenWidth = getScreenWidth()
         val density = resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
-        val targetX = if (isDockedOnRight) (screenWidth - bubbleWidthPx) else 0
-        val targetY = windowLayoutParams.y.coerceIn(getMinY(), getMaxY())
+        val targetX = if (item.isDockedOnRight) (screenWidth - bubbleWidthPx) else 0
+        val targetY = item.windowLayoutParams.y.coerceIn(getMinY(), getMaxY())
 
         if (!animate) {
-            snapAnimator?.cancel()
-            windowLayoutParams.x = targetX
-            windowLayoutParams.y = targetY
-            windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-            updateXButtonPosition()
-            updatePulsePosition()
-            updatePreviewPosition()
-            updateSystemGestureExclusion()
+            item.snapAnimator?.cancel()
+            item.windowLayoutParams.x = targetX
+            item.windowLayoutParams.y = targetY
+            windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+            if (item.id == (currentAnchorBubble?.id ?: 0)) {
+                updateXButtonPosition()
+                updatePreviewPosition()
+                updatePulsePosition()
+                if (isOcrModeActive) updateOcrPosition()
+                if (isScannerModeActive) updateScannerPosition()
+                if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+            }
+            if (item.id == 0) {
+                windowLayoutParams.x = targetX
+                windowLayoutParams.y = targetY
+                updatePulsePosition()
+                updateSystemGestureExclusion()
+            }
             onComplete?.invoke()
             return
         }
 
-        snapAnimator?.cancel()
-        val startX = windowLayoutParams.x
-        val startY = windowLayoutParams.y
-        snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+        item.snapAnimator?.cancel()
+        val startX = item.windowLayoutParams.x
+        val startY = item.windowLayoutParams.y
+        val anim = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 220L
             interpolator = OvershootInterpolator(1.15f)
             addUpdateListener { anim ->
-                if (bubbleView.isAttachedToWindow) {
+                if (item.view.isAttachedToWindow) {
                     val f = anim.animatedFraction
                     val curX = (startX + (targetX - startX) * f).toInt()
                     val curY = (startY + (targetY - startY) * f).toInt()
-                    if (windowLayoutParams.x != curX || windowLayoutParams.y != curY) {
-                        windowLayoutParams.x = curX
-                        windowLayoutParams.y = curY
-                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-                        updateXButtonPosition()
-                        updatePulsePosition()
+                    if (item.windowLayoutParams.x != curX || item.windowLayoutParams.y != curY) {
+                        item.windowLayoutParams.x = curX
+                        item.windowLayoutParams.y = curY
+                        windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                        if (item.id == (currentAnchorBubble?.id ?: 0)) {
+                            updateXButtonPosition()
+                            updatePreviewPosition()
+                            updatePulsePosition()
+                            if (isOcrModeActive) updateOcrPosition()
+                            if (isScannerModeActive) updateScannerPosition()
+                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                        }
+                        if (item.id == 0) {
+                            windowLayoutParams.x = curX
+                            windowLayoutParams.y = curY
+                            updatePulsePosition()
+                        }
                     }
                 }
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    if (bubbleView.isAttachedToWindow) {
-                        windowLayoutParams.x = targetX
-                        windowLayoutParams.y = targetY
-                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-                        updateXButtonPosition()
-                        updatePulsePosition()
-                        updatePreviewPosition()
-                        updateSystemGestureExclusion()
+                    if (item.view.isAttachedToWindow) {
+                        item.windowLayoutParams.x = targetX
+                        item.windowLayoutParams.y = targetY
+                        windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                        if (item.id == (currentAnchorBubble?.id ?: 0)) {
+                            updateXButtonPosition()
+                            updatePreviewPosition()
+                            updatePulsePosition()
+                            if (isOcrModeActive) updateOcrPosition()
+                            if (isScannerModeActive) updateScannerPosition()
+                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                        }
+                        if (item.id == 0) {
+                            windowLayoutParams.x = targetX
+                            windowLayoutParams.y = targetY
+                            updatePulsePosition()
+                            updateSystemGestureExclusion()
+                        }
                     }
                     onComplete?.invoke()
                 }
             })
             start()
         }
+        item.snapAnimator = anim
+        if (item.id == 0) snapAnimator = anim
     }
 
-    private fun snapToSafeBoundsWithInertia(vx: Float = 0f, vy: Float = 0f) {
-        if (!bubbleView.isAttachedToWindow) return
-        snapAnimator?.cancel()
-        isBubbleMoving = true
-        bubbleView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+    @SuppressLint("ClickableViewAccessibility")
+    private fun attachBubbleTouchListener(item: FloatingBubbleItem) {
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
+        val initialPositions = mutableMapOf<Int, Pair<Int, Int>>()
+        var touchStartX = 0f
+        var touchStartY = 0f
+        var isDragging = false
+        var isLongPressTriggered = false
+        var lastCollisionHapticTime = 0L
+        val longPressHandler = Handler(Looper.getMainLooper())
+        val longPressRunnable = Runnable {
+            isLongPressTriggered = true
+            HapticUtil.heavyClick(this@FloatingBubbleService)
+            if (item.isTucked) {
+                untuckBubble(item, animate = false)
+            }
+            activeAnchorBubble = item
+            showCapsuleMenu(item, touchStartY)
+        }
+
+        item.btnBubble.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    currentlyDraggedBubble = item
+                    shakeDetector?.reset()
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                    updateSystemGestureExclusion()
+                    for (b in bubbleItems) {
+                        b.snapAnimator?.cancel()
+                    }
+                    snapAnimator?.cancel()
+                    item.isBubbleMoving = true
+                    item.view.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                    for (b in bubbleItems) {
+                        initialPositions[b.id] = b.windowLayoutParams.x to b.windowLayoutParams.y
+                    }
+                    touchStartX = event.rawX
+                    touchStartY = event.rawY
+                    isDragging = false
+                    isLongPressTriggered = false
+                    recentTouchSamples.clear()
+                    recordTouchSample(event.rawX, event.rawY)
+                    longPressHandler.removeCallbacks(longPressRunnable)
+                    longPressHandler.postDelayed(longPressRunnable, 350)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                    recordTouchSample(event.rawX, event.rawY)
+                    val dx = event.rawX - touchStartX
+                    val dy = event.rawY - touchStartY
+                    val dist = hypot(dx, dy)
+
+                    if (isLongPressTriggered || isCapsuleMenuShowing) {
+                        capsuleMenuController.updateDrag(event.rawX, event.rawY)
+                        return@setOnTouchListener true
+                    }
+
+                    val touchSlop = ViewConfiguration.get(this@FloatingBubbleService).scaledTouchSlop.toFloat().coerceAtMost(8 * density)
+                    if (!isDragging && dist > touchSlop) {
+                        longPressHandler.removeCallbacks(longPressRunnable)
+                        isDragging = true
+                        hidePreviewText()
+                        hideXButtonImmediately()
+                        if (isPhrasesDrawerActive) {
+                            closePhrasesDrawer()
+                        }
+                        if (bubbleItems.size > 1) {
+                            val deleteZoneTargetY = getMinY() + (24 * density).toInt()
+                            bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
+                        }
+                    }
+                    if (isDragging) {
+                        shakeDetector?.addSample(event.rawX, event.rawY)
+
+                        val screenHeight = getScreenHeight()
+                        val screenWidth = getScreenWidth()
+                        val safeMinY = getMinY().toFloat()
+                        val safeMaxY = getMaxY().toFloat()
+                        val normalLeftX = 0f
+                        val normalRightX = (screenWidth - bubbleWidthPx).toFloat()
+                        val minDragX = getTuckLeftX()
+                        val maxDragX = getTuckRightX()
+
+                        val (initX, initY) = initialPositions[item.id] ?: (item.windowLayoutParams.x to item.windowLayoutParams.y)
+                        val rawX = (initX + dx).toFloat()
+                        val dampedX = when {
+                            rawX < normalLeftX -> normalLeftX - (normalLeftX - rawX) * 0.35f
+                            rawX > normalRightX -> normalRightX + (rawX - normalRightX) * 0.35f
+                            else -> rawX
+                        }
+                        val newX = dampedX.toInt().coerceIn(minDragX, maxDragX)
+
+                        val rawY = initY + dy
+                        val dampedY = when {
+                            rawY < safeMinY -> safeMinY - (safeMinY - rawY) * 0.35f
+                            rawY > safeMaxY -> safeMaxY + (rawY - safeMaxY) * 0.35f
+                            else -> rawY
+                        }
+                        val minDragY = 0f
+                        val maxDragY = if (dynamicKeyboardTop in 1 until screenHeight) (safeMaxY + (20 * density)) else (screenHeight - bubbleHeightPx).toFloat()
+                        val newY = dampedY.coerceIn(minDragY, maxDragY).toInt()
+
+                        val bubbleCenterX = newX + bubbleWidthPx / 2f
+                        val bubbleCenterY = newY + bubbleHeightPx / 2f
+
+                        val mag = if (bubbleDeleteZoneController.isShowing) {
+                            bubbleDeleteZoneController.updateMagnetism(
+                                bubbleCenterX = bubbleCenterX,
+                                bubbleCenterY = bubbleCenterY,
+                                bubbleRadiusPx = bubbleWidthPx / 2f,
+                                rawBubbleX = newX.toFloat(),
+                                rawBubbleY = newY.toFloat()
+                            )
+                        } else null
+
+                        if (mag?.isAttracted == true) {
+                            item.windowLayoutParams.x = mag.targetX.toInt()
+                            item.windowLayoutParams.y = mag.targetY.toInt()
+                            item.view.scaleX = if (mag.isLocked) 0.82f else 0.90f
+                            item.view.scaleY = if (mag.isLocked) 0.82f else 0.90f
+                        } else {
+                            item.windowLayoutParams.x = newX
+                            item.windowLayoutParams.y = newY
+                            if (shakeDetector?.isShaking == false) {
+                                item.view.scaleX = 1f
+                                item.view.scaleY = 1f
+                            }
+                        }
+
+                        if (mag?.isAttracted != true && bubbleItems.size > 1) {
+                            val tuckLeftX = getTuckLeftX().toFloat()
+                            val tuckRightX = getTuckRightX().toFloat()
+                            val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive
+                            val minDistancePx = (60 * density) + (8 * density)
+
+                            // Check if dragged item is actively squeezing an untucked edge bubble into the wall
+                            if (allowTuck) {
+                                val itemCenterX = newX + bubbleWidthPx / 2f
+                                val itemCenterY = newY + bubbleHeightPx / 2f
+                                for (other in bubbleItems) {
+                                    if (other.id != item.id && !other.isTucked) {
+                                        val otherCenterX = other.windowLayoutParams.x + bubbleWidthPx / 2f
+                                        val otherCenterY = other.windowLayoutParams.y + bubbleHeightPx / 2f
+                                        val dxToOther = otherCenterX - itemCenterX
+                                        val dyToOther = otherCenterY - itemCenterY
+                                        val distToOther = hypot(dxToOther, dyToOther)
+                                        if (distToOther < minDistancePx) {
+                                            val nx = if (distToOther > 0.001f) dxToOther / distToOther else 0f
+                                            if (nx > 0.35f && other.windowLayoutParams.x >= normalRightX - 8 * density) {
+                                                // Squeezed into right tuck mode!
+                                                other.isTucked = true
+                                                other.isDockedOnRight = true
+                                                other.windowLayoutParams.x = tuckRightX.toInt()
+                                            } else if (nx < -0.35f && other.windowLayoutParams.x <= normalLeftX + 8 * density) {
+                                                // Squeezed into left tuck mode!
+                                                other.isTucked = true
+                                                other.isDockedOnRight = false
+                                                other.windowLayoutParams.x = tuckLeftX.toInt()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            val boundsMap = mutableMapOf<Int, Pair<Float, Float>>()
+                            val positions = bubbleItems.map {
+                                val posX = if (it.isTucked) {
+                                    if (it.isDockedOnRight) tuckRightX else tuckLeftX
+                                } else {
+                                    it.windowLayoutParams.x.toFloat()
+                                }
+                                val (bMinX, bMaxX) = if (it.isTucked) {
+                                    if (it.isDockedOnRight) (tuckRightX to tuckRightX) else (tuckLeftX to tuckLeftX)
+                                } else {
+                                    (normalLeftX to normalRightX)
+                                }
+                                boundsMap[it.id] = bMinX to bMaxX
+                                BubblePosition(it.id, posX, it.windowLayoutParams.y.toFloat(), 30f * density)
+                            }
+                            val collisionMaxDragY = if (dynamicKeyboardTop in 1 until screenHeight) safeMaxY else (screenHeight - bubbleHeightPx).toFloat()
+                            val oldPositions = bubbleItems.associate { it.id to (it.windowLayoutParams.x to it.windowLayoutParams.y) }
+                            val anyMoved = BubblePhysics.resolveCollisions(
+                                bubbles = positions,
+                                draggedId = item.id,
+                                minDragX = tuckLeftX,
+                                maxDragX = tuckRightX,
+                                minDragY = safeMinY,
+                                maxDragY = collisionMaxDragY,
+                                gap = 8f * density,
+                                bubbleBounds = boundsMap
+                            )
+                            if (anyMoved) {
+                                val now = System.currentTimeMillis()
+                                if (now - lastCollisionHapticTime > 140L) {
+                                    lastCollisionHapticTime = now
+                                    HapticUtil.tick(this@FloatingBubbleService)
+                                }
+                                for (other in bubbleItems) {
+                                    if (other.id != item.id) {
+                                        val (origX, origY) = oldPositions[other.id] ?: continue
+                                        val p = positions.firstOrNull { it.id == other.id } ?: continue
+                                        val px = p.x.roundToInt()
+                                        val py = p.y.roundToInt()
+                                        if (px != origX || py != origY) {
+                                            other.snapAnimator?.cancel()
+                                            val finalX = if (other.isTucked) {
+                                                if (other.isDockedOnRight) tuckRightX.toInt() else tuckLeftX.toInt()
+                                            } else {
+                                                px.coerceIn(normalLeftX.toInt(), normalRightX.toInt())
+                                            }
+                                            other.windowLayoutParams.x = finalX
+                                            other.windowLayoutParams.y = py
+                                            if (other.view.isAttachedToWindow) {
+                                                windowManager.updateViewLayout(other.view, other.windowLayoutParams)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (item.view.isAttachedToWindow) {
+                            windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                        }
+                        if (item.id == (currentAnchorBubble?.id ?: 0)) {
+                            updateXButtonPosition()
+                            updatePreviewPosition()
+                            updatePulsePosition()
+                            if (isOcrModeActive) updateOcrPosition()
+                            if (isScannerModeActive) updateScannerPosition()
+                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                        }
+                        if (item.id == 0) {
+                            updatePulsePosition()
+                        }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    recordTouchSample(event.rawX, event.rawY)
+                    longPressHandler.removeCallbacks(longPressRunnable)
+                    if (isLongPressTriggered || isCapsuleMenuShowing) {
+                        capsuleMenuController.finishDrag(event.rawX, event.rawY)
+                        isLongPressTriggered = false
+                        item.isBubbleMoving = false
+                        item.view.setLayerType(View.LAYER_TYPE_NONE, null)
+                    } else {
+                        currentlyDraggedBubble = null
+                        shakeDetector?.reset()
+
+                        if (isDragging && bubbleDeleteZoneController.isShowing && bubbleDeleteZoneController.isAttracted) {
+                            item.isBubbleMoving = false
+                            item.view.setLayerType(View.LAYER_TYPE_NONE, null)
+                            handleDeleteBubble(item)
+                        } else {
+                            item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                            if (bubbleDeleteZoneController.isShowing) {
+                                bubbleDeleteZoneController.hide(animated = true)
+                            }
+                            val (vx, vy) = computeScreenVelocity()
+                            if (!isDragging) {
+                                item.isBubbleMoving = false
+                                item.view.setLayerType(View.LAYER_TYPE_NONE, null)
+                                HapticUtil.click(this@FloatingBubbleService)
+                                if (item.isTucked) {
+                                    untuckBubble(item, animate = true)
+                                } else {
+                                    if (ModelConfig.isMultiBubbleEnabled(this@FloatingBubbleService)) {
+                                        onBubbleClickForMode(item)
+                                    } else {
+                                        onBubbleClick()
+                                    }
+                                }
+                            } else {
+                                snapBubbleToSafeBoundsWithInertia(item, vx, vy)
+                            }
+                        }
+                    }
+                    recentTouchSamples.clear()
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    longPressHandler.removeCallbacks(longPressRunnable)
+                    item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    currentlyDraggedBubble = null
+                    shakeDetector?.reset()
+                    if (bubbleDeleteZoneController.isShowing) {
+                        bubbleDeleteZoneController.hide(animated = true)
+                    }
+                    if (isLongPressTriggered || isCapsuleMenuShowing) {
+                        capsuleMenuController.dismiss()
+                        isLongPressTriggered = false
+                        item.isBubbleMoving = false
+                        item.view.setLayerType(View.LAYER_TYPE_NONE, null)
+                    } else if (isDragging) {
+                        val (vx, vy) = computeScreenVelocity()
+                        snapBubbleToSafeBoundsWithInertia(item, vx, vy)
+                    } else {
+                        item.isBubbleMoving = false
+                        item.view.setLayerType(View.LAYER_TYPE_NONE, null)
+                    }
+                    recentTouchSamples.clear()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    fun updateMultiBubbleMode() {
+        if (!::bubbleView.isInitialized) return
+        val enabled = ModelConfig.isMultiBubbleEnabled(this)
+        val targetCount = if (enabled) ModelConfig.getMultiBubbleCount(this) else 1
+
+        if (enabled) {
+            val defaultModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)
+            val bubble0 = bubbleItems.firstOrNull()
+            if (bubble0 != null) {
+                bubble0.mode = getBubbleMode(0, defaultModes[0])
+                val (iconRes, desc) = getIconAndDescForMode(bubble0.mode)
+                bubble0.ivIcon.setImageResource(iconRes)
+                bubble0.ivIcon.contentDescription = desc
+            }
+
+            // Remove bubbles with id >= targetCount
+            val it = bubbleItems.iterator()
+            while (it.hasNext()) {
+                val item = it.next()
+                if (item.id >= targetCount) {
+                    if (item.view.isAttachedToWindow) {
+                        removeOverlay("bubble_${item.id}", item.view)
+                    }
+                    it.remove()
+                }
+            }
+
+            val density = resources.displayMetrics.density
+            val bubbleWidthPx = (60 * density).toInt()
+            val bubbleHeightPx = (60 * density).toInt()
+            val screenWidth = getScreenWidth()
+            val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+
+            for (id in bubbleItems.size until targetCount) {
+                val mode = getBubbleMode(id, defaultModes.getOrElse(id) { MODE_VOICE })
+                val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+                val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
+                val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
+                val prog = v.findViewById<ProgressBar>(R.id.progress_bubble)
+                val (iconRes, desc) = getIconAndDescForMode(mode)
+                iv.setImageResource(iconRes)
+                iv.contentDescription = desc
+
+                val initialX = if (isDockedOnRight) (screenWidth - bubbleWidthPx) else 0
+                val initialY = (windowLayoutParams.y + id * (68 * density).toInt()).coerceIn(getMinY(), getMaxY())
+
+                val lp = WindowManager.LayoutParams(
+                    bubbleWidthPx,
+                    bubbleHeightPx,
+                    layoutFlag,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    PixelFormat.TRANSLUCENT
+                ).apply {
+                    gravity = Gravity.TOP or Gravity.LEFT
+                    x = initialX
+                    y = initialY
+                }
+
+                val item = FloatingBubbleItem(
+                    id = id,
+                    mode = mode,
+                    view = v,
+                    windowLayoutParams = lp,
+                    btnBubble = btn,
+                    ivIcon = iv,
+                    progress = prog
+                ).apply {
+                    this.isDockedOnRight = this@FloatingBubbleService.isDockedOnRight
+                }
+
+                attachBubbleTouchListener(item)
+                bubbleItems.add(item)
+                windowManager.addView(v, lp)
+            }
+
+            resolveAndApplyEdgeStacking()
+        } else {
+            val it = bubbleItems.iterator()
+            while (it.hasNext()) {
+                val item = it.next()
+                if (item.id != 0) {
+                    if (item.view.isAttachedToWindow) {
+                        removeOverlay("bubble_${item.id}", item.view)
+                    }
+                    it.remove()
+                }
+            }
+            val bubble0 = bubbleItems.firstOrNull()
+            if (bubble0 != null) {
+                bubble0.mode = currentMode
+                val (iconRes, desc) = getIconAndDescForMode(currentMode)
+                bubble0.ivIcon.setImageResource(iconRes)
+                bubble0.ivIcon.contentDescription = desc
+                activeAnchorBubble = bubble0
+            }
+        }
+    }
+
+    private fun handleShakeToDuplicate(parent: FloatingBubbleItem) {
+        if (bubbleItems.size >= ModelConfig.MAX_MULTI_BUBBLE_COUNT) {
+            HapticUtil.tick(this)
+            return
+        }
+
+        val newCount = bubbleItems.size + 1
+        ModelConfig.setMultiBubbleEnabled(this, true)
+        ModelConfig.setMultiBubbleCount(this, newCount)
+
+        val allModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES)
+        val usedModes = bubbleItems.map { it.mode }.toSet()
+        val newMode = allModes.firstOrNull { it !in usedModes } ?: MODE_VOICE
+        val newId = bubbleItems.size
+        setBubbleMode(newId, newMode)
+
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+        val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
+        val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
+        val prog = v.findViewById<ProgressBar>(R.id.progress_bubble)
+        val (iconRes, desc) = getIconAndDescForMode(newMode)
+        iv.setImageResource(iconRes)
+        iv.contentDescription = desc
+
+        val initialX = parent.windowLayoutParams.x
+        val initialY = parent.windowLayoutParams.y
+
+        val lp = WindowManager.LayoutParams(
+            bubbleWidthPx,
+            bubbleHeightPx,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = initialX
+            y = initialY
+        }
+
+        val newItem = FloatingBubbleItem(
+            id = newId,
+            mode = newMode,
+            view = v,
+            windowLayoutParams = lp,
+            btnBubble = btn,
+            ivIcon = iv,
+            progress = prog
+        ).apply {
+            this.isDockedOnRight = parent.isDockedOnRight
+        }
+
+        attachBubbleTouchListener(newItem)
+        bubbleItems.add(newItem)
+
+        v.scaleX = 0.25f
+        v.scaleY = 0.25f
+        v.alpha = 0.3f
+
+        windowManager.addView(v, lp)
+
+        // Haptic feedback pop
+        HapticUtil.heavyClick(this)
+
+        // Parent recoil/bounce (squish inward without exceeding 1.0f)
+        parent.view.animate().cancel()
+        parent.view.animate()
+            .scaleX(0.88f)
+            .scaleY(0.88f)
+            .setDuration(120L)
+            .withEndAction {
+                parent.view.animate().scaleX(1f).scaleY(1f).setDuration(160L).setInterpolator(DecelerateInterpolator()).start()
+            }
+            .start()
+
+        // New bubble blooms smoothly to full size (capped at 1.0f so edges are never clipped by the window)
+        v.animate().cancel()
+        v.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .alpha(1f)
+            .setDuration(260L)
+            .setInterpolator(DecelerateInterpolator(1.6f))
+            .start()
+
+        // Repulsion displacement alongside the parent bubble (staying at current X until finger release)
+        val repulsionDistance = (68 * density).toInt()
+        val safeMin = getMinY()
+        val safeMax = getMaxY()
+        val existingYs = bubbleItems.map { it.windowLayoutParams.y }
+        val candidateDown = (initialY + repulsionDistance).coerceIn(safeMin, safeMax)
+        val candidateUp = (initialY - repulsionDistance).coerceIn(safeMin, safeMax)
+        val distDown = existingYs.minOfOrNull { kotlin.math.abs(it - candidateDown) } ?: Int.MAX_VALUE
+        val distUp = existingYs.minOfOrNull { kotlin.math.abs(it - candidateUp) } ?: Int.MAX_VALUE
+        val targetRepulsionY = if (distDown >= distUp) candidateDown else candidateUp
+
+        val screenWidth = getScreenWidth()
+        val targetOnRight = (initialX + bubbleWidthPx / 2f) >= screenWidth / 2f
+        newItem.isDockedOnRight = targetOnRight
+
+        newItem.snapAnimator?.cancel()
+        newItem.snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 200L
+            interpolator = DecelerateInterpolator(1.4f)
+            addUpdateListener { va ->
+                if (v.isAttachedToWindow) {
+                    val f = va.animatedFraction
+                    lp.x = initialX
+                    lp.y = (initialY + (targetRepulsionY - initialY) * f).toInt()
+                    windowManager.updateViewLayout(v, lp)
+                }
+            }
+            start()
+        }
+
+        // Show delete zone if parent is currently being dragged and size > 1
+        if (bubbleItems.size > 1 && !bubbleDeleteZoneController.isShowing) {
+            val deleteZoneTargetY = getMinY() + (24 * density).toInt()
+            bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
+        }
+    }
+
+    private fun handleDeleteBubble(bubbleToDelete: FloatingBubbleItem) {
+        if (bubbleItems.size <= 1) {
+            if (bubbleDeleteZoneController.isShowing) {
+                bubbleDeleteZoneController.hide(animated = true)
+            }
+            return
+        }
+
+        bubbleToDelete.view.animate().cancel()
+        bubbleToDelete.view.animate()
+            .scaleX(0f)
+            .scaleY(0f)
+            .alpha(0f)
+            .setDuration(160L)
+            .start()
+
+        bubbleDeleteZoneController.playDeleteBurst {
+            if (bubbleToDelete.id == 0) {
+                // bubble0 is the service's primary bound bubbleView.
+                // Inherit state from a surviving bubble to preserve windowManager view binding.
+                val survivor = bubbleItems.firstOrNull { it.id != 0 }
+                if (survivor != null) {
+                    bubbleToDelete.mode = survivor.mode
+                    val (iconRes, desc) = getIconAndDescForMode(survivor.mode)
+                    bubbleToDelete.ivIcon.setImageResource(iconRes)
+                    bubbleToDelete.ivIcon.contentDescription = desc
+                    bubbleToDelete.windowLayoutParams.x = survivor.windowLayoutParams.x
+                    bubbleToDelete.windowLayoutParams.y = survivor.windowLayoutParams.y
+                    bubbleToDelete.isDockedOnRight = survivor.isDockedOnRight
+                    bubbleToDelete.isTucked = survivor.isTucked
+                    windowLayoutParams.x = survivor.windowLayoutParams.x
+                    windowLayoutParams.y = survivor.windowLayoutParams.y
+                    isDockedOnRight = survivor.isDockedOnRight
+                    isTucked = survivor.isTucked
+                    setBubbleMode(0, survivor.mode)
+
+                    bubbleToDelete.view.scaleX = 1f
+                    bubbleToDelete.view.scaleY = 1f
+                    bubbleToDelete.view.alpha = 1f
+                    if (bubbleToDelete.view.isAttachedToWindow) {
+                        windowManager.updateViewLayout(bubbleToDelete.view, bubbleToDelete.windowLayoutParams)
+                    }
+
+                    if (survivor.view.isAttachedToWindow) {
+                        removeOverlay("bubble_${survivor.id}", survivor.view)
+                    }
+                    bubbleItems.remove(survivor)
+                    activeAnchorBubble = bubbleToDelete
+                }
+            } else {
+                if (bubbleToDelete.view.isAttachedToWindow) {
+                    removeOverlay("bubble_${bubbleToDelete.id}", bubbleToDelete.view)
+                }
+                bubbleItems.remove(bubbleToDelete)
+                if (activeAnchorBubble?.id == bubbleToDelete.id) {
+                    activeAnchorBubble = bubbleItems.firstOrNull()
+                }
+            }
+
+            // Normalize and save IDs for remaining bubbles
+            bubbleItems.forEachIndexed { index, item ->
+                item.id = index
+                setBubbleMode(index, item.mode)
+            }
+
+            val newCount = bubbleItems.size
+            if (newCount <= 1) {
+                ModelConfig.setMultiBubbleEnabled(this, false)
+                ModelConfig.setMultiBubbleCount(this, 2)
+                val survivor = bubbleItems.firstOrNull()
+                if (survivor != null) {
+                    currentMode = survivor.mode
+                    snapBubbleToSafeBoundsWithInertia(survivor, vx = 0f, vy = 0f)
+                }
+            } else {
+                ModelConfig.setMultiBubbleCount(this, newCount)
+                val firstSurvivor = bubbleItems.firstOrNull()
+                if (firstSurvivor != null) {
+                    snapBubbleToSafeBoundsWithInertia(firstSurvivor, vx = 0f, vy = 0f)
+                }
+            }
+        }
+    }
+
+    private fun resolveAndApplyEdgeStacking(animate: Boolean = false) {
+        val density = resources.displayMetrics.density
+        val curMinY = getMinY().toFloat()
+        val curMaxY = getMaxY().toFloat()
+
+        val rightBubbles = bubbleItems.filter { it.isDockedOnRight }
+        val rightTargets = if (rightBubbles.isNotEmpty()) {
+            val positions = rightBubbles.map {
+                BubblePosition(it.id, it.windowLayoutParams.x.toFloat(), it.windowLayoutParams.y.toFloat(), 30f * density)
+            }
+            BubblePhysics.resolveEdgeStacking(positions, curMinY, curMaxY, 8f * density)
+        } else emptyMap()
+
+        val leftBubbles = bubbleItems.filter { !it.isDockedOnRight }
+        val leftTargets = if (leftBubbles.isNotEmpty()) {
+            val positions = leftBubbles.map {
+                BubblePosition(it.id, it.windowLayoutParams.x.toFloat(), it.windowLayoutParams.y.toFloat(), 30f * density)
+            }
+            BubblePhysics.resolveEdgeStacking(positions, curMinY, curMaxY, 8f * density)
+        } else emptyMap()
+
+        val allTargets = rightTargets + leftTargets
+        val bubblesToMove = bubbleItems.filter { item ->
+            val targetY = allTargets[item.id]?.roundToInt() ?: item.windowLayoutParams.y
+            targetY != item.windowLayoutParams.y
+        }
+
+        fun updateAllPopups() {
+            updateXButtonPosition()
+            updatePulsePosition()
+            if (isOcrModeActive) updateOcrPosition()
+            if (isScannerModeActive) updateScannerPosition()
+            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+            updatePreviewPosition()
+        }
+
+        if (bubblesToMove.isEmpty()) {
+            updateAllPopups()
+            return
+        }
+
+        if (animate) {
+            val startYMap = bubblesToMove.associate { it.id to it.windowLayoutParams.y }
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 200
+                interpolator = DecelerateInterpolator()
+                addUpdateListener { va ->
+                    val frac = va.animatedFraction
+                    for (item in bubblesToMove) {
+                        val startY = startYMap[item.id] ?: continue
+                        val targetY = allTargets[item.id]?.roundToInt() ?: continue
+                        val currentY = (startY + (targetY - startY) * frac).roundToInt()
+                        if (item.windowLayoutParams.y != currentY) {
+                            item.windowLayoutParams.y = currentY
+                            if (item.view.isAttachedToWindow) {
+                                windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                            }
+                            if (item.id == 0) {
+                                windowLayoutParams.y = currentY
+                            }
+                        }
+                    }
+                    updateAllPopups()
+                }
+                start()
+            }
+        } else {
+            for (item in bubblesToMove) {
+                val targetY = allTargets[item.id]?.roundToInt() ?: continue
+                item.windowLayoutParams.y = targetY
+                if (item.view.isAttachedToWindow) {
+                    windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                }
+                if (item.id == 0) {
+                    windowLayoutParams.y = targetY
+                }
+            }
+            updateAllPopups()
+        }
+    }
+
+    private fun onBubbleClickForMode(item: FloatingBubbleItem) {
+        activeAnchorBubble = item
+        if (state == State.PASTED) {
+            hideXButton()
+            setState(State.IDLE)
+        }
+        when (item.mode) {
+            MODE_VOICE -> {
+                if (isScannerModeActive) stopScannerMode()
+                if (isOcrModeActive) stopOcrMode()
+                if (isPhrasesDrawerActive) closePhrasesDrawer()
+                when (state) {
+                    State.RECORDING -> {
+                        recorder.stopEarly()
+                        hidePreviewText()
+                        setState(State.TRANSCRIBING)
+                    }
+                    State.IDLE, State.PASTED -> {
+                        startRecording()
+                    }
+                    State.LOADING, State.TRANSCRIBING -> {
+                        // In progress, ignore
+                    }
+                    State.SCANNING -> {
+                        stopScannerMode()
+                        startRecording()
+                    }
+                }
+            }
+            MODE_OCR -> {
+                if (state == State.RECORDING) {
+                    recorder.stopEarly()
+                    hidePreviewText()
+                    setState(State.IDLE)
+                }
+                if (isScannerModeActive) stopScannerMode()
+                if (isPhrasesDrawerActive) closePhrasesDrawer()
+                toggleOcrMode()
+            }
+            MODE_BARCODE -> {
+                if (state == State.RECORDING) {
+                    recorder.stopEarly()
+                    hidePreviewText()
+                    setState(State.IDLE)
+                }
+                if (isOcrModeActive) stopOcrMode()
+                if (isPhrasesDrawerActive) closePhrasesDrawer()
+                toggleScannerMode()
+            }
+            MODE_PHRASES -> {
+                if (state == State.RECORDING) {
+                    recorder.stopEarly()
+                    hidePreviewText()
+                    setState(State.IDLE)
+                }
+                if (isScannerModeActive) stopScannerMode()
+                if (isOcrModeActive) stopOcrMode()
+                togglePhrasesDrawer()
+            }
+        }
+    }
+
+    private fun evaluateTuck(
+        startX: Float,
+        vx: Float,
+        isRight: Boolean,
+        isCurrentlyTucked: Boolean,
+        normalX: Float,
+        hiddenWidthPx: Float,
+        density: Float
+    ): Boolean {
+        return if (isRight) {
+            if (isCurrentlyTucked) {
+                val pullInwardThreshold = normalX + hiddenWidthPx * 0.60f
+                !(startX < pullInwardThreshold || vx < -180f)
+            } else {
+                val pushOutwardThreshold = normalX + hiddenWidthPx * 0.30f
+                (startX >= pushOutwardThreshold && vx >= -100f) ||
+                    (startX >= normalX - 12 * density && vx > 220f)
+            }
+        } else {
+            if (isCurrentlyTucked) {
+                val pullInwardThreshold = normalX - hiddenWidthPx * 0.60f
+                !(startX > pullInwardThreshold || vx > 180f)
+            } else {
+                val pushOutwardThreshold = normalX - hiddenWidthPx * 0.30f
+                (startX <= pushOutwardThreshold && vx <= 100f) ||
+                    (startX <= normalX + 12 * density && vx < -220f)
+            }
+        }
+    }
+
+    private fun snapBubbleToSafeBoundsWithInertia(item: FloatingBubbleItem, vx: Float = 0f, vy: Float = 0f) {
+        if (!item.view.isAttachedToWindow) return
+        item.snapAnimator?.cancel()
+        item.isBubbleMoving = true
+        item.view.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
         val screenWidth = getScreenWidth()
         val density = resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
+        val bubbleHeightPx = (60 * density).toInt()
 
-        val startX = windowLayoutParams.x.toFloat()
-        val startY = windowLayoutParams.y.toFloat()
+        val startX = item.windowLayoutParams.x.toFloat()
+        val startY = item.windowLayoutParams.y.toFloat()
 
         // 1. Friction coasting model to determine projected rest coordinate
         val tau = 0.22f // Effective friction deceleration coasting time constant (tau = 1 / beta)
@@ -866,7 +1735,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         // Target edge is determined strictly by whether the projected rest position crosses the screen midpoint
         val targetOnRight = projectedCenterX >= screenWidth / 2f
-        isDockedOnRight = targetOnRight
+        item.isDockedOnRight = targetOnRight
+        if (item.id == 0) isDockedOnRight = targetOnRight
 
         val normalLeftX = 0f
         val normalRightX = (screenWidth - bubbleWidthPx).toFloat()
@@ -874,34 +1744,25 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val tuckRightX = getTuckRightX().toFloat()
         val hiddenWidthPx = getHiddenWidthPx().toFloat()
 
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
         val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive
         val shouldTuck = if (!allowTuck) {
             false
-        } else if (targetOnRight) {
-            if (isTucked) {
-                // Currently tucked: untuck only if pulled inward significantly or flung inward
-                val pullInwardThreshold = normalRightX + hiddenWidthPx * 0.60f
-                !(startX < pullInwardThreshold || vx < -180f)
-            } else {
-                // Currently untucked: tuck if pushed outward past normal edge or flung outward from edge
-                val pushOutwardThreshold = normalRightX + hiddenWidthPx * 0.30f
-                (startX >= pushOutwardThreshold && vx >= -100f) ||
-                    (startX >= normalRightX - 12 * density && vx > 220f)
-            }
         } else {
-            if (isTucked) {
-                // Currently tucked: untuck only if pulled inward significantly or flung inward
-                val pullInwardThreshold = normalLeftX - hiddenWidthPx * 0.60f
-                !(startX > pullInwardThreshold || vx > 180f)
-            } else {
-                // Currently untucked: tuck if pushed outward past normal edge or flung outward from edge
-                val pushOutwardThreshold = normalLeftX - hiddenWidthPx * 0.30f
-                (startX <= pushOutwardThreshold && vx <= 100f) ||
-                    (startX <= normalLeftX + 12 * density && vx < -220f)
-            }
+            evaluateTuck(
+                startX = startX,
+                vx = vx,
+                isRight = targetOnRight,
+                isCurrentlyTucked = item.isTucked,
+                normalX = if (targetOnRight) normalRightX else normalLeftX,
+                hiddenWidthPx = hiddenWidthPx,
+                density = density
+            )
         }
 
-        isTucked = shouldTuck
+        item.isTucked = shouldTuck
+        if (item.id == 0) isTucked = shouldTuck
+
         val targetX = if (targetOnRight) {
             if (shouldTuck) tuckRightX else normalRightX
         } else {
@@ -910,90 +1771,253 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         val curMinY = getMinY().toFloat()
         val curMaxY = getMaxY().toFloat()
-        val projectedY = startY + vy * tau
-        val targetY = projectedY.coerceIn(curMinY, curMaxY)
+        val projectedY = (startY + vy * tau).coerceIn(curMinY, curMaxY)
+
+        var finalItemTargetY = projectedY
+        val otherTargets = mutableMapOf<Int, Pair<Float, Float>>()
+
+        if (isMultiBubble && bubbleItems.size > 1) {
+            for (other in bubbleItems) {
+                if (other.id != item.id) {
+                    val otherCenterX = other.windowLayoutParams.x + bubbleWidthPx / 2f
+                    val otherRight = otherCenterX >= screenWidth / 2f
+                    other.isDockedOnRight = otherRight
+                    if (other.id == 0) isDockedOnRight = otherRight
+                    val otherNormalX = if (otherRight) normalRightX else normalLeftX
+                    val otherTuckX = if (otherRight) tuckRightX else tuckLeftX
+                    val otherShouldTuck = if (allowTuck) {
+                        evaluateTuck(
+                            startX = other.windowLayoutParams.x.toFloat(),
+                            vx = 0f,
+                            isRight = otherRight,
+                            isCurrentlyTucked = other.isTucked,
+                            normalX = otherNormalX,
+                            hiddenWidthPx = hiddenWidthPx,
+                            density = density
+                        )
+                    } else false
+                    other.isTucked = otherShouldTuck
+                    if (other.id == 0) isTucked = otherShouldTuck
+                    val otherTargetX = if (otherShouldTuck) otherTuckX else otherNormalX
+                    otherTargets[other.id] = otherTargetX to other.windowLayoutParams.y.toFloat()
+                }
+            }
+
+            val rightBubbles = bubbleItems.filter { if (it.id == item.id) targetOnRight else it.isDockedOnRight }
+            if (rightBubbles.isNotEmpty()) {
+                val positions = rightBubbles.map {
+                    val y = if (it.id == item.id) projectedY else it.windowLayoutParams.y.toFloat()
+                    BubblePosition(it.id, if (it.isTucked) tuckRightX else normalRightX, y, 30f * density)
+                }
+                val resolvedYs = BubblePhysics.resolveEdgeStacking(positions, curMinY, curMaxY, 8f * density)
+                if (targetOnRight) {
+                    finalItemTargetY = resolvedYs[item.id] ?: projectedY
+                }
+                for (other in rightBubbles) {
+                    if (other.id != item.id) {
+                        val y = resolvedYs[other.id] ?: other.windowLayoutParams.y.toFloat()
+                        val currentX = otherTargets[other.id]?.first ?: (if (other.isTucked) tuckRightX else normalRightX)
+                        otherTargets[other.id] = currentX to y
+                    }
+                }
+            }
+
+            val leftBubbles = bubbleItems.filter { if (it.id == item.id) !targetOnRight else !it.isDockedOnRight }
+            if (leftBubbles.isNotEmpty()) {
+                val positions = leftBubbles.map {
+                    val y = if (it.id == item.id) projectedY else it.windowLayoutParams.y.toFloat()
+                    BubblePosition(it.id, if (it.isTucked) tuckLeftX else normalLeftX, y, 30f * density)
+                }
+                val resolvedYs = BubblePhysics.resolveEdgeStacking(positions, curMinY, curMaxY, 8f * density)
+                if (!targetOnRight) {
+                    finalItemTargetY = resolvedYs[item.id] ?: projectedY
+                }
+                for (other in leftBubbles) {
+                    if (other.id != item.id) {
+                        val y = resolvedYs[other.id] ?: other.windowLayoutParams.y.toFloat()
+                        val currentX = otherTargets[other.id]?.first ?: (if (other.isTucked) tuckLeftX else normalLeftX)
+                        otherTargets[other.id] = currentX to y
+                    }
+                }
+            }
+
+            for (other in bubbleItems) {
+                if (other.id != item.id) {
+                    val (otherTargetX, otherTargetY) = otherTargets[other.id] ?: continue
+                    val otherStartX = other.windowLayoutParams.x
+                    val otherStartY = other.windowLayoutParams.y
+                    val endOtherX = otherTargetX.roundToInt()
+                    val endOtherY = otherTargetY.roundToInt()
+                    if (otherStartX != endOtherX || otherStartY != endOtherY) {
+                        other.snapAnimator?.cancel()
+                        other.isBubbleMoving = true
+                        other.snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+                            duration = 320L
+                            interpolator = OvershootInterpolator(1.1f)
+                            addUpdateListener { anim ->
+                                if (other.view.isAttachedToWindow) {
+                                    val f = anim.animatedFraction
+                                    val cx = (otherStartX + (endOtherX - otherStartX) * f).toInt()
+                                    val cy = (otherStartY + (endOtherY - otherStartY) * f).toInt()
+                                    if (other.windowLayoutParams.x != cx || other.windowLayoutParams.y != cy) {
+                                        other.windowLayoutParams.x = cx
+                                        other.windowLayoutParams.y = cy
+                                        windowManager.updateViewLayout(other.view, other.windowLayoutParams)
+                                        if (other.id == (currentAnchorBubble?.id ?: 0)) {
+                                            updateXButtonPosition()
+                                            updatePreviewPosition()
+                                            updatePulsePosition()
+                                            if (isOcrModeActive) updateOcrPosition()
+                                            if (isScannerModeActive) updateScannerPosition()
+                                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                                        }
+                                        if (other.id == 0) {
+                                            windowLayoutParams.x = cx
+                                            windowLayoutParams.y = cy
+                                            updatePulsePosition()
+                                        }
+                                    }
+                                }
+                            }
+                            addListener(object : android.animation.AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: android.animation.Animator) {
+                                    other.isBubbleMoving = false
+                                    if (other.view.isAttachedToWindow) {
+                                        other.windowLayoutParams.x = endOtherX
+                                        other.windowLayoutParams.y = endOtherY
+                                        windowManager.updateViewLayout(other.view, other.windowLayoutParams)
+                                        if (other.id == (currentAnchorBubble?.id ?: 0)) {
+                                            updateXButtonPosition()
+                                            updatePreviewPosition()
+                                            updatePulsePosition()
+                                            if (isOcrModeActive) updateOcrPosition()
+                                            if (isScannerModeActive) updateScannerPosition()
+                                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                                        }
+                                        if (other.id == 0) {
+                                            windowLayoutParams.x = endOtherX
+                                            windowLayoutParams.y = endOtherY
+                                            updatePulsePosition()
+                                        }
+                                    }
+                                }
+                            })
+                            start()
+                        }
+                    }
+                }
+            }
+        }
 
         // 2. Facebook Messenger / AOSP Damped Harmonic Oscillator (Spring) Physics
-        // Natural frequency and damping ratio:
-        val omegaN = 16.0f // rad/s
-        val zeta = 0.82f // Slightly underdamped for snappy response with subtle organic edge cushion
+        val omegaN = 16.0f
+        val zeta = 0.82f
         val gamma = zeta * omegaN
         val omegaD = (omegaN * kotlin.math.sqrt(1.0 - (zeta * zeta))).toFloat()
 
         val c1x = startX - targetX
         val c2x = if (omegaD > 0.001f) (vx + gamma * c1x) / omegaD else 0f
 
-        val c1y = startY - targetY
+        val c1y = startY - finalItemTargetY
         val c2y = if (omegaD > 0.001f) (vy + gamma * c1y) / omegaD else 0f
 
         val durationMs = 380L
-        val minClampX = tuckLeftX.toInt()
-        val maxClampX = tuckRightX.toInt()
+        val screenHeight = getScreenHeight()
+        val minClampX = minOf(normalLeftX, tuckLeftX).toInt()
+        val maxClampX = maxOf(normalRightX, tuckRightX).toInt()
 
-        snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+        val anim = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = durationMs
             interpolator = android.view.animation.LinearInterpolator()
-            addUpdateListener { anim ->
-                if (bubbleView.isAttachedToWindow) {
-                    val f = anim.animatedFraction
-                    val t = f * (durationMs / 1000f) // time in seconds
+            addUpdateListener { a ->
+                if (item.view.isAttachedToWindow) {
+                    val f = a.animatedFraction
+                    val t = f * (durationMs / 1000f)
                     val exp = kotlin.math.exp((-gamma * t).toDouble()).toFloat()
                     val cos = kotlin.math.cos((omegaD * t).toDouble()).toFloat()
                     val sin = kotlin.math.sin((omegaD * t).toDouble()).toFloat()
 
                     val currentX = targetX + exp * (c1x * cos + c2x * sin)
-                    val currentY = targetY + exp * (c1y * cos + c2y * sin)
+                    val currentY = finalItemTargetY + exp * (c1y * cos + c2y * sin)
 
                     val newX = currentX.toInt().coerceIn(minClampX, maxClampX)
-                    val newY = currentY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
+                    val newY = currentY.toInt().coerceIn(0, screenHeight - bubbleHeightPx)
 
-                    // Early exit when settled within subpixel threshold to eliminate tail micro-jitter
-                    if (t > 0.20f && kotlin.math.abs(currentX - targetX) < 0.75f && kotlin.math.abs(currentY - targetY) < 0.75f) {
+                    if (t > 0.20f && kotlin.math.abs(currentX - targetX) < 0.75f && kotlin.math.abs(currentY - finalItemTargetY) < 0.75f) {
                         val finalX = targetX.toInt().coerceIn(minClampX, maxClampX)
-                        val finalY = targetY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
-                        if (windowLayoutParams.x != finalX || windowLayoutParams.y != finalY) {
-                            windowLayoutParams.x = finalX
-                            windowLayoutParams.y = finalY
-                            windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+                        val finalY = finalItemTargetY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
+                        if (item.windowLayoutParams.x != finalX || item.windowLayoutParams.y != finalY) {
+                            item.windowLayoutParams.x = finalX
+                            item.windowLayoutParams.y = finalY
+                            windowManager.updateViewLayout(item.view, item.windowLayoutParams)
                         }
-                        anim.cancel()
+                        a.cancel()
                         return@addUpdateListener
                     }
 
-                    if (windowLayoutParams.x != newX || windowLayoutParams.y != newY) {
-                        windowLayoutParams.x = newX
-                        windowLayoutParams.y = newY
-                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-                        updateXButtonPosition()
-                        updatePulsePosition()
+                    if (item.windowLayoutParams.x != newX || item.windowLayoutParams.y != newY) {
+                        item.windowLayoutParams.x = newX
+                        item.windowLayoutParams.y = newY
+                        windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                        if (item.id == (currentAnchorBubble?.id ?: 0)) {
+                            updateXButtonPosition()
+                            updatePreviewPosition()
+                            updatePulsePosition()
+                            if (isOcrModeActive) updateOcrPosition()
+                            if (isScannerModeActive) updateScannerPosition()
+                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                        }
+                        if (item.id == 0) {
+                            windowLayoutParams.x = newX
+                            windowLayoutParams.y = newY
+                            updatePulsePosition()
+                        }
                     }
                 }
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    isBubbleMoving = false
-                    if (!bubbleView.isAttachedToWindow) return
-                    bubbleView.setLayerType(View.LAYER_TYPE_NONE, null)
-                    isDockedOnRight = targetOnRight
+                    item.isBubbleMoving = false
+                    if (!item.view.isAttachedToWindow) return
+                    item.view.setLayerType(View.LAYER_TYPE_NONE, null)
+                    item.isDockedOnRight = targetOnRight
                     val finalX = targetX.toInt().coerceIn(minClampX, maxClampX)
-                    val finalY = targetY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
-                    if (windowLayoutParams.x != finalX || windowLayoutParams.y != finalY) {
+                    val finalY = finalItemTargetY.toInt().coerceIn(curMinY.toInt(), curMaxY.toInt())
+                    if (item.windowLayoutParams.x != finalX || item.windowLayoutParams.y != finalY) {
+                        item.windowLayoutParams.x = finalX
+                        item.windowLayoutParams.y = finalY
+                        windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                    }
+                    if (item.id == (currentAnchorBubble?.id ?: 0)) {
+                        updateXButtonPosition()
+                        updatePreviewPosition()
+                        updatePulsePosition()
+                        if (isOcrModeActive) updateOcrPosition()
+                        if (isScannerModeActive) updateScannerPosition()
+                        if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                    }
+                    if (item.id == 0) {
+                        isDockedOnRight = targetOnRight
                         windowLayoutParams.x = finalX
                         windowLayoutParams.y = finalY
-                        windowManager.updateViewLayout(bubbleView, windowLayoutParams)
-                        updateXButtonPosition()
                         updatePulsePosition()
-                    }
-                    updatePreviewPosition()
-                    updateSystemGestureExclusion()
-                    if (!isTucked && (isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive || state == State.PASTED || state == State.RECORDING || state == State.TRANSCRIBING)) {
-                        showXButton()
+                        updateSystemGestureExclusion()
+                        if (!item.isTucked && (isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive || state == State.PASTED || state == State.RECORDING || state == State.TRANSCRIBING)) {
+                            showXButton()
+                        }
                     }
                     HapticUtil.click(this@FloatingBubbleService)
                 }
             })
             start()
         }
+        item.snapAnimator = anim
+        if (item.id == 0) snapAnimator = anim
+    }
+
+    private fun snapToSafeBoundsWithInertia(vx: Float = 0f, vy: Float = 0f) {
+        val bubble0 = bubbleItems.firstOrNull() ?: return
+        snapBubbleToSafeBoundsWithInertia(bubble0, vx, vy)
     }
 
     // 懸浮按鈕 X 鍵點擊事件
@@ -1079,14 +2103,25 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnSize = (44 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
         val statusBar = getStatusBarHeight()
-        val preferredY = windowLayoutParams.y - (48 * density).toInt()
-        val targetY = if (preferredY < statusBar) {
+        val safeBottom = getSafeBottom()
+        val screenWidth = getScreenWidth()
+        val anchor = currentAnchorBubble
+        val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val preferredY = anchorY - (48 * density).toInt()
+        val candidateY = if (preferredY < statusBar) {
             // 上方空間不足（接近狀態列/螢幕頂端），智慧翻轉顯示在懸浮球正下方
-            windowLayoutParams.y + bubbleWidthPx + (4 * density).toInt()
+            anchorY + bubbleWidthPx + (4 * density).toInt()
         } else {
             preferredY
         }
-        lp.x = windowLayoutParams.x + ((bubbleWidthPx - btnSize) / 2)
+        val maxAllowedY = safeBottom - btnSize - (4 * density).toInt()
+        val targetY = candidateY.coerceIn(statusBar + (4 * density).toInt(), maxOf(statusBar + (4 * density).toInt(), maxAllowedY))
+
+        val xOffset = anchorX + ((bubbleWidthPx - btnSize) / 2)
+        val clampedX = xOffset.coerceIn((4 * density).toInt(), maxOf((4 * density).toInt(), screenWidth - btnSize - (4 * density).toInt()))
+
+        lp.x = clampedX
         lp.y = targetY
         try {
             windowManager.updateViewLayout(view, lp)
@@ -1098,7 +2133,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // 獨立懸浮 X 鍵視窗（完全獨立 WindowManager 視窗，徹底消除氣泡視窗高度變更產生的任何擠壓或閃爍）
     internal fun showXButton() {
         xButtonAutoHideJob?.cancel()
-        if (isTucked) {
+        val anchor = currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
             untuckBubble(animate = false)
         }
         if (isXButtonShowing) {
@@ -1124,15 +2162,24 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         val btnSize = (44 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
-        val xOffset = windowLayoutParams.x + ((bubbleWidthPx - btnSize) / 2)
+        val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val xOffset = anchorX + ((bubbleWidthPx - btnSize) / 2)
         val statusBar = getStatusBarHeight()
-        val preferredY = windowLayoutParams.y - (48 * density).toInt()
+        val safeBottom = getSafeBottom()
+        val screenWidth = getScreenWidth()
+
+        val clampedX = xOffset.coerceIn((4 * density).toInt(), maxOf((4 * density).toInt(), screenWidth - btnSize - (4 * density).toInt()))
+
+        val preferredY = anchorY - (48 * density).toInt()
         val isFlipped = preferredY < statusBar
-        val targetY = if (isFlipped) {
-            windowLayoutParams.y + bubbleWidthPx + (4 * density).toInt()
+        val candidateY = if (isFlipped) {
+            anchorY + bubbleWidthPx + (4 * density).toInt()
         } else {
             preferredY
         }
+        val maxAllowedY = safeBottom - btnSize - (4 * density).toInt()
+        val targetY = candidateY.coerceIn(statusBar + (4 * density).toInt(), maxOf(statusBar + (4 * density).toInt(), maxAllowedY))
 
         xButtonLayoutParams = WindowManager.LayoutParams(
             btnSize,
@@ -1144,7 +2191,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.LEFT
-            x = xOffset
+            x = clampedX
             y = targetY
         }
 
@@ -1221,8 +2268,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val pulseSize = (104 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
         val bubbleHeightPx = (60 * density).toInt()
-        lp.x = windowLayoutParams.x + ((bubbleWidthPx - pulseSize) / 2)
-        lp.y = windowLayoutParams.y + ((bubbleHeightPx - pulseSize) / 2)
+        val anchor = activeAnchorBubble ?: currentAnchorBubble
+        val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        lp.x = anchorX + ((bubbleWidthPx - pulseSize) / 2)
+        lp.y = anchorY + ((bubbleHeightPx - pulseSize) / 2)
         try {
             windowManager.updateViewLayout(view, lp)
         } catch (e: Exception) {
@@ -1256,8 +2306,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val pulseSize = (104 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
         val bubbleHeightPx = (60 * density).toInt()
-        val xOffset = windowLayoutParams.x + ((bubbleWidthPx - pulseSize) / 2)
-        val yOffset = windowLayoutParams.y + ((bubbleHeightPx - pulseSize) / 2)
+        val anchor = activeAnchorBubble ?: currentAnchorBubble
+        val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val xOffset = anchorX + ((bubbleWidthPx - pulseSize) / 2)
+        val yOffset = anchorY + ((bubbleHeightPx - pulseSize) / 2)
 
         pulseLayoutParams = WindowManager.LayoutParams(
             pulseSize,
@@ -1375,14 +2428,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val bubbleWidthPx = (60 * density).toInt()
         val windowX = bubbleWidthPx + visualGap - padding
 
-        if (isDockedOnRight) {
+        val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
+
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+
+        if (isRight) {
             previewLayoutParams.gravity = Gravity.TOP or Gravity.RIGHT
             previewLayoutParams.x = windowX
         } else {
             previewLayoutParams.gravity = Gravity.TOP or Gravity.LEFT
             previewLayoutParams.x = windowX
         }
-        previewLayoutParams.y = windowLayoutParams.y + (12 * density).toInt() - padding
+
+        val maxAvailableWidth = screenWidth - bubbleWidthPx - visualGap - padding
+        tvBubblePreview.maxWidth = maxOf((120 * density).toInt(), maxAvailableWidth)
+
+        val estHeight = previewView.measuredHeight.takeIf { it > 0 } ?: (48 * density).toInt()
+        val targetY = anchorY + (12 * density).toInt() - padding
+        val maxAllowedY = safeBottom - estHeight - (8 * density).toInt()
+        previewLayoutParams.y = targetY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
 
         if (previewView.isAttachedToWindow) {
             windowManager.updateViewLayout(previewView, previewLayoutParams)
@@ -1398,7 +2465,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun showPreviewText(msg: String, autoHide: Boolean = true) {
         if (!::previewView.isInitialized) return
-        if (isTucked) {
+        val anchor = currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
             untuckBubble(animate = false)
         }
         tvBubblePreview.text = msg
@@ -1416,7 +2486,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun onBubbleClick() {
-        if (isTucked) {
+        val bubble0 = bubbleItems.firstOrNull()
+        if (bubble0 != null) {
+            activeAnchorBubble = bubble0
+        }
+        if (isTucked || bubble0?.isTucked == true) {
             untuckBubble(animate = true)
             return
         }
@@ -1458,7 +2532,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun startRecording() {
         isAborted = false
-        if (isTucked) {
+        val anchor = activeAnchorBubble ?: currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
             untuckBubble(animate = false)
         }
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -1844,40 +2921,81 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             hidePulseView()
         }
         if (!::btnBubbleMic.isInitialized) return
-        when (state) {
-            State.IDLE -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                updateBubbleIconForMode(currentMode)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
+
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
+        val activeTargetBubble = if (isMultiBubble) {
+            activeAnchorBubble?.takeIf { it.mode == MODE_VOICE }
+                ?: bubbleItems.firstOrNull { it.mode == MODE_VOICE }
+                ?: (activeAnchorBubble ?: bubbleItems.firstOrNull())
+        } else {
+            bubbleItems.firstOrNull()?.apply { mode = currentMode }
+        }
+
+        if (bubbleItems.isEmpty()) {
+            when (state) {
+                State.IDLE, State.PASTED, State.SCANNING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
+                    val (iconRes, desc) = getIconAndDescForMode(currentMode)
+                    ivBubbleIcon.setImageResource(iconRes)
+                    ivBubbleIcon.contentDescription = desc
+                    ivBubbleIcon.visibility = View.VISIBLE
+                    progressBubble.visibility = View.GONE
+                }
+                State.LOADING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
+                    ivBubbleIcon.visibility = View.GONE
+                    progressBubble.visibility = View.VISIBLE
+                }
+                State.RECORDING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
+                    ivBubbleIcon.setImageResource(R.drawable.ic_mic_active)
+                    ivBubbleIcon.visibility = View.VISIBLE
+                    progressBubble.visibility = View.GONE
+                }
+                State.TRANSCRIBING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
+                    ivBubbleIcon.visibility = View.GONE
+                    progressBubble.visibility = View.VISIBLE
+                }
             }
-            State.LOADING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                ivBubbleIcon.visibility = View.GONE
-                progressBubble.visibility = View.VISIBLE
-            }
-            State.RECORDING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
-                ivBubbleIcon.setImageResource(R.drawable.ic_mic_active)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
-            }
-            State.TRANSCRIBING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background_active)
-                ivBubbleIcon.visibility = View.GONE
-                progressBubble.visibility = View.VISIBLE
-            }
-            State.PASTED -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                updateBubbleIconForMode(currentMode)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
-            }
-            State.SCANNING -> {
-                btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
-                updateBubbleIconForMode(currentMode)
-                ivBubbleIcon.visibility = View.VISIBLE
-                progressBubble.visibility = View.GONE
+            return
+        }
+
+        for (item in bubbleItems) {
+            if (item == activeTargetBubble) {
+                when (state) {
+                    State.IDLE, State.PASTED, State.SCANNING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
+                        val (iconRes, desc) = getIconAndDescForMode(item.mode)
+                        item.ivIcon.setImageResource(iconRes)
+                        item.ivIcon.contentDescription = desc
+                        item.ivIcon.visibility = View.VISIBLE
+                        item.progress.visibility = View.GONE
+                    }
+                    State.LOADING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
+                        item.ivIcon.visibility = View.GONE
+                        item.progress.visibility = View.VISIBLE
+                    }
+                    State.RECORDING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background_active)
+                        item.ivIcon.setImageResource(R.drawable.ic_mic_active)
+                        item.ivIcon.visibility = View.VISIBLE
+                        item.progress.visibility = View.GONE
+                    }
+                    State.TRANSCRIBING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background_active)
+                        item.ivIcon.visibility = View.GONE
+                        item.progress.visibility = View.VISIBLE
+                    }
+                }
+            } else {
+                item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
+                val (iconRes, desc) = getIconAndDescForMode(item.mode)
+                item.ivIcon.setImageResource(iconRes)
+                item.ivIcon.contentDescription = desc
+                item.ivIcon.visibility = View.VISIBLE
+                item.progress.visibility = View.GONE
             }
         }
     }
@@ -1895,26 +3013,51 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    private fun getBubbleMode(id: Int, defaultMode: Int): Int {
+        val sp = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE)
+        return sp.getInt("bubble_mode_$id", defaultMode)
+    }
+
+    private fun setBubbleMode(id: Int, mode: Int) {
+        val sp = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE)
+        sp.edit().putInt("bubble_mode_$id", mode).apply()
+    }
+
     private fun updateBubbleIconForMode(mode: Int) {
-        if (!::ivBubbleIcon.isInitialized) return
-        val (iconRes, desc) = getIconAndDescForMode(mode)
-        ivBubbleIcon.setImageResource(iconRes)
-        ivBubbleIcon.contentDescription = desc
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
+        val target = if (isMultiBubble) {
+            currentAnchorBubble ?: bubbleItems.firstOrNull()
+        } else {
+            bubbleItems.firstOrNull()
+        }
+        if (target != null) {
+            target.mode = mode
+            val (iconRes, desc) = getIconAndDescForMode(mode)
+            target.ivIcon.setImageResource(iconRes)
+            target.ivIcon.contentDescription = desc
+        } else if (::ivBubbleIcon.isInitialized) {
+            val (iconRes, desc) = getIconAndDescForMode(mode)
+            ivBubbleIcon.setImageResource(iconRes)
+            ivBubbleIcon.contentDescription = desc
+        }
     }
 
     private fun animateModeIconIntoBubble(mode: Int) {
-        if (!::ivBubbleIcon.isInitialized) return
-        updateBubbleIconForMode(mode)
-        ivBubbleIcon.scaleX = 0.3f
-        ivBubbleIcon.scaleY = 0.3f
-        ivBubbleIcon.alpha = 0.6f
-        ivBubbleIcon.animate()
+        val anchor = currentAnchorBubble
+        val targetIv = anchor?.ivIcon ?: if (::ivBubbleIcon.isInitialized) ivBubbleIcon else return
+        val (iconRes, desc) = getIconAndDescForMode(mode)
+        targetIv.setImageResource(iconRes)
+        targetIv.contentDescription = desc
+        targetIv.scaleX = 0.3f
+        targetIv.scaleY = 0.3f
+        targetIv.alpha = 0.6f
+        targetIv.animate()
             .scaleX(1.2f)
             .scaleY(1.2f)
             .alpha(1f)
             .setDuration(160)
             .withEndAction {
-                ivBubbleIcon.animate()
+                targetIv.animate()
                     .scaleX(1.0f)
                     .scaleY(1.0f)
                     .setDuration(100)
@@ -1936,7 +3079,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             ModelConfig.toTaiwanTraditional(raw)
         }
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
-        val postReplaced = ModelConfig.applyPostRegexReplacements(userReplaced)
+        val postReplaced = if (userReplaced == converted) {
+            converted
+        } else {
+            ModelConfig.applyPostRegexReplacements(userReplaced)
+        }
         return if (ModelConfig.isFilterPunctuationEnabled(this)) {
             ModelConfig.filterChinesePunctuation(postReplaced)
         } else {
@@ -1949,28 +3096,46 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // ══════════════════════════════════════════════════════════════════
     // Capsule Menu Methods
     // ══════════════════════════════════════════════════════════════════
-    private fun showCapsuleMenu(startRawY: Float = 0f) {
+    private fun showCapsuleMenu(item: FloatingBubbleItem? = null, startRawY: Float = 0f) {
         if (isCapsuleMenuShowing) return
-        if (isTucked) {
-            untuckBubble(animate = false)
+        val anchor = item ?: currentAnchorBubble ?: return
+        if (anchor.isTucked) {
+            untuckBubble(anchor, animate = false)
         }
         hideXButtonImmediately()
-        btnBubbleMic.alpha = 0f
+        anchor.btnBubble.alpha = 0f
         val density = resources.displayMetrics.density
         capsuleMenuController.show(
-            bubbleX = windowLayoutParams.x,
-            bubbleY = windowLayoutParams.y,
+            bubbleX = anchor.windowLayoutParams.x,
+            bubbleY = anchor.windowLayoutParams.y,
             bubbleWidthPx = (60 * density).toInt(),
             bubbleHeightPx = (60 * density).toInt(),
-            mode = currentMode,
-            startRawY = startRawY
+            mode = anchor.mode,
+            startRawY = startRawY,
+            minY = 0,
+            maxY = getSafeBottom(),
+            screenWidth = getScreenWidth()
         )
     }
 
     private fun applyCapsuleSelection(mode: Int) {
         hidePreviewText()
-        currentMode = mode
-        getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, mode).apply()
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
+        val anchor = currentAnchorBubble
+        if (anchor != null) {
+            anchor.mode = mode
+            val (iconRes, desc) = getIconAndDescForMode(mode)
+            anchor.ivIcon.setImageResource(iconRes)
+            anchor.ivIcon.contentDescription = desc
+            if (isMultiBubble) {
+                setBubbleMode(anchor.id, mode)
+            }
+        }
+        if (!isMultiBubble) {
+            currentMode = mode
+            getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, mode).apply()
+            setBubbleMode(0, mode)
+        }
         HapticUtil.click(this)
         when (mode) {
             MODE_VOICE -> {
@@ -2018,7 +3183,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun startScannerMode() {
         if (isScannerModeActive) return
         hidePreviewText()
-        if (isTucked) {
+        val anchor = currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
             untuckBubble(animate = false)
         }
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -2047,13 +3215,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val gap = (10 * density).toInt()
         val screenHeight = getScreenHeight()
         val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
 
         isScannerEnlarged = ModelConfig.isCameraEnlarged(this, MODE_BARCODE)
+        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
         val scannerWidth = if (isScannerEnlarged) {
-            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
         } else {
-            (250 * density).toInt()
+            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
         }
         val cardSize = scannerWidth - (16 * density).toInt()
 
@@ -2065,10 +3234,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val micY = anchorY + (30 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinY(),
-            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
+            getMinPopupY(),
+            maxOf(getMinPopupY(), maxAllowedY)
         )
 
         scannerLayoutParams = WindowManager.LayoutParams(
@@ -2078,7 +3250,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
-            if (isDockedOnRight) {
+            if (isRight) {
                 gravity = Gravity.TOP or Gravity.RIGHT
                 x = bubbleWidthPx + gap
             } else {
@@ -2094,7 +3266,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnAutoEnter = scanner.findViewById<ImageButton>(R.id.btn_scanner_auto_enter)
         val sliderZoom = scanner.findViewById<SeekBar>(R.id.slider_scanner_zoom)
         val viewFinder = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
-        val cardPreview = scanner.findViewById<CardView>(R.id.card_scanner_preview)
+        val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
 
         btnScale?.setImageResource(if (isScannerEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
         cardPreview?.layoutParams = cardPreview?.layoutParams?.apply {
@@ -2146,7 +3318,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         })
 
         // Float out smoothly from the side of the bubble
-        if (isDockedOnRight) {
+        if (isRight) {
             scanner.pivotX = scannerWidth.toFloat()
             scanner.translationX = (40 * density)
         } else {
@@ -2181,19 +3353,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val lp = scannerLayoutParams ?: return
         val density = resources.displayMetrics.density
         val screenWidth = getScreenWidth()
-        val screenHeight = getScreenHeight()
+        val safeBottom = getSafeBottom()
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
 
+        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
         val targetWidth = if (enlarged) {
-            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
         } else {
-            (250 * density).toInt()
+            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
         }
 
         val cardSize = targetWidth - (16 * density).toInt()
-        val cardPreview = scanner.findViewById<CardView>(R.id.card_scanner_preview)
+        val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
         cardPreview?.layoutParams?.apply {
             width = cardSize
             height = cardSize
@@ -2205,15 +3377,68 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
 
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val micY = anchorY + (30 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinY(),
-            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
+            getMinPopupY(),
+            maxOf(getMinPopupY(), maxAllowedY)
         )
         lp.y = targetY
+        lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
+        lp.x = bubbleWidthPx + gap
 
         if (scanner.isAttachedToWindow) {
             windowManager.updateViewLayout(scanner, lp)
+        }
+    }
+
+    private fun updateScannerPosition() {
+        val scanner = scannerView ?: return
+        val lp = scannerLayoutParams ?: return
+        if (!isScannerModeActive || !scanner.isAttachedToWindow) return
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+        val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
+        val anchor = currentAnchorBubble
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+
+        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val targetWidth = if (isScannerEnlarged) {
+            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+        } else {
+            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
+        }
+        if (lp.width != targetWidth) {
+            lp.width = targetWidth
+            val cardSize = targetWidth - (16 * density).toInt()
+            val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
+            cardPreview?.layoutParams?.apply {
+                width = cardSize
+                height = cardSize
+            }
+            cardPreview?.requestLayout()
+        }
+
+        val cardSize = lp.width - (16 * density).toInt()
+        val estimatedHeight = cardSize + (120 * density).toInt()
+        val micY = anchorY + (30 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
+        lp.y = (micY - (estimatedHeight / 2)).coerceIn(
+            getMinPopupY(),
+            maxOf(getMinPopupY(), maxAllowedY)
+        )
+        lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
+        lp.x = bubbleWidthPx + gap
+        try {
+            windowManager.updateViewLayout(scanner, lp)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update scanner window layout", e)
         }
     }
 
@@ -2311,7 +3536,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val density = resources.displayMetrics.density
-        val targetTranslationX = if (isDockedOnRight) (40 * density) else -(40 * density)
+        val isRight = currentAnchorBubble?.isDockedOnRight ?: isDockedOnRight
+        val targetTranslationX = if (isRight) (40 * density) else -(40 * density)
         scanner.animate()
             .alpha(0f)
             .translationX(targetTranslationX)
@@ -2346,7 +3572,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun startOcrMode() {
         if (isOcrModeActive) return
         hidePreviewText()
-        if (isTucked) {
+        val anchor = currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
             untuckBubble(animate = false)
         }
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -2375,6 +3604,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val gap = (10 * density).toInt()
         val screenHeight = getScreenHeight()
         val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -2384,19 +3614,22 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         isOcrEnlarged = ModelConfig.isCameraEnlarged(this, MODE_OCR)
+        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
         val ocrWidth = if (isOcrEnlarged) {
-            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
         } else {
-            (250 * density).toInt()
+            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
         }
 
         val cardSize = ocrWidth - (16 * density).toInt()
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val micY = anchorY + (30 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinY(),
-            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
+            getMinPopupY(),
+            maxOf(getMinPopupY(), maxAllowedY)
         )
 
         ocrWindowLayoutParams = WindowManager.LayoutParams(
@@ -2406,7 +3639,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
-            if (isDockedOnRight) {
+            if (isRight) {
                 gravity = Gravity.TOP or Gravity.RIGHT
                 x = bubbleWidthPx + gap
             } else {
@@ -2423,7 +3656,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnShutter = ocr.findViewById<FrameLayout>(R.id.btn_ocr_shutter)
         val sliderZoom = ocr.findViewById<SeekBar>(R.id.slider_ocr_zoom)
         val viewFinder = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
-        val cardPreview = ocr.findViewById<CardView>(R.id.card_ocr_preview)
+        val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
 
         btnScale.setImageResource(if (isOcrEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
         cardPreview.layoutParams = cardPreview.layoutParams.apply {
@@ -2482,7 +3715,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             triggerOcrSnapshot()
         }
 
-        if (isDockedOnRight) {
+        if (isRight) {
             ocr.pivotX = ocrWidth.toFloat()
             ocr.translationX = (40 * density)
         } else {
@@ -2517,19 +3750,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val lp = ocrWindowLayoutParams ?: return
         val density = resources.displayMetrics.density
         val screenWidth = getScreenWidth()
-        val screenHeight = getScreenHeight()
+        val safeBottom = getSafeBottom()
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
 
+        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
         val targetWidth = if (enlarged) {
-            val maxW = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-            (340 * density).toInt().coerceIn((260 * density).toInt(), maxW)
+            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
         } else {
-            (250 * density).toInt()
+            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
         }
 
         val cardSize = targetWidth - (16 * density).toInt()
-        val cardPreview = ocr.findViewById<CardView>(R.id.card_ocr_preview)
+        val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
         cardPreview?.layoutParams?.apply {
             width = cardSize
             height = cardSize
@@ -2541,15 +3774,68 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
 
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = windowLayoutParams.y + (30 * density).toInt()
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val micY = anchorY + (30 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            getMinY(),
-            maxOf(getMinY(), screenHeight - estimatedHeight - (16 * density).toInt())
+            getMinPopupY(),
+            maxOf(getMinPopupY(), maxAllowedY)
         )
         lp.y = targetY
+        lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
+        lp.x = bubbleWidthPx + gap
 
         if (ocr.isAttachedToWindow) {
             windowManager.updateViewLayout(ocr, lp)
+        }
+    }
+
+    private fun updateOcrPosition() {
+        val ocr = ocrWindowView ?: return
+        val lp = ocrWindowLayoutParams ?: return
+        if (!isOcrModeActive || !ocr.isAttachedToWindow) return
+        val density = resources.displayMetrics.density
+        val bubbleWidthPx = (60 * density).toInt()
+        val gap = (10 * density).toInt()
+        val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
+        val anchor = currentAnchorBubble
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+
+        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val targetWidth = if (isOcrEnlarged) {
+            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+        } else {
+            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
+        }
+        if (lp.width != targetWidth) {
+            lp.width = targetWidth
+            val cardSize = targetWidth - (16 * density).toInt()
+            val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
+            cardPreview?.layoutParams?.apply {
+                width = cardSize
+                height = cardSize
+            }
+            cardPreview?.requestLayout()
+        }
+
+        val cardSize = lp.width - (16 * density).toInt()
+        val estimatedHeight = cardSize + (120 * density).toInt()
+        val micY = anchorY + (30 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
+        lp.y = (micY - (estimatedHeight / 2)).coerceIn(
+            getMinPopupY(),
+            maxOf(getMinPopupY(), maxAllowedY)
+        )
+        lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
+        lp.x = bubbleWidthPx + gap
+        try {
+            windowManager.updateViewLayout(ocr, lp)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update OCR window layout", e)
         }
     }
 
@@ -2570,7 +3856,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val density = resources.displayMetrics.density
-        val targetTranslationX = if (isDockedOnRight) (40 * density) else -(40 * density)
+        val isRight = currentAnchorBubble?.isDockedOnRight ?: isDockedOnRight
+        val targetTranslationX = if (isRight) (40 * density) else -(40 * density)
         ocr.animate()
             .alpha(0f)
             .translationX(targetTranslationX)
@@ -2789,7 +4076,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         .withEndAction { bottomBar.visibility = View.GONE }
                         .start()
                 }
-                tvStatus.text = "點選欲輸入之文字區塊 (可多選)"
+                tvStatus.text = "滑動拉框圈選或點選欲輸入之文字區塊"
             }
         }
 
@@ -2846,7 +4133,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (detectedRects.isEmpty()) {
                         tvStatus.text = "未偵測到清晰文字，可嘗試翻轉 180° 或重試"
                     } else {
-                        tvStatus.text = "點選欲輸入之文字區塊 (可多選，共 ${detectedRects.size} 處)"
+                        tvStatus.text = "滑動拉框圈選或點選文字區塊 (共 ${detectedRects.size} 處)"
                         boxesOverlay.setDetectedBoxes(detectedRects, targetBitmap.width, targetBitmap.height)
                     }
                 } catch (e: Throwable) {
@@ -2904,20 +4191,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         scope.launch {
             try {
-                val results = mutableListOf<String>()
+                val recognizedBlocks = mutableListOf<OcrBlock>()
                 withContext(Dispatchers.Default) {
                     for (box in boxes) {
                         val text = ppOcrEngine.recognizeBox(bitmap, box.originalRect)
                         if (text.isNotBlank()) {
-                            results.add(text.trim())
+                            recognizedBlocks.add(OcrBlock(text = text.trim(), rect = box.originalRect))
                         }
                     }
                 }
 
                 progress.visibility = View.GONE
-                if (results.isNotEmpty()) {
+                if (recognizedBlocks.isNotEmpty()) {
                     val sep = ModelConfig.ocrSeparator(this@FloatingBubbleService)
-                    val processed = results.joinToString(sep)
+                    val processed = if (ModelConfig.isOcrSmartStitchEnabled(this@FloatingBubbleService)) {
+                        TextStitcher.stitch(
+                            recognizedBlocks,
+                            fallbackSep = sep,
+                            panguSpacing = ModelConfig.isOcrPanguSpacingEnabled(this@FloatingBubbleService)
+                        )
+                    } else {
+                        recognizedBlocks.joinToString(sep) { it.text }
+                    }
                     HapticUtil.heavyClick(this@FloatingBubbleService)
                     if (processed.isNotBlank()) {
                         QuickPhrasesManager.addHistory(this@FloatingBubbleService, processed)
@@ -3001,7 +4296,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun openPhrasesDrawer() {
         if (isPhrasesDrawerActive) return
         hidePreviewText()
-        if (isTucked) {
+        val anchor = currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
             untuckBubble(animate = false)
         }
         if (isScannerModeActive) {
@@ -3020,7 +4318,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
         val screenHeight = getScreenHeight()
-        val drawerWidth = (260 * density).toInt()
+        val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
+        val maxDrawerWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val drawerWidth = (260 * density).toInt().coerceAtMost(maxDrawerWidth)
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -3088,20 +4389,23 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
+        val maxAllowedHeight = maxOf((120 * density).toInt(), safeBottom - getMinPopupY() - (16 * density).toInt())
         val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
+        val finalHeight = actualHeight.coerceAtMost(maxAllowedHeight)
 
-        // 優先對齊懸浮球頂部 (windowLayoutParams.y)，若接近螢幕底緣則向上微調避免超出邊界
-        val maxAllowedY = screenHeight - actualHeight - (16 * density).toInt()
-        val targetY = windowLayoutParams.y.coerceIn(getMinY(), maxOf(getMinY(), maxAllowedY))
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val maxAllowedY = safeBottom - finalHeight - (8 * density).toInt()
+        val targetY = anchorY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
 
         phrasesDrawerLayoutParams = WindowManager.LayoutParams(
             drawerWidth,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (actualHeight > maxAllowedHeight) maxAllowedHeight else WindowManager.LayoutParams.WRAP_CONTENT,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
-            if (isDockedOnRight) {
+            if (isRight) {
                 gravity = Gravity.TOP or Gravity.RIGHT
                 x = bubbleWidthPx + gap
             } else {
@@ -3112,10 +4416,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         // 以懸浮球垂直中心為軸心展開動畫，營造從懸浮球直接呼出的視覺感受
-        val bubbleCenterY = windowLayoutParams.y + (30 * density)
-        val relativePivotY = (bubbleCenterY - targetY).coerceIn(0f, actualHeight.toFloat())
+        val bubbleCenterY = anchorY + (30 * density)
+        val relativePivotY = (bubbleCenterY - targetY).coerceIn(0f, finalHeight.toFloat())
 
-        if (isDockedOnRight) {
+        if (isRight) {
             drawer.pivotX = drawerWidth.toFloat()
             drawer.translationX = (24 * density)
         } else {
@@ -3233,12 +4537,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         val drawer = phrasesDrawerView ?: return
         val density = resources.displayMetrics.density
-        val targetTranslationX = if (isDockedOnRight) (24 * density) else -(24 * density)
-        val bubbleCenterY = windowLayoutParams.y + (30 * density)
-        val currentTargetY = phrasesDrawerLayoutParams?.y ?: windowLayoutParams.y
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        val targetTranslationX = if (isRight) (24 * density) else -(24 * density)
+        val bubbleCenterY = anchorY + (30 * density)
+        val currentTargetY = phrasesDrawerLayoutParams?.y ?: anchorY
         val drawerHeight = drawer.height.toFloat().takeIf { it > 0f } ?: (100 * density)
         drawer.pivotY = (bubbleCenterY - currentTargetY).coerceIn(0f, drawerHeight)
-        drawer.pivotX = if (isDockedOnRight) (drawer.width.toFloat().takeIf { it > 0f } ?: (260 * density)) else 0f
+        drawer.pivotX = if (isRight) (drawer.width.toFloat().takeIf { it > 0f } ?: (260 * density)) else 0f
 
         drawer.animate()
             .alpha(0f)
@@ -3267,24 +4574,34 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val density = resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
-        val screenHeight = getScreenHeight()
-        val drawerWidth = (260 * density).toInt()
+        val screenWidth = getScreenWidth()
+        val safeBottom = getSafeBottom()
+        val maxDrawerWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val drawerWidth = (260 * density).toInt().coerceAtMost(maxDrawerWidth)
 
         drawer.measure(
             View.MeasureSpec.makeMeasureSpec(drawerWidth, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
+        val maxAllowedHeight = maxOf((120 * density).toInt(), safeBottom - getMinPopupY() - (16 * density).toInt())
         val actualHeight = drawer.measuredHeight.coerceAtLeast((100 * density).toInt())
+        val finalHeight = actualHeight.coerceAtMost(maxAllowedHeight)
 
-        if (isDockedOnRight) {
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+
+        if (isRight) {
             lp.gravity = Gravity.TOP or Gravity.RIGHT
             lp.x = bubbleWidthPx + gap
         } else {
             lp.gravity = Gravity.TOP or Gravity.LEFT
             lp.x = bubbleWidthPx + gap
         }
-        val maxAllowedY = screenHeight - actualHeight - (16 * density).toInt()
-        lp.y = windowLayoutParams.y.coerceIn(getMinY(), maxOf(getMinY(), maxAllowedY))
+        val maxAllowedY = safeBottom - finalHeight - (8 * density).toInt()
+        lp.width = drawerWidth
+        lp.height = if (actualHeight > maxAllowedHeight) maxAllowedHeight else WindowManager.LayoutParams.WRAP_CONTENT
+        lp.y = anchorY.coerceIn(getMinPopupY(), maxOf(getMinPopupY(), maxAllowedY))
         if (drawer.isAttachedToWindow) {
             try {
                 windowManager.updateViewLayout(drawer, lp)
@@ -3562,18 +4879,25 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
             val screenWidth = getScreenWidth()
             val bubbleWidthPx = (60 * resources.displayMetrics.density).toInt()
-            val finalX = if (isTucked) {
-                if (isDockedOnRight) getTuckRightX() else getTuckLeftX()
-            } else {
-                if (isDockedOnRight) (screenWidth - bubbleWidthPx) else 0
+            for (item in bubbleItems) {
+                if (item.view.isAttachedToWindow) {
+                    val finalX = if (item.isTucked) {
+                        if (item.isDockedOnRight) getTuckRightX() else getTuckLeftX()
+                    } else {
+                        if (item.isDockedOnRight) (screenWidth - bubbleWidthPx) else 0
+                    }
+                    val minY = getMinY()
+                    val maxY = getMaxY()
+                    val finalY = item.windowLayoutParams.y.coerceIn(minY, maxY)
+                    if (item.windowLayoutParams.x != finalX || item.windowLayoutParams.y != finalY) {
+                        item.windowLayoutParams.x = finalX
+                        item.windowLayoutParams.y = finalY
+                        windowManager.updateViewLayout(item.view, item.windowLayoutParams)
+                    }
+                }
             }
-            val minY = getMinY()
-            val maxY = getMaxY()
-            val finalY = windowLayoutParams.y.coerceIn(minY, maxY)
-            if (windowLayoutParams.x != finalX || windowLayoutParams.y != finalY) {
-                windowLayoutParams.x = finalX
-                windowLayoutParams.y = finalY
-                windowManager.updateViewLayout(bubbleView, windowLayoutParams)
+            if (ModelConfig.isMultiBubbleEnabled(this)) {
+                resolveAndApplyEdgeStacking()
             }
             updateXButtonPosition()
             updatePulsePosition()
@@ -3603,6 +4927,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             safely("ocr") { stopOcrMode() }
             safely("phrasesDrawer") { closePhrasesDrawer() }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }
+            safely("deleteZone") { if (::bubbleDeleteZoneController.isInitialized) bubbleDeleteZoneController.hide(animated = false) }
             safely("snapshot") { dismissOcrSnapshot() }
             safely("camera") { cameraExecutor?.shutdown() }
             safely("ppOcr") { ppOcrEngine.release() }
@@ -3620,6 +4945,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             activeStream = null
             safely("qwen3") { if (qwen3Asr.isLoaded()) qwen3Asr.release() }
             safely("xAsr") { if (xAsr.isLoaded()) xAsr.release() }
+
+            for (item in bubbleItems) {
+                if (item.id != 0 && item.view.isAttachedToWindow) {
+                    removeOverlay("bubble_${item.id}", item.view)
+                }
+            }
+            bubbleItems.clear()
 
             removeOverlay("xButton", xButtonView)
             xButtonView = null
