@@ -122,21 +122,37 @@ object BubblePhysics {
         val newDy = mover.cy - fixed.cy
         val newDist = hypot(newDx, newDy)
         if (newDist < minDistance - 0.01f) {
-            val clampedInX = (mover.x <= minDragX + 0.1f && nx < 0) || (mover.x >= maxDragX - 0.1f && nx > 0)
+            val isAtRightWall = mover.x >= maxDragX - 0.5f && nx >= -0.01f
+            val isAtLeftWall = mover.x <= minDragX + 0.5f && nx <= 0.01f
+            val clampedInX = isAtRightWall || isAtLeftWall
             if (clampedInX) {
                 val neededDySq = (minDistance * minDistance) - (newDx * newDx)
                 if (neededDySq > 0f) {
                     val neededDy = kotlin.math.sqrt(neededDySq)
-                    val dirY = if (newDy >= 0f) 1f else -1f
+                    var dirY = if (newDy >= 0f) 1f else -1f
+                    val candidateY = fixed.cy + dirY * neededDy - mover.radius
+                    if (candidateY < minDragY && dirY < 0f) {
+                        dirY = 1f
+                    } else if (candidateY > maxDragY && dirY > 0f) {
+                        dirY = -1f
+                    }
                     mover.y = (fixed.cy + dirY * neededDy - mover.radius).coerceIn(minDragY, maxDragY)
                 }
             } else {
-                val clampedInY = (mover.y <= minDragY + 0.1f && ny < 0) || (mover.y >= maxDragY - 0.1f && ny > 0)
+                val isAtBottom = mover.y >= maxDragY - 0.5f && ny >= -0.01f
+                val isAtTop = mover.y <= minDragY + 0.5f && ny <= 0.01f
+                val clampedInY = isAtBottom || isAtTop
                 if (clampedInY) {
                     val neededDxSq = (minDistance * minDistance) - (newDy * newDy)
                     if (neededDxSq > 0f) {
                         val neededDx = kotlin.math.sqrt(neededDxSq)
-                        val dirX = if (newDx >= 0f) 1f else -1f
+                        var dirX = if (newDx >= 0f) 1f else -1f
+                        val candidateX = fixed.cx + dirX * neededDx - mover.radius
+                        if (candidateX < minDragX && dirX < 0f) {
+                            dirX = 1f
+                        } else if (candidateX > maxDragX && dirX > 0f) {
+                            dirX = -1f
+                        }
                         mover.x = (fixed.cx + dirX * neededDx - mover.radius).coerceIn(minDragX, maxDragX)
                     }
                 }

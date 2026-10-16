@@ -162,4 +162,38 @@ class BubblePhysicsTest {
             assertTrue("Gap between ${sorted[i].key} and ${sorted[i + 1].key} is $diff, expected >= $minDistance", diff >= minDistance - 0.01f)
         }
     }
+
+    @Test
+    fun testCollisionAtRightEdgeWallSlidesVerticallyWithoutExceedingMaxX() {
+        val maxX = 300f
+        // b0 (dragged) is dragged along the right edge at maxX
+        val b0 = BubblePosition(0, maxX, 200f, radius)
+        // b1 is resting right at maxX wall
+        val b1 = BubblePosition(1, maxX, 220f, radius) // distance 20 < minDistance 68
+        val bubbles = listOf(b0, b1)
+
+        val moved = BubblePhysics.resolveCollisions(bubbles, draggedId = 0, 0f, maxX, 100f, 1000f, gap)
+        assertTrue("Collision must move b1", moved)
+        assertEquals("b0 (dragged) must stay at maxX", maxX, b0.x, 0.001f)
+        assertEquals("b0 (dragged) must stay at 200f", 200f, b0.y, 0.001f)
+        assertTrue("b1.x (${b1.x}) must NOT exceed maxX ($maxX)", b1.x <= maxX + 0.001f)
+        val dist = hypot(b1.cx - b0.cx, b1.cy - b0.cy)
+        assertTrue("Distance $dist between b0 and b1 must be >= minDistance $minDistance", dist >= minDistance - 0.01f)
+        assertTrue("b1 must have slid down along the edge", b1.y >= 200f + minDistance - 0.01f)
+    }
+
+    @Test
+    fun testCollisionAtCornerDeflectsTowardsAvailableSpace() {
+        val maxX = 300f
+        val maxY = 500f
+        // b0 pushes b1 which is near the bottom-right corner
+        val b0 = BubblePosition(0, maxX, 470f, radius)
+        val b1 = BubblePosition(1, maxX, 490f, radius)
+        val bubbles = listOf(b0, b1)
+
+        val moved = BubblePhysics.resolveCollisions(bubbles, draggedId = 0, 0f, maxX, 100f, maxY, gap)
+        assertTrue("Collision must move b1", moved)
+        assertTrue("b1.x must be <= maxX", b1.x <= maxX + 0.001f)
+        assertTrue("b1.y must be within [100f, maxY]", b1.y in 100f..maxY)
+    }
 }

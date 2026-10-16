@@ -917,6 +917,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         var touchStartY = 0f
         var isDragging = false
         var isLongPressTriggered = false
+        var lastCollisionHapticTime = 0L
         val longPressHandler = Handler(Looper.getMainLooper())
         val longPressRunnable = Runnable {
             isLongPressTriggered = true
@@ -984,13 +985,22 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         shakeDetector?.addSample(event.rawX, event.rawY)
 
                         val screenHeight = getScreenHeight()
+                        val screenWidth = getScreenWidth()
                         val safeMinY = getMinY().toFloat()
                         val safeMaxY = getMaxY().toFloat()
+                        val normalLeftX = 0f
+                        val normalRightX = (screenWidth - bubbleWidthPx).toFloat()
                         val minDragX = getTuckLeftX()
                         val maxDragX = getTuckRightX()
 
                         val (initX, initY) = initialPositions[item.id] ?: (item.windowLayoutParams.x to item.windowLayoutParams.y)
-                        val newX = (initX + dx).toInt().coerceIn(minDragX, maxDragX)
+                        val rawX = (initX + dx).toFloat()
+                        val dampedX = when {
+                            rawX < normalLeftX -> normalLeftX - (normalLeftX - rawX) * 0.35f
+                            rawX > normalRightX -> normalRightX + (rawX - normalRightX) * 0.35f
+                            else -> rawX
+                        }
+                        val newX = dampedX.toInt().coerceIn(minDragX, maxDragX)
 
                         val rawY = initY + dy
                         val dampedY = when {
@@ -1034,22 +1044,31 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                 BubblePosition(it.id, it.windowLayoutParams.x.toFloat(), it.windowLayoutParams.y.toFloat(), 30f * density)
                             }
                             val collisionMaxDragY = if (dynamicKeyboardTop in 1 until screenHeight) safeMaxY else (screenHeight - bubbleHeightPx).toFloat()
+                            val oldPositions = bubbleItems.associate { it.id to (it.windowLayoutParams.x to it.windowLayoutParams.y) }
                             val anyMoved = BubblePhysics.resolveCollisions(
                                 bubbles = positions,
                                 draggedId = item.id,
-                                minDragX = minDragX.toFloat(),
-                                maxDragX = maxDragX.toFloat(),
-                                minDragY = minDragY,
+                                minDragX = normalLeftX,
+                                maxDragX = normalRightX,
+                                minDragY = safeMinY,
                                 maxDragY = collisionMaxDragY,
                                 gap = 8f * density
                             )
                             if (anyMoved) {
+                                val now = System.currentTimeMillis()
+                                if (now - lastCollisionHapticTime > 140L) {
+                                    lastCollisionHapticTime = now
+                                    HapticUtil.tick(this@FloatingBubbleService)
+                                }
                                 for (other in bubbleItems) {
                                     if (other.id != item.id) {
+                                        val (origX, origY) = oldPositions[other.id] ?: continue
                                         val p = positions.firstOrNull { it.id == other.id } ?: continue
                                         val px = p.x.roundToInt()
                                         val py = p.y.roundToInt()
-                                        if (other.windowLayoutParams.x != px || other.windowLayoutParams.y != py) {
+                                        if (px != origX || py != origY) {
+                                            other.snapAnimator?.cancel()
+                                            other.isTucked = false
                                             other.windowLayoutParams.x = px
                                             other.windowLayoutParams.y = py
                                             if (other.view.isAttachedToWindow) {
@@ -1350,27 +1369,29 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .setInterpolator(DecelerateInterpolator(1.6f))
             .start()
 
-        // Repulsion displacement and natural snap to edge
+        // Repulsion displacement alongside the parent bubble (staying at current X until finger release)
         val repulsionDistance = (68 * density).toInt()
-        val screenMidY = (getMinY() + getMaxY()) / 2
-        val targetRepulsionY = if (initialY < screenMidY) {
-            (initialY + repulsionDistance).coerceIn(getMinY(), getMaxY())
-        } else {
-            (initialY - repulsionDistance).coerceIn(getMinY(), getMaxY())
-        }
+        val safeMin = getMinY()
+        val safeMax = getMaxY()
+        val existingYs = bubbleItems.map { it.windowLayoutParams.y }
+        val candidateDown = (initialY + repulsionDistance).coerceIn(safeMin, safeMax)
+        val candidateUp = (initialY - repulsionDistance).coerceIn(safeMin, safeMax)
+        val distDown = existingYs.minOfOrNull { kotlin.math.abs(it - candidateDown) } ?: Int.MAX_VALUE
+        val distUp = existingYs.minOfOrNull { kotlin.math.abs(it - candidateUp) } ?: Int.MAX_VALUE
+        val targetRepulsionY = if (distDown >= distUp) candidateDown else candidateUp
 
         val screenWidth = getScreenWidth()
         val targetOnRight = (initialX + bubbleWidthPx / 2f) >= screenWidth / 2f
-        val targetEdgeX = if (targetOnRight) (screenWidth - bubbleWidthPx) else 0
         newItem.isDockedOnRight = targetOnRight
 
-        ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 320L
+        newItem.snapAnimator?.cancel()
+        newItem.snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 200L
             interpolator = DecelerateInterpolator(1.4f)
             addUpdateListener { va ->
                 if (v.isAttachedToWindow) {
                     val f = va.animatedFraction
-                    lp.x = (initialX + (targetEdgeX - initialX) * f).toInt()
+                    lp.x = initialX
                     lp.y = (initialY + (targetRepulsionY - initialY) * f).toInt()
                     windowManager.updateViewLayout(v, lp)
                 }
