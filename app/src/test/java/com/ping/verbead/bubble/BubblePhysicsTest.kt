@@ -196,4 +196,39 @@ class BubblePhysicsTest {
         assertTrue("b1.x must be <= maxX", b1.x <= maxX + 0.001f)
         assertTrue("b1.y must be within [100f, maxY]", b1.y in 100f..maxY)
     }
+
+    @Test
+    fun testCollisionTuckedBubblePushedVerticallyAlongTuckTrack() {
+        val normalRightX = 900f
+        val tuckRightX = 942f
+        // b0 is dragged along normalRightX at y = 300f
+        val b0 = BubblePosition(0, normalRightX, 300f, radius)
+        // b1 is tucked at tuckRightX at y = 320f
+        val b1 = BubblePosition(1, tuckRightX, 320f, radius)
+        val bubbles = listOf(b0, b1)
+
+        val boundsMap = mapOf(
+            0 to (0f to normalRightX),
+            1 to (tuckRightX to tuckRightX)
+        )
+
+        val moved = BubblePhysics.resolveCollisions(
+            bubbles = bubbles,
+            draggedId = 0,
+            minDragX = 0f,
+            maxDragX = tuckRightX,
+            minDragY = 100f,
+            maxDragY = 1000f,
+            gap = gap,
+            bubbleBounds = boundsMap
+        )
+
+        assertTrue("Collision must move b1", moved)
+        assertEquals("b0 (dragged) stays at normalRightX", normalRightX, b0.x, 0.001f)
+        assertEquals("b0 (dragged) stays at 300f", 300f, b0.y, 0.001f)
+        assertEquals("b1 stays firmly locked on tuckRightX track", tuckRightX, b1.x, 0.001f)
+        val dist = hypot(b1.cx - b0.cx, b1.cy - b0.cy)
+        assertTrue("Distance $dist should be >= minDistance $minDistance", dist >= minDistance - 0.01f)
+        assertTrue("b1 should have deflected vertically down along the tuck track", b1.y > 320f)
+    }
 }

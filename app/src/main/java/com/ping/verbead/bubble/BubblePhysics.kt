@@ -45,7 +45,8 @@ object BubblePhysics {
         maxDragX: Float,
         minDragY: Float,
         maxDragY: Float,
-        gap: Float = 8f
+        gap: Float = 8f,
+        bubbleBounds: Map<Int, Pair<Float, Float>>? = null
     ): Boolean {
         if (bubbles.size <= 1) return false
         var anyMoved = false
@@ -66,15 +67,18 @@ object BubblePhysics {
                         val isB1Dragged = (b1.id == draggedId)
                         val isB2Dragged = (b2.id == draggedId)
 
+                        val (b1MinX, b1MaxX) = bubbleBounds?.get(b1.id) ?: (minDragX to maxDragX)
+                        val (b2MinX, b2MaxX) = bubbleBounds?.get(b2.id) ?: (minDragX to maxDragX)
+
                         when {
                             isB1Dragged && !isB2Dragged -> {
                                 val oldX = b2.x; val oldY = b2.y
-                                resolvePair(b2, b1, minDragX, maxDragX, minDragY, maxDragY, minDistance)
+                                resolvePair(b2, b1, b2MinX, b2MaxX, minDragY, maxDragY, minDistance)
                                 if (b2.x != oldX || b2.y != oldY) anyMoved = true
                             }
                             !isB1Dragged && isB2Dragged -> {
                                 val oldX = b1.x; val oldY = b1.y
-                                resolvePair(b1, b2, minDragX, maxDragX, minDragY, maxDragY, minDistance)
+                                resolvePair(b1, b2, b1MinX, b1MaxX, minDragY, maxDragY, minDistance)
                                 if (b1.x != oldX || b1.y != oldY) anyMoved = true
                             }
                             else -> {
@@ -85,8 +89,8 @@ object BubblePhysics {
                                 val ny = if (dist > 0.001f) dy / dist else 1f
                                 b1.setCenter(b1.cx - overlap * 0.5f * nx, b1.cy - overlap * 0.5f * ny)
                                 b2.setCenter(b2.cx + overlap * 0.5f * nx, b2.cy + overlap * 0.5f * ny)
-                                clamp(b1, minDragX, maxDragX, minDragY, maxDragY)
-                                clamp(b2, minDragX, maxDragX, minDragY, maxDragY)
+                                clamp(b1, b1MinX, b1MaxX, minDragY, maxDragY)
+                                clamp(b2, b2MinX, b2MaxX, minDragY, maxDragY)
                                 if (b1.x != oldX1 || b1.y != oldY1 || b2.x != oldX2 || b2.y != oldY2) anyMoved = true
                             }
                         }

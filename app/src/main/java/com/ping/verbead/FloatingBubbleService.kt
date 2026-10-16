@@ -1040,19 +1040,66 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         }
 
                         if (mag?.isAttracted != true && bubbleItems.size > 1) {
+                            val tuckLeftX = getTuckLeftX().toFloat()
+                            val tuckRightX = getTuckRightX().toFloat()
+                            val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive
+                            val minDistancePx = (60 * density) + (8 * density)
+
+                            // Check if dragged item is actively squeezing an untucked edge bubble into the wall
+                            if (allowTuck) {
+                                val itemCenterX = newX + bubbleWidthPx / 2f
+                                val itemCenterY = newY + bubbleHeightPx / 2f
+                                for (other in bubbleItems) {
+                                    if (other.id != item.id && !other.isTucked) {
+                                        val otherCenterX = other.windowLayoutParams.x + bubbleWidthPx / 2f
+                                        val otherCenterY = other.windowLayoutParams.y + bubbleHeightPx / 2f
+                                        val dxToOther = otherCenterX - itemCenterX
+                                        val dyToOther = otherCenterY - itemCenterY
+                                        val distToOther = hypot(dxToOther, dyToOther)
+                                        if (distToOther < minDistancePx) {
+                                            val nx = if (distToOther > 0.001f) dxToOther / distToOther else 0f
+                                            if (nx > 0.35f && other.windowLayoutParams.x >= normalRightX - 8 * density) {
+                                                // Squeezed into right tuck mode!
+                                                other.isTucked = true
+                                                other.isDockedOnRight = true
+                                                other.windowLayoutParams.x = tuckRightX.toInt()
+                                            } else if (nx < -0.35f && other.windowLayoutParams.x <= normalLeftX + 8 * density) {
+                                                // Squeezed into left tuck mode!
+                                                other.isTucked = true
+                                                other.isDockedOnRight = false
+                                                other.windowLayoutParams.x = tuckLeftX.toInt()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            val boundsMap = mutableMapOf<Int, Pair<Float, Float>>()
                             val positions = bubbleItems.map {
-                                BubblePosition(it.id, it.windowLayoutParams.x.toFloat(), it.windowLayoutParams.y.toFloat(), 30f * density)
+                                val posX = if (it.isTucked) {
+                                    if (it.isDockedOnRight) tuckRightX else tuckLeftX
+                                } else {
+                                    it.windowLayoutParams.x.toFloat()
+                                }
+                                val (bMinX, bMaxX) = if (it.isTucked) {
+                                    if (it.isDockedOnRight) (tuckRightX to tuckRightX) else (tuckLeftX to tuckLeftX)
+                                } else {
+                                    (normalLeftX to normalRightX)
+                                }
+                                boundsMap[it.id] = bMinX to bMaxX
+                                BubblePosition(it.id, posX, it.windowLayoutParams.y.toFloat(), 30f * density)
                             }
                             val collisionMaxDragY = if (dynamicKeyboardTop in 1 until screenHeight) safeMaxY else (screenHeight - bubbleHeightPx).toFloat()
                             val oldPositions = bubbleItems.associate { it.id to (it.windowLayoutParams.x to it.windowLayoutParams.y) }
                             val anyMoved = BubblePhysics.resolveCollisions(
                                 bubbles = positions,
                                 draggedId = item.id,
-                                minDragX = normalLeftX,
-                                maxDragX = normalRightX,
+                                minDragX = tuckLeftX,
+                                maxDragX = tuckRightX,
                                 minDragY = safeMinY,
                                 maxDragY = collisionMaxDragY,
-                                gap = 8f * density
+                                gap = 8f * density,
+                                bubbleBounds = boundsMap
                             )
                             if (anyMoved) {
                                 val now = System.currentTimeMillis()
@@ -1068,8 +1115,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                         val py = p.y.roundToInt()
                                         if (px != origX || py != origY) {
                                             other.snapAnimator?.cancel()
-                                            other.isTucked = false
-                                            other.windowLayoutParams.x = px
+                                            val finalX = if (other.isTucked) {
+                                                if (other.isDockedOnRight) tuckRightX.toInt() else tuckLeftX.toInt()
+                                            } else {
+                                                px.coerceIn(normalLeftX.toInt(), normalRightX.toInt())
+                                            }
+                                            other.windowLayoutParams.x = finalX
                                             other.windowLayoutParams.y = py
                                             if (other.view.isAttachedToWindow) {
                                                 windowManager.updateViewLayout(other.view, other.windowLayoutParams)
