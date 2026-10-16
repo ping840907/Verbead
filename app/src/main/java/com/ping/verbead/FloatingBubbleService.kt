@@ -1350,7 +1350,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .setInterpolator(DecelerateInterpolator(1.6f))
             .start()
 
-        // Repulsion displacement (avoid overlap with parent)
+        // Repulsion displacement and natural snap to edge
         val repulsionDistance = (68 * density).toInt()
         val screenMidY = (getMinY() + getMaxY()) / 2
         val targetRepulsionY = if (initialY < screenMidY) {
@@ -1359,12 +1359,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             (initialY - repulsionDistance).coerceIn(getMinY(), getMaxY())
         }
 
-        ValueAnimator.ofInt(initialY, targetRepulsionY).apply {
-            duration = 260L
-            interpolator = DecelerateInterpolator()
+        val screenWidth = getScreenWidth()
+        val targetOnRight = (initialX + bubbleWidthPx / 2f) >= screenWidth / 2f
+        val targetEdgeX = if (targetOnRight) (screenWidth - bubbleWidthPx) else 0
+        newItem.isDockedOnRight = targetOnRight
+
+        ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 320L
+            interpolator = DecelerateInterpolator(1.4f)
             addUpdateListener { va ->
                 if (v.isAttachedToWindow) {
-                    lp.y = va.animatedValue as Int
+                    val f = va.animatedFraction
+                    lp.x = (initialX + (targetEdgeX - initialX) * f).toInt()
+                    lp.y = (initialY + (targetRepulsionY - initialY) * f).toInt()
                     windowManager.updateViewLayout(v, lp)
                 }
             }
@@ -1447,14 +1454,18 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (newCount <= 1) {
                 ModelConfig.setMultiBubbleEnabled(this, false)
                 ModelConfig.setMultiBubbleCount(this, 2)
-                bubbleItems.firstOrNull()?.let { b0 ->
-                    currentMode = b0.mode
+                val survivor = bubbleItems.firstOrNull()
+                if (survivor != null) {
+                    currentMode = survivor.mode
+                    snapBubbleToSafeBoundsWithInertia(survivor, vx = 0f, vy = 0f)
                 }
             } else {
                 ModelConfig.setMultiBubbleCount(this, newCount)
+                val firstSurvivor = bubbleItems.firstOrNull()
+                if (firstSurvivor != null) {
+                    snapBubbleToSafeBoundsWithInertia(firstSurvivor, vx = 0f, vy = 0f)
+                }
             }
-
-            resolveAndApplyEdgeStacking(animate = true)
         }
     }
 
