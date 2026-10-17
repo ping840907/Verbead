@@ -34,6 +34,15 @@ class SlmInferenceEngineTest {
     }
 
     @Test
+    fun testCleanOutputStripsSpecialTokens() {
+        val raw = "你好！這是一段回覆。<|im_end|>"
+        assertEquals("你好！這是一段回覆。", SlmInferenceEngine.cleanOutput(raw))
+
+        val streamingIncomplete = "正在生成文字<|im_"
+        assertEquals("正在生成文字", SlmInferenceEngine.cleanOutput(streamingIncomplete))
+    }
+
+    @Test
     fun testSlmChatMessageCleanAnswerExtraction() {
         val msgWithThink = SlmChatMessage(
             role = SlmChatMessage.Role.ASSISTANT,

@@ -40,6 +40,7 @@ android {
             useLegacyPackaging = false
         }
         pickFirst 'lib/*/libonnxruntime.so'
+        pickFirst 'lib/*/libc++_shared.so'
     }
 
     testOptions {
@@ -77,9 +78,22 @@ dependencies {
     // tar.bz2 extraction for downloaded Qwen3-ASR model archive
     implementation libs.commons.compress
 
+    // llama.cpp on-device GGUF SLM inference
+    implementation('org.codeshipping:llama-kotlin-android:0.1.0') {
+        exclude group: 'androidx.core', module: 'core'
+        exclude group: 'androidx.core', module: 'core-ktx'
+    }
+
     testImplementation libs.junit
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.ext.junit
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "androidx.core:core:1.12.0"
+        force "androidx.core:core-ktx:1.12.0"
+    }
 }
 
 // Auto-align sherpa-onnx AAR ELF symbol version requirement (VERS_1.24.3 / VERS_1.28.2 -> VERS_1.28.0)

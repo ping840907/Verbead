@@ -2,16 +2,20 @@ package com.ping.verbead.slm
 
 import android.content.Context
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.codeshipping.llamakotlin.LlamaModel
+import org.codeshipping.llamakotlin.exception.LlamaException
 
 /**
- * Inference engine for mobile on-device Small Language Models (SLM).
- * Handles ChatML prompt assembly, streaming token extraction, <think> tags separation,
+ * Native inference engine for mobile on-device Small Language Models (SLM) powered by llama.cpp.
+ * Fully loads Qwen3.5 GGUF weights into memory and offloads 99 layers to GPU/NPU (Vulkan/NNAPI),
+ * with automatic CPU fallback.
+ * Handles ChatML prompt assembly, real-time token streaming, <think> tag separation,
  * and concise answer delivery.
  */
 class SlmInferenceEngine(
@@ -23,6 +27,9 @@ class SlmInferenceEngine(
         private const val TAG = "SlmInferenceEngine"
 
         @Volatile
+        private var activeLlamaModel: LlamaModel? = null
+
+        @Volatile
         var loadedModelId: String? = null
             private set
 
@@ -30,7 +37,8 @@ class SlmInferenceEngine(
         var loadedMemoryBytes: Long = 0L
             private set
 
-        fun isModelLoaded(modelId: String): Boolean = loadedModelId == modelId
+        fun isModelLoaded(modelId: String): Boolean =
+            loadedModelId == modelId && (activeLlamaModel != null)
 
         suspend fun loadModel(context: Context, modelId: String): Result<Unit> = withContext(Dispatchers.IO) {
             try {
@@ -38,32 +46,82 @@ class SlmInferenceEngine(
                 if (!file.exists() || file.length() == 0L) {
                     return@withContext Result.failure(java.io.FileNotFoundException("模型檔案尚未下載：${file.name}"))
                 }
-                if (loadedModelId != null && loadedModelId != modelId) {
-                    unloadModel(context)
+                if (loadedModelId == modelId && activeLlamaModel?.isLoaded == true) {
+                    return@withContext Result.success(Unit)
                 }
+
+                unloadModel(context)
+
                 val hwSpec = SlmModelConfig.getHardwareSpec(context)
-                Log.i(TAG, "Loading SLM model $modelId into memory (${file.length()} bytes) on ${hwSpec.backendName} with ${hwSpec.gpuLayers} GPU layers...")
+                val availableCores = Runtime.getRuntime().availableProcessors()
+                val threadsCount = (availableCores - 2).coerceIn(2, 6)
+
+                Log.i(TAG, "Loading native SLM model $modelId into memory (${file.absolutePath}, ${file.length()} bytes) on ${hwSpec.backendName} with ${hwSpec.gpuLayers} GPU layers, $threadsCount threads...")
+
+                // Attempt GPU layers loading first; if it fails (e.g. Vulkan initialization error), fallback to CPU
+                val model = try {
+                    LlamaModel.load(file.absolutePath) {
+                        gpuLayers = hwSpec.gpuLayers
+                        contextSize = 2048
+                        batchSize = 512
+                        threads = threadsCount
+                        threadsBatch = threadsCount
+                        useMmap = true
+                        useMlock = false
+                        temperature = 0.7f
+                        topP = 0.8f
+                        topK = 20
+                        maxTokens = 1024
+                        stopSequences = listOf("<|im_end|>", "<|endoftext|>", "</s>")
+                    }
+                } catch (gpuErr: Throwable) {
+                    Log.w(TAG, "GPU/NPU loading failed, falling back to CPU: ${gpuErr.message}", gpuErr)
+                    LlamaModel.load(file.absolutePath) {
+                        gpuLayers = 0
+                        contextSize = 2048
+                        batchSize = 512
+                        threads = threadsCount
+                        threadsBatch = threadsCount
+                        useMmap = true
+                        useMlock = false
+                        temperature = 0.7f
+                        topP = 0.8f
+                        topK = 20
+                        maxTokens = 1024
+                        stopSequences = listOf("<|im_end|>", "<|endoftext|>", "</s>")
+                    }
+                }
+
+                activeLlamaModel = model
                 loadedModelId = modelId
                 loadedMemoryBytes = file.length()
                 SlmModelConfig.setLoadedModelId(context, modelId)
+                Log.i(TAG, "SLM model $modelId loaded successfully into native engine.")
                 Result.success(Unit)
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to load SLM model $modelId into memory", e)
-                loadedModelId = null
-                loadedMemoryBytes = 0L
+                unloadModel(context)
                 Result.failure(e)
             }
         }
 
         fun unloadModel(context: Context? = null) {
-            val prev = loadedModelId
-            loadedModelId = null
-            loadedMemoryBytes = 0L
-            if (context != null) {
-                SlmModelConfig.setLoadedModelId(context, null)
+            try {
+                activeLlamaModel?.cancelGeneration()
+                activeLlamaModel?.close()
+            } catch (e: Throwable) {
+                Log.w(TAG, "Error closing active LlamaModel", e)
+            } finally {
+                activeLlamaModel = null
+                val prev = loadedModelId
+                loadedModelId = null
+                loadedMemoryBytes = 0L
+                if (context != null) {
+                    SlmModelConfig.setLoadedModelId(context, null)
+                }
+                System.gc()
+                Log.i(TAG, "Unloaded SLM model $prev from memory")
             }
-            System.gc()
-            Log.i(TAG, "Unloaded SLM model $prev from memory")
         }
 
         fun getLoadedMemoryInfo(): String {
@@ -76,9 +134,31 @@ class SlmInferenceEngine(
         }
 
         /**
+         * Cleans trailing stop tokens or partial control tags from output text.
+         */
+        fun cleanOutput(text: String): String {
+            var cleaned = text.replace("<|im_end|>", "")
+                .replace("<|endoftext|>", "")
+                .replace("<|im_start|>", "")
+                .replace("</s>", "")
+
+            // Strip trailing incomplete stop tags while streaming (e.g. "<|im_")
+            val lastTagIdx = cleaned.lastIndexOf("<|")
+            if (lastTagIdx != -1 && !cleaned.substring(lastTagIdx).contains(">")) {
+                cleaned = cleaned.substring(0, lastTagIdx)
+            }
+            return cleaned
+        }
+
+        /**
          * Parses a raw text stream into separated (thinkingContent, answerContent).
          */
         fun parseStreamContent(raw: String): Pair<String?, String> {
+            val trimmedLeading = raw.trimStart()
+            // Avoid leaking partial opening tag like "<th" or "<think" into answer
+            if (trimmedLeading.startsWith("<") && !trimmedLeading.contains(">")) {
+                return Pair(null, "")
+            }
             val thinkStartIdx = raw.indexOf("<think>")
             if (thinkStartIdx != -1) {
                 val afterStart = raw.substring(thinkStartIdx + "<think>".length)
@@ -96,7 +176,7 @@ class SlmInferenceEngine(
         }
 
         /**
-         * Formats conversation turns into standard ChatML format used by Qwen2.5 models.
+         * Formats conversation turns into standard ChatML format used by Qwen models.
          */
         fun buildChatMlPrompt(
             systemPrompt: String,
@@ -142,6 +222,16 @@ class SlmInferenceEngine(
 
     fun unloadModel() = unloadModel(context)
 
+    fun cancelCurrent() {
+        try {
+            activeLlamaModel?.cancelGeneration()
+        } catch (e: Throwable) {
+            Log.w(TAG, "Error cancelling native generation", e)
+        }
+        activeJob?.cancel()
+        activeJob = null
+    }
+
     /**
      * Executes generation for a user prompt with streaming feedback.
      */
@@ -180,20 +270,36 @@ class SlmInferenceEngine(
                 }
 
                 if (!isLoaded(selectedModel)) {
-                    loadModel(selectedModel)
+                    val loadRes = loadModel(selectedModel)
+                    if (loadRes.isFailure) {
+                        val err = loadRes.exceptionOrNull() ?: IllegalStateException("模型載入失敗")
+                        withContext(Dispatchers.Main) {
+                            assistantMessage.isStreaming = false
+                            assistantMessage.content = "模型載入至記憶體失敗：${err.message}"
+                            callback.onError(err)
+                        }
+                        return@launch
+                    }
                 }
 
-                // Configure hardware-accelerated runner (GPU Vulkan / NPU NNAPI) offloading all 99 layers.
+                val model = activeLlamaModel ?: throw IllegalStateException("推論模型未就緒")
+
+                val chatMlPrompt = buildChatMlPrompt(
+                    systemPrompt = systemPrompt,
+                    history = history,
+                    newPrompt = userPrompt
+                )
+
+                Log.i(TAG, "Starting native SLM inference with prompt (${chatMlPrompt.length} chars) on ${hwSpec.backendName}")
+
                 streamInference(
-                    userPrompt = userPrompt,
-                    thinkingEnabled = thinkingEnabled,
-                    modelMeta = meta,
-                    hwSpec = hwSpec,
+                    model = model,
+                    chatMlPrompt = chatMlPrompt,
                     assistantMessage = assistantMessage,
                     callback = callback
                 )
             } catch (e: Throwable) {
-                if (e !is kotlinx.coroutines.CancellationException) {
+                if (e !is CancellationException && e !is LlamaException.GenerationCancelled) {
                     Log.e(TAG, "Inference error", e)
                     withContext(Dispatchers.Main) {
                         assistantMessage.isStreaming = false
@@ -207,122 +313,42 @@ class SlmInferenceEngine(
     fun getHardwareConfig(): SlmModelConfig.SlmInferenceHardwareSpec =
         SlmModelConfig.getHardwareSpec(context)
 
-    fun cancelCurrent() {
-        activeJob?.cancel()
-        activeJob = null
-    }
-
     private suspend fun streamInference(
-        userPrompt: String,
-        thinkingEnabled: Boolean,
-        modelMeta: SlmModelConfig.ModelMetadata,
-        hwSpec: SlmModelConfig.SlmInferenceHardwareSpec,
+        model: LlamaModel,
+        chatMlPrompt: String,
         assistantMessage: SlmChatMessage,
         callback: StreamCallback
-    ) {
-        val modelFile = SlmModelConfig.getModelFile(context, modelMeta.id)
-        val hasLocalGguf = modelFile.exists() && modelFile.length() > 0
-
-        Log.i(TAG, "SLM inference: backend=${hwSpec.backendName}, layers=${hwSpec.gpuLayers}, model=${modelMeta.displayName}")
-
-        // Build concise, accurate response tailored to the prompt
-        val simulatedResponse = generateSmartConciseResponse(userPrompt, thinkingEnabled, modelMeta, hasLocalGguf)
-
-        // Stream the response token by token or chunk by chunk
+    ) = withContext(Dispatchers.Default) {
         val rawBuffer = StringBuilder()
-        val chunkSize = 3 // characters per chunk
-        var idx = 0
 
-        val streamDelayMs = if (hwSpec.isHardwareAccel) 16L else 45L
-
-        while (idx < simulatedResponse.length) {
-            val nextIdx = (idx + chunkSize).coerceAtMost(simulatedResponse.length)
-            val chunk = simulatedResponse.substring(idx, nextIdx)
-            rawBuffer.append(chunk)
-            idx = nextIdx
+        val flow = model.generateStream(chatMlPrompt)
+        flow.collect { token ->
+            rawBuffer.append(token)
 
             val (thinking, answer) = parseStreamContent(rawBuffer.toString())
-            assistantMessage.thinkingContent = thinking
-            assistantMessage.content = answer
+            val cleanedAnswer = cleanOutput(answer)
+            assistantMessage.thinkingContent = thinking?.let { cleanOutput(it) }
+            assistantMessage.content = cleanedAnswer
 
             withContext(Dispatchers.Main) {
                 if (thinking != null) {
-                    callback.onThinkingUpdate(thinking)
+                    callback.onThinkingUpdate(cleanOutput(thinking))
                 }
-                if (answer.isNotEmpty()) {
-                    callback.onAnswerUpdate(answer)
+                if (cleanedAnswer.isNotEmpty()) {
+                    callback.onAnswerUpdate(cleanedAnswer)
                 }
             }
-
-            // Stream delay: 16ms simulates GPU/NPU accelerated rate (~50-60 tokens/sec)
-            delay(streamDelayMs)
         }
+
+        // Finalize completed output
+        val (finalThinking, finalAnswer) = parseStreamContent(rawBuffer.toString())
+        val cleanFinalAnswer = cleanOutput(finalAnswer).trim()
+        assistantMessage.thinkingContent = finalThinking?.let { cleanOutput(it).trim() }
+        assistantMessage.content = cleanFinalAnswer
+        assistantMessage.isStreaming = false
 
         withContext(Dispatchers.Main) {
-            assistantMessage.isStreaming = false
             callback.onComplete(assistantMessage)
-        }
-    }
-
-    /**
-     * Synthesizes a high-precision, concise mobile response adhering to injected system guidelines.
-     */
-    private fun generateSmartConciseResponse(
-        prompt: String,
-        thinkingEnabled: Boolean,
-        modelMeta: SlmModelConfig.ModelMetadata,
-        hasLocalGguf: Boolean
-    ): String {
-        val trimmed = prompt.trim()
-
-        val thinkBlock = if (thinkingEnabled) {
-            val thought = when {
-                trimmed.contains("信") || trimmed.contains("email") || trimmed.contains("回信") ->
-                    "分析用戶請求：草擬回信。\n重點：禮貌、重點明確、語句簡練。\n策略：直接給出回覆範本，不添加廢話。"
-                trimmed.contains("翻譯") || trimmed.contains("英文") ->
-                    "分析翻譯需求：繁中/英文轉換。\n重點：地道流暢，直接輸出翻譯結果。"
-                trimmed.contains("摘要") || trimmed.contains("總結") ->
-                    "分析摘要需求：提取核心論點，以條列式精簡輸出。"
-                trimmed.contains("程式") || trimmed.contains("code") || trimmed.contains("寫") ->
-                    "分析編程問題：尋找最優解，提供乾淨可運行的程式碼片段。"
-                else ->
-                    "解析用戶意圖：針對「$trimmed」提供最精簡、直接的回答。\n過濾無效開場白與贅詞。"
-            }
-            "<think>\n$thought\n</think>"
-        } else {
-            ""
-        }
-
-        val answer = when {
-            trimmed.contains("你好") || trimmed.contains("哈囉") || trimmed.contains("hi") ->
-                "您好！我是 Verbead 端側小語言模型（${modelMeta.displayName}），隨時為您處理文字、翻譯或簡要問題。"
-
-            trimmed.contains("回信") || trimmed.contains("感謝") ->
-                "感謝您的來信與寶貴意見。我們已收到相關資訊並正加緊處理中，若有進一步進展將立即向您匯報。"
-
-            trimmed.contains("請假") ->
-                "您好，我因私人要事需於 [日期] 請假一天，當日業務已委由同仁協助代理，公務手機保持暢通，謝謝您。"
-
-            trimmed.contains("會議") ->
-                "各位好，提醒今日會議將於 [時間] 在 [會議室/線上] 召開，討論重點為本週專案進度，請準時出席。"
-
-            trimmed.contains("翻譯") ->
-                "Thank you for reaching out. We have received your request and will follow up shortly."
-
-            trimmed.contains("誰") && trimmed.contains("你") ->
-                "我是運行於手機本機端的輕量化 AI 助手（模型：${modelMeta.displayName}，${modelMeta.shortTag}），專為即時摘要與快速文字生成優化。"
-
-            trimmed.length in 1..8 ->
-                "已收到指令：「$trimmed」。若需要潤飾、翻譯或總結，可直接告訴我。"
-
-            else ->
-                "針對您提問的「${trimmed.take(15)}...」，核心要點如下：\n1. 重點明確，直接對焦核心。\n2. 適合快速確認與回覆。"
-        }
-
-        return if (thinkBlock.isNotEmpty()) {
-            "$thinkBlock$answer"
-        } else {
-            answer
         }
     }
 }
