@@ -79,7 +79,7 @@ dependencies {
     implementation libs.commons.compress
 
     // llama.cpp on-device GGUF SLM inference
-    implementation('org.codeshipping:llama-kotlin-android:0.1.0') {
+    implementation('org.codeshipping:llama-kotlin-android:0.1.7') {
         exclude group: 'androidx.core', module: 'core'
         exclude group: 'androidx.core', module: 'core-ktx'
     }
