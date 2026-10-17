@@ -117,5 +117,9 @@
     <string name="toast_slm_unloaded_memory">已從記憶體釋放 SLM 模型</string>
     <string name="toast_slm_load_failed">載入模型失敗：%1$s</string>
     <string name="toast_slm_not_downloaded">所選模型尚未下載，請先下載模型</string>
+    <string name="toast_slm_mode_switched">已切換輸出模式：%1$s</string>
+    <string name="slm_mode_fast">⚡ 極簡快答</string>
+    <string name="slm_mode_bullet">📝 重點條列</string>
+    <string name="slm_mode_refine">💡 潤飾/翻譯</string>
     <string name="toast_asr_model_not_ready">尚未下載語音辨識模型 (%1$s)，請至設定下載</string>
 </resources>

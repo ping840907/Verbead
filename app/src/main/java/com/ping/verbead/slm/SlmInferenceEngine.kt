@@ -68,11 +68,13 @@ class SlmInferenceEngine(
                         threadsBatch = threadsCount
                         useMmap = true
                         useMlock = false
-                        temperature = 0.7f
-                        topP = 0.8f
+                        temperature = 0.25f
+                        topP = 0.7f
                         topK = 20
-                        maxTokens = 1024
-                        stopSequences = listOf("<|im_end|>", "<|endoftext|>", "</s>")
+                        repeatPenalty = 1.18f
+                        presencePenalty = 0.25f
+                        maxTokens = 256
+                        stopSequences = listOf("<|im_end|>", "<|endoftext|>", "</s>", "\n\n用戶：", "\n\nUser:", "\n\n使用者：", "\n\nQ:")
                     }
                 } catch (gpuErr: Throwable) {
                     Log.w(TAG, "GPU/NPU loading failed, falling back to CPU: ${gpuErr.message}", gpuErr)
@@ -84,11 +86,13 @@ class SlmInferenceEngine(
                         threadsBatch = threadsCount
                         useMmap = true
                         useMlock = false
-                        temperature = 0.7f
-                        topP = 0.8f
+                        temperature = 0.25f
+                        topP = 0.7f
                         topK = 20
-                        maxTokens = 1024
-                        stopSequences = listOf("<|im_end|>", "<|endoftext|>", "</s>")
+                        repeatPenalty = 1.18f
+                        presencePenalty = 0.25f
+                        maxTokens = 256
+                        stopSequences = listOf("<|im_end|>", "<|endoftext|>", "</s>", "\n\n用戶：", "\n\nUser:", "\n\n使用者：", "\n\nQ:")
                     }
                 }
 
@@ -152,8 +156,9 @@ class SlmInferenceEngine(
 
         /**
          * Parses a raw text stream into separated (thinkingContent, answerContent).
+         * If thinking is disabled, thinkingContent is suppressed.
          */
-        fun parseStreamContent(raw: String): Pair<String?, String> {
+        fun parseStreamContent(raw: String, thinkingEnabled: Boolean = true): Pair<String?, String> {
             val trimmedLeading = raw.trimStart()
             // Avoid leaking partial opening tag like "<th" or "<think" into answer
             if (trimmedLeading.startsWith("<") && !trimmedLeading.contains(">")) {
@@ -166,10 +171,10 @@ class SlmInferenceEngine(
                 return if (thinkEndIdx != -1) {
                     val thinking = afterStart.substring(0, thinkEndIdx).trim()
                     val answer = afterStart.substring(thinkEndIdx + "</think>".length).trimStart()
-                    Pair(thinking, answer)
+                    Pair(if (thinkingEnabled) thinking else null, answer)
                 } else {
                     // Still inside <think> tag
-                    Pair(afterStart.trim(), "")
+                    if (thinkingEnabled) Pair(afterStart.trim(), "") else Pair(null, "")
                 }
             }
             return Pair(null, raw)
@@ -177,25 +182,31 @@ class SlmInferenceEngine(
 
         /**
          * Formats conversation turns into standard ChatML format used by Qwen models.
+         * Prunes multi-turn history to recent turns and strictly excludes <think> tags
+         * to prevent context window explosion and in-context conversational rambling.
          */
         fun buildChatMlPrompt(
             systemPrompt: String,
             history: List<SlmChatMessage>,
-            newPrompt: String
+            newPrompt: String,
+            mode: String = SlmModelConfig.OUTPUT_MODE_FAST
         ): String {
             val sb = StringBuilder()
             sb.append("<|im_start|>system\n").append(systemPrompt).append("<|im_end|>\n")
-            for (msg in history) {
+
+            // Prune history: keep only last 6 messages (3 conversation turns) to avoid context exhaustion
+            val prunedHistory = if (history.size > 6) history.takeLast(6) else history
+            for (msg in prunedHistory) {
                 val roleStr = when (msg.role) {
                     SlmChatMessage.Role.USER -> "user"
                     SlmChatMessage.Role.ASSISTANT -> "assistant"
                     SlmChatMessage.Role.SYSTEM -> "system"
                 }
                 sb.append("<|im_start|>").append(roleStr).append("\n")
-                if (!msg.thinkingContent.isNullOrBlank()) {
-                    sb.append("<think>").append(msg.thinkingContent).append("</think>\n")
-                }
-                sb.append(msg.content).append("<|im_end|>\n")
+                // CRITICAL: NEVER include <think>...</think> in multi-turn history!
+                // This prevents in-context mimicry of verbose internal monologues and stops context explosion.
+                val cleanContent = msg.getCleanAnswer().ifBlank { msg.content }
+                sb.append(cleanContent).append("<|im_end|>\n")
             }
             sb.append("<|im_start|>user\n").append(newPrompt).append("<|im_end|>\n")
             sb.append("<|im_start|>assistant\n")
@@ -244,16 +255,18 @@ class SlmInferenceEngine(
 
         val selectedModel = SlmModelConfig.getSelectedModel(context)
         val thinkingEnabled = SlmModelConfig.isThinkingEnabled(context)
+        val outputMode = SlmModelConfig.getOutputMode(context)
         val meta = SlmModelConfig.getModelMetadata(selectedModel)
         val hwSpec = SlmModelConfig.getHardwareSpec(context)
-        val systemPrompt = SlmModelConfig.buildSystemPrompt(thinkingEnabled)
+        val systemPrompt = SlmModelConfig.buildSystemPrompt(thinkingEnabled, outputMode)
+        val modeLabel = SlmModelConfig.getOutputModeLabel(outputMode)
 
         val assistantMessage = SlmChatMessage(
             role = SlmChatMessage.Role.ASSISTANT,
             content = "",
             thinkingContent = null,
             isStreaming = true,
-            modelTag = "${meta.displayName} · ${hwSpec.accelTag}"
+            modelTag = "${meta.displayName} · $modeLabel · ${hwSpec.accelTag}"
         )
 
         activeJob = scope.launch {
@@ -287,16 +300,19 @@ class SlmInferenceEngine(
                 val chatMlPrompt = buildChatMlPrompt(
                     systemPrompt = systemPrompt,
                     history = history,
-                    newPrompt = userPrompt
+                    newPrompt = userPrompt,
+                    mode = outputMode
                 )
 
-                Log.i(TAG, "Starting native SLM inference with prompt (${chatMlPrompt.length} chars) on ${hwSpec.backendName}")
+                Log.i(TAG, "Starting native SLM inference with prompt (${chatMlPrompt.length} chars) on ${hwSpec.backendName} [mode=$outputMode, thinking=$thinkingEnabled]")
 
                 streamInference(
                     model = model,
                     chatMlPrompt = chatMlPrompt,
                     assistantMessage = assistantMessage,
-                    callback = callback
+                    callback = callback,
+                    thinkingEnabled = thinkingEnabled,
+                    outputMode = outputMode
                 )
             } catch (e: Throwable) {
                 if (e !is CancellationException && e !is LlamaException.GenerationCancelled) {
@@ -317,21 +333,38 @@ class SlmInferenceEngine(
         model: LlamaModel,
         chatMlPrompt: String,
         assistantMessage: SlmChatMessage,
-        callback: StreamCallback
+        callback: StreamCallback,
+        thinkingEnabled: Boolean,
+        outputMode: String
     ) = withContext(Dispatchers.Default) {
         val rawBuffer = StringBuilder()
 
-        val flow = model.generateStream(chatMlPrompt)
+        val genConfig = model.config.copy {
+            maxTokens = when (outputMode) {
+                SlmModelConfig.OUTPUT_MODE_DEEP -> 512
+                SlmModelConfig.OUTPUT_MODE_BULLET -> 320
+                else -> 256
+            }
+            temperature = when (outputMode) {
+                SlmModelConfig.OUTPUT_MODE_DEEP -> 0.35f
+                SlmModelConfig.OUTPUT_MODE_REFINE -> 0.15f
+                else -> 0.25f
+            }
+            repeatPenalty = 1.18f
+            presencePenalty = 0.25f
+        }
+
+        val flow = model.generateStream(chatMlPrompt, genConfig)
         flow.collect { token ->
             rawBuffer.append(token)
 
-            val (thinking, answer) = parseStreamContent(rawBuffer.toString())
+            val (thinking, answer) = parseStreamContent(rawBuffer.toString(), thinkingEnabled)
             val cleanedAnswer = cleanOutput(answer)
-            assistantMessage.thinkingContent = thinking?.let { cleanOutput(it) }
+            assistantMessage.thinkingContent = if (thinkingEnabled) thinking?.let { cleanOutput(it) } else null
             assistantMessage.content = cleanedAnswer
 
             withContext(Dispatchers.Main) {
-                if (thinking != null) {
+                if (thinking != null && thinkingEnabled) {
                     callback.onThinkingUpdate(cleanOutput(thinking))
                 }
                 if (cleanedAnswer.isNotEmpty()) {
@@ -341,9 +374,9 @@ class SlmInferenceEngine(
         }
 
         // Finalize completed output
-        val (finalThinking, finalAnswer) = parseStreamContent(rawBuffer.toString())
+        val (finalThinking, finalAnswer) = parseStreamContent(rawBuffer.toString(), thinkingEnabled)
         val cleanFinalAnswer = cleanOutput(finalAnswer).trim()
-        assistantMessage.thinkingContent = finalThinking?.let { cleanOutput(it).trim() }
+        assistantMessage.thinkingContent = if (thinkingEnabled) finalThinking?.let { cleanOutput(it).trim() } else null
         assistantMessage.content = cleanFinalAnswer
         assistantMessage.isStreaming = false
 

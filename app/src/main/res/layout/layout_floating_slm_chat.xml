@@ -236,6 +236,63 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- Output Mode Selection Chips -->
+    <LinearLayout
+        android:id="@+id/layout_slm_mode_bar"
+        android:layout_width="match_parent"
+        android:layout_height="26dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/btn_mode_fast"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:background="@drawable/bg_slm_chip_active"
+            android:gravity="center"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:text="@string/slm_mode_fast"
+            android:textColor="#E0F2FE"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/btn_mode_bullet"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_slm_chip_inactive"
+            android:gravity="center"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:text="@string/slm_mode_bullet"
+            android:textColor="#94A3B8"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/btn_mode_refine"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_slm_chip_inactive"
+            android:gravity="center"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:text="@string/slm_mode_refine"
+            android:textColor="#94A3B8"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
     <!-- Bottom Input Bar -->
     <LinearLayout
         android:layout_width="match_parent"

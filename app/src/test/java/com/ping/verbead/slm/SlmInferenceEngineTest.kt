@@ -58,19 +58,45 @@ class SlmInferenceEngineTest {
     }
 
     @Test
-    fun testChatMlPromptAssembly() {
+    fun testChatMlPromptAssemblyExcludesThinkingFromHistory() {
         val systemPrompt = "你是端側 AI 助手。"
         val history = listOf(
             SlmChatMessage(role = SlmChatMessage.Role.USER, content = "你好"),
-            SlmChatMessage(role = SlmChatMessage.Role.ASSISTANT, content = "您好！有什麼我可以幫忙？", thinkingContent = "分析問候")
+            SlmChatMessage(role = SlmChatMessage.Role.ASSISTANT, content = "您好！有什麼我可以幫忙？", thinkingContent = "分析問候草稿")
         )
         val prompt = SlmInferenceEngine.buildChatMlPrompt(systemPrompt, history, "幫我寫信")
 
         assertTrue(prompt.contains("<|im_start|>system\n你是端側 AI 助手。<|im_end|>"))
         assertTrue(prompt.contains("<|im_start|>user\n你好<|im_end|>"))
-        assertTrue(prompt.contains("<think>分析問候</think>"))
+        // CRITICAL: History MUST NOT contain <think> to prevent context window explosion
+        assertFalse(prompt.contains("<think>分析問候草稿</think>"))
         assertTrue(prompt.contains("您好！有什麼我可以幫忙？<|im_end|>"))
         assertTrue(prompt.endsWith("<|im_start|>assistant\n"))
+    }
+
+    @Test
+    fun testParseStreamContentSuppressThinkingWhenDisabled() {
+        val raw = "<think>\n內部推導不應外洩\n</think>最終回答。"
+        val (thinking, answer) = SlmInferenceEngine.parseStreamContent(raw, thinkingEnabled = false)
+        assertNull(thinking)
+        assertEquals("最終回答。", answer)
+    }
+
+    @Test
+    fun testSlmOutputModesInSystemPrompt() {
+        val fastPrompt = SlmModelConfig.buildSystemPrompt(thinkingEnabled = false, mode = SlmModelConfig.OUTPUT_MODE_FAST)
+        assertTrue(fastPrompt.contains("極簡快答"))
+        assertTrue(fastPrompt.contains("開門見山"))
+        assertTrue(fastPrompt.contains("禁止思考"))
+
+        val bulletPrompt = SlmModelConfig.buildSystemPrompt(thinkingEnabled = true, mode = SlmModelConfig.OUTPUT_MODE_BULLET)
+        assertTrue(bulletPrompt.contains("重點條列"))
+        assertTrue(bulletPrompt.contains("Markdown"))
+        assertTrue(bulletPrompt.contains("<think>"))
+
+        val refinePrompt = SlmModelConfig.buildSystemPrompt(thinkingEnabled = false, mode = SlmModelConfig.OUTPUT_MODE_REFINE)
+        assertTrue(refinePrompt.contains("潤飾與翻譯"))
+        assertTrue(refinePrompt.contains("僅輸出處理後的目標文字結果"))
     }
 
     @Test
@@ -80,7 +106,7 @@ class SlmInferenceEngineTest {
         assertTrue(promptThinkingOn.contains("簡短"))
 
         val promptThinkingOff = SlmModelConfig.buildSystemPrompt(thinkingEnabled = false)
-        assertTrue(promptThinkingOff.contains("禁止輸出任何思考標籤") || promptThinkingOff.contains("直接給出答案"))
+        assertTrue(promptThinkingOff.contains("嚴禁輸出任何 <think> 標籤") || promptThinkingOff.contains("直接輸出最終結果"))
 
         // Verify exactly 4 models
         assertEquals(4, SlmModelConfig.AVAILABLE_MODELS.size)

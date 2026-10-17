@@ -4969,6 +4969,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val btnMic = chatView.findViewById<ImageButton>(R.id.btn_slm_mic)
         val etPrompt = chatView.findViewById<EditText>(R.id.et_slm_prompt)
         val btnSend = chatView.findViewById<ImageButton>(R.id.btn_slm_send)
+        val btnModeFast = chatView.findViewById<TextView>(R.id.btn_mode_fast)
+        val btnModeBullet = chatView.findViewById<TextView>(R.id.btn_mode_bullet)
+        val btnModeRefine = chatView.findViewById<TextView>(R.id.btn_mode_refine)
 
         tvAccelBadge?.setOnClickListener {
             HapticUtil.click(this)
@@ -5162,6 +5165,45 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             updateThinkingUi()
             val msgRes = if (next) R.string.toast_slm_thinking_on else R.string.toast_slm_thinking_off
             Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
+        }
+
+        // Refresh Output Mode UI
+        fun updateModeUi() {
+            val currentMode = SlmModelConfig.getOutputMode(this)
+            fun styleModeBtn(btn: TextView, isActive: Boolean) {
+                if (isActive) {
+                    btn.setBackgroundResource(R.drawable.bg_slm_chip_active)
+                    btn.setTextColor(android.graphics.Color.parseColor("#E0F2FE"))
+                } else {
+                    btn.setBackgroundResource(R.drawable.bg_slm_chip_inactive)
+                    btn.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+                }
+            }
+            styleModeBtn(btnModeFast, currentMode == SlmModelConfig.OUTPUT_MODE_FAST)
+            styleModeBtn(btnModeBullet, currentMode == SlmModelConfig.OUTPUT_MODE_BULLET)
+            styleModeBtn(btnModeRefine, currentMode == SlmModelConfig.OUTPUT_MODE_REFINE)
+        }
+        updateModeUi()
+
+        btnModeFast.setOnClickListener {
+            HapticUtil.click(this)
+            SlmModelConfig.setOutputMode(this, SlmModelConfig.OUTPUT_MODE_FAST)
+            updateModeUi()
+            Toast.makeText(this, getString(R.string.toast_slm_mode_switched, getString(R.string.slm_mode_fast)), Toast.LENGTH_SHORT).show()
+        }
+
+        btnModeBullet.setOnClickListener {
+            HapticUtil.click(this)
+            SlmModelConfig.setOutputMode(this, SlmModelConfig.OUTPUT_MODE_BULLET)
+            updateModeUi()
+            Toast.makeText(this, getString(R.string.toast_slm_mode_switched, getString(R.string.slm_mode_bullet)), Toast.LENGTH_SHORT).show()
+        }
+
+        btnModeRefine.setOnClickListener {
+            HapticUtil.click(this)
+            SlmModelConfig.setOutputMode(this, SlmModelConfig.OUTPUT_MODE_REFINE)
+            updateModeUi()
+            Toast.makeText(this, getString(R.string.toast_slm_mode_switched, getString(R.string.slm_mode_refine)), Toast.LENGTH_SHORT).show()
         }
 
         // Chat RecyclerView & Adapter
@@ -5586,12 +5628,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val selectedModel = SlmModelConfig.getSelectedModel(this)
         val meta = SlmModelConfig.getModelMetadata(selectedModel)
         val accelTag = SlmModelConfig.getHardwareAccelTag(this)
+        val modeLabel = SlmModelConfig.getOutputModeLabel(SlmModelConfig.getOutputMode(this))
         val assistantMsg = SlmChatMessage(
             role = SlmChatMessage.Role.ASSISTANT,
             content = "",
             thinkingContent = null,
             isStreaming = true,
-            modelTag = "${meta.displayName} · $accelTag"
+            modelTag = "${meta.displayName} · $modeLabel · $accelTag"
         )
         slmMessages.add(assistantMsg)
         val assistantPos = slmMessages.size - 1

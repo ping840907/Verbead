@@ -8,8 +8,18 @@ object SlmModelConfig {
     const val PREF_SLM = "slm_settings"
     const val KEY_SLM_MODEL = "selected_slm_model"
     const val KEY_SLM_THINKING = "slm_thinking_enabled"
+    const val KEY_SLM_OUTPUT_MODE = "slm_output_mode"
     const val KEY_SLM_HARDWARE_ACCEL = "slm_hardware_accel"
     const val KEY_SLM_BACKEND = "slm_backend"
+
+    // 輸出模式設定：極簡快答 (預設)、重點條列、潤飾/翻譯、深度推論
+    const val OUTPUT_MODE_FAST = "fast"
+    const val OUTPUT_MODE_BULLET = "bullet"
+    const val OUTPUT_MODE_REFINE = "refine"
+    const val OUTPUT_MODE_DEEP = "deep"
+
+    const val DEFAULT_OUTPUT_MODE = OUTPUT_MODE_FAST
+    const val DEFAULT_THINKING_ENABLED = false // 手機端側預設快答直出，避免小模型思維外溢延遲
 
     // 硬體加速設定：預設確保運算完全 offload 跑在 GPU / NPU 上 (99 層全卸載)
     const val DEFAULT_HARDWARE_ACCEL_ENABLED = true
@@ -27,7 +37,6 @@ object SlmModelConfig {
     const val MODEL_QWEN_9B = "qwen3.5_9b"
 
     const val DEFAULT_MODEL = MODEL_QWEN_2B
-    const val DEFAULT_THINKING_ENABLED = true
 
     const val SLM_DIR = "slm"
     const val FILE_QWEN_0_8B_GGUF = "Qwen3.5-0.8B-Q4_K_M.gguf"
@@ -162,15 +171,89 @@ object SlmModelConfig {
             }.apply()
     }
 
-    /**
-     * Builds the injected system prompt tailored for concise mobile answers and thinking state.
-     */
-    fun buildSystemPrompt(thinkingEnabled: Boolean): String {
-        return if (thinkingEnabled) {
-            "你是由 Verbead 驅動的端側離線 AI 助手。請在 <think> 與 </think> 標籤之間進行簡要的核心邏輯推導，思考完成後請務必直接給出簡短、精準、扼要的最終答覆，避免冗長寒暄與無關贅詞。"
-        } else {
-            "你是由 Verbead 驅動的端側離線 AI 助手。請務必直接提供簡短、精準、扼要的最終回答，禁止輸出任何思考標籤、推理草稿或開場白，直接給出答案。"
+    fun getOutputMode(context: Context): String {
+        val saved = context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .getString(KEY_SLM_OUTPUT_MODE, DEFAULT_OUTPUT_MODE) ?: DEFAULT_OUTPUT_MODE
+        return when (saved) {
+            OUTPUT_MODE_FAST, OUTPUT_MODE_BULLET, OUTPUT_MODE_REFINE, OUTPUT_MODE_DEEP -> saved
+            else -> DEFAULT_OUTPUT_MODE
         }
+    }
+
+    fun setOutputMode(context: Context, mode: String) =
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .edit().putString(KEY_SLM_OUTPUT_MODE, mode).apply()
+
+    fun getOutputModeLabel(mode: String): String = when (mode) {
+        OUTPUT_MODE_FAST -> "⚡ 快答"
+        OUTPUT_MODE_BULLET -> "📝 條列"
+        OUTPUT_MODE_REFINE -> "💡 潤飾"
+        OUTPUT_MODE_DEEP -> "🔍 深度"
+        else -> "⚡ 快答"
+    }
+
+    /**
+     * Builds the injected system prompt tailored for concise mobile answers,
+     * enforcing negative constraints (no filler, no greetings) and few-shot grounding.
+     */
+    fun buildSystemPrompt(context: Context): String {
+        val thinking = isThinkingEnabled(context)
+        val mode = getOutputMode(context)
+        return buildSystemPrompt(thinking, mode)
+    }
+
+    fun buildSystemPrompt(thinkingEnabled: Boolean, mode: String = DEFAULT_OUTPUT_MODE): String {
+        val modeInstruction = when (mode) {
+            OUTPUT_MODE_FAST -> """
+                【模式：⚡ 極簡快答】
+                - 第一句直接給出最終答案或核心結論，嚴禁任何客套話、引言或問候語。
+                - 總長度嚴格控制在 100 字以內，不說多餘廢話，直接了當。
+            """.trimIndent()
+            OUTPUT_MODE_BULLET -> """
+                【模式：📝 重點條列】
+                - 必須使用 Markdown 條列式（- 重點內容），最多列出 3 點，每點不超過 25 字。
+                - 禁止任何前言、引言或總結贅詞，第一行直接以「- 」開始輸出重點。
+            """.trimIndent()
+            OUTPUT_MODE_REFINE -> """
+                【模式：💡 潤飾與翻譯】
+                - 若為翻譯、錯字修正或潤飾任務：【僅輸出處理後的目標文字結果】。
+                - 絕對禁止附加任何解說、音標、字詞分析、前後對比或思考過程。
+            """.trimIndent()
+            OUTPUT_MODE_DEEP -> """
+                【模式：🔍 深度推論】
+                - 著重邏輯縝密與多角度分析，結構條理分明。
+                - 核心重點加粗，避免無意義口語廢話。
+            """.trimIndent()
+            else -> ""
+        }
+
+        val thinkRule = if (thinkingEnabled) {
+            "【思考約束】：若需在 <think> 與 </think> 間思考，請嚴格限制在 30 字以內簡短分析，思考結束後立即輸出最終精確回答。"
+        } else {
+            "【禁止思考】：嚴禁輸出任何 <think> 標籤或思考草稿，直接輸出最終結果。"
+        }
+
+        return """
+            你是由 Verbead 驅動的端側離線極速 AI 助理。請嚴格遵守以下輸出契約：
+            1. 【開門見山】：嚴禁任何寒暄客套（如「您好」、「好的」、「很高興為您解答」）與引言（如「以下為您整理」）。
+            2. 【杜絕贅詞】：嚴禁重複用戶問題，嚴禁結尾客套（如「希望對您有幫助」、「若有其他問題歡迎提問」）。
+            3. $modeInstruction
+            4. $thinkRule
+
+            【少樣本示範 1：日常問答】
+            用戶：明天出門要帶傘嗎？降雨機率 80%
+            助手：需要。明日降雨機率達 80%，出門請務必攜帶雨具。
+
+            【少樣本示範 2：翻譯與潤飾】
+            用戶：今天中午吃水餃翻譯成英文
+            助手：I ate dumplings for lunch today.
+
+            【少樣本示範 3：條列總結】
+            用戶：請總結多喝水的好處
+            助手：- 促進新陳代謝，排出體內廢物
+            - 維持體溫調節與血液循環
+            - 滋潤肌膚並預防便秘
+        """.trimIndent()
     }
 
     // ── GPU / NPU Hardware Acceleration ────────────────────────────────────────
