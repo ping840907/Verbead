@@ -656,7 +656,7 @@ object ModelConfig {
     const val KEY_MULTI_BUBBLE_COUNT = "multi_bubble_count"
     const val DEFAULT_MULTI_BUBBLE_COUNT = 4
     const val MIN_MULTI_BUBBLE_COUNT = 2
-    const val MAX_MULTI_BUBBLE_COUNT = 4
+    const val MAX_MULTI_BUBBLE_COUNT = 5
 
     fun isMultiBubbleEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)

@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_slm_chat_root"
+    android:layout_width="320dp"
+    android:layout_height="440dp"
+    android:background="@drawable/bg_scanner_window"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Top Header Bar -->
+    <RelativeLayout
+        android:id="@+id/layout_slm_header"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginBottom="6dp">
+
+        <ImageButton
+            android:id="@+id/btn_close_slm_chat"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="關閉 AI 對話"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="#FFFFFFFF" />
+
+        <!-- Title & Icon -->
+        <LinearLayout
+            android:id="@+id/layout_slm_title_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/btn_close_slm_chat"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_ai_sparkle"
+                app:tint="#38BDF8"
+                android:contentDescription="端側 AI" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="端側 AI"
+                android:textColor="#EEFFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_slm_accel_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/bg_slm_chip_active"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:text="GPU/NPU"
+                android:textColor="#38BDF8"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Right Controls: Model Toggle & Thinking Toggle -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Model Switcher Chip -->
+            <TextView
+                android:id="@+id/btn_slm_model_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:background="@drawable/bg_slm_chip_active"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="1.5B 聰明"
+                android:textColor="#E0F2FE"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Thinking Toggle Chip -->
+            <LinearLayout
+                android:id="@+id/btn_slm_thinking_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_slm_chip_active"
+                android:gravity="center"
+                android:paddingStart="6dp"
+                android:paddingEnd="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/iv_slm_thinking_icon"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_thinking"
+                    app:tint="#FBBF24"
+                    android:contentDescription="思考開關" />
+
+                <TextView
+                    android:id="@+id/tv_slm_thinking_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp"
+                    android:text="思考"
+                    android:textColor="#FEF3C7"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Chat Message List Container -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="6dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_slm_chat"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical" />
+
+        <!-- Empty State Hint -->
+        <LinearLayout
+            android:id="@+id/layout_slm_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_ai_sparkle"
+                app:tint="#38BDF8"
+                android:contentDescription="端側小語言模型" />
+
+            <TextView
+                android:id="@+id/tv_slm_empty_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="端側 Qwen SLM 已就緒 · GPU/NPU 加速中"
+                android:textColor="#F8FAFC"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_slm_empty_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:lineSpacingExtra="3dp"
+                android:text="• 運算由 GPU (Vulkan) / NPU (NNAPI) 全層卸載加速\n• 點擊麥克風可用離線語音下達指令\n• 預設簡短扼要回覆，支援思考推導\n• 回覆後可一鍵複製或直接貼入輸入框"
+                android:textColor="#94A3B8"
+                android:textSize="11sp" />
+
+            <!-- Dynamic Download & Memory Loading Area -->
+            <LinearLayout
+                android:id="@+id/layout_slm_empty_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_slm_empty_download"
+                        style="@style/Verbead.Button.Compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:text="下載模型"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_slm_empty_load"
+                        style="@style/Verbead.Button.Compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="載入至記憶體"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progress_slm_empty"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    app:indicatorColor="#38BDF8"
+                    app:trackColor="#334155"
+                    app:trackCornerRadius="3dp"
+                    app:trackThickness="5dp" />
+
+                <TextView
+                    android:id="@+id/tv_slm_empty_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#38BDF8"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Output Mode Selection Chips -->
+    <LinearLayout
+        android:id="@+id/layout_slm_mode_bar"
+        android:layout_width="match_parent"
+        android:layout_height="26dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/btn_mode_fast"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:background="@drawable/bg_slm_chip_active"
+            android:gravity="center"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:text="@string/slm_mode_fast"
+            android:textColor="#E0F2FE"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/btn_mode_bullet"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_slm_chip_inactive"
+            android:gravity="center"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:text="@string/slm_mode_bullet"
+            android:textColor="#94A3B8"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/btn_mode_refine"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_slm_chip_inactive"
+            android:gravity="center"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:text="@string/slm_mode_refine"
+            android:textColor="#94A3B8"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <!-- Bottom Input Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_slm_input_bar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <!-- Voice Input Button (Mic) -->
+        <ImageButton
+            android:id="@+id/btn_slm_mic"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="語音輸入"
+            android:padding="7dp"
+            android:src="@drawable/ic_mic"
+            app:tint="#38BDF8" />
+
+        <!-- Text Input -->
+        <EditText
+            android:id="@+id/et_slm_prompt"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:background="@null"
+            android:hint="語音或輸入指令..."
+            android:textColorHint="#64748B"
+            android:textColor="#F8FAFC"
+            android:textSize="13sp"
+            android:maxLines="3"
+            android:inputType="textCapSentences|textMultiLine"
+            android:importantForAutofill="no" />
+
+        <!-- Send Button -->
+        <ImageButton
+            android:id="@+id/btn_slm_send"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="送出"
+            android:padding="7dp"
+            android:src="@drawable/ic_send"
+            app:tint="#0284C7" />
+    </LinearLayout>
+
+</LinearLayout>

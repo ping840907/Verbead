@@ -40,21 +40,23 @@ class CapsuleMenuController(
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
+        const val MODE_SLM = 4
 
-        const val ITEM_COUNT = 4
+        const val ITEM_COUNT = 5
         const val ITEM_HEIGHT_DP = 56
-        const val CAPSULE_MENU_HEIGHT_DP = ITEM_COUNT * ITEM_HEIGHT_DP // 224dp
-        const val CAPSULE_WINDOW_HEIGHT_DP = 248 // 224dp + 12dp top + 12dp bottom padding
+        const val CAPSULE_MENU_HEIGHT_DP = ITEM_COUNT * ITEM_HEIGHT_DP // 280dp
+        const val CAPSULE_WINDOW_HEIGHT_DP = 304 // 280dp + 12dp top + 12dp bottom padding
         // 懸浮球中心至膠囊視窗頂/底之最大外推距離：
-        // 視窗邊界 248dp，氣泡中心 30dp。Phrases 模式下項目中心在 208dp，往上延伸至視窗頂為 208dp - 30dp = 178dp；
-        // Voice 模式下項目中心在 40dp，往下延伸至視窗底為 (248dp - 40dp) - 30dp = 178dp。
-        const val CAPSULE_MENU_MAX_EXTENT_DP = 178
+        // 視窗邊界 304dp，氣泡中心 30dp。SLM 模式下項目中心在 264dp，往上延伸至視窗頂為 264dp - 30dp = 234dp；
+        // Voice 模式下項目中心在 40dp，往下延伸至視窗底為 (304dp - 40dp) - 30dp = 234dp。
+        const val CAPSULE_MENU_MAX_EXTENT_DP = 234
 
         fun modeToIndex(mode: Int): Int = when (mode) {
             MODE_VOICE -> 0
             MODE_BARCODE -> 1
             MODE_OCR -> 2
             MODE_PHRASES -> 3
+            MODE_SLM -> 4
             else -> 0
         }
 
@@ -63,6 +65,7 @@ class CapsuleMenuController(
             1 -> MODE_BARCODE
             2 -> MODE_OCR
             3 -> MODE_PHRASES
+            4 -> MODE_SLM
             else -> MODE_VOICE
         }
     }
@@ -112,11 +115,13 @@ class CapsuleMenuController(
         val itemBarcode = menu.findViewById<FrameLayout>(R.id.item_capsule_barcode)
         val itemOcr = menu.findViewById<FrameLayout>(R.id.item_capsule_ocr)
         val itemPhrases = menu.findViewById<FrameLayout>(R.id.item_capsule_phrases)
+        val itemSlm = menu.findViewById<FrameLayout>(R.id.item_capsule_slm)
 
         itemVoice?.setOnClickListener { selectMode(MODE_VOICE) }
         itemBarcode?.setOnClickListener { selectMode(MODE_BARCODE) }
         itemOcr?.setOnClickListener { selectMode(MODE_OCR) }
         itemPhrases?.setOnClickListener { selectMode(MODE_PHRASES) }
+        itemSlm?.setOnClickListener { selectMode(MODE_SLM) }
 
         val bubbleCenterY = bubbleY + (bubbleHeightPx / 2f)
         cachedMicCenterY = bubbleCenterY
@@ -125,7 +130,7 @@ class CapsuleMenuController(
         currentHoveredIndex = currentIndex
 
         val windowWidth = bubbleWidthPx
-        val windowHeight = (248 * density).toInt()
+        val windowHeight = (CAPSULE_WINDOW_HEIGHT_DP * density).toInt()
 
         // In layout_capsule_menu.xml:
         // Window padding top is 12dp. Pill height is 168dp (3 items * 56dp).
@@ -357,13 +362,15 @@ class CapsuleMenuController(
             menu.findViewById<View>(R.id.indicator_capsule_voice),
             menu.findViewById<View>(R.id.indicator_capsule_barcode),
             menu.findViewById<View>(R.id.indicator_capsule_ocr),
-            menu.findViewById<View>(R.id.indicator_capsule_phrases)
+            menu.findViewById<View>(R.id.indicator_capsule_phrases),
+            menu.findViewById<View>(R.id.indicator_capsule_slm)
         )
         val icons = arrayOf(
             menu.findViewById<ImageView>(R.id.iv_capsule_voice),
             menu.findViewById<ImageView>(R.id.iv_capsule_barcode),
             menu.findViewById<ImageView>(R.id.iv_capsule_ocr),
-            menu.findViewById<ImageView>(R.id.iv_capsule_phrases)
+            menu.findViewById<ImageView>(R.id.iv_capsule_phrases),
+            menu.findViewById<ImageView>(R.id.iv_capsule_slm)
         )
 
         for (i in 0 until ITEM_COUNT) {

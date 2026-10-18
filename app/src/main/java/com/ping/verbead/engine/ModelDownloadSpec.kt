@@ -103,9 +103,24 @@ object ModelDownloadSpec {
         )
     }
 
-    fun forEngine(engine: String): DownloadTarget = when (engine) {
-        ModelConfig.ENGINE_X_ASR -> xAsr()
-        ModelConfig.OCR_MODEL_TINY, ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
+    // Qwen 3.5 on-device Small Language Models (0.8B, 2B, 4B, 9B GGUF)
+    fun slm(modelId: String): DownloadTarget {
+        val meta = com.ping.verbead.slm.SlmModelConfig.getModelMetadata(modelId)
+        return DownloadTarget(
+            engine = modelId,
+            files = listOf(
+                RemoteFile(
+                    url = meta.downloadUrl,
+                    relativePath = meta.fileName
+                )
+            )
+        )
+    }
+
+    fun forEngine(engine: String): DownloadTarget = when {
+        engine == ModelConfig.ENGINE_X_ASR -> xAsr()
+        engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
+        com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine } -> slm(engine)
         else -> qwen3()
     }
 }

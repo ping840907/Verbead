@@ -394,4 +394,79 @@ class TextInsertionTest {
         )
         org.junit.Assert.assertFalse(isSend)
     }
+
+    @Test
+    fun testExtractContextAndReplaceForSlmFullText() {
+        val ctx = TextInsertion.extractContext(
+            originalText = "今天下午三點開會，你來不來？",
+            rawSelStart = 14,
+            rawSelEnd = 14
+        )
+        org.junit.Assert.assertFalse(ctx.isEmpty)
+        org.junit.Assert.assertFalse(ctx.hasSelection)
+        assertEquals("今天下午三點開會，你來不來？", ctx.targetText)
+
+        // 無選取範圍時，SLM 改寫結果會替換整段現有文字，並保留原始游標位址供 Undo 復原
+        val replaced = TextInsertion.replaceForSlm(
+            originalText = "今天下午三點開會，你來不來？",
+            rawSelStart = 14,
+            rawSelEnd = 14,
+            slmOutput = "您好，今日下午三點將舉行會議，請問您是否方便出席？"
+        )
+        assertEquals("您好，今日下午三點將舉行會議，請問您是否方便出席？", replaced.text)
+        assertEquals(25, replaced.cursorPosition)
+        assertEquals(14, replaced.normalizedSelStart)
+        assertEquals(14, replaced.normalizedSelEnd)
+    }
+
+    @Test
+    fun testExtractContextAndReplaceForSlmPartialSelection() {
+        val original = "報告進度：這週已經完成初步測試，預計下週上線。"
+        // 選取「這週已經完成初步測試」(index 5..15)
+        val ctx = TextInsertion.extractContext(
+            originalText = original,
+            rawSelStart = 5,
+            rawSelEnd = 15
+        )
+        org.junit.Assert.assertTrue(ctx.hasSelection)
+        assertEquals("這週已經完成初步測試", ctx.selectedText)
+        assertEquals("這週已經完成初步測試", ctx.targetText)
+
+        // 有選取範圍時，SLM 僅替換被反白選取的片段，保留前後文
+        val replaced = TextInsertion.replaceForSlm(
+            originalText = original,
+            rawSelStart = 5,
+            rawSelEnd = 15,
+            slmOutput = "Initial testing was completed this week"
+        )
+        assertEquals("報告進度：Initial testing was completed this week，預計下週上線。", replaced.text)
+        assertEquals(5 + "Initial testing was completed this week".length, replaced.cursorPosition)
+        assertEquals(5, replaced.normalizedSelStart)
+        assertEquals(15, replaced.normalizedSelEnd)
+    }
+
+    @Test
+    fun testExtractContextFiltersPlaceholderAsEmpty() {
+        val ctx = TextInsertion.extractContext(
+            originalText = "請輸入訊息...",
+            rawSelStart = 0,
+            rawSelEnd = 0,
+            isHint = true
+        )
+        org.junit.Assert.assertTrue(ctx.isEmpty)
+        assertEquals("", ctx.targetText)
+
+        val inserted = TextInsertion.replaceForSlm(
+            originalText = "請輸入訊息...",
+            rawSelStart = 0,
+            rawSelEnd = 0,
+            slmOutput = "明天早上十點見",
+            isHint = true
+        )
+        assertEquals("明天早上十點見", inserted.text)
+        assertEquals(7, inserted.cursorPosition)
+        assertEquals(0, inserted.normalizedSelStart)
+        assertEquals(0, inserted.normalizedSelEnd)
+    }
 }
+

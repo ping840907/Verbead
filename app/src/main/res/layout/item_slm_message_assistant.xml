@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="start"
+    android:paddingStart="8dp"
+    android:paddingEnd="40dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_slm_assistant_bubble"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Model tag badge -->
+        <TextView
+            android:id="@+id/tv_slm_model_tag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Qwen2.5-1.5B"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Collapsible Thinking Card -->
+        <LinearLayout
+            android:id="@+id/layout_slm_thinking_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_slm_thinking_card"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone">
+
+            <!-- Clickable Header -->
+            <LinearLayout
+                android:id="@+id/layout_slm_thinking_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_thinking"
+                    app:tint="#F59E0B"
+                    android:contentDescription="思考過程" />
+
+                <TextView
+                    android:id="@+id/tv_slm_thinking_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:text="思考推導過程 (點擊展開)"
+                    android:textColor="#FBBF24"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_slm_thinking_chevron"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▼"
+                    android:textColor="#FBBF24"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Collapsible Body Content -->
+            <TextView
+                android:id="@+id/tv_slm_thinking_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#CBD5E1"
+                android:textSize="12sp"
+                android:lineSpacingExtra="2dp"
+                android:textIsSelectable="true"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Final Concise Answer TextView -->
+        <TextView
+            android:id="@+id/tv_slm_answer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp"
+            android:lineSpacingExtra="3dp"
+            android:textIsSelectable="true" />
+
+        <!-- Streaming Progress Bar -->
+        <ProgressBar
+            android:id="@+id/pb_slm_streaming"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginTop="6dp"
+            android:visibility="gone" />
+
+        <!-- Bottom Action Row: Copy & Paste -->
+        <LinearLayout
+            android:id="@+id/layout_slm_actions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical">
+
+            <!-- Copy Button -->
+            <LinearLayout
+                android:id="@+id/btn_slm_copy"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_slm_action_btn"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="10dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_copy"
+                    app:tint="#CBD5E1"
+                    android:contentDescription="複製" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="複製"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Direct Paste Button -->
+            <LinearLayout
+                android:id="@+id/btn_slm_paste"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_slm_action_btn"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="10dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_paste"
+                    app:tint="#38BDF8"
+                    android:contentDescription="直接貼上" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="直接貼上"
+                    android:textColor="#38BDF8"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>
