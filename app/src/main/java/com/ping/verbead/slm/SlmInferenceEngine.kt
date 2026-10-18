@@ -137,6 +137,16 @@ class SlmInferenceEngine(
             }
         }
 
+        private val XML_CONTROL_TAG_REGEX = Regex(
+            "</?(?:source_text|voice_command|voice_input|output|result|target_text)>",
+            RegexOption.IGNORE_CASE
+        )
+
+        private val META_PREFIX_REGEX = Regex(
+            "^(?:(?:好的|沒問題|了解|當然|收到)[，,。！!、\\s]*)*(?:(?:修改後(?:的文字)?|改寫後(?:的文字)?|潤飾後(?:的文字)?|翻譯結果|翻譯後|處理後(?:的文字)?|轉換後|整合後|目標文字|輸出結果|最終結果|最終文字|結果|回覆|答案|譯文|這裡是[^\\n:：]{0,12}|以下為[^\\n:：]{0,12}|以下是[^\\n:：]{0,12}|Translated(?:\\s+text)?|Rewritten(?:\\s+text)?|Output|Result)(?:如下)?\\s*[:：]\\s*)+",
+            RegexOption.IGNORE_CASE
+        )
+
         /**
          * Cleans trailing stop tokens or partial control tags from output text.
          */
@@ -151,6 +161,53 @@ class SlmInferenceEngine(
             if (lastTagIdx != -1 && !cleaned.substring(lastTagIdx).contains(">")) {
                 cleaned = cleaned.substring(0, lastTagIdx)
             }
+            return cleaned
+        }
+
+        /**
+         * Strictly sanitizes SLM output for direct text-box injection:
+         * 1. Strips special tokens (`<|im_end|>`, etc.) and leaked XML prompt tags (`<source_text>`, `<output>`, etc.).
+         * 2. Strips conversational prefixes or labels (`好的，修改後：`, `翻譯結果：`, `Output:`, etc.).
+         * 3. Strips unwanted outer wrapping quotes if the original source text was not quoted.
+         */
+        fun sanitizeInputTaskOutput(rawAnswer: String, sourceText: String = ""): String {
+            var cleaned = cleanOutput(rawAnswer)
+            cleaned = XML_CONTROL_TAG_REGEX.replace(cleaned, "")
+
+            // Strip trailing incomplete XML tags during streaming (e.g. "</source_t")
+            val lastOpenAngle = cleaned.lastIndexOf('<')
+            if (lastOpenAngle != -1 && !cleaned.substring(lastOpenAngle).contains('>')) {
+                val tail = cleaned.substring(lastOpenAngle)
+                if (tail.startsWith("</") || tail.startsWith("<source") || tail.startsWith("<voice") || tail.startsWith("<output") || tail.startsWith("<result")) {
+                    cleaned = cleaned.substring(0, lastOpenAngle)
+                }
+            }
+
+            cleaned = cleaned.trim()
+            cleaned = META_PREFIX_REGEX.replace(cleaned, "").trim()
+
+            // Strip outer wrapping quotes if sourceText did not have them
+            val trimmedSource = sourceText.trim()
+            if (cleaned.length >= 2) {
+                val quotePairs = listOf(
+                    '「' to '」',
+                    '『' to '』',
+                    '"' to '"',
+                    '“' to '”'
+                )
+                for ((openQ, closeQ) in quotePairs) {
+                    val sourceHadQuotes = trimmedSource.startsWith(openQ) && trimmedSource.endsWith(closeQ)
+                    if (!sourceHadQuotes && cleaned.startsWith(openQ) && cleaned.endsWith(closeQ)) {
+                        val inner = cleaned.substring(1, cleaned.length - 1)
+                        // Only unwrap if there isn't an unclosed internal pair (e.g. 「A」與「B」)
+                        if (!inner.contains(closeQ)) {
+                            cleaned = inner.trim()
+                            break
+                        }
+                    }
+                }
+            }
+
             return cleaned
         }
 
@@ -176,6 +233,12 @@ class SlmInferenceEngine(
                     // Still inside <think> tag
                     if (thinkingEnabled) Pair(afterStart.trim(), "") else Pair(null, "")
                 }
+            }
+            val orphanThinkEndIdx = raw.indexOf("</think>")
+            if (orphanThinkEndIdx != -1) {
+                val thinking = raw.substring(0, orphanThinkEndIdx).trim()
+                val answer = raw.substring(orphanThinkEndIdx + "</think>".length).trimStart()
+                return Pair(if (thinkingEnabled) thinking else null, answer)
             }
             return Pair(null, raw)
         }
@@ -212,6 +275,39 @@ class SlmInferenceEngine(
             sb.append("<|im_start|>assistant\n")
             return sb.toString()
         }
+
+        /**
+         * Builds a stateless, single-turn ChatML prompt specifically for IME voice-driven text processing.
+         * When [thinkingEnabled] is false, prefills an empty closed `<think>\n\n</think>\n` block in the
+         * assistant turn (per Qwen3/Qwen3.5 chat template specification) so the model skips reasoning
+         * tokens and immediately emits the transformed text.
+         */
+        fun buildInputTaskChatMlPrompt(
+            targetText: String?,
+            voiceInput: String,
+            thinkingEnabled: Boolean = false,
+            mode: String = SlmModelConfig.OUTPUT_MODE_REFINE
+        ): String {
+            val hasTarget = !targetText.isNullOrBlank()
+            val systemPrompt = SlmModelConfig.buildInputTaskSystemPrompt(
+                hasTargetText = hasTarget,
+                thinkingEnabled = thinkingEnabled,
+                mode = mode
+            )
+            val userPrompt = SlmModelConfig.buildInputTaskUserPrompt(
+                targetText = targetText,
+                voiceInput = voiceInput,
+                thinkingEnabled = thinkingEnabled
+            )
+            val sb = StringBuilder()
+            sb.append("<|im_start|>system\n").append(systemPrompt).append("<|im_end|>\n")
+            sb.append("<|im_start|>user\n").append(userPrompt).append("<|im_end|>\n")
+            sb.append("<|im_start|>assistant\n")
+            if (!thinkingEnabled) {
+                sb.append("<think>\n\n</think>\n")
+            }
+            return sb.toString()
+        }
     }
 
     interface StreamCallback {
@@ -241,6 +337,92 @@ class SlmInferenceEngine(
         }
         activeJob?.cancel()
         activeJob = null
+    }
+
+    /**
+     * Executes stateless, context-aware text transformation or generation for the AI floating bubble.
+     * - [targetText]: Current text extracted from the focused input box (or empty if the input box is empty).
+     * - [voiceInput]: User's spoken instruction or content recognized by ASR.
+     */
+    fun processInputTask(
+        targetText: String?,
+        voiceInput: String,
+        callback: StreamCallback
+    ) {
+        cancelCurrent()
+
+        val selectedModel = SlmModelConfig.resolveAvailableModelId(context)
+            ?: SlmModelConfig.getSelectedModel(context)
+        val thinkingEnabled = SlmModelConfig.isThinkingEnabled(context)
+        val outputMode = SlmModelConfig.getOutputMode(context)
+        val meta = SlmModelConfig.getModelMetadata(selectedModel)
+        val hwSpec = SlmModelConfig.getHardwareSpec(context)
+        val modeLabel = SlmModelConfig.getOutputModeLabel(outputMode)
+        val cleanSource = targetText?.trim() ?: ""
+
+        val assistantMessage = SlmChatMessage(
+            role = SlmChatMessage.Role.ASSISTANT,
+            content = "",
+            thinkingContent = null,
+            isStreaming = true,
+            modelTag = "${meta.displayName} · $modeLabel · ${hwSpec.accelTag}"
+        )
+
+        activeJob = scope.launch {
+            try {
+                val isDownloaded = SlmModelConfig.isModelDownloaded(context, selectedModel)
+                if (!isDownloaded) {
+                    withContext(Dispatchers.Main) {
+                        assistantMessage.isStreaming = false
+                        assistantMessage.content = "模型「${meta.displayName}」尚未下載。"
+                        callback.onError(IllegalStateException("模型尚未下載"))
+                    }
+                    return@launch
+                }
+
+                if (!isLoaded(selectedModel)) {
+                    val loadRes = loadModel(selectedModel)
+                    if (loadRes.isFailure) {
+                        val err = loadRes.exceptionOrNull() ?: IllegalStateException("模型載入失敗")
+                        withContext(Dispatchers.Main) {
+                            assistantMessage.isStreaming = false
+                            assistantMessage.content = "模型載入至記憶體失敗：${err.message}"
+                            callback.onError(err)
+                        }
+                        return@launch
+                    }
+                }
+
+                val model = activeLlamaModel ?: throw IllegalStateException("推論模型未就緒")
+                val chatMlPrompt = buildInputTaskChatMlPrompt(
+                    targetText = cleanSource,
+                    voiceInput = voiceInput,
+                    thinkingEnabled = thinkingEnabled,
+                    mode = outputMode
+                )
+
+                Log.i(TAG, "Starting SLM input task inference [hasTarget=${cleanSource.isNotEmpty()}, mode=$outputMode, thinking=$thinkingEnabled] on ${hwSpec.backendName}")
+
+                streamInference(
+                    model = model,
+                    chatMlPrompt = chatMlPrompt,
+                    assistantMessage = assistantMessage,
+                    callback = callback,
+                    thinkingEnabled = thinkingEnabled,
+                    outputMode = if (cleanSource.isNotEmpty()) SlmModelConfig.OUTPUT_MODE_REFINE else outputMode,
+                    isInputTask = true,
+                    sourceText = cleanSource
+                )
+            } catch (e: Throwable) {
+                if (e !is CancellationException && e !is LlamaException.GenerationCancelled) {
+                    Log.e(TAG, "Input task inference error", e)
+                    withContext(Dispatchers.Main) {
+                        assistantMessage.isStreaming = false
+                        callback.onError(e)
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -335,39 +517,70 @@ class SlmInferenceEngine(
         assistantMessage: SlmChatMessage,
         callback: StreamCallback,
         thinkingEnabled: Boolean,
-        outputMode: String
+        outputMode: String,
+        isInputTask: Boolean = false,
+        sourceText: String = ""
     ) = withContext(Dispatchers.Default) {
         val rawBuffer = StringBuilder()
 
         val genConfig = model.config.copy {
-            maxTokens = when (outputMode) {
-                SlmModelConfig.OUTPUT_MODE_DEEP -> 512
-                SlmModelConfig.OUTPUT_MODE_BULLET -> 320
+            maxTokens = when {
+                isInputTask && sourceText.isNotEmpty() -> (sourceText.length * 3).coerceIn(256, 512)
+                outputMode == SlmModelConfig.OUTPUT_MODE_DEEP -> 512
+                outputMode == SlmModelConfig.OUTPUT_MODE_BULLET -> 320
                 else -> 256
             }
-            temperature = when (outputMode) {
-                SlmModelConfig.OUTPUT_MODE_DEEP -> 0.35f
-                SlmModelConfig.OUTPUT_MODE_REFINE -> 0.15f
+            temperature = when {
+                isInputTask -> 0.15f
+                outputMode == SlmModelConfig.OUTPUT_MODE_DEEP -> 0.35f
+                outputMode == SlmModelConfig.OUTPUT_MODE_REFINE -> 0.15f
                 else -> 0.25f
             }
             repeatPenalty = 1.18f
-            presencePenalty = 0.25f
+            presencePenalty = if (isInputTask) 0.10f else 0.25f
+            stopSequences = listOf(
+                "<|im_end|>",
+                "<|endoftext|>",
+                "</s>",
+                "</source_text>",
+                "</voice_command>",
+                "</voice_input>",
+                "</output>",
+                "\n\n用戶：",
+                "\n\nUser:",
+                "\n\n使用者：",
+                "\n\nQ:",
+                "\n\n【"
+            )
         }
+
+        val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        var lastShownThinking = ""
+        var lastShownAnswer = ""
 
         val flow = model.generateStream(chatMlPrompt, genConfig)
         flow.collect { token ->
             rawBuffer.append(token)
 
             val (thinking, answer) = parseStreamContent(rawBuffer.toString(), thinkingEnabled)
-            val cleanedAnswer = cleanOutput(answer)
-            assistantMessage.thinkingContent = if (thinkingEnabled) thinking?.let { cleanOutput(it) } else null
+            val cleanedThinking = if (thinkingEnabled) thinking?.let { cleanOutput(it) } else null
+            val cleanedAnswer = if (isInputTask) {
+                sanitizeInputTaskOutput(answer, sourceText)
+            } else {
+                cleanOutput(answer)
+            }
+            assistantMessage.thinkingContent = cleanedThinking
             assistantMessage.content = cleanedAnswer
 
-            withContext(Dispatchers.Main) {
-                if (thinking != null && thinkingEnabled) {
-                    callback.onThinkingUpdate(cleanOutput(thinking))
+            if (cleanedThinking != null && cleanedThinking.isNotBlank() && cleanedThinking != lastShownThinking) {
+                lastShownThinking = cleanedThinking
+                mainHandler.post {
+                    callback.onThinkingUpdate(cleanedThinking)
                 }
-                if (cleanedAnswer.isNotEmpty()) {
+            }
+            if (cleanedAnswer.isNotBlank() && cleanedAnswer != lastShownAnswer) {
+                lastShownAnswer = cleanedAnswer
+                mainHandler.post {
                     callback.onAnswerUpdate(cleanedAnswer)
                 }
             }
@@ -375,12 +588,16 @@ class SlmInferenceEngine(
 
         // Finalize completed output
         val (finalThinking, finalAnswer) = parseStreamContent(rawBuffer.toString(), thinkingEnabled)
-        val cleanFinalAnswer = cleanOutput(finalAnswer).trim()
+        val cleanFinalAnswer = if (isInputTask) {
+            sanitizeInputTaskOutput(finalAnswer, sourceText)
+        } else {
+            cleanOutput(finalAnswer).trim()
+        }
         assistantMessage.thinkingContent = if (thinkingEnabled) finalThinking?.let { cleanOutput(it).trim() } else null
         assistantMessage.content = cleanFinalAnswer
         assistantMessage.isStreaming = false
 
-        withContext(Dispatchers.Main) {
+        mainHandler.post {
             callback.onComplete(assistantMessage)
         }
     }

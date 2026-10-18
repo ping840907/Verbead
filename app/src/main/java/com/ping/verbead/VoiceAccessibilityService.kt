@@ -529,6 +529,143 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Reads the current active editable node's text and selection context (excluding placeholders and password fields).
+     * Used by AI (SLM) mode to treat the current input box text as the processing target.
+     */
+    fun readActiveEditableContext(): TextInsertion.EditableTextContext {
+        val target = findActiveEditableNode() ?: return TextInsertion.EditableTextContext("", null, 0, 0)
+        if (target.isPassword) return TextInsertion.EditableTextContext("", null, 0, 0)
+        runCatching { target.refresh() }
+        val initialText = target.text?.toString() ?: ""
+        val rawSelStart = target.textSelectionStart
+        val rawSelEnd = target.textSelectionEnd
+        val isHint = isNodeTextPlaceholder(target, initialText, rawSelStart, rawSelEnd)
+        return TextInsertion.extractContext(
+            originalText = initialText,
+            rawSelStart = rawSelStart,
+            rawSelEnd = rawSelEnd,
+            isHint = isHint,
+            hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null,
+            contentDescription = target.contentDescription
+        )
+    }
+
+    /**
+     * Applies SLM-processed text to the currently focused editable node.
+     * - If the node had selected text, replaces only the selected range.
+     * - If the node had existing text without selection, replaces the entire field text with the SLM output.
+     * - If the node was empty, inserts the SLM output.
+     * Captures an [EditorSnapshot] beforehand so the floating X button can one-tap Undo back to the original text.
+     */
+    fun applySlmResult(text: String, createSnapshot: Boolean = true): Boolean {
+        if (text.isEmpty()) return false
+
+        val target = findActiveEditableNode()
+        if (target == null) {
+            Log.w(TAG, "applySlmResult: No focused editable node found")
+            return false
+        }
+
+        if (target.isPassword) {
+            Log.w(TAG, "applySlmResult: Target node is a password field; rejecting")
+            mainHandler.post {
+                Toast.makeText(this, R.string.toast_password_not_supported, Toast.LENGTH_SHORT).show()
+            }
+            return false
+        }
+
+        if (!target.isFocused) {
+            val focused = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }.getOrDefault(false)
+            if (focused) {
+                runCatching { target.refresh() }
+            }
+        } else {
+            runCatching { target.refresh() }
+        }
+
+        isAutomatedActionInProgress = true
+        try {
+            val initialText = target.text?.toString() ?: ""
+            val rawSelStart = target.textSelectionStart
+            val rawSelEnd = target.textSelectionEnd
+            val isHint = isNodeTextPlaceholder(target, initialText, rawSelStart, rawSelEnd)
+
+            val replacement = TextInsertion.replaceForSlm(
+                originalText = initialText,
+                rawSelStart = rawSelStart,
+                rawSelEnd = rawSelEnd,
+                slmOutput = text,
+                isHint = isHint,
+                hintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null,
+                contentDescription = target.contentDescription
+            )
+
+            if (createSnapshot) {
+                lastSnapshot = EditorSnapshot(
+                    node = target,
+                    originalText = if (isHint) "" else initialText,
+                    selectionStart = replacement.normalizedSelStart,
+                    selectionEnd = replacement.normalizedSelEnd
+                )
+                lastInjectedText = replacement.text
+                lastInjectedCursorPos = replacement.cursorPosition
+            }
+
+            val isPasteMode = ModelConfig.isPasteModeEnabled(this)
+            if (!isPasteMode) {
+                val args = Bundle().apply {
+                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, replacement.text)
+                }
+                val setSuccess = runCatching {
+                    target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                }.getOrDefault(false)
+
+                Log.i(TAG, "applySlmResult ACTION_SET_TEXT result: $setSuccess")
+                if (setSuccess) {
+                    val selArgs = Bundle().apply {
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, replacement.cursorPosition)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, replacement.cursorPosition)
+                    }
+                    runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs) }
+                    return true
+                }
+            }
+
+            // Fallback or Paste Mode: if replacing whole field text without prior selection, select all first
+            if (!isHint && initialText.isNotEmpty() && replacement.normalizedSelStart == replacement.normalizedSelEnd) {
+                val selAll = Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, initialText.length)
+                }
+                runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }
+            }
+
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("text", text).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    description.extras = PersistableBundle().apply {
+                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                    }
+                }
+            }
+            clipboard.setPrimaryClip(clip)
+
+            val pasted = runCatching {
+                target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+            }.getOrDefault(false)
+            Log.i(TAG, "applySlmResult ACTION_PASTE result: $pasted")
+            if (!pasted) {
+                mainHandler.post {
+                    Toast.makeText(this, R.string.toast_fallback_clipboard, Toast.LENGTH_SHORT).show()
+                }
+            }
+            return pasted
+        } finally {
+            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
+        }
+    }
+
+    /**
      * Injects [text] into the currently focused editable node in the active foreground window.
      * Uses ACTION_SET_TEXT combined with cursor calculation to insert text at current cursor without
      * writing to the system clipboard, preserving user privacy.

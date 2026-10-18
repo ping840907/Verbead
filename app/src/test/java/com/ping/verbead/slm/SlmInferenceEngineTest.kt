@@ -158,11 +158,11 @@ class SlmInferenceEngineTest {
             isHardwareAccel = true,
             gpuLayers = SlmModelConfig.DEFAULT_GPU_LAYERS,
             backendName = "GPU/NPU (Vulkan/NNAPI)",
-            accelTag = "⚡ GPU/NPU"
+            accelTag = "GPU/NPU"
         )
         assertTrue(spec.isHardwareAccel)
         assertEquals(99, spec.gpuLayers)
-        assertEquals("⚡ GPU/NPU", spec.accelTag)
+        assertEquals("GPU/NPU", spec.accelTag)
         assertTrue(spec.backendName.contains("GPU") || spec.backendName.contains("NPU"))
     }
 
@@ -195,4 +195,86 @@ class SlmInferenceEngineTest {
         assertFalse(SlmInferenceEngine.isModelLoaded(SlmModelConfig.MODEL_QWEN_2B))
         assertEquals("未載入記憶體", SlmInferenceEngine.getLoadedMemoryInfo())
     }
+
+    @Test
+    fun testInputTaskPromptsForExistingTextAndEmptyBox() {
+        val sysWithTarget = SlmModelConfig.buildInputTaskSystemPrompt(
+            hasTargetText = true,
+            thinkingEnabled = false,
+            mode = SlmModelConfig.OUTPUT_MODE_FAST
+        )
+        assertTrue(sysWithTarget.contains("<source_text>"))
+        assertTrue(sysWithTarget.contains("<voice_command>"))
+        assertTrue(sysWithTarget.contains("絕不可回答它"))
+
+        val userWithTarget = SlmModelConfig.buildInputTaskUserPrompt(
+            targetText = "今天下午三點開會，你來不來？",
+            voiceInput = "改成禮貌商務語氣",
+            thinkingEnabled = false
+        )
+        assertTrue(userWithTarget.contains("<source_text>今天下午三點開會，你來不來？</source_text>"))
+        assertTrue(userWithTarget.contains("<voice_command>改成禮貌商務語氣</voice_command>"))
+        assertTrue(userWithTarget.endsWith("/no_think"))
+
+        val sysEmptyBox = SlmModelConfig.buildInputTaskSystemPrompt(
+            hasTargetText = false,
+            thinkingEnabled = false,
+            mode = SlmModelConfig.OUTPUT_MODE_BULLET
+        )
+        assertTrue(sysEmptyBox.contains("<voice_input>"))
+        assertTrue(sysEmptyBox.contains("去除口頭禪與語氣贅字"))
+
+        val userEmptyBox = SlmModelConfig.buildInputTaskUserPrompt(
+            targetText = "",
+            voiceInput = "跟老闆說我今天感冒請假一天，幫我翻成英文",
+            thinkingEnabled = true
+        )
+        assertTrue(userEmptyBox.contains("<voice_input>跟老闆說我今天感冒請假一天，幫我翻成英文</voice_input>"))
+        assertFalse(userEmptyBox.contains("/no_think"))
+    }
+
+    @Test
+    fun testBuildInputTaskChatMlPromptPrefillsEmptyThinkWhenDisabled() {
+        val promptNoThink = SlmInferenceEngine.buildInputTaskChatMlPrompt(
+            targetText = "原本的句子",
+            voiceInput = "翻成英文",
+            thinkingEnabled = false
+        )
+        assertTrue(promptNoThink.endsWith("<|im_start|>assistant\n<think>\n\n</think>\n"))
+
+        val promptWithThink = SlmInferenceEngine.buildInputTaskChatMlPrompt(
+            targetText = "原本的句子",
+            voiceInput = "翻成英文",
+            thinkingEnabled = true
+        )
+        assertTrue(promptWithThink.endsWith("<|im_start|>assistant\n"))
+    }
+
+    @Test
+    fun testSanitizeInputTaskOutputStripsChatterTagsAndUnwantedQuotes() {
+        // 1. 剝除開頭廢話前綴與多餘外層引號
+        val chatterOutput = "好的，修改後的文字如下：\n「您好，今日下午三點將舉行會議，請問您是否方便出席？」"
+        val cleaned1 = SlmInferenceEngine.sanitizeInputTaskOutput(
+            rawAnswer = chatterOutput,
+            sourceText = "今天下午三點開會，你來不來？"
+        )
+        assertEquals("您好，今日下午三點將舉行會議，請問您是否方便出席？", cleaned1)
+
+        // 2. 剝除殘留 XML 標籤與英文前綴
+        val xmlLeaked = "Translated text: <source_text>Where is the nearest MRT station?</source_text><|im_end|>"
+        val cleaned2 = SlmInferenceEngine.sanitizeInputTaskOutput(
+            rawAnswer = xmlLeaked,
+            sourceText = "請問最近的捷運站在哪裡？"
+        )
+        assertEquals("Where is the nearest MRT station?", cleaned2)
+
+        // 3. 若原文已有引號，則保留外層引號
+        val quotedSource = "「原本就有引號」"
+        val cleaned3 = SlmInferenceEngine.sanitizeInputTaskOutput(
+            rawAnswer = "「改寫後依然保留引號」",
+            sourceText = quotedSource
+        )
+        assertEquals("「改寫後依然保留引號」", cleaned3)
+    }
 }
+

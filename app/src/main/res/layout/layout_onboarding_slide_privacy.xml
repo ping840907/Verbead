@@ -119,7 +119,7 @@
                     android:background="@drawable/bg_status_badge_success"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="🔒 Sherpa 離線辨識"
+                    android:text="Sherpa 離線辨識"
                     android:textColor="@color/status_success_text"
                     android:textSize="11sp" />
 
@@ -130,7 +130,7 @@
                     android:background="@drawable/bg_status_badge_success"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="📄 本機 PP-OCR"
+                    android:text="本機 PP-OCR"
                     android:textColor="@color/status_success_text"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -150,7 +150,7 @@
                     android:background="@drawable/bg_status_badge_recommend"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="🛡️ 零上傳零記錄"
+                    android:text="零上傳零記錄"
                     android:textColor="@color/md_theme_light_primary"
                     android:textSize="11sp" />
 
@@ -161,7 +161,7 @@
                     android:background="@drawable/bg_status_badge_recommend"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="⚡ 極致毫秒響應"
+                    android:text="極致毫秒響應"
                     android:textColor="@color/md_theme_light_primary"
                     android:textSize="11sp" />
             </LinearLayout>

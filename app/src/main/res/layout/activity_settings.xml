@@ -1057,7 +1057,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="⚡ 快速載入內部模型包"
+                    android:text="快速載入內部模型包"
                     android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -1801,14 +1801,14 @@
                         style="@style/Verbead.Text.Body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="🀄 直排文字自動展開：書籍、菜單、春聯等直排中文會自動正立展開，精準辨識不顛倒。" />
+                        android:text="直排文字自動展開：書籍、菜單、春聯等直排中文會自動正立展開，精準辨識不顛倒。" />
 
                     <TextView
                         style="@style/Verbead.Text.Body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="🔢 多選區塊依序組合：點選文字區塊顯示 ①②③ 序號，可依自訂順序拼接；雙擊任一區塊立即確認貼入。" />
+                        android:text="多選區塊依序組合：點選文字區塊顯示 ①②③ 序號，可依自訂順序拼接；雙擊任一區塊立即確認貼入。" />
                 </LinearLayout>
 
                 <View
@@ -2028,7 +2028,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="支援 0.8B、2B、4B、9B 離線運行 · ⚡ GPU/NPU 加速" />
+                                android:text="支援 0.8B、2B、4B、9B 離線運行 · GPU/NPU 加速" />
                         </LinearLayout>
                     </LinearLayout>
 

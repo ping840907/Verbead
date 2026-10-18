@@ -14,6 +14,30 @@ object TextInsertion {
     )
 
     /**
+     * Represents the extracted text and selection state of the currently focused editable field.
+     */
+    data class EditableTextContext(
+        val fullText: String,
+        val selectedText: String?,
+        val selectionStart: Int,
+        val selectionEnd: Int
+    ) {
+        val hasSelection: Boolean
+            get() = !selectedText.isNullOrEmpty()
+
+        /**
+         * The target text to be processed by SLM:
+         * - If the user highlighted a specific substring, only that selection is targeted.
+         * - Otherwise, the entire text in the editable field is targeted.
+         */
+        val targetText: String
+            get() = if (hasSelection) selectedText!! else fullText
+
+        val isEmpty: Boolean
+            get() = targetText.isBlank()
+    }
+
+    /**
      * Normalizes text by trimming whitespace, trailing ellipsis, colons, etc.
      */
     fun normalizeHint(text: CharSequence?): String {
@@ -150,6 +174,112 @@ object TextInsertion {
             normalizedSelStart = selStart,
             normalizedSelEnd = selEnd
         )
+    }
+
+    /**
+     * Extracts the current editable field's text and selection context, filtering out placeholder/hint text.
+     */
+    fun extractContext(
+        originalText: CharSequence?,
+        rawSelStart: Int,
+        rawSelEnd: Int,
+        isHint: Boolean = false,
+        hintText: CharSequence? = null,
+        contentDescription: CharSequence? = null
+    ): EditableTextContext {
+        val resolvedIsHint = isHint || isHintText(
+            originalText = originalText,
+            hintText = hintText,
+            isShowingHintText = false,
+            contentDescription = contentDescription
+        )
+        if (resolvedIsHint || originalText.isNullOrEmpty()) {
+            return EditableTextContext(
+                fullText = "",
+                selectedText = null,
+                selectionStart = 0,
+                selectionEnd = 0
+            )
+        }
+        val orig = originalText.toString()
+        val textLen = orig.length
+        var selStart = rawSelStart
+        var selEnd = rawSelEnd
+        if (selStart < 0 || selEnd < 0) {
+            selStart = textLen
+            selEnd = textLen
+        } else {
+            selStart = selStart.coerceIn(0, textLen)
+            selEnd = selEnd.coerceIn(0, textLen)
+            if (selStart > selEnd) {
+                val tmp = selStart
+                selStart = selEnd
+                selEnd = tmp
+            }
+        }
+        val selected = if (selEnd > selStart) orig.substring(selStart, selEnd) else null
+        return EditableTextContext(
+            fullText = orig,
+            selectedText = selected,
+            selectionStart = selStart,
+            selectionEnd = selEnd
+        )
+    }
+
+    /**
+     * Applies an SLM-transformed text result to the editable field:
+     * - If the user had highlighted a specific selection (selStart < selEnd), replaces only that selection.
+     * - If the field had existing text without a highlight selection, replaces the entire field text
+     *   (since the entire field text was passed to SLM as <source_text>), while preserving the original
+     *   selection bounds so Undo (restoreLastSnapshot) restores the exact pre-SLM text and cursor.
+     * - If the field was empty (or placeholder), inserts the SLM result into the empty field.
+     */
+    fun replaceForSlm(
+        originalText: CharSequence?,
+        rawSelStart: Int,
+        rawSelEnd: Int,
+        slmOutput: CharSequence?,
+        isHint: Boolean = false,
+        hintText: CharSequence? = null,
+        contentDescription: CharSequence? = null
+    ): Result {
+        val ctx = extractContext(
+            originalText = originalText,
+            rawSelStart = rawSelStart,
+            rawSelEnd = rawSelEnd,
+            isHint = isHint,
+            hintText = hintText,
+            contentDescription = contentDescription
+        )
+        val output = slmOutput?.toString() ?: ""
+        if (ctx.fullText.isEmpty()) {
+            return Result(
+                text = output,
+                cursorPosition = output.length,
+                normalizedSelStart = 0,
+                normalizedSelEnd = 0
+            )
+        }
+        return if (ctx.hasSelection) {
+            val combined = ctx.fullText.substring(0, ctx.selectionStart) +
+                output +
+                ctx.fullText.substring(ctx.selectionEnd)
+            val newCursor = ctx.selectionStart + output.length
+            Result(
+                text = combined,
+                cursorPosition = newCursor,
+                normalizedSelStart = ctx.selectionStart,
+                normalizedSelEnd = ctx.selectionEnd
+            )
+        } else {
+            // Whole field text was transformed by SLM -> replace whole field text
+            Result(
+                text = output,
+                cursorPosition = output.length,
+                normalizedSelStart = ctx.selectionStart,
+                normalizedSelEnd = ctx.selectionEnd
+            )
+        }
     }
 
     /**

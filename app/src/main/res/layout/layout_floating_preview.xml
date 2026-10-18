@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:maxWidth="260dp"
             android:maxLines="3"
-            android:ellipsize="end"
+            android:ellipsize="start"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
             android:paddingTop="8dp"

@@ -64,7 +64,7 @@
                 android:paddingEnd="5dp"
                 android:paddingTop="1dp"
                 android:paddingBottom="1dp"
-                android:text="⚡ GPU/NPU"
+                android:text="GPU/NPU"
                 android:textColor="#38BDF8"
                 android:textSize="9sp"
                 android:textStyle="bold"
@@ -165,7 +165,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="端側 Qwen SLM 已就緒 · ⚡ GPU/NPU 加速中"
+                android:text="端側 Qwen SLM 已就緒 · GPU/NPU 加速中"
                 android:textColor="#F8FAFC"
                 android:textSize="13sp"
                 android:textStyle="bold" />

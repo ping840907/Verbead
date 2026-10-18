@@ -29,19 +29,19 @@
     <string name="onboarding_tour_title">操作導覽</string>
     <string name="onboarding_page1_title">隨處懸浮 · 點擊即說</string>
     <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始辨識；懸浮球轉為紅色代表正在聆聽，開口說話即自動辨識並填入文字！</string>
-    <string name="onboarding_page1_tip">💡 提示：點擊懸浮球後底色轉為紅色即開始收音聆聽，再次點擊或靜音自動完成填入。</string>
+    <string name="onboarding_page1_tip">提示：點擊懸浮球後底色轉為紅色即開始收音聆聽，再次點擊或靜音自動完成填入。</string>
     <string name="onboarding_page2_title">垂直膠囊 · 四大模式隨心切換</string>
     <string name="onboarding_page2_desc">長按懸浮球可展開垂直功能膠囊，上下滑動對齊即可切換模式：包含「語音即時輸入」、「條碼掃描」、「文字辨識」，以及全新「常用語抽屜」（支援常用片語長按拖曳排序，並自動置頂保留最近輸入紀錄）。</string>
-    <string name="onboarding_page2_tip">💡 提示：長按懸浮球即可展開功能膠囊；上下滑動膠囊帶動選項對齊，鬆開手指即可立即切換模式。</string>
+    <string name="onboarding_page2_tip">提示：長按懸浮球即可展開功能膠囊；上下滑動膠囊帶動選項對齊，鬆開手指即可立即切換模式。</string>
     <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回輸入</string>
     <string name="onboarding_page3_desc">當語音辨識或文字填入不如預期時，無需手動逐字刪除！懸浮球上方會自動出現小型 ✕ 鍵，輕點即可瞬間撤回並復原欄位原本的文字內容。</string>
-    <string name="onboarding_page3_tip">💡 提示：填入文字後懸浮球上方會顯示 ✕ 鍵，點擊即可執行 Undo 復原。</string>
+    <string name="onboarding_page3_tip">提示：填入文字後懸浮球上方會顯示 ✕ 鍵，點擊即可執行 Undo 復原。</string>
     <string name="onboarding_page4_title">邊緣收納 · 鍵盤聯動顯示</string>
     <string name="onboarding_page4_desc" formatted="false">將懸浮球拖曳至螢幕邊緣時會自動貼邊收納，超出畫面約 70%，僅露出約 30% 邊緣圓弧，完全不遮擋視野。您也可以在主設定中開啟「僅軟體鍵盤出現時顯示」，伴隨輸入鍵盤升起平滑淡入！</string>
-    <string name="onboarding_page4_tip">💡 提示：貼邊狀態下輕點即可拉出；或在主設定啟用鍵盤聯動，讓懸浮球僅在需要打字時現身。</string>
+    <string name="onboarding_page4_tip">提示：貼邊狀態下輕點即可拉出；或在主設定啟用鍵盤聯動，讓懸浮球僅在需要打字時現身。</string>
     <string name="onboarding_page5_title" formatted="false">100% 離線端側 · 一站式主設定</string>
     <string name="onboarding_page5_desc">所有語音、OCR 與文字處理全程在手機本機執行，零資料上傳、零隱私外洩。所有強大權限與模型設定已統一整合至主設定頁面，隨時依個人習慣配置！</string>
-    <string name="onboarding_page5_tip">🔒 隱私保障：極致辨識速度與最高端側資安，點擊下方前往主設定開始使用。</string>
+    <string name="onboarding_page5_tip">隱私保障：極致辨識速度與最高端側資安，點擊下方前往主設定開始使用。</string>
 
     <!-- Onboarding Toasts -->
     <string name="toast_file_picker_error">無法開啟檔案選擇器: %1$s</string>
@@ -102,8 +102,13 @@
     <string name="action_clear_history">清除</string>
     <string name="empty_quick_phrases">尚無常用語與紀錄\n點擊右上角「+」立即新增</string>
 
-    <!-- SLM Floating Chat Strings -->
-    <string name="preview_mode_slm">端側 AI 對話</string>
+    <!-- SLM Floating Chat & AI Voice Input Strings -->
+    <string name="preview_mode_slm">AI 語音改寫/生成</string>
+    <string name="preview_slm_listening_selection">聆聽指令（處理已選取文字）…</string>
+    <string name="preview_slm_listening_context">聆聽指令（處理輸入框文字）…</string>
+    <string name="preview_slm_listening_empty">聆聽中（AI 語音生成/潤飾）…</string>
+    <string name="preview_slm_processing">AI 處理中…</string>
+    <string name="preview_slm_failed">AI 處理失敗：%1$s</string>
     <string name="toast_slm_copied">已複製答覆至剪貼簿</string>
     <string name="toast_slm_pasted">已直接貼入當前文字輸入框</string>
     <string name="toast_slm_pasted_fallback">未偵測到作用中輸入框，已複製至剪貼簿</string>
@@ -113,13 +118,13 @@
     <string name="toast_slm_recording_prompt">正在聆聽...請說出您的指令或問題</string>
     <string name="toast_slm_download_started">開始在背景下載 %1$s 模型…</string>
     <string name="toast_slm_download_cancelled">已取消 SLM 模型下載</string>
-    <string name="toast_slm_loaded_memory">已成功載入 %1$s 至記憶體 (⚡ 硬體加速)</string>
+    <string name="toast_slm_loaded_memory">已成功載入 %1$s 至記憶體 (硬體加速)</string>
     <string name="toast_slm_unloaded_memory">已從記憶體釋放 SLM 模型</string>
     <string name="toast_slm_load_failed">載入模型失敗：%1$s</string>
     <string name="toast_slm_not_downloaded">所選模型尚未下載，請先下載模型</string>
     <string name="toast_slm_mode_switched">已切換輸出模式：%1$s</string>
-    <string name="slm_mode_fast">⚡ 極簡快答</string>
-    <string name="slm_mode_bullet">📝 重點條列</string>
-    <string name="slm_mode_refine">💡 潤飾/翻譯</string>
+    <string name="slm_mode_fast">極簡快答</string>
+    <string name="slm_mode_bullet">重點條列</string>
+    <string name="slm_mode_refine">潤飾/翻譯</string>
     <string name="toast_asr_model_not_ready">尚未下載語音辨識模型 (%1$s)，請至設定下載</string>
 </resources>

@@ -1381,7 +1381,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (quickZip != null) {
             btnQuickImportDownload.visibility = View.VISIBLE
             val sizeMb = quickZip.length() / (1024 * 1024)
-            btnQuickImportDownload.text = "⚡ 快速載入內部儲存模型包 (${sizeMb}MB)"
+            btnQuickImportDownload.text = "快速載入內部儲存模型包 (${sizeMb}MB)"
         } else {
             btnQuickImportDownload.visibility = View.GONE
         }
@@ -1411,19 +1411,19 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvSlmDescription.text = slmMeta.description
 
         if (isSlmLoaded) {
-            tvSlmStatus.text = "⚡ 已載入記憶體常駐 (${SlmInferenceEngine.getLoadedMemoryInfo()}) · 隨時可秒級推論"
+            tvSlmStatus.text = "已載入記憶體常駐 (${SlmInferenceEngine.getLoadedMemoryInfo()}) · 隨時可秒級推論"
             tvSlmStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
             btnLoadSlmMemory.isEnabled = true
             btnLoadSlmMemory.text = "釋放記憶體"
             btnDownloadSlm.text = "重新下載"
         } else if (isSlmDownloaded) {
-            tvSlmStatus.text = "✓ 已下載就緒 (未常駐於記憶體)"
+            tvSlmStatus.text = "已下載就緒 (未常駐於記憶體)"
             tvSlmStatus.setTextColor(ContextCompat.getColor(this, R.color.status_success))
             btnLoadSlmMemory.isEnabled = true
             btnLoadSlmMemory.text = "載入至記憶體"
             btnDownloadSlm.text = "重新下載"
         } else {
-            tvSlmStatus.text = "↓ 未下載 (${slmMeta.quantizedSize})"
+            tvSlmStatus.text = "未下載 (${slmMeta.quantizedSize})"
             tvSlmStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
             btnLoadSlmMemory.isEnabled = false
             btnLoadSlmMemory.text = "載入至記憶體"
@@ -1474,7 +1474,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             progressImportModels.visibility = View.GONE
 
             if (result.isSuccess) {
-                tvImportModelsStatus.text = "✅ ${result.message}"
+                tvImportModelsStatus.text = result.message
                 updateAllStatus()
                 AlertDialog.Builder(this@ImeSettingsActivity)
                     .setTitle("離線模型一鍵復原成功")
@@ -1482,7 +1482,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                     .setPositiveButton("太棒了", null)
                     .show()
             } else {
-                tvImportModelsStatus.text = "❌ ${result.message}"
+                tvImportModelsStatus.text = result.message
                 Toast.makeText(this@ImeSettingsActivity, result.message, Toast.LENGTH_LONG).show()
                 updateAllStatus()
             }
@@ -1627,9 +1627,9 @@ class ImeSettingsActivity : AppCompatActivity() {
             btn.text = if (ready) "重新下載" else if (hasConflict) "下載並替換模型" else "下載模型"
 
             val conflictNotice = if (engine == ModelConfig.ENGINE_PP_OCR_TINY && ModelConfig.isOcrSmallReady(this@ImeSettingsActivity)) {
-                "\n\n⚠️ 注意：目前已安裝 Small 高精版模型，下載後將自動替換並清理舊模型檔案，兩者不重複佔用空間。"
+                "\n\n注意：目前已安裝 Small 高精版模型，下載後將自動替換並清理舊模型檔案，兩者不重複佔用空間。"
             } else if (engine == ModelConfig.ENGINE_PP_OCR_SMALL && ModelConfig.isOcrTinyReady(this@ImeSettingsActivity)) {
-                "\n\n⚠️ 注意：目前已安裝 Tiny 輕量版模型，下載後將自動替換並清理舊模型檔案，兩者不重複佔用空間。"
+                "\n\n注意：目前已安裝 Tiny 輕量版模型，下載後將自動替換並清理舊模型檔案，兩者不重複佔用空間。"
             } else {
                 ""
             }
