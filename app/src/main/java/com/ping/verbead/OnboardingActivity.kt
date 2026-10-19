@@ -265,9 +265,11 @@ class OnboardingActivity : AppCompatActivity() {
         val itemBarcode = view.findViewById<View>(R.id.mock_item_barcode)
         val itemOcr = view.findViewById<View>(R.id.mock_item_ocr)
         val itemPhrases = view.findViewById<View>(R.id.mock_item_phrases)
+        val itemSlm = view.findViewById<View>(R.id.mock_item_slm)
 
         val density = resources.displayMetrics.density
         val itemPitchPx = 56f * density
+        val totalModes = 5
 
         var currentModeIndex = 0
 
@@ -277,29 +279,36 @@ class OnboardingActivity : AppCompatActivity() {
                     tvModeTitle?.text = "語音即時輸入"
                     tvModeDesc?.text = "高精準度離線語音辨識，輕觸即開始聽寫並直接貼上"
                     ivModeIcon?.setImageResource(R.drawable.ic_mic)
-                    tvModeBadge?.text = "模式 1/4"
-                    tvFeatureTags?.text = "• 離線 ASR 雙模型即時轉譯\n• 支援自動標點與自訂專屬詞彙\n• 耳機外接音訊倍率增益"
+                    tvModeBadge?.text = "模式 1/5"
+                    tvFeatureTags?.text = "• 雙引擎「即時預覽 + 離線高精度轉譯」\n• 支援自動標點與自訂專屬詞彙替換\n• 耳機外接音訊與麥克風倍率增益"
                 }
                 1 -> {
                     tvModeTitle?.text = "條碼與 QR 掃描"
                     tvModeDesc?.text = "極速本機條碼讀取，瞄準即辨識並自動填入"
                     ivModeIcon?.setImageResource(R.drawable.ic_barcode)
-                    tvModeBadge?.text = "模式 2/4"
-                    tvFeatureTags?.text = "• 支援 QR Code 及各類一維條碼\n• 支援相機雙指縮放與閃光燈\n• 掃描完成後可設定自動換行"
+                    tvModeBadge?.text = "模式 2/5"
+                    tvFeatureTags?.text = "• 支援 QR Code 及各類一維條碼\n• 支援相機雙指縮放與閃光燈補光\n• 掃描完成後可設定自動換行"
                 }
                 2 -> {
-                    tvModeTitle?.text = "文字辨識"
-                    tvModeDesc?.text = "凍結畫面框選文字，離線高精度字元擷取"
+                    tvModeTitle?.text = "文字辨識 (PP-OCRv6)"
+                    tvModeDesc?.text = "凍結畫面框選或多選文字區塊，離線高精度擷取"
                     ivModeIcon?.setImageResource(R.drawable.ic_ocr)
-                    tvModeBadge?.text = "模式 3/4"
-                    tvFeatureTags?.text = "• 本機端 PP-OCR 離線模型架構\n• 可自訂換行或空格分隔符\n• 框選預覽與即時觸覺反饋"
+                    tvModeBadge?.text = "模式 3/5"
+                    tvFeatureTags?.text = "• PP-OCRv6 離線模型，支援直排中文正立辨識\n• 點擊區塊依序多選組合與智慧段落折行拼接\n• 可自訂換行或空格分隔符，雙指縮放對焦"
                 }
                 3 -> {
                     tvModeTitle?.text = "常用語與歷史紀錄"
                     tvModeDesc?.text = "自訂片語隨點即貼，自動回溯最近輸入內容"
                     ivModeIcon?.setImageResource(R.drawable.ic_quick_phrases)
-                    tvModeBadge?.text = "模式 4/4"
-                    tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯"
+                    tvModeBadge?.text = "模式 4/5"
+                    tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯\n• 隨點即貼，免重複打字"
+                }
+                4 -> {
+                    tvModeTitle?.text = "AI 語音改寫與生成"
+                    tvModeDesc?.text = "讀取當前輸入框文字，開口說出指令即刻改寫填入"
+                    ivModeIcon?.setImageResource(R.drawable.ic_ai_sparkle)
+                    tvModeBadge?.text = "模式 5/5"
+                    tvFeatureTags?.text = "• 自動讀取輸入框或反白文字，語音下達改寫指令\n• 支援翻譯、潤飾、擴寫，無原文時直接語音生成\n• 懸浮球旁即時串流預覽輸出 Token 並自動覆寫"
                 }
             }
         }
@@ -342,7 +351,7 @@ class OnboardingActivity : AppCompatActivity() {
                 while (isActive) {
                     delay(2600)
                     if (!isActive) break
-                    mode = (mode + 1) % 4
+                    mode = (mode + 1) % totalModes
                     applyModeDisplay(mode, animate = true)
                 }
             }
@@ -358,9 +367,10 @@ class OnboardingActivity : AppCompatActivity() {
         itemBarcode?.setOnClickListener { onModeSelectedByUser(1) }
         itemOcr?.setOnClickListener { onModeSelectedByUser(2) }
         itemPhrases?.setOnClickListener { onModeSelectedByUser(3) }
+        itemSlm?.setOnClickListener { onModeSelectedByUser(4) }
 
         val advanceToNext = {
-            val next = (currentModeIndex + 1) % 4
+            val next = (currentModeIndex + 1) % totalModes
             onModeSelectedByUser(next)
         }
         cardModeInfo?.setOnClickListener { advanceToNext() }
@@ -427,9 +437,10 @@ class OnboardingActivity : AppCompatActivity() {
         }
     }
 
-    // ── Slide 3: 70% Edge Tucking & Keyboard Linkage Animation ───────────────
+    // ── Slide 3: 70% Edge Tucking, Keyboard Linkage & Multi-Bubble Split ────
     private fun startTuckAndKeyboardAnimation(view: View) {
         val bubble = view.findViewById<View>(R.id.layout_mock_tuck_bubble) ?: return
+        val cloneBubble = view.findViewById<View>(R.id.layout_mock_clone_bubble)
         val keyboard = view.findViewById<View>(R.id.layout_mock_keyboard) ?: return
         val tvTitle = view.findViewById<TextView>(R.id.tv_mock_tuck_status_title)
         val tvDesc = view.findViewById<TextView>(R.id.tv_mock_tuck_status_desc)
@@ -439,6 +450,8 @@ class OnboardingActivity : AppCompatActivity() {
         // Translating right by (12dp + 36dp) = 48dp pushes 36dp (70%) outside and leaves 16dp (30%) visible!
         val tuckHiddenX = 48f * density
         val keyboardHeightPx = 90f * density
+        val shakeOffsetPx = 22f * density
+        val cloneOffsetYPx = -62f * density
 
         currentAnimJob = activityScope.launch {
             while (isActive) {
@@ -446,6 +459,9 @@ class OnboardingActivity : AppCompatActivity() {
                 tvTitle?.text = "1. 邊緣收納：超出邊界 70%"
                 tvDesc?.text = "自動藏入螢幕邊緣，僅露 30% 圓弧，輕點即可拉出"
 
+                cloneBubble?.alpha = 0f
+                cloneBubble?.translationX = 0f
+                cloneBubble?.translationY = 0f
                 keyboard.translationY = keyboardHeightPx
                 bubble.alpha = 1.0f
                 bubble.animate()
@@ -455,7 +471,7 @@ class OnboardingActivity : AppCompatActivity() {
                     .setInterpolator(AccelerateDecelerateInterpolator())
                     .start()
 
-                delay(2600)
+                delay(2400)
                 if (!isActive) break
 
                 // Phase 2: Keyboard Linkage (Bubble fades in above keyboard)
@@ -479,21 +495,55 @@ class OnboardingActivity : AppCompatActivity() {
                     .setDuration(350)
                     .start()
 
-                delay(2400)
+                delay(2200)
                 if (!isActive) break
 
-                // Keyboard slides down, bubble fades out
+                // Keyboard slides down
                 keyboard.animate()
                     .translationY(keyboardHeightPx)
-                    .setDuration(350)
-                    .start()
-
-                bubble.animate()
-                    .alpha(0f)
                     .setDuration(300)
                     .start()
+                delay(350)
+                if (!isActive) break
 
-                delay(800)
+                // Phase 3: Shake to Duplicate Multi-Bubble
+                tvTitle?.text = "3. 搖晃分身：多顆懸浮球並行"
+                tvDesc?.text = "拖曳懸浮球時快速左右搖晃即可分裂新球（最多 5 顆），各自獨立記憶模式"
+
+                bubble.animate()
+                    .translationX(-shakeOffsetPx)
+                    .translationY(16f * density)
+                    .setDuration(110)
+                    .start()
+                delay(120)
+                bubble.animate().translationX(0f).setDuration(110).start()
+                delay(120)
+                bubble.animate().translationX(-shakeOffsetPx).setDuration(110).start()
+                delay(120)
+                bubble.animate().translationX(0f).setDuration(120).start()
+                delay(130)
+                if (!isActive) break
+
+                // Spawn clone bubble above primary bubble
+                cloneBubble?.translationX = 0f
+                cloneBubble?.translationY = 16f * density
+                cloneBubble?.scaleX = 0.5f
+                cloneBubble?.scaleY = 0.5f
+                cloneBubble?.alpha = 0f
+                cloneBubble?.animate()
+                    ?.alpha(1.0f)
+                    ?.scaleX(1.0f)
+                    ?.scaleY(1.0f)
+                    ?.translationY(cloneOffsetYPx + 16f * density)
+                    ?.setDuration(380)
+                    ?.setInterpolator(AccelerateDecelerateInterpolator())
+                    ?.start()
+
+                delay(2200)
+                if (!isActive) break
+
+                cloneBubble?.animate()?.alpha(0f)?.scaleX(0.6f)?.scaleY(0.6f)?.setDuration(250)?.start()
+                delay(350)
             }
         }
     }
