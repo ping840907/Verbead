@@ -213,17 +213,25 @@ class SlmInferenceEngine(
 
         /**
          * Parses a raw text stream into separated (thinkingContent, answerContent).
-         * If thinking is disabled, thinkingContent is suppressed.
+         * Supports prefilled <think>\n prompts, model-generated <think> tags,
+         * <thought> aliases, orphan </think> tags, and streaming unclosed thinking tokens.
+         *
+         * @param raw The raw accumulated token stream emitted by the model.
+         * @param thinkingEnabled Whether thinking mode is turned on.
+         * @param isPrefilledThink Whether <think>\n was prefilled at the end of the assistant prompt.
          */
-        fun parseStreamContent(raw: String, thinkingEnabled: Boolean = true): Pair<String?, String> {
-            val trimmedLeading = raw.trimStart()
-            // Avoid leaking partial opening tag like "<th" or "<think" into answer
-            if (trimmedLeading.startsWith("<") && !trimmedLeading.contains(">")) {
-                return Pair(null, "")
-            }
-            val thinkStartIdx = raw.indexOf("<think>")
+        fun parseStreamContent(
+            raw: String,
+            thinkingEnabled: Boolean = true,
+            isPrefilledThink: Boolean = false
+        ): Pair<String?, String> {
+            val normalized = raw.replace("<thought>", "<think>").replace("</thought>", "</think>")
+            val trimmedLeading = normalized.trimStart()
+
+            // 1. Explicit <think> tag in the raw generated stream
+            val thinkStartIdx = normalized.indexOf("<think>")
             if (thinkStartIdx != -1) {
-                val afterStart = raw.substring(thinkStartIdx + "<think>".length)
+                val afterStart = normalized.substring(thinkStartIdx + "<think>".length)
                 val thinkEndIdx = afterStart.indexOf("</think>")
                 return if (thinkEndIdx != -1) {
                     val thinking = afterStart.substring(0, thinkEndIdx).trim()
@@ -234,13 +242,65 @@ class SlmInferenceEngine(
                     if (thinkingEnabled) Pair(afterStart.trim(), "") else Pair(null, "")
                 }
             }
-            val orphanThinkEndIdx = raw.indexOf("</think>")
+
+            // 2. Orphan </think> tag (occurs when <think>\n was prefilled in the prompt)
+            val orphanThinkEndIdx = normalized.indexOf("</think>")
             if (orphanThinkEndIdx != -1) {
-                val thinking = raw.substring(0, orphanThinkEndIdx).trim()
-                val answer = raw.substring(orphanThinkEndIdx + "</think>".length).trimStart()
+                val thinking = normalized.substring(0, orphanThinkEndIdx).trim()
+                val answer = normalized.substring(orphanThinkEndIdx + "</think>".length).trimStart()
                 return Pair(if (thinkingEnabled) thinking else null, answer)
             }
-            return Pair(null, raw)
+
+            // 3. Neither <think> nor </think> present in the generated stream
+            if (isPrefilledThink && thinkingEnabled) {
+                // Since <think>\n was prefilled in the prompt, every incoming token until </think> is THINKING
+                return Pair(normalized.trim(), "")
+            }
+
+            // Avoid leaking partial opening tag like "<th" or "<think" into answer
+            if (trimmedLeading.startsWith("<") && !trimmedLeading.contains(">")) {
+                return Pair(null, "")
+            }
+
+            return Pair(null, normalized)
+        }
+
+        /**
+         * Fallback extractor in case a model in thinking mode terminated or was cut off
+         * without closing </think>. Salvages the final answer from concluding reasoning markers.
+         */
+        fun extractFallbackAnswerFromThinking(thinking: String): String {
+            if (thinking.isBlank()) return ""
+            val markers = listOf(
+                "最終輸出[：:\\s]+",
+                "最終結果[：:\\s]+",
+                "最終文字[：:\\s]+",
+                "建議改寫為[：:\\s]+",
+                "改寫為[：:\\s]+",
+                "修改為[：:\\s]+",
+                "修改後[：:\\s]+",
+                "潤飾後[：:\\s]+",
+                "翻譯結果[：:\\s]+",
+                "譯文[：:\\s]+",
+                "輸出[：:\\s]+"
+            )
+            for (pattern in markers) {
+                val match = Regex(pattern, RegexOption.IGNORE_CASE).find(thinking)
+                if (match != null) {
+                    val candidate = thinking.substring(match.range.last + 1).trim()
+                    if (candidate.isNotBlank()) {
+                        return candidate
+                    }
+                }
+            }
+            val lines = thinking.lines().map { it.trim() }.filter { it.isNotEmpty() }
+            if (lines.size >= 2) {
+                val lastLine = lines.last()
+                if (!lastLine.startsWith("分析") && !lastLine.startsWith("思考") && !lastLine.startsWith("首先") && !lastLine.startsWith("1.") && !lastLine.startsWith("-")) {
+                    return lastLine
+                }
+            }
+            return ""
         }
 
         /**
@@ -252,7 +312,8 @@ class SlmInferenceEngine(
             systemPrompt: String,
             history: List<SlmChatMessage>,
             newPrompt: String,
-            mode: String = SlmModelConfig.OUTPUT_MODE_FAST
+            mode: String = SlmModelConfig.OUTPUT_MODE_FAST,
+            thinkingEnabled: Boolean = false
         ): String {
             val sb = StringBuilder()
             sb.append("<|im_start|>system\n").append(systemPrompt).append("<|im_end|>\n")
@@ -267,20 +328,23 @@ class SlmInferenceEngine(
                 }
                 sb.append("<|im_start|>").append(roleStr).append("\n")
                 // CRITICAL: NEVER include <think>...</think> in multi-turn history!
-                // This prevents in-context mimicry of verbose internal monologues and stops context explosion.
                 val cleanContent = msg.getCleanAnswer().ifBlank { msg.content }
                 sb.append(cleanContent).append("<|im_end|>\n")
             }
             sb.append("<|im_start|>user\n").append(newPrompt).append("<|im_end|>\n")
             sb.append("<|im_start|>assistant\n")
+            if (thinkingEnabled) {
+                sb.append("<think>\n")
+            }
             return sb.toString()
         }
 
         /**
          * Builds a stateless, single-turn ChatML prompt specifically for IME voice-driven text processing.
-         * When [thinkingEnabled] is false, prefills an empty closed `<think>\n\n</think>\n` block in the
-         * assistant turn (per Qwen3/Qwen3.5 chat template specification) so the model skips reasoning
-         * tokens and immediately emits the transformed text.
+         * When [thinkingEnabled] is true, prefills `<think>\n` so the model seamlessly outputs its thinking
+         * tokens and closes with `</think>\n` before providing the final text.
+         * When [thinkingEnabled] is false, prefills an empty closed `<think>\n\n</think>\n` block
+         * so the model immediately skips reasoning and directly outputs the text.
          */
         fun buildInputTaskChatMlPrompt(
             targetText: String?,
@@ -303,7 +367,9 @@ class SlmInferenceEngine(
             sb.append("<|im_start|>system\n").append(systemPrompt).append("<|im_end|>\n")
             sb.append("<|im_start|>user\n").append(userPrompt).append("<|im_end|>\n")
             sb.append("<|im_start|>assistant\n")
-            if (!thinkingEnabled) {
+            if (thinkingEnabled) {
+                sb.append("<think>\n")
+            } else {
                 sb.append("<think>\n\n</think>\n")
             }
             return sb.toString()
@@ -483,7 +549,8 @@ class SlmInferenceEngine(
                     systemPrompt = systemPrompt,
                     history = history,
                     newPrompt = userPrompt,
-                    mode = outputMode
+                    mode = outputMode,
+                    thinkingEnabled = thinkingEnabled
                 )
 
                 Log.i(TAG, "Starting native SLM inference with prompt (${chatMlPrompt.length} chars) on ${hwSpec.backendName} [mode=$outputMode, thinking=$thinkingEnabled]")
@@ -525,6 +592,14 @@ class SlmInferenceEngine(
 
         val genConfig = model.config.copy {
             maxTokens = when {
+                thinkingEnabled -> {
+                    // Thinking mode requires sufficient token budget for reasoning chain + target answer
+                    if (isInputTask && sourceText.isNotEmpty()) {
+                        (sourceText.length * 3 + 512).coerceIn(768, 1024)
+                    } else {
+                        768
+                    }
+                }
                 isInputTask && sourceText.isNotEmpty() -> (sourceText.length * 3).coerceIn(256, 512)
                 outputMode == SlmModelConfig.OUTPUT_MODE_DEEP -> 512
                 outputMode == SlmModelConfig.OUTPUT_MODE_BULLET -> 320
@@ -562,7 +637,11 @@ class SlmInferenceEngine(
         flow.collect { token ->
             rawBuffer.append(token)
 
-            val (thinking, answer) = parseStreamContent(rawBuffer.toString(), thinkingEnabled)
+            val (thinking, answer) = parseStreamContent(
+                raw = rawBuffer.toString(),
+                thinkingEnabled = thinkingEnabled,
+                isPrefilledThink = thinkingEnabled
+            )
             val cleanedThinking = if (thinkingEnabled) thinking?.let { cleanOutput(it) } else null
             val cleanedAnswer = if (isInputTask) {
                 sanitizeInputTaskOutput(answer, sourceText)
@@ -587,11 +666,26 @@ class SlmInferenceEngine(
         }
 
         // Finalize completed output
-        val (finalThinking, finalAnswer) = parseStreamContent(rawBuffer.toString(), thinkingEnabled)
+        val (finalThinking, finalAnswer) = parseStreamContent(
+            raw = rawBuffer.toString(),
+            thinkingEnabled = thinkingEnabled,
+            isPrefilledThink = thinkingEnabled
+        )
+
+        var resolvedAnswer = finalAnswer
+        // Fallback recovery if model generated thinking but concluded or was cut off without </think>
+        if (resolvedAnswer.isBlank() && thinkingEnabled && !finalThinking.isNullOrBlank()) {
+            val salvaged = extractFallbackAnswerFromThinking(finalThinking)
+            if (salvaged.isNotBlank()) {
+                Log.w(TAG, "Model finished without closing </think>, salvaged answer from thinking: $salvaged")
+                resolvedAnswer = salvaged
+            }
+        }
+
         val cleanFinalAnswer = if (isInputTask) {
-            sanitizeInputTaskOutput(finalAnswer, sourceText)
+            sanitizeInputTaskOutput(resolvedAnswer, sourceText)
         } else {
-            cleanOutput(finalAnswer).trim()
+            cleanOutput(resolvedAnswer).trim()
         }
         assistantMessage.thinkingContent = if (thinkingEnabled) finalThinking?.let { cleanOutput(it).trim() } else null
         assistantMessage.content = cleanFinalAnswer

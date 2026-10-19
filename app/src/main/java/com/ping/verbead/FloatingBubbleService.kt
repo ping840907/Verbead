@@ -3073,22 +3073,33 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             voiceInput = voiceText,
             callback = object : SlmInferenceEngine.StreamCallback {
                 override fun onThinkingUpdate(thinking: String) {
-                    if (!isAborted && state == State.TRANSCRIBING && thinking.isNotBlank() && thinking != lastShown) {
-                        lastShown = thinking
-                        Handler(Looper.getMainLooper()).post {
-                            if (!isAborted && state == State.TRANSCRIBING) {
-                                showPreviewText(thinking, autoHide = false)
+                    if (!isAborted && state == State.TRANSCRIBING && thinking.isNotBlank()) {
+                        val formatted = thinking.trim().replace(Regex("\\n{2,}"), "\n")
+                        val display = if (formatted.startsWith("思考中：") || formatted.startsWith("[思考]")) {
+                            formatted
+                        } else {
+                            "思考中：" + formatted
+                        }
+                        if (display != lastShown) {
+                            lastShown = display
+                            Handler(Looper.getMainLooper()).post {
+                                if (!isAborted && state == State.TRANSCRIBING) {
+                                    showPreviewText(display, autoHide = false)
+                                }
                             }
                         }
                     }
                 }
 
                 override fun onAnswerUpdate(answer: String) {
-                    if (!isAborted && state == State.TRANSCRIBING && answer.isNotBlank() && answer != lastShown) {
-                        lastShown = answer
-                        Handler(Looper.getMainLooper()).post {
-                            if (!isAborted && state == State.TRANSCRIBING) {
-                                showPreviewText(answer, autoHide = false)
+                    if (!isAborted && state == State.TRANSCRIBING && answer.isNotBlank()) {
+                        val formatted = answer.trim().replace(Regex("\\n{2,}"), "\n")
+                        if (formatted != lastShown) {
+                            lastShown = formatted
+                            Handler(Looper.getMainLooper()).post {
+                                if (!isAborted && state == State.TRANSCRIBING) {
+                                    showPreviewText(formatted, autoHide = false)
+                                }
                             }
                         }
                     }
@@ -3096,10 +3107,17 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
                 override fun onComplete(fullMessage: SlmChatMessage) {
                     if (isAborted) return
-                    val finalOutput = SlmInferenceEngine.sanitizeInputTaskOutput(
-                        rawAnswer = fullMessage.getCleanAnswer(),
+                    val rawClean = fullMessage.getCleanAnswer().ifBlank { fullMessage.content }
+                    var finalOutput = SlmInferenceEngine.sanitizeInputTaskOutput(
+                        rawAnswer = rawClean,
                         sourceText = targetText
                     )
+                    if (finalOutput.isBlank() && !fullMessage.thinkingContent.isNullOrBlank()) {
+                        val salvaged = SlmInferenceEngine.extractFallbackAnswerFromThinking(fullMessage.thinkingContent!!)
+                        if (salvaged.isNotBlank()) {
+                            finalOutput = SlmInferenceEngine.sanitizeInputTaskOutput(salvaged, targetText)
+                        }
+                    }
                     if (finalOutput.isBlank()) {
                         setState(State.IDLE)
                         hideXButton()

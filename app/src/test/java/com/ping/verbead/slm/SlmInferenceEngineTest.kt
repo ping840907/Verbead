@@ -247,7 +247,41 @@ class SlmInferenceEngineTest {
             voiceInput = "翻成英文",
             thinkingEnabled = true
         )
-        assertTrue(promptWithThink.endsWith("<|im_start|>assistant\n"))
+        assertTrue(promptWithThink.endsWith("<|im_start|>assistant\n<think>\n"))
+    }
+
+    @Test
+    fun testParseStreamContentWithPrefilledThinkStreamingAndCompletion() {
+        // 1. While model is emitting thinking tokens (prompt prefilled <think>\n)
+        val stream1 = "正在分析原句語境，準備改寫為商務委婉用語"
+        val (thinking1, answer1) = SlmInferenceEngine.parseStreamContent(
+            raw = stream1,
+            thinkingEnabled = true,
+            isPrefilledThink = true
+        )
+        assertEquals("正在分析原句語境，準備改寫為商務委婉用語", thinking1)
+        assertEquals("", answer1)
+
+        // 2. Model outputs </think> and starts generating target answer
+        val stream2 = "正在分析原句語境，準備改寫為商務委婉用語\n</think>\n不好意思，明日會議我無法出席，敬請見諒。"
+        val (thinking2, answer2) = SlmInferenceEngine.parseStreamContent(
+            raw = stream2,
+            thinkingEnabled = true,
+            isPrefilledThink = true
+        )
+        assertEquals("正在分析原句語境，準備改寫為商務委婉用語", thinking2)
+        assertEquals("不好意思，明日會議我無法出席，敬請見諒。", answer2)
+    }
+
+    @Test
+    fun testExtractFallbackAnswerFromThinkingWhenUnclosed() {
+        val thinkingWithMarker = "分析：原句較直接。建議改寫為：明天下午三點在線上討論專案進度。"
+        val salvaged1 = SlmInferenceEngine.extractFallbackAnswerFromThinking(thinkingWithMarker)
+        assertEquals("明天下午三點在線上討論專案進度。", salvaged1)
+
+        val thinkingMultiLine = "1. 分析語氣問題\n2. 調整為敬語\n不好意思，因身體不適，今日需請假一天。"
+        val salvaged2 = SlmInferenceEngine.extractFallbackAnswerFromThinking(thinkingMultiLine)
+        assertEquals("不好意思，因身體不適，今日需請假一天。", salvaged2)
     }
 
     @Test
