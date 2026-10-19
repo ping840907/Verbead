@@ -181,6 +181,10 @@ class SlmInferenceEngineTest {
             val file = target.files.first()
             assertEquals(meta.fileName, file.relativePath)
             assertEquals(meta.downloadUrl, file.url)
+            assertEquals(meta.sha256, file.sha256)
+            assertNotNull(file.sha256)
+            assertEquals(64, file.sha256!!.length)
+            assertTrue(file.sha256!!.matches(Regex("^[0-9a-fA-F]{64}$")))
             assertTrue(file.url.startsWith("https://huggingface.co/"))
             assertTrue(file.relativePath.endsWith(".gguf"))
         }

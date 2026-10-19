@@ -111,7 +111,8 @@ object ModelDownloadSpec {
             files = listOf(
                 RemoteFile(
                     url = meta.downloadUrl,
-                    relativePath = meta.fileName
+                    relativePath = meta.fileName,
+                    sha256 = meta.sha256
                 )
             )
         )

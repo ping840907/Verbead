@@ -358,9 +358,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         routingManager.start()
-        currentMode = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).getInt(KEY_MODE, MODE_VOICE)
-        if (currentMode !in listOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES, MODE_SLM)) {
-            currentMode = MODE_VOICE
+        val enabledModes = ModelConfig.getEnabledBubbleModes(this)
+        currentMode = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).getInt(KEY_MODE, enabledModes.firstOrNull() ?: MODE_VOICE)
+        if (currentMode !in enabledModes) {
+            currentMode = enabledModes.firstOrNull() ?: MODE_VOICE
         }
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         capsuleMenuController = CapsuleMenuController(
@@ -548,12 +549,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         isDockedOnRight = true
 
-        val isMulti = ModelConfig.isMultiBubbleEnabled(this)
-        val initialMode0 = if (isMulti) {
-            getBubbleMode(0, MODE_VOICE)
+        val enabledModes = ModelConfig.getEnabledBubbleModes(this)
+        val isMulti = ModelConfig.isMultiBubbleEnabled(this) && enabledModes.size > 1
+        val rawInitialMode0 = if (isMulti) {
+            getBubbleMode(0, enabledModes.firstOrNull() ?: MODE_VOICE)
         } else {
             currentMode
         }
+        val initialMode0 = if (rawInitialMode0 in enabledModes) rawInitialMode0 else (enabledModes.firstOrNull() ?: MODE_VOICE)
         val (icon0Res, desc0) = getIconAndDescForMode(initialMode0)
         ivBubbleIcon.setImageResource(icon0Res)
         ivBubbleIcon.contentDescription = desc0
@@ -1225,16 +1228,73 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    fun updateBubbleModesConfig() {
+        if (!::bubbleView.isInitialized) return
+        if (isCapsuleMenuShowing) {
+            capsuleMenuController.dismiss()
+        }
+        val enabledModes = ModelConfig.getEnabledBubbleModes(this)
+        val fallbackMode = enabledModes.firstOrNull() ?: MODE_VOICE
+
+        if (MODE_OCR !in enabledModes && isOcrModeActive) {
+            stopOcrMode()
+        }
+        if (MODE_BARCODE !in enabledModes && isScannerModeActive) {
+            stopScannerMode()
+        }
+        if (MODE_PHRASES !in enabledModes && isPhrasesDrawerActive) {
+            closePhrasesDrawer()
+        }
+        if (MODE_SLM !in enabledModes && isSlmChatActive) {
+            closeSlmChat()
+        }
+
+        if (currentMode !in enabledModes) {
+            currentMode = fallbackMode
+            getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, currentMode).apply()
+        }
+
+        val usedModes = mutableSetOf<Int>()
+        for (item in bubbleItems) {
+            if (item.mode in enabledModes) {
+                usedModes.add(item.mode)
+            }
+        }
+        for (item in bubbleItems) {
+            if (item.mode !in enabledModes) {
+                val replacement = enabledModes.firstOrNull { it !in usedModes } ?: fallbackMode
+                item.mode = replacement
+                usedModes.add(replacement)
+                setBubbleMode(item.id, replacement)
+                val (iconRes, desc) = getIconAndDescForMode(replacement)
+                item.ivIcon.setImageResource(iconRes)
+                item.ivIcon.contentDescription = desc
+            }
+        }
+
+        updateMultiBubbleMode()
+    }
+
     fun updateMultiBubbleMode() {
         if (!::bubbleView.isInitialized) return
-        val enabled = ModelConfig.isMultiBubbleEnabled(this)
-        val targetCount = if (enabled) ModelConfig.getMultiBubbleCount(this) else 1
+        val enabledModes = ModelConfig.getEnabledBubbleModes(this)
+        val fallbackMode = enabledModes.firstOrNull() ?: MODE_VOICE
+        val enabled = ModelConfig.isMultiBubbleEnabled(this) && enabledModes.size > 1
+        val targetCount = if (enabled) {
+            ModelConfig.getMultiBubbleCount(this).coerceIn(1, enabledModes.size)
+        } else {
+            1
+        }
 
-        if (enabled) {
-            val defaultModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES, MODE_SLM)
+        if (enabled && targetCount > 1) {
             val bubble0 = bubbleItems.firstOrNull()
+            val usedModes = mutableSetOf<Int>()
             if (bubble0 != null) {
-                bubble0.mode = getBubbleMode(0, defaultModes[0])
+                val saved0 = getBubbleMode(0, enabledModes.getOrElse(0) { fallbackMode })
+                val valid0 = if (saved0 in enabledModes) saved0 else fallbackMode
+                bubble0.mode = valid0
+                usedModes.add(valid0)
+                setBubbleMode(0, valid0)
                 val (iconRes, desc) = getIconAndDescForMode(bubble0.mode)
                 bubble0.ivIcon.setImageResource(iconRes)
                 bubble0.ivIcon.contentDescription = desc
@@ -1249,6 +1309,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         removeOverlay("bubble_${item.id}", item.view)
                     }
                     it.remove()
+                } else if (item.id != 0) {
+                    if (item.mode !in enabledModes) {
+                        val replacement = enabledModes.firstOrNull { m -> m !in usedModes } ?: fallbackMode
+                        item.mode = replacement
+                        setBubbleMode(item.id, replacement)
+                    }
+                    usedModes.add(item.mode)
+                    val (iconRes, desc) = getIconAndDescForMode(item.mode)
+                    item.ivIcon.setImageResource(iconRes)
+                    item.ivIcon.contentDescription = desc
                 }
             }
 
@@ -1264,7 +1334,17 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
 
             for (id in bubbleItems.size until targetCount) {
-                val mode = getBubbleMode(id, defaultModes.getOrElse(id) { MODE_VOICE })
+                val defaultForId = enabledModes.getOrElse(id) {
+                    enabledModes.firstOrNull { m -> m !in usedModes } ?: fallbackMode
+                }
+                val savedMode = getBubbleMode(id, defaultForId)
+                val mode = if (savedMode in enabledModes && savedMode !in usedModes) {
+                    savedMode
+                } else {
+                    enabledModes.firstOrNull { m -> m !in usedModes } ?: (if (savedMode in enabledModes) savedMode else fallbackMode)
+                }
+                usedModes.add(mode)
+                setBubbleMode(id, mode)
                 val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
                 val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
                 val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
@@ -1319,6 +1399,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     it.remove()
                 }
             }
+            if (currentMode !in enabledModes) {
+                currentMode = fallbackMode
+                getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, currentMode).apply()
+            }
             val bubble0 = bubbleItems.firstOrNull()
             if (bubble0 != null) {
                 bubble0.mode = currentMode
@@ -1331,7 +1415,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun handleShakeToDuplicate(parent: FloatingBubbleItem) {
-        if (bubbleItems.size >= ModelConfig.MAX_MULTI_BUBBLE_COUNT) {
+        val enabledModes = ModelConfig.getEnabledBubbleModes(this)
+        val maxAllowed = minOf(ModelConfig.MAX_MULTI_BUBBLE_COUNT, enabledModes.size)
+        if (bubbleItems.size >= maxAllowed) {
             HapticUtil.tick(this)
             return
         }
@@ -1340,9 +1426,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         ModelConfig.setMultiBubbleEnabled(this, true)
         ModelConfig.setMultiBubbleCount(this, newCount)
 
-        val allModes = intArrayOf(MODE_VOICE, MODE_OCR, MODE_BARCODE, MODE_PHRASES, MODE_SLM)
         val usedModes = bubbleItems.map { it.mode }.toSet()
-        val newMode = allModes.firstOrNull { it !in usedModes } ?: MODE_VOICE
+        val newMode = enabledModes.firstOrNull { it !in usedModes } ?: (enabledModes.firstOrNull() ?: MODE_VOICE)
         val newId = bubbleItems.size
         setBubbleMode(newId, newMode)
 
@@ -3064,9 +3149,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         setState(State.TRANSCRIBING)
         showXButton()
-        showPreviewText(getString(R.string.preview_slm_processing), autoHide = false)
+        val promptDisplay = voiceText.trim().ifBlank { getString(R.string.preview_slm_processing) }
+        showPreviewText(promptDisplay, autoHide = false)
 
-        var lastShown = ""
+        var lastShown = promptDisplay
 
         slmInferenceEngine.processInputTask(
             targetText = targetText,

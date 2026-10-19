@@ -51,4 +51,57 @@ class CapsuleMenuControllerTest {
         val downwardExtent = (CapsuleMenuController.CAPSULE_WINDOW_HEIGHT_DP - itemVoiceCenterY) - 30
         assertEquals(CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP, downwardExtent)
     }
+
+    @Test
+    fun testCustomModeOrderAndDynamicEnableMapping() {
+        val customOrder = com.ping.verbead.engine.ModelConfig.parseModeOrder("4,1,0")
+        // Missing modes (2, 3) should be appended automatically in default order
+        assertEquals(
+            listOf(
+                CapsuleMenuController.MODE_SLM,
+                CapsuleMenuController.MODE_OCR,
+                CapsuleMenuController.MODE_VOICE,
+                CapsuleMenuController.MODE_BARCODE,
+                CapsuleMenuController.MODE_PHRASES
+            ),
+            customOrder
+        )
+
+        // Reorder via moveModeInOrder
+        val movedOrder = com.ping.verbead.engine.ModelConfig.moveModeInOrder(customOrder, 0, 2)
+        assertEquals(
+            listOf(
+                CapsuleMenuController.MODE_OCR,
+                CapsuleMenuController.MODE_VOICE,
+                CapsuleMenuController.MODE_SLM,
+                CapsuleMenuController.MODE_BARCODE,
+                CapsuleMenuController.MODE_PHRASES
+            ),
+            movedOrder
+        )
+
+        // Filter disabled modes
+        val disabled = com.ping.verbead.engine.ModelConfig.parseDisabledModes("2,3", movedOrder)
+        val enabledModes = com.ping.verbead.engine.ModelConfig.computeEnabledModes(movedOrder, disabled)
+        assertEquals(
+            listOf(
+                CapsuleMenuController.MODE_OCR,
+                CapsuleMenuController.MODE_VOICE,
+                CapsuleMenuController.MODE_SLM
+            ),
+            enabledModes
+        )
+
+        // CapsuleMenuController dynamic mapping for the 3 enabled modes
+        assertEquals(0, CapsuleMenuController.modeToIndex(CapsuleMenuController.MODE_OCR, enabledModes))
+        assertEquals(1, CapsuleMenuController.modeToIndex(CapsuleMenuController.MODE_VOICE, enabledModes))
+        assertEquals(2, CapsuleMenuController.modeToIndex(CapsuleMenuController.MODE_SLM, enabledModes))
+        assertEquals(CapsuleMenuController.MODE_SLM, CapsuleMenuController.indexToMode(2, enabledModes))
+        assertEquals(3 * 56 + 24, CapsuleMenuController.computeCapsuleWindowHeightDp(enabledModes.size))
+
+        // Guardrail: disabling all modes must preserve at least the first mode in currentOrder
+        val allDisabledAttempt = com.ping.verbead.engine.ModelConfig.parseDisabledModes("0,1,2,3,4", movedOrder)
+        val fallbackEnabled = com.ping.verbead.engine.ModelConfig.computeEnabledModes(movedOrder, allDisabledAttempt)
+        assertEquals(listOf(CapsuleMenuController.MODE_OCR), fallbackEnabled)
+    }
 }

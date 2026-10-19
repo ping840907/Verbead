@@ -51,22 +51,27 @@ class CapsuleMenuController(
         // Voice 模式下項目中心在 40dp，往下延伸至視窗底為 (304dp - 40dp) - 30dp = 234dp。
         const val CAPSULE_MENU_MAX_EXTENT_DP = 234
 
-        fun modeToIndex(mode: Int): Int = when (mode) {
-            MODE_VOICE -> 0
-            MODE_BARCODE -> 1
-            MODE_OCR -> 2
-            MODE_PHRASES -> 3
-            MODE_SLM -> 4
-            else -> 0
+        fun computeCapsuleMenuHeightDp(itemCount: Int): Int =
+            itemCount.coerceIn(1, ITEM_COUNT) * ITEM_HEIGHT_DP
+
+        fun computeCapsuleWindowHeightDp(itemCount: Int): Int =
+            computeCapsuleMenuHeightDp(itemCount) + 24
+
+        fun modeToIndex(
+            mode: Int,
+            activeModes: List<Int> = com.ping.verbead.engine.ModelConfig.DEFAULT_BUBBLE_MODE_ORDER
+        ): Int {
+            val idx = activeModes.indexOf(mode)
+            return if (idx >= 0) idx else 0
         }
 
-        fun indexToMode(index: Int): Int = when (index) {
-            0 -> MODE_VOICE
-            1 -> MODE_BARCODE
-            2 -> MODE_OCR
-            3 -> MODE_PHRASES
-            4 -> MODE_SLM
-            else -> MODE_VOICE
+        fun indexToMode(
+            index: Int,
+            activeModes: List<Int> = com.ping.verbead.engine.ModelConfig.DEFAULT_BUBBLE_MODE_ORDER
+        ): Int {
+            return activeModes.getOrElse(index) {
+                activeModes.firstOrNull() ?: MODE_VOICE
+            }
         }
     }
 
@@ -82,6 +87,11 @@ class CapsuleMenuController(
     private var cachedMicCenterY: Float = 0f
     private var cachedMinY: Int = 0
     private var cachedMaxY: Int = Int.MAX_VALUE
+    private var activeModes: List<Int> = com.ping.verbead.engine.ModelConfig.DEFAULT_BUBBLE_MODE_ORDER
+
+    private var modeItemViews: Map<Int, FrameLayout> = emptyMap()
+    private var modeIndicatorViews: Map<Int, View> = emptyMap()
+    private var modeIconViews: Map<Int, ImageView> = emptyMap()
 
     /**
      * Inflates and shows the capsule menu centered over the floating bubble.
@@ -103,41 +113,77 @@ class CapsuleMenuController(
         cachedMaxY = maxY
 
         val density = context.resources.displayMetrics.density
-        currentMode = mode
+        activeModes = com.ping.verbead.engine.ModelConfig.getEnabledBubbleModes(context)
+        currentMode = if (mode in activeModes) mode else (activeModes.firstOrNull() ?: MODE_VOICE)
 
         if (capsuleMenuView == null) {
-            capsuleMenuView = LayoutInflater.from(context).inflate(R.layout.layout_capsule_menu, null)
+            val inflated = LayoutInflater.from(context).inflate(R.layout.layout_capsule_menu, null)
+            capsuleMenuView = inflated
+
+            val itemVoice = inflated.findViewById<FrameLayout>(R.id.item_capsule_voice)
+            val itemBarcode = inflated.findViewById<FrameLayout>(R.id.item_capsule_barcode)
+            val itemOcr = inflated.findViewById<FrameLayout>(R.id.item_capsule_ocr)
+            val itemPhrases = inflated.findViewById<FrameLayout>(R.id.item_capsule_phrases)
+            val itemSlm = inflated.findViewById<FrameLayout>(R.id.item_capsule_slm)
+
+            itemVoice?.setOnClickListener { selectMode(MODE_VOICE) }
+            itemBarcode?.setOnClickListener { selectMode(MODE_BARCODE) }
+            itemOcr?.setOnClickListener { selectMode(MODE_OCR) }
+            itemPhrases?.setOnClickListener { selectMode(MODE_PHRASES) }
+            itemSlm?.setOnClickListener { selectMode(MODE_SLM) }
+
+            modeItemViews = buildMap {
+                itemVoice?.let { put(MODE_VOICE, it) }
+                itemBarcode?.let { put(MODE_BARCODE, it) }
+                itemOcr?.let { put(MODE_OCR, it) }
+                itemPhrases?.let { put(MODE_PHRASES, it) }
+                itemSlm?.let { put(MODE_SLM, it) }
+            }
+            modeIndicatorViews = buildMap {
+                inflated.findViewById<View>(R.id.indicator_capsule_voice)?.let { put(MODE_VOICE, it) }
+                inflated.findViewById<View>(R.id.indicator_capsule_barcode)?.let { put(MODE_BARCODE, it) }
+                inflated.findViewById<View>(R.id.indicator_capsule_ocr)?.let { put(MODE_OCR, it) }
+                inflated.findViewById<View>(R.id.indicator_capsule_phrases)?.let { put(MODE_PHRASES, it) }
+                inflated.findViewById<View>(R.id.indicator_capsule_slm)?.let { put(MODE_SLM, it) }
+            }
+            modeIconViews = buildMap {
+                inflated.findViewById<ImageView>(R.id.iv_capsule_voice)?.let { put(MODE_VOICE, it) }
+                inflated.findViewById<ImageView>(R.id.iv_capsule_barcode)?.let { put(MODE_BARCODE, it) }
+                inflated.findViewById<ImageView>(R.id.iv_capsule_ocr)?.let { put(MODE_OCR, it) }
+                inflated.findViewById<ImageView>(R.id.iv_capsule_phrases)?.let { put(MODE_PHRASES, it) }
+                inflated.findViewById<ImageView>(R.id.iv_capsule_slm)?.let { put(MODE_SLM, it) }
+            }
         }
         val menu = capsuleMenuView ?: return
-
         val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill) ?: return
-        val itemVoice = menu.findViewById<FrameLayout>(R.id.item_capsule_voice)
-        val itemBarcode = menu.findViewById<FrameLayout>(R.id.item_capsule_barcode)
-        val itemOcr = menu.findViewById<FrameLayout>(R.id.item_capsule_ocr)
-        val itemPhrases = menu.findViewById<FrameLayout>(R.id.item_capsule_phrases)
-        val itemSlm = menu.findViewById<FrameLayout>(R.id.item_capsule_slm)
 
-        itemVoice?.setOnClickListener { selectMode(MODE_VOICE) }
-        itemBarcode?.setOnClickListener { selectMode(MODE_BARCODE) }
-        itemOcr?.setOnClickListener { selectMode(MODE_OCR) }
-        itemPhrases?.setOnClickListener { selectMode(MODE_PHRASES) }
-        itemSlm?.setOnClickListener { selectMode(MODE_SLM) }
+        // Dynamically populate enabled modes in the user's custom order
+        pill.removeAllViews()
+        for (m in activeModes) {
+            modeItemViews[m]?.let { itemView ->
+                (itemView.parent as? android.view.ViewGroup)?.removeView(itemView)
+                pill.addView(itemView)
+            }
+        }
+
+        val activeCount = activeModes.size.coerceAtLeast(1)
+        val pillHeightPx = (computeCapsuleMenuHeightDp(activeCount) * density).toInt()
+        pill.layoutParams = pill.layoutParams?.apply {
+            height = pillHeightPx
+        }
 
         val bubbleCenterY = bubbleY + (bubbleHeightPx / 2f)
         cachedMicCenterY = bubbleCenterY
 
-        val currentIndex = modeToIndex(currentMode)
+        val currentIndex = modeToIndex(currentMode, activeModes)
         currentHoveredIndex = currentIndex
 
         val windowWidth = bubbleWidthPx
-        val windowHeight = (CAPSULE_WINDOW_HEIGHT_DP * density).toInt()
+        val windowHeight = (computeCapsuleWindowHeightDp(activeCount) * density).toInt()
 
-        // In layout_capsule_menu.xml:
-        // Window padding top is 12dp. Pill height is 168dp (3 items * 56dp).
         // Center of item i within window: (12dp + 28dp + i * 56dp) = (40dp + i * 56dp)
         // To align item currentIndex directly over the bubble:
-        // initialY + itemWinCenterY = bubbleCenterY
-        // initialY = bubbleCenterY - itemWinCenterY
+        // initialY + itemWinCenterY = bubbleCenterY => initialY = bubbleCenterY - itemWinCenterY
         val itemWinCenterY = (40f + currentIndex * 56f) * density
         val initialY = (bubbleCenterY - itemWinCenterY).toInt()
         val maxAllowedY = maxOf(minY, maxY - windowHeight)
@@ -210,13 +256,14 @@ class CapsuleMenuController(
 
         val density = context.resources.displayMetrics.density
         val itemPitchPx = 56f * density
-        val currentIndex = modeToIndex(currentMode)
+        val activeCount = activeModes.size.coerceAtLeast(1)
+        val currentIndex = modeToIndex(currentMode, activeModes)
 
         val dy = rawY - capsuleTouchStartY
 
         // When dragging up (dy < 0), items below (higher index) move up toward bubble
         // When dragging down (dy > 0), items above (lower index) move down toward bubble
-        val maxUpDrag = -((ITEM_COUNT - 1) - currentIndex) * itemPitchPx
+        val maxUpDrag = -((activeCount - 1) - currentIndex) * itemPitchPx
         val maxDownDrag = currentIndex * itemPitchPx
 
         val effectiveDy = when {
@@ -236,7 +283,7 @@ class CapsuleMenuController(
         // Find which item's screen center is closest to bubble center
         var closestIndex = currentIndex
         var minDistance = Float.MAX_VALUE
-        for (i in 0 until ITEM_COUNT) {
+        for (i in 0 until activeCount) {
             val itemCenterOnScreen = lp.y + (40f + i * 56f) * density
             val dist = abs(itemCenterOnScreen - cachedMicCenterY)
             if (dist < minDistance) {
@@ -259,7 +306,7 @@ class CapsuleMenuController(
         val menu = capsuleMenuView ?: return
         if (!isShowing) return
 
-        val targetMode = indexToMode(currentHoveredIndex)
+        val targetMode = indexToMode(currentHoveredIndex, activeModes)
         val isModeChanged = (targetMode != currentMode)
         val shouldNotify = isModeChanged || (targetMode != MODE_VOICE)
         if (isModeChanged) {
@@ -296,7 +343,7 @@ class CapsuleMenuController(
      * Handles clicking directly on a menu item.
      */
     fun selectMode(mode: Int) {
-        val targetIndex = modeToIndex(mode)
+        val targetIndex = modeToIndex(mode, activeModes)
         HapticUtil.click(context)
 
         val menu = capsuleMenuView ?: run {
@@ -354,33 +401,20 @@ class CapsuleMenuController(
         dismiss()
         capsuleMenuView = null
         capsuleLayoutParams = null
+        modeItemViews = emptyMap()
+        modeIndicatorViews = emptyMap()
+        modeIconViews = emptyMap()
     }
 
     private fun updateItemHighlights(selectedIndex: Int, animate: Boolean) {
-        val menu = capsuleMenuView ?: return
-        val indicators = arrayOf(
-            menu.findViewById<View>(R.id.indicator_capsule_voice),
-            menu.findViewById<View>(R.id.indicator_capsule_barcode),
-            menu.findViewById<View>(R.id.indicator_capsule_ocr),
-            menu.findViewById<View>(R.id.indicator_capsule_phrases),
-            menu.findViewById<View>(R.id.indicator_capsule_slm)
-        )
-        val icons = arrayOf(
-            menu.findViewById<ImageView>(R.id.iv_capsule_voice),
-            menu.findViewById<ImageView>(R.id.iv_capsule_barcode),
-            menu.findViewById<ImageView>(R.id.iv_capsule_ocr),
-            menu.findViewById<ImageView>(R.id.iv_capsule_phrases),
-            menu.findViewById<ImageView>(R.id.iv_capsule_slm)
-        )
-
-        for (i in 0 until ITEM_COUNT) {
+        for ((i, mode) in activeModes.withIndex()) {
             val isSelected = (i == selectedIndex)
             val targetIndAlpha = if (isSelected) 1.0f else 0.0f
             val targetIconAlpha = if (isSelected) 1.0f else 0.65f
             val targetIconScale = if (isSelected) 1.15f else 0.95f
 
-            val ind = indicators[i]
-            val iv = icons[i]
+            val ind = modeIndicatorViews[mode]
+            val iv = modeIconViews[mode]
 
             if (animate) {
                 ind?.animate()?.alpha(targetIndAlpha)?.setDuration(120)?.start()

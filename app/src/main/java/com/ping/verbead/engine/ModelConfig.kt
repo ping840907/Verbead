@@ -63,11 +63,11 @@ object ModelConfig {
 
     fun modelsDir(context: Context): String {
         val primary = context.getExternalFilesDir("models")
-        if (primary != null && (File(primary, OCR_DIR).exists() || File(primary, X_ASR_DIR).exists() || File(primary, QWEN3_ASR_DIR).exists())) {
+        if (primary != null && (File(primary, OCR_DIR).exists() || File(primary, X_ASR_DIR).exists() || File(primary, QWEN3_ASR_DIR).exists() || File(primary, "slm").exists())) {
             return primary.absolutePath
         }
         val internal = File(context.filesDir, "models")
-        if (File(internal, OCR_DIR).exists() || File(internal, X_ASR_DIR).exists() || File(internal, QWEN3_ASR_DIR).exists()) {
+        if (File(internal, OCR_DIR).exists() || File(internal, X_ASR_DIR).exists() || File(internal, QWEN3_ASR_DIR).exists() || File(internal, "slm").exists()) {
             return internal.absolutePath
         }
         return primary?.absolutePath ?: internal.absolutePath
@@ -666,14 +666,195 @@ object ModelConfig {
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_MULTI_BUBBLE_ENABLED, enabled).apply()
 
-    fun getMultiBubbleCount(context: Context): Int =
-        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+    fun getMultiBubbleCount(context: Context): Int {
+        val maxAllowed = getEnabledBubbleModes(context).size.coerceIn(1, MAX_MULTI_BUBBLE_COUNT)
+        val saved = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .getInt(KEY_MULTI_BUBBLE_COUNT, DEFAULT_MULTI_BUBBLE_COUNT)
             .coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)
+        return if (maxAllowed >= MIN_MULTI_BUBBLE_COUNT) saved.coerceAtMost(maxAllowed) else MIN_MULTI_BUBBLE_COUNT
+    }
 
-    fun setMultiBubbleCount(context: Context, count: Int) =
+    fun setMultiBubbleCount(context: Context, count: Int) {
+        val maxAllowed = getEnabledBubbleModes(context).size.coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
-            .edit().putInt(KEY_MULTI_BUBBLE_COUNT, count.coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)).apply()
+            .edit().putInt(KEY_MULTI_BUBBLE_COUNT, count.coerceIn(MIN_MULTI_BUBBLE_COUNT, maxAllowed)).apply()
+    }
+
+    // ── Bubble Modes Enable/Disable & Custom Ordering ─────────────────────────
+    const val BUBBLE_MODE_VOICE = 0
+    const val BUBBLE_MODE_OCR = 1
+    const val BUBBLE_MODE_BARCODE = 2
+    const val BUBBLE_MODE_PHRASES = 3
+    const val BUBBLE_MODE_SLM = 4
+
+    const val KEY_BUBBLE_MODE_ORDER = "bubble_mode_order"
+    const val KEY_BUBBLE_DISABLED_MODES = "bubble_disabled_modes"
+
+    val DEFAULT_BUBBLE_MODE_ORDER = listOf(
+        BUBBLE_MODE_VOICE,
+        BUBBLE_MODE_BARCODE,
+        BUBBLE_MODE_OCR,
+        BUBBLE_MODE_PHRASES,
+        BUBBLE_MODE_SLM
+    )
+
+    data class BubbleModeMeta(
+        val mode: Int,
+        val title: String,
+        val shortName: String,
+        val description: String
+    )
+
+    val BUBBLE_MODE_METADATA = mapOf(
+        BUBBLE_MODE_VOICE to BubbleModeMeta(
+            mode = BUBBLE_MODE_VOICE,
+            title = "語音輸入",
+            shortName = "語音",
+            description = "點擊啟動離線語音辨識，說話結束自動填入焦點文字框"
+        ),
+        BUBBLE_MODE_BARCODE to BubbleModeMeta(
+            mode = BUBBLE_MODE_BARCODE,
+            title = "條碼掃描",
+            shortName = "條碼",
+            description = "懸浮相機即時掃描一維條碼與 QR Code 並自動輸入"
+        ),
+        BUBBLE_MODE_OCR to BubbleModeMeta(
+            mode = BUBBLE_MODE_OCR,
+            title = "文字辨識 (OCR)",
+            shortName = "辨識",
+            description = "懸浮相機擷取畫面文字，支援直排中文與多區塊順序拼接"
+        ),
+        BUBBLE_MODE_PHRASES to BubbleModeMeta(
+            mode = BUBBLE_MODE_PHRASES,
+            title = "常用語抽屜",
+            shortName = "常用語",
+            description = "快速點選自訂常用片語與近期辨識歷史紀錄"
+        ),
+        BUBBLE_MODE_SLM to BubbleModeMeta(
+            mode = BUBBLE_MODE_SLM,
+            title = "AI 語音改寫與對話 (SLM)",
+            shortName = "AI 改寫",
+            description = "透過 Qwen3.5 端側模型，用語音指令直接改寫、翻譯或生成文字"
+        )
+    )
+
+    fun getBubbleModeMeta(mode: Int): BubbleModeMeta =
+        BUBBLE_MODE_METADATA[mode] ?: BUBBLE_MODE_METADATA.getValue(BUBBLE_MODE_VOICE)
+
+    fun parseModeOrder(raw: String?): List<Int> {
+        if (raw.isNullOrBlank()) return DEFAULT_BUBBLE_MODE_ORDER
+        val parsed = raw.split(",")
+            .mapNotNull { it.trim().toIntOrNull() }
+            .filter { it in DEFAULT_BUBBLE_MODE_ORDER }
+            .distinct()
+            .toMutableList()
+        for (m in DEFAULT_BUBBLE_MODE_ORDER) {
+            if (m !in parsed) {
+                parsed.add(m)
+            }
+        }
+        return parsed
+    }
+
+    fun serializeModeOrder(order: List<Int>): String =
+        parseModeOrder(order.joinToString(",")).joinToString(",")
+
+    fun parseDisabledModes(raw: String?, currentOrder: List<Int> = DEFAULT_BUBBLE_MODE_ORDER): Set<Int> {
+        if (raw.isNullOrBlank()) return emptySet()
+        val parsed = raw.split(",")
+            .mapNotNull { it.trim().toIntOrNull() }
+            .filter { it in DEFAULT_BUBBLE_MODE_ORDER }
+            .toMutableSet()
+        val normalizedOrder = parseModeOrder(currentOrder.joinToString(","))
+        if (parsed.size >= normalizedOrder.size) {
+            // Ensure at least one mode remains enabled
+            parsed.remove(normalizedOrder.first())
+        }
+        return parsed
+    }
+
+    fun computeEnabledModes(order: List<Int>, disabledModes: Set<Int>): List<Int> {
+        val normalizedOrder = parseModeOrder(order.joinToString(","))
+        val enabled = normalizedOrder.filter { it !in disabledModes }
+        return enabled.ifEmpty { listOf(normalizedOrder.first()) }
+    }
+
+    fun moveModeInOrder(currentOrder: List<Int>, fromIndex: Int, toIndex: Int): List<Int> {
+        val mutable = parseModeOrder(currentOrder.joinToString(",")).toMutableList()
+        if (fromIndex !in mutable.indices || toIndex !in mutable.indices || fromIndex == toIndex) {
+            return mutable
+        }
+        val item = mutable.removeAt(fromIndex)
+        mutable.add(toIndex, item)
+        return mutable
+    }
+
+    fun getBubbleModeOrder(context: Context): List<Int> {
+        val raw = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getString(KEY_BUBBLE_MODE_ORDER, null)
+        return parseModeOrder(raw)
+    }
+
+    fun setBubbleModeOrder(context: Context, order: List<Int>) {
+        val serialized = serializeModeOrder(order)
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_BUBBLE_MODE_ORDER, serialized).apply()
+    }
+
+    fun getDisabledBubbleModes(context: Context): Set<Int> {
+        val raw = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getString(KEY_BUBBLE_DISABLED_MODES, null)
+        return parseDisabledModes(raw, getBubbleModeOrder(context))
+    }
+
+    fun isBubbleModeEnabled(context: Context, mode: Int): Boolean =
+        mode !in getDisabledBubbleModes(context)
+
+    fun getEnabledBubbleModes(context: Context): List<Int> =
+        computeEnabledModes(getBubbleModeOrder(context), getDisabledBubbleModes(context))
+
+    /**
+     * Enables or disables a specific bubble mode.
+     * Returns false if the user attempts to disable the last remaining enabled mode.
+     */
+    fun setBubbleModeEnabled(context: Context, mode: Int, enabled: Boolean): Boolean {
+        if (mode !in DEFAULT_BUBBLE_MODE_ORDER) return false
+        val currentOrder = getBubbleModeOrder(context)
+        val disabled = getDisabledBubbleModes(context).toMutableSet()
+        if (enabled) {
+            disabled.remove(mode)
+        } else {
+            val currentlyEnabledCount = currentOrder.count { it !in disabled && it != mode }
+            if (currentlyEnabledCount < 1) {
+                return false
+            }
+            disabled.add(mode)
+        }
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_BUBBLE_DISABLED_MODES, disabled.joinToString(","))
+            .apply()
+
+        val newEnabledCount = currentOrder.count { it !in disabled }
+        if (newEnabledCount < MIN_MULTI_BUBBLE_COUNT && isMultiBubbleEnabled(context)) {
+            setMultiBubbleEnabled(context, false)
+        } else if (newEnabledCount >= MIN_MULTI_BUBBLE_COUNT) {
+            val currentCount = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+                .getInt(KEY_MULTI_BUBBLE_COUNT, DEFAULT_MULTI_BUBBLE_COUNT)
+            if (currentCount > newEnabledCount) {
+                setMultiBubbleCount(context, newEnabledCount)
+            }
+        }
+        return true
+    }
+
+    fun resetBubbleModesToDefault(context: Context) {
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit()
+            .remove(KEY_BUBBLE_MODE_ORDER)
+            .remove(KEY_BUBBLE_DISABLED_MODES)
+            .apply()
+    }
 
     // ── Text Injection Settings ───────────────────────────────────────────────
     private const val PREF_INJECTION_SETTINGS = "injection_settings"
