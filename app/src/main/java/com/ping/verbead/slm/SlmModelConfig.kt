@@ -244,7 +244,7 @@ object SlmModelConfig {
         }
 
         val thinkRule = if (thinkingEnabled) {
-            "【思考約束】：若需在 <think> 與 </think> 間思考，請嚴格限制在 30 字以內簡短分析，思考結束後立即輸出最終精確回答。"
+            "【思考約束】：請在 <think> 與 </think> 間進行簡短思路分析與推論，思考結束後務必閉合 </think>，接著輸出最終回答正文。"
         } else {
             "【禁止思考】：嚴禁輸出任何 <think> 標籤或思考草稿，直接輸出最終結果。"
         }
@@ -288,7 +288,7 @@ object SlmModelConfig {
         mode: String = DEFAULT_OUTPUT_MODE
     ): String {
         val thinkRule = if (thinkingEnabled) {
-            "若需在 <think></think> 內思考，嚴格限於 20 字內，且思考後只能輸出最終目標文字。"
+            "【思考模式規範】：請在 <think> 與 </think> 標籤內進行思路分析與改寫策略規劃（思考鏈將即時呈現給使用者以減輕等待感）；思考結束後請務必以 </think> 閉合，接著【僅輸出】最終要填入輸入框的目標文字，絕對禁止任何額外寒暄、引言、前綴或標籤。"
         } else {
             "嚴禁輸出任何 <think> 思考過程，直接輸出最終結果。 /no_think"
         }

@@ -45,7 +45,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="收納與聯動 · 貼邊 30% 與鍵盤感應"
+                    android:text="收納 · 聯動 · 搖晃分裂多球"
                     android:textColor="@color/text_tertiary" />
 
                 <View
@@ -157,7 +157,27 @@
                 android:textSize="10sp" />
         </LinearLayout>
 
-        <!-- The Floating Bubble that animates tucking and keyboard sync -->
+        <!-- Secondary Clone Floating Bubble (for Phase 3 shake-to-duplicate demo) -->
+        <FrameLayout
+            android:id="@+id/layout_mock_clone_bubble"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="12dp"
+            android:alpha="0"
+            android:background="@drawable/bubble_background"
+            android:elevation="5dp">
+
+            <ImageView
+                android:id="@+id/iv_mock_clone_bubble_icon"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_ai_sparkle"
+                app:tint="@android:color/white" />
+        </FrameLayout>
+
+        <!-- The Floating Bubble that animates tucking, keyboard sync, and shake-to-duplicate -->
         <FrameLayout
             android:id="@+id/layout_mock_tuck_bubble"
             android:layout_width="52dp"

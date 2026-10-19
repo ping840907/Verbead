@@ -28,20 +28,20 @@
     <!-- Onboarding Tour -->
     <string name="onboarding_tour_title">操作導覽</string>
     <string name="onboarding_page1_title">隨處懸浮 · 點擊即說</string>
-    <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始辨識；懸浮球轉為紅色代表正在聆聽，開口說話即自動辨識並填入文字！</string>
-    <string name="onboarding_page1_tip">提示：點擊懸浮球後底色轉為紅色即開始收音聆聽，再次點擊或靜音自動完成填入。</string>
-    <string name="onboarding_page2_title">垂直膠囊 · 四大模式隨心切換</string>
-    <string name="onboarding_page2_desc">長按懸浮球可展開垂直功能膠囊，上下滑動對齊即可切換模式：包含「語音即時輸入」、「條碼掃描」、「文字辨識」，以及全新「常用語抽屜」（支援常用片語長按拖曳排序，並自動置頂保留最近輸入紀錄）。</string>
-    <string name="onboarding_page2_tip">提示：長按懸浮球即可展開功能膠囊；上下滑動膠囊帶動選項對齊，鬆開手指即可立即切換模式。</string>
-    <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回輸入</string>
-    <string name="onboarding_page3_desc">當語音辨識或文字填入不如預期時，無需手動逐字刪除！懸浮球上方會自動出現小型 ✕ 鍵，輕點即可瞬間撤回並復原欄位原本的文字內容。</string>
-    <string name="onboarding_page3_tip">提示：填入文字後懸浮球上方會顯示 ✕ 鍵，點擊即可執行 Undo 復原。</string>
-    <string name="onboarding_page4_title">邊緣收納 · 鍵盤聯動顯示</string>
-    <string name="onboarding_page4_desc" formatted="false">將懸浮球拖曳至螢幕邊緣時會自動貼邊收納，超出畫面約 70%，僅露出約 30% 邊緣圓弧，完全不遮擋視野。您也可以在主設定中開啟「僅軟體鍵盤出現時顯示」，伴隨輸入鍵盤升起平滑淡入！</string>
-    <string name="onboarding_page4_tip">提示：貼邊狀態下輕點即可拉出；或在主設定啟用鍵盤聯動，讓懸浮球僅在需要打字時現身。</string>
+    <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始收音；支援雙引擎「即時預覽 + 離線高精度轉譯」，懸浮球旁會即時串流顯示辨識文字並自動填入！</string>
+    <string name="onboarding_page1_tip">提示：點擊懸浮球轉為紅色即開始收音，再次點擊或靜音即自動完成轉譯與填入。</string>
+    <string name="onboarding_page2_title">垂直膠囊 · 五大模式隨心切換</string>
+    <string name="onboarding_page2_desc">長按懸浮球展開垂直功能膠囊，上下滑動對齊即可切換五大模式：「語音即時輸入」、「條碼掃描」、「文字辨識 (PP-OCRv6)」、「常用語與歷史紀錄」，以及全新「AI 語音改寫與生成」！</string>
+    <string name="onboarding_page2_tip">提示：在 AI 模式下點擊懸浮球並說出指令（如「翻成英文」、「改得更禮貌」），即可直接改寫輸入框文字。</string>
+    <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回與還原</string>
+    <string name="onboarding_page3_desc">無論是語音輸入、OCR 擷取，或是 AI 語音改寫覆寫了原有文字，若結果不如預期，無需手動逐字修改！填入後 10 秒內點擊懸浮球上方的小型 ✕ 鍵，即可瞬間撤回並完整還原原本的文字內容。</string>
+    <string name="onboarding_page3_tip">提示：完成輸入或 AI 改寫後，懸浮球上方會浮現 ✕ 鍵，輕點即可執行 Undo 無損復原。</string>
+    <string name="onboarding_page4_title">貼邊收納 · 鍵盤聯動 · 搖晃分身</string>
+    <string name="onboarding_page4_desc" formatted="false">拖至螢幕邊緣自動貼邊收納 70%，也可開啟「僅軟體鍵盤出現時顯示」。此外，拖曳懸浮球時快速左右搖晃即可「分裂新增分身」（最多 5 顆），讓語音、OCR 與 AI 改寫多球同屏待命！</string>
+    <string name="onboarding_page4_tip">提示：分身懸浮球各自記憶獨立模式；若要移除多餘分身，拖曳至螢幕頂部刪除區即可。</string>
     <string name="onboarding_page5_title" formatted="false">100% 離線端側 · 一站式主設定</string>
-    <string name="onboarding_page5_desc">所有語音、OCR 與文字處理全程在手機本機執行，零資料上傳、零隱私外洩。所有強大權限與模型設定已統一整合至主設定頁面，隨時依個人習慣配置！</string>
-    <string name="onboarding_page5_tip">隱私保障：極致辨識速度與最高端側資安，點擊下方前往主設定開始使用。</string>
+    <string name="onboarding_page5_desc">從雙引擎語音、PP-OCRv6 到 Qwen3.5 端側語言模型（支援 GPU / NPU 硬體加速），全程在手機本機推論，零雲端上傳、零隱私外洩。所有權限、模型管理與離線模型包匯入皆整合於主設定頁面！</string>
+    <string name="onboarding_page5_tip">隱私保障：極致端側運算速度與最高資安規格，點擊下方前往主設定開始體驗。</string>
 
     <!-- Onboarding Toasts -->
     <string name="toast_file_picker_error">無法開啟檔案選擇器: %1$s</string>
