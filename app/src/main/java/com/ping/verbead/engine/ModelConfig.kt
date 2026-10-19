@@ -666,8 +666,18 @@ object ModelConfig {
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_MULTI_BUBBLE_ENABLED, enabled).apply()
 
+    /**
+     * Resolves the maximum number of multi-bubbles permitted given the number of enabled modes.
+     * Guaranteed to fall within 1..MAX_MULTI_BUBBLE_COUNT.
+     */
+    fun resolveMaxMultiBubbleCount(enabledModesCount: Int): Int =
+        enabledModesCount.coerceIn(1, MAX_MULTI_BUBBLE_COUNT)
+
+    fun getMaxMultiBubbleCountForEnabledModes(context: Context): Int =
+        resolveMaxMultiBubbleCount(getEnabledBubbleModes(context).size)
+
     fun getMultiBubbleCount(context: Context): Int {
-        val maxAllowed = getEnabledBubbleModes(context).size.coerceIn(1, MAX_MULTI_BUBBLE_COUNT)
+        val maxAllowed = getMaxMultiBubbleCountForEnabledModes(context)
         val saved = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .getInt(KEY_MULTI_BUBBLE_COUNT, DEFAULT_MULTI_BUBBLE_COUNT)
             .coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)
@@ -675,9 +685,11 @@ object ModelConfig {
     }
 
     fun setMultiBubbleCount(context: Context, count: Int) {
-        val maxAllowed = getEnabledBubbleModes(context).size.coerceIn(MIN_MULTI_BUBBLE_COUNT, MAX_MULTI_BUBBLE_COUNT)
+        val maxAllowed = getMaxMultiBubbleCountForEnabledModes(context)
+        val safeMin = minOf(MIN_MULTI_BUBBLE_COUNT, maxAllowed)
+        val safeMax = maxOf(MIN_MULTI_BUBBLE_COUNT, maxAllowed)
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
-            .edit().putInt(KEY_MULTI_BUBBLE_COUNT, count.coerceIn(MIN_MULTI_BUBBLE_COUNT, maxAllowed)).apply()
+            .edit().putInt(KEY_MULTI_BUBBLE_COUNT, count.coerceIn(safeMin, safeMax)).apply()
     }
 
     // ── Bubble Modes Enable/Disable & Custom Ordering ─────────────────────────

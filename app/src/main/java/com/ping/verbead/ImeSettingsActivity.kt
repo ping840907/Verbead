@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Rect
@@ -51,10 +52,34 @@ import kotlinx.coroutines.launch
 
 class ImeSettingsActivity : AppCompatActivity() {
 
+    companion object {
+        @Volatile
+        var instance: ImeSettingsActivity? = null
+            private set
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val downloader by lazy { ModelDownloader(this) }
     private var observeJob: Job? = null
     private var pendingDownloadEngine: String? = null
+
+    fun syncMultiBubbleState() {
+        runOnUiThread {
+            if (!isFinishing && !isDestroyed) {
+                updateAllStatus()
+            }
+        }
+    }
+
+    private val bubblePrefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == ModelConfig.KEY_MULTI_BUBBLE_ENABLED ||
+            key == ModelConfig.KEY_MULTI_BUBBLE_COUNT ||
+            key == ModelConfig.KEY_BUBBLE_DISABLED_MODES ||
+            key == ModelConfig.KEY_BUBBLE_MODE_ORDER
+        ) {
+            syncMultiBubbleState()
+        }
+    }
 
     // Header & Status Indicator
     private lateinit var scrollSettings: NestedScrollView
@@ -260,6 +285,7 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = this
 
         // 初次開啟導向新手設置引導頁
         if (!ModelConfig.isOnboardingCompleted(this)) {
@@ -1026,6 +1052,8 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        getSharedPreferences(ModelConfig.PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(bubblePrefsListener)
         observeJob = scope.launch {
             launch {
                 ModelDownloadState.active.collect { active ->
@@ -1069,6 +1097,8 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        getSharedPreferences(ModelConfig.PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(bubblePrefsListener)
         observeJob?.cancel()
     }
 
@@ -1086,6 +1116,9 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (instance === this) {
+            instance = null
+        }
         scope.coroutineContext[Job]?.cancel()
     }
 

@@ -1416,9 +1416,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun handleShakeToDuplicate(parent: FloatingBubbleItem) {
         val enabledModes = ModelConfig.getEnabledBubbleModes(this)
-        val maxAllowed = minOf(ModelConfig.MAX_MULTI_BUBBLE_COUNT, enabledModes.size)
+        val maxAllowed = ModelConfig.getMaxMultiBubbleCountForEnabledModes(this)
         if (bubbleItems.size >= maxAllowed) {
             HapticUtil.tick(this)
+            if (maxAllowed <= 1) {
+                Toast.makeText(this, "目前僅開啟 1 種模式，無法複製懸浮球\n請至設定開啟更多功能模式", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "已達目前開啟模式數量上限（最多 ${maxAllowed} 顆）", Toast.LENGTH_SHORT).show()
+            }
             return
         }
 
@@ -1546,6 +1551,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             val deleteZoneTargetY = getMinY() + (24 * density).toInt()
             bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
         }
+
+        val meta = ModelConfig.getBubbleModeMeta(newMode)
+        Toast.makeText(this, "已複製「${meta.title}」懸浮球（共 ${newCount} 顆，已開啟多球並存）", Toast.LENGTH_SHORT).show()
+        ImeSettingsActivity.instance?.syncMultiBubbleState()
     }
 
     private fun handleDeleteBubble(bubbleToDelete: FloatingBubbleItem) {
@@ -1629,6 +1638,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     snapBubbleToSafeBoundsWithInertia(firstSurvivor, vx = 0f, vy = 0f)
                 }
             }
+            ImeSettingsActivity.instance?.syncMultiBubbleState()
         }
     }
 
