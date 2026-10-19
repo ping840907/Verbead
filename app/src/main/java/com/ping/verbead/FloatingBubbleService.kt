@@ -3064,9 +3064,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         setState(State.TRANSCRIBING)
         showXButton()
-        showPreviewText(getString(R.string.preview_slm_processing), autoHide = false)
+        val promptDisplay = voiceText.trim().ifBlank { getString(R.string.preview_slm_processing) }
+        showPreviewText(promptDisplay, autoHide = false)
 
-        var lastShown = ""
+        var lastShown = promptDisplay
 
         slmInferenceEngine.processInputTask(
             targetText = targetText,
