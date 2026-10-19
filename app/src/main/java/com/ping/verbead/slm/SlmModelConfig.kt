@@ -53,7 +53,8 @@ object SlmModelConfig {
         val parameterCount: String,
         val quantizedSize: String,
         val fileName: String,
-        val downloadUrl: String
+        val downloadUrl: String,
+        val sha256: String
     )
 
     val AVAILABLE_MODELS = listOf(
@@ -66,7 +67,8 @@ object SlmModelConfig {
             parameterCount = "0.8B",
             quantizedSize = "約 503 MB (Q4_K_M)",
             fileName = FILE_QWEN_0_8B_GGUF,
-            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf",
+            sha256 = "f5b14da98939b60bbe1019a964eba656407e1e0b64f1fe3003ff6d650e93bfec"
         ),
         ModelMetadata(
             id = MODEL_QWEN_2B,
@@ -77,7 +79,8 @@ object SlmModelConfig {
             parameterCount = "2.0B",
             quantizedSize = "約 1.2 GB (Q4_K_M)",
             fileName = FILE_QWEN_2B_GGUF,
-            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
+            sha256 = "0bfe35afc9f05b7fac3fa04925e051ac7939a42a8a17ea11afc99701bea826cc"
         ),
         ModelMetadata(
             id = MODEL_QWEN_4B,
@@ -88,7 +91,8 @@ object SlmModelConfig {
             parameterCount = "4.0B",
             quantizedSize = "約 2.5 GB (Q4_K_M)",
             fileName = FILE_QWEN_4B_GGUF,
-            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf",
+            sha256 = "25082a7dd3776cc3c741c6347d3bd04523f05796607b3fbc32fa3a25dfa1418c"
         ),
         ModelMetadata(
             id = MODEL_QWEN_9B,
@@ -99,7 +103,8 @@ object SlmModelConfig {
             parameterCount = "9.0B",
             quantizedSize = "約 5.2 GB (Q4_K_M)",
             fileName = FILE_QWEN_9B_GGUF,
-            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf"
+            downloadUrl = "https://huggingface.co/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf",
+            sha256 = "cd76ec205963b3b33350093e6904d9de16c4e666fd104e1f632d25c7f15f2a13"
         )
     )
 

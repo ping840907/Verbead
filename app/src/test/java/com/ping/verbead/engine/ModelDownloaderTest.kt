@@ -78,6 +78,22 @@ class ModelDownloaderTest {
         assertEquals(64, qwen3Target.archiveSha256!!.length)
         assertTrue("Qwen3 archiveSha256 must be valid hex", qwen3Target.archiveSha256!!.matches(Regex("^[0-9a-fA-F]{64}$")))
         assertEquals("393f8a14e2f5fb96746aaab342997a40641001fbd5bf9592a080a8329178ee96", qwen3Target.archiveSha256)
+
+        val expectedSlmHashes = mapOf(
+            com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_0_8B to "f5b14da98939b60bbe1019a964eba656407e1e0b64f1fe3003ff6d650e93bfec",
+            com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_2B to "0bfe35afc9f05b7fac3fa04925e051ac7939a42a8a17ea11afc99701bea826cc",
+            com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_4B to "25082a7dd3776cc3c741c6347d3bd04523f05796607b3fbc32fa3a25dfa1418c",
+            com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_9B to "cd76ec205963b3b33350093e6904d9de16c4e666fd104e1f632d25c7f15f2a13"
+        )
+        for ((modelId, expectedHash) in expectedSlmHashes) {
+            val slmTarget = ModelDownloadSpec.slm(modelId)
+            assertEquals(1, slmTarget.files.size)
+            val slmFile = slmTarget.files.first()
+            assertTrue("SLM $modelId must have sha256", !slmFile.sha256.isNullOrBlank())
+            assertEquals(64, slmFile.sha256!!.length)
+            assertTrue("SLM $modelId sha256 must be valid hex", slmFile.sha256!!.matches(Regex("^[0-9a-fA-F]{64}$")))
+            assertEquals(expectedHash, slmFile.sha256)
+        }
     }
 
     @Test

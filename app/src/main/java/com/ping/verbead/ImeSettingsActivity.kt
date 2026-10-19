@@ -24,10 +24,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.ping.verbead.bubble.BubbleModeConfigAdapter
 import com.ping.verbead.engine.AudioRoutingManager
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelDownloadSpec
@@ -105,6 +109,11 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var layoutMultiBubbleCount: View
     private lateinit var tvMultiBubbleCountValue: TextView
     private lateinit var sbMultiBubbleCount: SeekBar
+    private lateinit var tvBubbleModesSummary: TextView
+    private lateinit var btnResetBubbleModes: MaterialButton
+    private lateinit var rvBubbleModes: RecyclerView
+    private var bubbleModeConfigAdapter: BubbleModeConfigAdapter? = null
+    private var bubbleModesTouchHelper: ItemTouchHelper? = null
     private lateinit var layoutPasteModeToggle: View
     private lateinit var tvInjectionMethodDesc: TextView
     private lateinit var switchPasteMode: MaterialSwitch
@@ -344,6 +353,10 @@ class ImeSettingsActivity : AppCompatActivity() {
         layoutMultiBubbleCount         = findViewById(R.id.layout_multi_bubble_count)
         tvMultiBubbleCountValue        = findViewById(R.id.tv_multi_bubble_count_value)
         sbMultiBubbleCount             = findViewById(R.id.sb_multi_bubble_count)
+        tvBubbleModesSummary           = findViewById(R.id.tv_bubble_modes_summary)
+        btnResetBubbleModes            = findViewById(R.id.btn_reset_bubble_modes)
+        rvBubbleModes                  = findViewById(R.id.rv_bubble_modes)
+        setupBubbleModesRecyclerView()
         layoutPasteModeToggle          = findViewById(R.id.layout_paste_mode_toggle)
         tvInjectionMethodDesc          = findViewById(R.id.tv_injection_method_desc)
         switchPasteMode                = findViewById(R.id.switch_paste_mode)
@@ -435,6 +448,69 @@ class ImeSettingsActivity : AppCompatActivity() {
         switchSlmThinking = findViewById(R.id.switch_slm_thinking)
         layoutSlmHardwareAccelToggle = findViewById(R.id.layout_slm_hardware_accel_toggle)
         switchSlmHardwareAccel = findViewById(R.id.switch_slm_hardware_accel)
+    }
+
+    private fun setupBubbleModesRecyclerView() {
+        rvBubbleModes.layoutManager = LinearLayoutManager(this)
+        val adapter = BubbleModeConfigAdapter(
+            context = this,
+            onStartDrag = { viewHolder ->
+                HapticUtil.tick(this)
+                bubbleModesTouchHelper?.startDrag(viewHolder)
+            },
+            onConfigChanged = {
+                HapticUtil.click(this)
+                FloatingBubbleService.instance?.updateBubbleModesConfig()
+                updateAllStatus()
+            },
+            onLastModeProtected = {
+                HapticUtil.tick(this)
+                Toast.makeText(this, "至少需保留 1 個啟用的懸浮球功能模式", Toast.LENGTH_SHORT).show()
+            }
+        )
+        bubbleModeConfigAdapter = adapter
+        rvBubbleModes.adapter = adapter
+
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+            0
+        ) {
+            override fun isLongPressDragEnabled(): Boolean = true
+
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val fromPos = viewHolder.bindingAdapterPosition
+                val toPos = target.bindingAdapterPosition
+                val moved = adapter.onItemMove(fromPos, toPos)
+                if (moved) {
+                    HapticUtil.tick(this@ImeSettingsActivity)
+                }
+                return moved
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+                    viewHolder.itemView.animate().scaleX(1.03f).scaleY(1.03f).setDuration(120L).start()
+                    viewHolder.itemView.elevation = 12f * resources.displayMetrics.density
+                }
+            }
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                viewHolder.itemView.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                viewHolder.itemView.elevation = 0f
+                adapter.onDragFinished()
+            }
+        }
+        bubbleModesTouchHelper = ItemTouchHelper(callback).also {
+            it.attachToRecyclerView(rvBubbleModes)
+        }
     }
 
     private fun scrollToView(target: View) {
@@ -563,6 +639,13 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         // Multi Bubble Mode
         switchMultiBubble.setOnClickListener {
+            val enabledModesCount = ModelConfig.getEnabledBubbleModes(this).size
+            if (switchMultiBubble.isChecked && enabledModesCount < 2) {
+                switchMultiBubble.isChecked = false
+                HapticUtil.tick(this)
+                Toast.makeText(this, "請先啟用至少 2 個懸浮球功能模式以開啟多懸浮球並存", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             val isChecked = switchMultiBubble.isChecked
             ModelConfig.setMultiBubbleEnabled(this, isChecked)
             updateMultiBubbleUI(isChecked)
@@ -587,6 +670,15 @@ class ImeSettingsActivity : AppCompatActivity() {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
+
+        btnResetBubbleModes.setOnClickListener {
+            ModelConfig.resetBubbleModesToDefault(this)
+            bubbleModeConfigAdapter?.reloadFromConfig()
+            FloatingBubbleService.instance?.updateBubbleModesConfig()
+            HapticUtil.click(this)
+            Toast.makeText(this, "已恢復預設模式順序與全部啟用", Toast.LENGTH_SHORT).show()
+            updateAllStatus()
+        }
 
         // 2. Clipboard paste mode
         switchPasteMode.setOnClickListener {
@@ -1152,11 +1244,25 @@ class ImeSettingsActivity : AppCompatActivity() {
         dividerAppInfoRow.visibility = if (hasUnrestrictedNeeds) View.VISIBLE else View.GONE
 
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
-        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
+        val enabledModes = ModelConfig.getEnabledBubbleModes(this)
+        val enabledShortNames = enabledModes.map { ModelConfig.getBubbleModeMeta(it).shortName }
+        tvBubbleModesSummary.text = "已啟用 ${enabledModes.size}/5 個模式 · 順序：${enabledShortNames.joinToString(" → ")}"
+        if (rvBubbleModes.scrollState == RecyclerView.SCROLL_STATE_IDLE) {
+            bubbleModeConfigAdapter?.reloadFromConfig()
+        }
+
+        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this) && enabledModes.size >= 2
+        if (ModelConfig.isMultiBubbleEnabled(this) && enabledModes.size < 2) {
+            ModelConfig.setMultiBubbleEnabled(this, false)
+        }
         switchMultiBubble.isChecked = isMultiBubble
         updateMultiBubbleUI(isMultiBubble)
-        val bubbleCount = ModelConfig.getMultiBubbleCount(this)
-        sbMultiBubbleCount.progress = bubbleCount - ModelConfig.MIN_MULTI_BUBBLE_COUNT
+        val maxBubbles = maxOf(ModelConfig.MIN_MULTI_BUBBLE_COUNT, enabledModes.size)
+        val maxProgress = maxOf(0, maxBubbles - ModelConfig.MIN_MULTI_BUBBLE_COUNT)
+        sbMultiBubbleCount.max = maxProgress
+        sbMultiBubbleCount.isEnabled = maxProgress > 0
+        val bubbleCount = ModelConfig.getMultiBubbleCount(this).coerceIn(ModelConfig.MIN_MULTI_BUBBLE_COUNT, maxBubbles)
+        sbMultiBubbleCount.progress = (bubbleCount - ModelConfig.MIN_MULTI_BUBBLE_COUNT).coerceIn(0, maxProgress)
         tvMultiBubbleCountValue.text = "${bubbleCount} 個"
 
         val isPasteMode = ModelConfig.isPasteModeEnabled(this)
@@ -1476,9 +1582,18 @@ class ImeSettingsActivity : AppCompatActivity() {
             if (result.isSuccess) {
                 tvImportModelsStatus.text = result.message
                 updateAllStatus()
+                val restoredListText = if (result.restoredModels.isNotEmpty()) {
+                    result.restoredModels.joinToString("\n") { "• $it" }
+                } else {
+                    "• 離線模型核心檔案"
+                }
                 AlertDialog.Builder(this@ImeSettingsActivity)
                     .setTitle("離線模型一鍵復原成功")
-                    .setMessage("已成功復原共 ${result.fileCount} 個模型核心檔案！\n\n已就緒項目：\n• Qwen3-ASR 高精度離線語音\n• X-ASR 極速即時串流語音\n• PP-OCRv6 端側文字辨識\n\n所有功能均已就緒，可立即使用。")
+                    .setMessage(
+                        "已根據導入包內容智慧辨識並復原共 ${result.fileCount} 個模型核心檔案！\n\n" +
+                                "本次復原就緒項目：\n$restoredListText\n\n" +
+                                "所有對應功能均已自動啟用，可立即使用。"
+                    )
                     .setPositiveButton("太棒了", null)
                     .show()
             } else {

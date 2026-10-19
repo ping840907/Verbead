@@ -791,7 +791,71 @@
                     style="@style/Verbead.Divider"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginStart="76dp" />
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp" />
+
+                <!-- Bubble Modes Toggle & Reorder Section -->
+                <LinearLayout
+                    android:id="@+id/layout_bubble_modes_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Verbead.Text.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="懸浮球功能模式與排序" />
+
+                            <TextView
+                                android:id="@+id/tv_bubble_modes_summary"
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="按住拖曳把手或點選箭頭調整膠囊選單與複製球順序，亦可開關個別模式" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_reset_bubble_modes"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="重置預設" />
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_bubble_modes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never" />
+                </LinearLayout>
+
+                <View
+                    style="@style/Verbead.Divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp" />
 
                 <!-- Text injection method: set_text vs text_paste -->
                 <LinearLayout
@@ -1019,7 +1083,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="包含 Qwen3-ASR、X-ASR 與 PP-OCRv6 全部離線模型。載入模型包 (.zip) 將自動解壓縮並一併復原所有模型，免去逐一下載。" />
+                    android:text="支援 Qwen3-ASR、X-ASR、PP-OCRv6 與 Qwen3.5 (SLM) 離線模型。載入模型包 (.zip) 將智慧辨識內容並自動解壓復原所含模型，免去逐一下載。" />
 
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_import_models"

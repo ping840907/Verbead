@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_mode_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    app:cardBackgroundColor="@color/surface_container"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/surface_card_stroke"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:id="@+id/layout_mode_item_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="10dp">
+
+        <!-- Drag Handle -->
+        <ImageView
+            android:id="@+id/iv_mode_drag_handle"
+            android:layout_width="32dp"
+            android:layout_height="36dp"
+            android:contentDescription="按住拖曳排序"
+            android:padding="6dp"
+            android:src="@drawable/ic_drag_handle"
+            app:tint="@color/text_secondary" />
+
+        <!-- Order Badge -->
+        <TextView
+            android:id="@+id/tv_mode_order_badge"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_icon_circle"
+            android:gravity="center"
+            android:text="1"
+            android:textColor="@color/md_theme_light_primary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <!-- Mode Icon -->
+        <ImageView
+            android:id="@+id/iv_mode_icon"
+            style="@style/Verbead.RowIcon"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="10dp"
+            android:padding="7dp"
+            android:src="@drawable/ic_mic" />
+
+        <!-- Title & Subtitle -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_mode_title"
+                style="@style/Verbead.Text.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="語音輸入"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_mode_desc"
+                style="@style/Verbead.Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="2"
+                android:text="單擊氣泡或長按選單啟動語音轉文字"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Quick Up / Down Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/btn_mode_move_up"
+                android:layout_width="28dp"
+                android:layout_height="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="上移"
+                android:padding="2dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_arrow_up"
+                app:tint="@color/text_secondary" />
+
+            <ImageButton
+                android:id="@+id/btn_mode_move_down"
+                android:layout_width="28dp"
+                android:layout_height="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="下移"
+                android:padding="2dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_arrow_down"
+                app:tint="@color/text_secondary" />
+        </LinearLayout>
+
+        <!-- Enable / Disable Switch -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switch_mode_enabled"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
