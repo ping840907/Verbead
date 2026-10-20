@@ -18,7 +18,6 @@ class Qwen3AsrEngine(private val context: Context) {
     companion object {
         private const val TAG        = "Qwen3AsrEngine"
         private const val PREF_NAME  = "asr_engine"
-        private const val KEY_PROVIDER = "active_provider"
     }
 
     @Volatile private var recognizer: OfflineRecognizer? = null

@@ -74,10 +74,8 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.Rect
-import android.graphics.RectF
 import android.net.Uri
 import android.view.ScaleGestureDetector
-import android.view.VelocityTracker
 import android.widget.ImageButton
 import android.widget.SeekBar
 import androidx.camera.core.Camera
@@ -85,7 +83,6 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
-import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -500,12 +497,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         cardBubblePreview     = previewView.findViewById(R.id.card_bubble_preview)
         tvBubblePreview       = previewView.findViewById(R.id.tv_bubble_preview)
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val displayMetrics = resources.displayMetrics
         val density = displayMetrics.density
@@ -694,15 +686,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         return getScreenHeight()
     }
 
-    private fun getCapsuleMenuDistance(): Int {
-        val density = resources.displayMetrics.density
-        return (CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP * density).toInt()
-    }
-
-    /**
-     * 各式選單唯一的邊界限制只有真正的畫面邊界 (頂部為 0)。
-     */
-    private fun getMinPopupY(): Int = 0
 
     /**
      * 懸浮球頂部邊界限制 (保留邊界安全間距，選單則不受此限制)。
@@ -1326,12 +1309,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             val bubbleWidthPx = (60 * density).toInt()
             val bubbleHeightPx = (60 * density).toInt()
             val screenWidth = getScreenWidth()
-            val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE
-            }
+            val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
             for (id in bubbleItems.size until targetCount) {
                 val defaultForId = enabledModes.getOrElse(id) {
@@ -1439,12 +1417,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val density = resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
         val bubbleHeightPx = (60 * density).toInt()
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
         val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
@@ -2146,10 +2119,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (item.id == 0) snapAnimator = anim
     }
 
-    private fun snapToSafeBoundsWithInertia(vx: Float = 0f, vy: Float = 0f) {
-        val bubble0 = bubbleItems.firstOrNull() ?: return
-        snapBubbleToSafeBoundsWithInertia(bubble0, vx, vy)
-    }
 
     // 懸浮按鈕 X 鍵點擊事件
     internal fun onXButtonClick() {
@@ -2295,12 +2264,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val view = xButtonView ?: return
         val density = resources.displayMetrics.density
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val btnSize = (44 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
@@ -2438,12 +2402,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val view = pulseView ?: return
         val density = resources.displayMetrics.density
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val pulseSize = (104 * density).toInt()
         val bubbleWidthPx = (60 * density).toInt()
@@ -3360,24 +3319,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         sp.edit().putInt("bubble_mode_$id", mode).apply()
     }
 
-    private fun updateBubbleIconForMode(mode: Int) {
-        val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
-        val target = if (isMultiBubble) {
-            currentAnchorBubble ?: bubbleItems.firstOrNull()
-        } else {
-            bubbleItems.firstOrNull()
-        }
-        if (target != null) {
-            target.mode = mode
-            val (iconRes, desc) = getIconAndDescForMode(mode)
-            target.ivIcon.setImageResource(iconRes)
-            target.ivIcon.contentDescription = desc
-        } else if (::ivBubbleIcon.isInitialized) {
-            val (iconRes, desc) = getIconAndDescForMode(mode)
-            ivBubbleIcon.setImageResource(iconRes)
-            ivBubbleIcon.contentDescription = desc
-        }
-    }
 
     private fun animateModeIconIntoBubble(mode: Int) {
         val anchor = currentAnchorBubble
@@ -3575,12 +3516,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         val cardSize = scannerWidth - (16 * density).toInt()
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val estimatedHeight = cardSize + (120 * density).toInt()
         val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
@@ -3955,12 +3891,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val screenWidth = getScreenWidth()
         val safeBottom = getSafeBottom()
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         isOcrEnlarged = ModelConfig.isCameraEnlarged(this, MODE_OCR)
         val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
@@ -4363,12 +4294,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         val ocrView = ocrSnapshotView ?: return
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         ocrSnapshotLayoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -4672,12 +4598,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val maxDrawerWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
         val drawerWidth = (260 * density).toInt().coerceAtMost(maxDrawerWidth)
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val btnClose = drawer.findViewById<ImageButton>(R.id.btn_close_phrases_drawer)
         val btnAdd = drawer.findViewById<ImageButton>(R.id.btn_add_phrase)
@@ -5040,12 +4961,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             .create()
 
-        val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         dialog.window?.setType(windowType)
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         dialog.show()
@@ -5080,12 +4996,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             .create()
 
-        val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         dialog.window?.setType(windowType)
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         dialog.show()
@@ -5109,12 +5020,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             .create()
 
-        val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         dialog.window?.setType(windowType)
         dialog.show()
     }
@@ -5226,13 +5132,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // ══════════════════════════════════════════════════════════════════
     // SLM (Small Language Model) Floating Chat Methods
     // ══════════════════════════════════════════════════════════════════
-    private fun toggleSlmChat() {
-        if (isSlmChatActive) {
-            closeSlmChat()
-        } else {
-            openSlmChat()
-        }
-    }
 
     private fun openSlmChat() {
         if (isSlmChatActive) return
@@ -5261,12 +5160,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val maxChatWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
         val chatWidth = (320 * density).toInt().coerceAtMost(maxChatWidth)
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val btnClose = chatView.findViewById<ImageButton>(R.id.btn_close_slm_chat)
         val tvAccelBadge = chatView.findViewById<TextView>(R.id.tv_slm_accel_badge)

@@ -10,7 +10,6 @@ object SlmModelConfig {
     const val KEY_SLM_THINKING = "slm_thinking_enabled"
     const val KEY_SLM_OUTPUT_MODE = "slm_output_mode"
     const val KEY_SLM_HARDWARE_ACCEL = "slm_hardware_accel"
-    const val KEY_SLM_BACKEND = "slm_backend"
 
     // 輸出模式設定：極簡快答 (預設)、重點條列、潤飾/翻譯、深度推論
     const val OUTPUT_MODE_FAST = "fast"
@@ -24,11 +23,6 @@ object SlmModelConfig {
     // 硬體加速設定：預設確保運算完全 offload 跑在 GPU / NPU 上 (99 層全卸載)
     const val DEFAULT_HARDWARE_ACCEL_ENABLED = true
     const val DEFAULT_GPU_LAYERS = 99
-    const val BACKEND_AUTO = "auto"
-    const val BACKEND_VULKAN = "vulkan"
-    const val BACKEND_NNAPI = "nnapi"
-    const val BACKEND_QNN = "qnn"
-    const val BACKEND_CPU = "cpu"
 
     // 4 個 Qwen 3.5 模型選項 (0.8B, 2B, 4B, 9B)
     const val MODEL_QWEN_0_8B = "qwen3.5_0.8b"
@@ -149,9 +143,6 @@ object SlmModelConfig {
         return primary
     }
 
-    fun isModelReady(context: Context, modelId: String): Boolean =
-        isModelDownloaded(context, modelId)
-
     fun isModelDownloaded(context: Context, modelId: String): Boolean {
         val file = getModelFile(context, modelId)
         return file.exists() && file.length() > 0L
@@ -171,25 +162,6 @@ object SlmModelConfig {
             return fallback.id
         }
         return null
-    }
-
-    fun deleteModel(context: Context, modelId: String): Boolean {
-        val file = getModelFile(context, modelId)
-        return if (file.exists()) file.delete() else false
-    }
-
-    const val KEY_LOADED_SLM_MODEL = "loaded_slm_model"
-
-    fun getLoadedModelId(context: Context): String? =
-        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
-            .getString(KEY_LOADED_SLM_MODEL, null)
-
-    fun setLoadedModelId(context: Context, modelId: String?) {
-        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
-            .edit().apply {
-                if (modelId != null) putString(KEY_LOADED_SLM_MODEL, modelId)
-                else remove(KEY_LOADED_SLM_MODEL)
-            }.apply()
     }
 
     fun getOutputMode(context: Context): String {
@@ -416,14 +388,6 @@ object SlmModelConfig {
 
     fun getGpuLayers(context: Context): Int =
         if (isHardwareAccelEnabled(context)) DEFAULT_GPU_LAYERS else 0
-
-    fun getHardwareBackend(context: Context): String =
-        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
-            .getString(KEY_SLM_BACKEND, BACKEND_AUTO) ?: BACKEND_AUTO
-
-    fun setHardwareBackend(context: Context, backend: String) =
-        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
-            .edit().putString(KEY_SLM_BACKEND, backend).apply()
 
     fun getHardwareBackendName(context: Context): String =
         if (isHardwareAccelEnabled(context)) "GPU/NPU (Vulkan/NNAPI)" else "CPU"

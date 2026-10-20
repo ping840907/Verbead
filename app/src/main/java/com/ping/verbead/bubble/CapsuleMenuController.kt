@@ -2,7 +2,6 @@ package com.ping.verbead.bubble
 
 import android.content.Context
 import android.graphics.PixelFormat
-import android.os.Build
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -191,12 +190,7 @@ class CapsuleMenuController(
         capsuleInitialY = clampedInitialY.toFloat()
         capsuleTouchStartY = if (startRawY > 0f) startRawY else bubbleCenterY
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val clampedX = bubbleX.coerceIn(0, maxOf(0, screenWidth - windowWidth))
         capsuleLayoutParams = WindowManager.LayoutParams(

@@ -36,8 +36,6 @@ class BubbleModeConfigAdapter(
         notifyDataSetChanged()
     }
 
-    fun getCurrentOrder(): List<Int> = modeOrder.toList()
-
     fun onItemMove(fromPosition: Int, toPosition: Int): Boolean {
         if (fromPosition !in modeOrder.indices || toPosition !in modeOrder.indices) return false
         if (fromPosition < toPosition) {

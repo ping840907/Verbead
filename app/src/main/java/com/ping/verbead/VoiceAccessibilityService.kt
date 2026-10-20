@@ -1,7 +1,6 @@
 package com.ping.verbead
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipDescription

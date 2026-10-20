@@ -150,9 +150,6 @@ class SlmInferenceEngineTest {
     fun testHardwareAccelerationDefaultsAndOffload() {
         assertTrue(SlmModelConfig.DEFAULT_HARDWARE_ACCEL_ENABLED)
         assertEquals(99, SlmModelConfig.DEFAULT_GPU_LAYERS)
-        assertEquals("vulkan", SlmModelConfig.BACKEND_VULKAN)
-        assertEquals("nnapi", SlmModelConfig.BACKEND_NNAPI)
-        assertEquals("qnn", SlmModelConfig.BACKEND_QNN)
 
         val spec = SlmModelConfig.SlmInferenceHardwareSpec(
             isHardwareAccel = true,

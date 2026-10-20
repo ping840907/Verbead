@@ -99,7 +99,6 @@ class SlmInferenceEngine(
                 activeLlamaModel = model
                 loadedModelId = modelId
                 loadedMemoryBytes = file.length()
-                SlmModelConfig.setLoadedModelId(context, modelId)
                 Log.i(TAG, "SLM model $modelId loaded successfully into native engine.")
                 Result.success(Unit)
             } catch (e: Throwable) {
@@ -121,7 +120,6 @@ class SlmInferenceEngine(
                 loadedModelId = null
                 loadedMemoryBytes = 0L
                 if (context != null) {
-                    SlmModelConfig.setLoadedModelId(context, null)
                 }
                 System.gc()
                 Log.i(TAG, "Unloaded SLM model $prev from memory")
@@ -574,9 +572,6 @@ class SlmInferenceEngine(
             }
         }
     }
-
-    fun getHardwareConfig(): SlmModelConfig.SlmInferenceHardwareSpec =
-        SlmModelConfig.getHardwareSpec(context)
 
     private suspend fun streamInference(
         model: LlamaModel,
