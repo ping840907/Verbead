@@ -147,6 +147,29 @@ object SlmModelConfig {
         val file = getModelFile(context, modelId)
         return file.exists() && file.length() > 0L
     }
+        fun deleteModel(context: Context, modelId: String): Boolean {
+        val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+        return deleteModelFromDir(baseDir, modelId)
+    }
+
+    fun deleteModelFromDir(baseDir: File, modelId: String): Boolean {
+        val meta = getModelMetadata(modelId)
+        val slmDir = File(baseDir, SLM_DIR)
+        var deleted = false
+        val primary = File(slmDir, meta.fileName)
+        if (primary.exists()) {
+            deleted = primary.delete() || deleted
+        }
+        val alt = File(slmDir, meta.fileName.lowercase())
+        if (alt.exists()) {
+            deleted = alt.delete() || deleted
+        }
+        val tmp = File(slmDir, meta.fileName + ".tmp")
+        if (tmp.exists()) {
+            tmp.delete()
+        }
+        return deleted
+    }
 
     /**
      * Resolves a ready-to-use downloaded model ID:

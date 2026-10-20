@@ -311,5 +311,24 @@ class SlmInferenceEngineTest {
         )
         assertEquals("「改寫後依然保留引號」", cleaned3)
     }
-}
+    @Test
+    fun testDeleteModelRemovesFiles() {
+        val tempDir = java.nio.file.Files.createTempDirectory("slm_test").toFile()
+        try {
+            val slmDir = java.io.File(tempDir, SlmModelConfig.SLM_DIR).apply { mkdirs() }
+            val meta = SlmModelConfig.getModelMetadata(SlmModelConfig.MODEL_QWEN_0_8B)
+            val modelFile = java.io.File(slmDir, meta.fileName).apply { writeText("dummy model") }
+            val tmpFile = java.io.File(slmDir, meta.fileName + ".tmp").apply { writeText("dummy tmp") }
 
+            assertTrue(modelFile.exists())
+            assertTrue(tmpFile.exists())
+
+            val deleted = SlmModelConfig.deleteModelFromDir(tempDir, SlmModelConfig.MODEL_QWEN_0_8B)
+            assertTrue(deleted)
+            assertFalse(modelFile.exists())
+            assertFalse(tmpFile.exists())
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+}

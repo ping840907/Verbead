@@ -201,6 +201,8 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var switchOcrAutoEnter: MaterialSwitch
     private lateinit var layoutOcrSmartStitchToggle: View
     private lateinit var switchOcrSmartStitch: MaterialSwitch
+    private lateinit var layoutOcrPanguSpacingToggle: View
+    private lateinit var switchOcrPanguSpacing: MaterialSwitch
     private lateinit var btnOcrSepNewline: MaterialButton
     private lateinit var btnOcrSepSpace: MaterialButton
     private lateinit var btnOcrSepNone: MaterialButton
@@ -224,6 +226,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvDownloadStatusSlm: TextView
     private lateinit var btnLoadSlmMemory: MaterialButton
     private lateinit var btnDownloadSlm: MaterialButton
+    private lateinit var btnDeleteSlm: MaterialButton
     private lateinit var layoutSlmThinkingToggle: View
     private lateinit var switchSlmThinking: MaterialSwitch
     private lateinit var layoutSlmHardwareAccelToggle: View
@@ -447,6 +450,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         switchOcrAutoEnter       = findViewById(R.id.switch_ocr_auto_enter)
         layoutOcrSmartStitchToggle = findViewById(R.id.layout_ocr_smart_stitch_toggle)
         switchOcrSmartStitch       = findViewById(R.id.switch_ocr_smart_stitch)
+        layoutOcrPanguSpacingToggle = findViewById(R.id.layout_ocr_pangu_spacing_toggle)
+        switchOcrPanguSpacing       = findViewById(R.id.switch_ocr_pangu_spacing)
         btnOcrSepNewline     = findViewById(R.id.btn_ocr_sep_newline)
         btnOcrSepSpace       = findViewById(R.id.btn_ocr_sep_space)
         btnOcrSepNone        = findViewById(R.id.btn_ocr_sep_none)
@@ -470,6 +475,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvDownloadStatusSlm = findViewById(R.id.tv_download_status_slm)
         btnLoadSlmMemory = findViewById(R.id.btn_load_slm_memory)
         btnDownloadSlm = findViewById(R.id.btn_download_slm)
+        btnDeleteSlm = findViewById(R.id.btn_delete_slm)
         layoutSlmThinkingToggle = findViewById(R.id.layout_slm_thinking_toggle)
         switchSlmThinking = findViewById(R.id.switch_slm_thinking)
         layoutSlmHardwareAccelToggle = findViewById(R.id.layout_slm_hardware_accel_toggle)
@@ -901,6 +907,15 @@ class ImeSettingsActivity : AppCompatActivity() {
             switchOcrSmartStitch.performClick()
         }
 
+        switchOcrPanguSpacing.setOnClickListener {
+            val isChecked = switchOcrPanguSpacing.isChecked
+            ModelConfig.setOcrPanguSpacingEnabled(this, isChecked)
+            HapticUtil.click(this)
+        }
+        layoutOcrPanguSpacingToggle.setOnClickListener {
+            switchOcrPanguSpacing.performClick()
+        }
+
         fun updateOcrSepSelection(sep: String) {
             ModelConfig.setOcrSeparator(this, sep)
             HapticUtil.click(this)
@@ -1029,6 +1044,29 @@ class ImeSettingsActivity : AppCompatActivity() {
             HapticUtil.click(this)
             val selectedModel = SlmModelConfig.getSelectedModel(this)
             handleDownloadButtonClick(selectedModel)
+        }
+
+        btnDeleteSlm.setOnClickListener {
+            HapticUtil.click(this)
+            val selectedModel = SlmModelConfig.getSelectedModel(this)
+            val meta = SlmModelConfig.getModelMetadata(selectedModel)
+            val file = SlmModelConfig.getModelFile(this, selectedModel)
+            val sizeMb = if (file.exists()) file.length() / (1024 * 1024) else 0L
+            AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_delete_slm_title)
+                .setMessage(getString(R.string.dialog_delete_slm_message, meta.displayName, sizeMb))
+                .setPositiveButton(R.string.btn_delete) { _, _ ->
+                    if (SlmInferenceEngine.isModelLoaded(selectedModel)) {
+                        SlmInferenceEngine.unloadModel(this)
+                    }
+                    val ok = SlmModelConfig.deleteModel(this, selectedModel)
+                    if (ok) {
+                        Toast.makeText(this, R.string.toast_slm_deleted, Toast.LENGTH_SHORT).show()
+                    }
+                    updateAllStatus()
+                }
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show()
         }
 
         switchSlmThinking.setOnClickListener {
@@ -1413,6 +1451,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
         switchOcrSmartStitch.isChecked = ModelConfig.isOcrSmartStitchEnabled(this)
+        switchOcrPanguSpacing.isChecked = ModelConfig.isOcrPanguSpacingEnabled(this)
         switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
 
         val currentSep = ModelConfig.ocrSeparator(this)

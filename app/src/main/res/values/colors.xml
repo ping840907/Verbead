@@ -20,6 +20,9 @@
     <color name="status_success_text">#047857</color>
     <color name="status_warning_container">#FFFBEB</color>
     <color name="status_warning_text">#B45309</color>
+    <color name="status_error">#EF4444</color>
+    <color name="status_error_container">#FEF2F2</color>
+    <color name="status_error_text">#B91C1C</color>
     <color name="tag_recommend">#6366F1</color>
     <color name="tag_recommend_container">#EEF2FF</color>
 

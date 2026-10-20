@@ -1973,6 +1973,50 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp" />
 
+                <!-- Pangu Spacing (Chinese-English-Number spacing) toggle -->
+                <LinearLayout
+                    android:id="@+id/layout_ocr_pangu_spacing_toggle"
+                    style="@style/Verbead.Row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/Verbead.Text.Title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/ocr_pangu_spacing_title" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/ocr_pangu_spacing_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_ocr_pangu_spacing"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    style="@style/Verbead.Divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp" />
+
                 <!-- Separator -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -2199,7 +2243,19 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
                             android:text="下載模型" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_delete_slm"
+                            style="@style/Verbead.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0.8"
+                            android:textColor="@color/status_error"
+                            app:strokeColor="@color/status_error"
+                            android:visibility="gone"
+                            android:text="@string/btn_delete_model" />
                     </LinearLayout>
                 </LinearLayout>
 

@@ -126,4 +126,10 @@
     <string name="slm_mode_bullet">重點條列</string>
     <string name="slm_mode_refine">潤飾/翻譯</string>
     <string name="toast_asr_model_not_ready">尚未下載語音辨識模型 (%1$s)，請至設定下載</string>
+    <string name="ocr_pangu_spacing_title">盤古之白 (中英數自動空格)</string>
+    <string name="ocr_pangu_spacing_desc">在辨識出的中文字與英數、符號之間自動補入半形空格，提升排版質感</string>
+    <string name="btn_delete_model">刪除檔案</string>
+    <string name="dialog_delete_slm_title">刪除模型檔案</string>
+    <string name="dialog_delete_slm_message">確定要刪除「%1$s」模型檔案嗎？\n\n此動作將釋放約 %2$dMB 的儲存空間。日後若需要仍可隨時重新下載。</string>
+    <string name="toast_slm_deleted">已成功刪除模型檔案，已釋放儲存空間</string>
 </resources>
