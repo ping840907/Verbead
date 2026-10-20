@@ -132,4 +132,23 @@
     <string name="dialog_delete_slm_title">刪除模型檔案</string>
     <string name="dialog_delete_slm_message">確定要刪除「%1$s」模型檔案嗎？\n\n此動作將釋放約 %2$dMB 的儲存空間。日後若需要仍可隨時重新下載。</string>
     <string name="toast_slm_deleted">已成功刪除模型檔案，已釋放儲存空間</string>
+
+    <!-- Settings Category Titles -->
+    <string name="settings_cat_bubble_title">懸浮球與操作模式</string>
+    <string name="settings_cat_bubble_desc">多球切換、模式開關排序、貼邊收納與鍵盤連動</string>
+
+    <string name="settings_cat_speech_title">語音辨識與模型</string>
+    <string name="settings_cat_speech_desc">雙引擎切換、X-ASR 串流、Qwen3 離線高精與熱詞</string>
+
+    <string name="settings_cat_ocr_title">智慧文字辨識 (OCR)</string>
+    <string name="settings_cat_ocr_desc">PP-OCR 繁中離線模型、盤古排版間距、條碼掃描</string>
+
+    <string name="settings_cat_slm_title">端側 AI 大模型 (SLM)</string>
+    <string name="settings_cat_slm_desc">Qwen3.5 模型管理、硬體加速、思考模式與改寫風格</string>
+
+    <string name="settings_cat_backup_title">離線模型包備份與導入</string>
+    <string name="settings_cat_backup_desc">一鍵匯出離線模型包、智慧校驗與還原 ZIP</string>
+
+    <string name="settings_cat_about_title">關於與授權致謝</string>
+    <string name="settings_cat_about_desc">版本資訊、開源核心技術致謝與 GitHub 專案</string>
 </resources>

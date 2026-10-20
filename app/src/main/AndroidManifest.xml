@@ -53,6 +53,43 @@
             android:exported="false"
             android:label="自定義詞彙" />
 
+        <!-- Settings Category Subpages -->
+        <activity
+            android:name=".settings.BubbleSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_bubble_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
+            android:name=".settings.SpeechSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_speech_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
+            android:name=".settings.OcrSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_ocr_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
+            android:name=".settings.SlmSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_slm_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
+            android:name=".settings.BackupSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_backup_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
+            android:name=".settings.AboutSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_about_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
         <!-- Model download: keeps running across screen-off / app-switch via foreground service -->
         <service
             android:name=".ModelDownloadService"
