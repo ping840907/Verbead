@@ -1,4 +1,4 @@
-﻿package com.ping.verbead
+package com.ping.verbead
 
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
@@ -48,6 +48,9 @@ import com.ping.verbead.bubble.PhrasesDrawerController
 import com.ping.verbead.bubble.ScannerOverlayController
 import com.ping.verbead.bubble.OcrOverlayController
 import com.ping.verbead.bubble.SlmChatOverlayController
+import com.ping.verbead.bubble.BubblePulseController
+import com.ping.verbead.bubble.BubbleXButtonController
+import com.ping.verbead.bubble.BubblePreviewController
 import com.ping.verbead.bubble.BubblePhysics
 import com.ping.verbead.bubble.BubblePosition
 import com.ping.verbead.bubble.BubbleDeleteZoneController
@@ -172,28 +175,20 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private val currentAnchorBubble: FloatingBubbleItem?
         get() = (activeAnchorBubble?.takeIf { bubbleItems.contains(it) }) ?: bubbleItems.firstOrNull()
 
-    private lateinit var previewLayoutParams: WindowManager.LayoutParams
-    private lateinit var previewView: View
-
     private lateinit var btnBubbleMic: FrameLayout
     private lateinit var ivBubbleIcon: ImageView
     private lateinit var progressBubble: ProgressBar
-    private lateinit var cardBubblePreview: MaterialCardView
-    private lateinit var tvBubblePreview: TextView
 
-    // Standalone floating X button overlay window
-    private var xButtonView: View? = null
-    private var xButtonLayoutParams: WindowManager.LayoutParams? = null
+    // Auxiliary overlay controllers
+    private lateinit var bubblePreviewController: BubblePreviewController
+    private lateinit var bubblePulseController: BubblePulseController
+    private lateinit var bubbleXButtonController: BubbleXButtonController
+    private val isXButtonShowing: Boolean
+        get() = ::bubbleXButtonController.isInitialized && bubbleXButtonController.isShowing
+    private val isPulseShowing: Boolean
+        get() = ::bubblePulseController.isInitialized && bubblePulseController.isShowing
     private var isRestoringSnapshot = false
     private val mainHandler = Handler(Looper.getMainLooper())
-
-    // Standalone outer pulse ring volume indicator window
-    private var pulseView: View? = null
-    private var pulseLayoutParams: WindowManager.LayoutParams? = null
-    private var viewPulseRing: View? = null
-    private var viewPulseWave: View? = null
-    private var isPulseShowing = false
-    private var lastWaveTime = 0L
 
     // Capsule menu controller & mode
     private lateinit var capsuleMenuController: CapsuleMenuController
@@ -291,7 +286,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var snapAnimator: ValueAnimator? = null
     private var dynamicKeyboardTop: Int = 0
     private var isDockedOnRight = true
-    private var isXButtonShowing = false
     private var isBubbleMoving = false
 
     // 邊緣收納隱藏狀態 (~30% 可視，~70% 位於畫面外)
@@ -424,6 +418,24 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             showPreviewText = { text, autoHide -> showPreviewText(text, autoHide) },
             copyToClipboardFallback = ::copyToClipboardFallback,
             onClosed = { animate -> checkAndHideBubbleIfKeyboardClosed(animate) }
+        )
+
+        bubblePulseController = BubblePulseController(
+            context = this,
+            windowManager = windowManager,
+            themedCtx = themedCtx
+        )
+        bubbleXButtonController = BubbleXButtonController(
+            context = this,
+            windowManager = windowManager,
+            themedCtx = themedCtx,
+            onXButtonClick = ::onXButtonClick
+        )
+        bubblePreviewController = BubblePreviewController(
+            context = this,
+            windowManager = windowManager,
+            themedCtx = themedCtx,
+            scope = scope
         )
 
         ocrOverlayController = OcrOverlayController(
@@ -567,10 +579,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         ivBubbleIcon          = bubbleView.findViewById(R.id.iv_bubble_icon)
         progressBubble        = bubbleView.findViewById(R.id.progress_bubble)
 
-        previewView           = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_preview, null)
-        cardBubblePreview     = previewView.findViewById(R.id.card_bubble_preview)
-        tvBubblePreview       = previewView.findViewById(R.id.tv_bubble_preview)
-
         val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val displayMetrics = resources.displayMetrics
@@ -600,18 +608,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             y = initialY
         }
 
-        // Dedicated overlay window for speech preview tooltip
-        previewLayoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.RIGHT
-            x = bubbleWidthPx + (8 * density).toInt()
-            y = initialY + (12 * density).toInt()
-        }
+                bubblePreviewController.setup(bubbleWidthPx, initialY, density)
 
         isDockedOnRight = true
 
@@ -650,8 +647,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         windowManager.addView(bubbleView, windowLayoutParams)
-        previewView.visibility = View.GONE
-        windowManager.addView(previewView, previewLayoutParams)
         setState(State.IDLE)
         if (ModelConfig.isMultiBubbleEnabled(this)) {
             updateMultiBubbleMode()
@@ -2281,383 +2276,114 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun updateXButtonPosition() {
-        val view = xButtonView ?: return
-        if (!isXButtonShowing || !view.isAttachedToWindow) return
-        val lp = xButtonLayoutParams ?: return
-        val density = resources.displayMetrics.density
-        val btnSize = (44 * density).toInt()
-        val bubbleWidthPx = (60 * density).toInt()
-        val statusBar = getStatusBarHeight()
-        val safeBottom = getSafeBottom()
-        val screenWidth = getScreenWidth()
+        if (!::bubbleXButtonController.isInitialized) return
         val anchor = currentAnchorBubble
         val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val preferredY = anchorY - (48 * density).toInt()
-        val candidateY = if (preferredY < statusBar) {
-            // 上方空間不足（接近狀態列/螢幕頂端），智慧翻轉顯示在懸浮球正下方
-            anchorY + bubbleWidthPx + (4 * density).toInt()
-        } else {
-            preferredY
-        }
-        val maxAllowedY = safeBottom - btnSize - (4 * density).toInt()
-        val targetY = candidateY.coerceIn(0, maxOf(0, maxAllowedY))
-
-        val xOffset = anchorX + ((bubbleWidthPx - btnSize) / 2)
-        val clampedX = xOffset.coerceIn((4 * density).toInt(), maxOf((4 * density).toInt(), screenWidth - btnSize - (4 * density).toInt()))
-
-        lp.x = clampedX
-        lp.y = targetY
-        try {
-            windowManager.updateViewLayout(view, lp)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to update xButton layout", e)
-        }
+        bubbleXButtonController.updatePosition(
+            anchorX = anchorX,
+            anchorY = anchorY,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom(),
+            statusBarHeight = getStatusBarHeight()
+        )
     }
 
-    // 獨立懸浮 X 鍵視窗（完全獨立 WindowManager 視窗，徹底消除氣泡視窗高度變更產生的任何擠壓或閃爍）
     internal fun showXButton() {
-        xButtonAutoHideJob?.cancel()
+        if (!::bubbleXButtonController.isInitialized) return
         val anchor = currentAnchorBubble
-        if (anchor?.isTucked == true) {
-            untuckBubble(anchor, animate = false)
-        } else if (isTucked) {
-            untuckBubble(animate = false)
-        }
-        if (isXButtonShowing) {
-            updateXButtonPosition()
-            return
-        }
-        isXButtonShowing = true
-
-        if (xButtonView == null) {
-            xButtonView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_bubble_x, null).apply {
-                setOnClickListener { onXButtonClick() }
-            }
-        }
-        val view = xButtonView ?: return
-        val density = resources.displayMetrics.density
-
-        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-
-        val btnSize = (44 * density).toInt()
-        val bubbleWidthPx = (60 * density).toInt()
         val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val xOffset = anchorX + ((bubbleWidthPx - btnSize) / 2)
-        val statusBar = getStatusBarHeight()
-        val safeBottom = getSafeBottom()
-        val screenWidth = getScreenWidth()
-
-        val clampedX = xOffset.coerceIn((4 * density).toInt(), maxOf((4 * density).toInt(), screenWidth - btnSize - (4 * density).toInt()))
-
-        val preferredY = anchorY - (48 * density).toInt()
-        val isFlipped = preferredY < statusBar
-        val candidateY = if (isFlipped) {
-            anchorY + bubbleWidthPx + (4 * density).toInt()
-        } else {
-            preferredY
-        }
-        val maxAllowedY = safeBottom - btnSize - (4 * density).toInt()
-        val targetY = candidateY.coerceIn(0, maxOf(0, maxAllowedY))
-
-        xButtonLayoutParams = WindowManager.LayoutParams(
-            btnSize,
-            btnSize,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.LEFT
-            x = clampedX
-            y = targetY
-        }
-
-        view.animate().cancel()
-        if (view.isAttachedToWindow) {
-            try {
-                windowManager.removeView(view)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove previous xButtonView", e)
+        bubbleXButtonController.show(
+            anchorX = anchorX,
+            anchorY = anchorY,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom(),
+            statusBarHeight = getStatusBarHeight(),
+            onUntuck = {
+                if (anchor?.isTucked == true) {
+                    untuckBubble(anchor, animate = false)
+                } else if (isTucked) {
+                    untuckBubble(animate = false)
+                }
             }
-        }
-        view.alpha = 0f
-        view.translationY = if (isFlipped) -dpToPx(12f) else dpToPx(12f)
-        view.scaleX = 0.6f
-        view.scaleY = 0.6f
-        windowManager.addView(view, xButtonLayoutParams)
-
-        view.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(200)
-            .setInterpolator(OvershootInterpolator(1.2f))
-            .start()
+        )
     }
 
     private fun hideXButton() {
-        xButtonAutoHideJob?.cancel()
-        if (!isXButtonShowing) return
-        isXButtonShowing = false
-        val view = xButtonView ?: return
-        view.animate().cancel()
-
-        view.animate()
-            .alpha(0f)
-            .translationY(dpToPx(10f))
-            .scaleX(0.6f)
-            .scaleY(0.6f)
-            .setDuration(160)
-            .withEndAction {
-                if (view.isAttachedToWindow) {
-                    try {
-                        windowManager.removeView(view)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to remove xButtonView on hide end", e)
-                    }
-                }
-            }
-            .start()
+        if (!::bubbleXButtonController.isInitialized) return
+        bubbleXButtonController.hide()
     }
 
     private fun hideXButtonImmediately() {
-        xButtonAutoHideJob?.cancel()
-        if (!isXButtonShowing) return
-        isXButtonShowing = false
-        val view = xButtonView ?: return
-        view.animate().cancel()
-        if (view.isAttachedToWindow) {
-            try {
-                windowManager.removeView(view)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove xButtonView immediately", e)
-            }
-        }
+        if (!::bubbleXButtonController.isInitialized) return
+        bubbleXButtonController.hideImmediately()
     }
 
-    // 獨立脈衝音量外圈視窗（像教學動畫般，於錄音中圍繞懸浮球根據 RMS 音量即時外擴收縮）
     private fun updatePulsePosition() {
-        val view = pulseView ?: return
-        if (!isPulseShowing || !view.isAttachedToWindow) return
-        val lp = pulseLayoutParams ?: return
-        val density = resources.displayMetrics.density
-        val pulseSize = (104 * density).toInt()
-        val bubbleWidthPx = (60 * density).toInt()
-        val bubbleHeightPx = (60 * density).toInt()
+        if (!::bubblePulseController.isInitialized) return
         val anchor = activeAnchorBubble ?: currentAnchorBubble
         val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        lp.x = anchorX + ((bubbleWidthPx - pulseSize) / 2)
-        lp.y = anchorY + ((bubbleHeightPx - pulseSize) / 2)
-        try {
-            windowManager.updateViewLayout(view, lp)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to update pulse layout", e)
-        }
+        bubblePulseController.updatePosition(anchorX, anchorY)
     }
 
     private fun showPulseView() {
-        if (isPulseShowing) {
-            updatePulsePosition()
-            return
-        }
-        isPulseShowing = true
-
-        if (pulseView == null) {
-            pulseView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_bubble_pulse, null).apply {
-                viewPulseRing = findViewById(R.id.view_bubble_pulse_ring)
-                viewPulseWave = findViewById(R.id.view_bubble_pulse_wave)
-            }
-        }
-        val view = pulseView ?: return
-        val density = resources.displayMetrics.density
-
-        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-
-        val pulseSize = (104 * density).toInt()
-        val bubbleWidthPx = (60 * density).toInt()
-        val bubbleHeightPx = (60 * density).toInt()
+        if (!::bubblePulseController.isInitialized) return
         val anchor = activeAnchorBubble ?: currentAnchorBubble
         val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val xOffset = anchorX + ((bubbleWidthPx - pulseSize) / 2)
-        val yOffset = anchorY + ((bubbleHeightPx - pulseSize) / 2)
-
-        pulseLayoutParams = WindowManager.LayoutParams(
-            pulseSize,
-            pulseSize,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.LEFT
-            x = xOffset
-            y = yOffset
-        }
-
-        view.animate().cancel()
-        viewPulseRing?.animate()?.cancel()
-        viewPulseWave?.animate()?.cancel()
-
-        if (view.isAttachedToWindow) {
-            try {
-                windowManager.removeView(view)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove previous pulseView", e)
-            }
-        }
-
-        viewPulseRing?.alpha = 0.25f
-        viewPulseRing?.scaleX = 1.0f
-        viewPulseRing?.scaleY = 1.0f
-
-        viewPulseWave?.alpha = 0f
-        viewPulseWave?.scaleX = 1.0f
-        viewPulseWave?.scaleY = 1.0f
-
-        try {
-            windowManager.addView(view, pulseLayoutParams)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to add pulseView to WindowManager", e)
-        }
+        bubblePulseController.show(anchorX, anchorY)
     }
 
     private fun hidePulseView() {
-        if (!isPulseShowing) return
-        isPulseShowing = false
-        val view = pulseView ?: return
-        viewPulseRing?.animate()?.cancel()
-        viewPulseWave?.animate()?.cancel()
-
-        viewPulseRing?.animate()
-            ?.alpha(0f)
-            ?.scaleX(1.0f)
-            ?.scaleY(1.0f)
-            ?.setDuration(160)
-            ?.withEndAction {
-                if (view.isAttachedToWindow && !isPulseShowing) {
-                    try {
-                        windowManager.removeView(view)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to remove pulseView on hide", e)
-                    }
-                }
-            }
-            ?.start()
-
-        viewPulseWave?.animate()?.alpha(0f)?.setDuration(120)?.start()
+        if (!::bubblePulseController.isInitialized) return
+        bubblePulseController.hide()
     }
 
     private fun onAudioRmsUpdate(rms: Float) {
-        if (!isRecording || !isPulseShowing) return
-        Handler(Looper.getMainLooper()).post {
-            if (!isRecording || !isPulseShowing) return@post
-            val ring = viewPulseRing ?: return@post
-            val wave = viewPulseWave ?: return@post
-
-            // RMS 能量範圍通常介於 0.005（靜音底噪）~ 0.18（清晰說話）
-            val norm = ((rms - 0.008f) / 0.12f).coerceIn(0f, 1f)
-
-            // 動態外擴比例：1.0f（同懸浮球大小）~ 1.48f（外擴脈衝）
-            val targetScale = 1.0f + norm * 0.48f
-            val targetAlpha = if (norm > 0.05f) (0.25f + norm * 0.55f).coerceAtMost(0.85f) else 0.12f
-
-            ring.animate()
-                .scaleX(targetScale)
-                .scaleY(targetScale)
-                .alpha(targetAlpha)
-                .setDuration(70)
-                .start()
-
-            // 說話重音峰值時觸發擴散外波（如音量大於門檻且間隔達 320ms）
-            val now = android.os.SystemClock.uptimeMillis()
-            if (norm > 0.35f && (now - lastWaveTime > 320L)) {
-                lastWaveTime = now
-                wave.animate().cancel()
-                wave.scaleX = 1.05f
-                wave.scaleY = 1.05f
-                wave.alpha = 0.65f
-                wave.animate()
-                    .scaleX(1.55f)
-                    .scaleY(1.55f)
-                    .alpha(0f)
-                    .setDuration(380)
-                    .setInterpolator(android.view.animation.DecelerateInterpolator())
-                    .start()
-            }
-        }
+        if (!::bubblePulseController.isInitialized) return
+        bubblePulseController.onAudioRmsUpdate(rms, isRecording)
     }
 
     private fun updatePreviewPosition() {
-        if (!::previewView.isInitialized || !::bubbleView.isInitialized) return
-        val density = resources.displayMetrics.density
-        val padding = (14 * density).toInt()
-        val visualGap = (8 * density).toInt()
-        val bubbleWidthPx = (60 * density).toInt()
-        val windowX = bubbleWidthPx + visualGap - padding
-
-        val screenWidth = getScreenWidth()
-        val safeBottom = getSafeBottom()
-
+        if (!::bubblePreviewController.isInitialized) return
         val anchor = currentAnchorBubble
         val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-
-        if (isRight) {
-            previewLayoutParams.gravity = Gravity.TOP or Gravity.RIGHT
-            previewLayoutParams.x = windowX
-        } else {
-            previewLayoutParams.gravity = Gravity.TOP or Gravity.LEFT
-            previewLayoutParams.x = windowX
-        }
-
-        val maxAvailableWidth = screenWidth - bubbleWidthPx - visualGap - padding
-        tvBubblePreview.maxWidth = maxOf((120 * density).toInt(), maxAvailableWidth)
-
-        val estHeight = previewView.measuredHeight.takeIf { it > 0 } ?: (48 * density).toInt()
-        val targetY = anchorY + (12 * density).toInt() - padding
-        val maxAllowedY = safeBottom - estHeight - (8 * density).toInt()
-        previewLayoutParams.y = targetY.coerceIn(0, maxOf(0, maxAllowedY))
-
-        if (previewView.isAttachedToWindow) {
-            windowManager.updateViewLayout(previewView, previewLayoutParams)
-        }
+        bubblePreviewController.updatePosition(
+            anchorY = anchorY,
+            isDockedOnRight = isRight,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom()
+        )
     }
 
     private fun hidePreviewText() {
-        autoHidePreviewJob?.cancel()
-        if (::previewView.isInitialized && previewView.isAttachedToWindow) {
-            previewView.visibility = View.GONE
-        }
+        if (!::bubblePreviewController.isInitialized) return
+        bubblePreviewController.hide()
     }
 
     private fun showPreviewText(msg: String, autoHide: Boolean = true) {
-        if (!::previewView.isInitialized) return
+        if (!::bubblePreviewController.isInitialized) return
         val anchor = currentAnchorBubble
-        if (anchor?.isTucked == true) {
-            untuckBubble(anchor, animate = false)
-        } else if (isTucked) {
-            untuckBubble(animate = false)
-        }
-        tvBubblePreview.text = msg
-        updatePreviewPosition()
-        if (previewView.isAttachedToWindow) {
-            previewView.visibility = View.VISIBLE
-        }
-        autoHidePreviewJob?.cancel()
-        if (autoHide) {
-            autoHidePreviewJob = scope.launch {
-                delay(5000L)
-                hidePreviewText()
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        bubblePreviewController.show(
+            msg = msg,
+            autoHide = autoHide,
+            anchorY = anchorY,
+            isDockedOnRight = isRight,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom(),
+            onUntuck = {
+                if (anchor?.isTucked == true) {
+                    untuckBubble(anchor, animate = false)
+                } else if (isTucked) {
+                    untuckBubble(animate = false)
+                }
             }
-        }
+        )
     }
 
     private fun onBubbleClick() {
@@ -3946,12 +3672,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             bubbleItems.clear()
 
-            removeOverlay("xButton", xButtonView)
-            xButtonView = null
-            removeOverlay("pulse", pulseView)
-            pulseView = null
+            safely("xButton") { if (::bubbleXButtonController.isInitialized) bubbleXButtonController.destroy() }
+            safely("pulse") { if (::bubblePulseController.isInitialized) bubblePulseController.destroy() }
+            safely("preview") { if (::bubblePreviewController.isInitialized) bubblePreviewController.destroy() }
             if (::bubbleView.isInitialized) removeOverlay("bubble", bubbleView)
-            if (::previewView.isInitialized) removeOverlay("preview", previewView)
         } finally {
             scope.cancel()
         }
