@@ -1,4 +1,4 @@
-package com.ping.verbead
+﻿package com.ping.verbead
 
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
@@ -47,6 +47,7 @@ import com.ping.verbead.bubble.CapsuleMenuController
 import com.ping.verbead.bubble.PhrasesDrawerController
 import com.ping.verbead.bubble.ScannerOverlayController
 import com.ping.verbead.bubble.OcrOverlayController
+import com.ping.verbead.bubble.SlmChatOverlayController
 import com.ping.verbead.bubble.BubblePhysics
 import com.ping.verbead.bubble.BubblePosition
 import com.ping.verbead.bubble.BubbleDeleteZoneController
@@ -226,14 +227,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         get() = ::phrasesDrawerController.isInitialized && phrasesDrawerController.isActive
 
     // SLM Floating Chat & AI Voice Input State
-    private var slmChatView: View? = null
-    private var slmChatLayoutParams: WindowManager.LayoutParams? = null
-    private var isSlmChatActive = false
-    private val slmMessages = mutableListOf<SlmChatMessage>()
-    private var slmChatAdapter: SlmChatAdapter? = null
     private val slmInferenceEngine by lazy { SlmInferenceEngine(this, scope) }
-    private var slmVoiceJob: Job? = null
-    private var isSlmVoiceRecording = false
+    private lateinit var slmChatOverlayController: SlmChatOverlayController
+    private val isSlmChatActive: Boolean
+        get() = ::slmChatOverlayController.isInitialized && slmChatOverlayController.isActive
     private var isRecordingForSlm = false
     private var capturedSlmContext: TextInsertion.EditableTextContext? = null
 
@@ -410,6 +407,25 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
             }
         )
+                slmChatOverlayController = SlmChatOverlayController(
+            context = this,
+            windowManager = windowManager,
+            themedCtx = themedCtx,
+            scope = scope,
+            slmInferenceEngine = slmInferenceEngine,
+            recorder = recorder,
+            xAsr = xAsr,
+            qwen3Asr = qwen3Asr,
+            postProcess = ::postProcess,
+            buildHotwords = ::buildHotwords,
+            qwen3NeedsReload = ::qwen3NeedsReload,
+            showXButton = ::showXButton,
+            hideXButton = { if (state != State.PASTED) hideXButton() },
+            showPreviewText = { text, autoHide -> showPreviewText(text, autoHide) },
+            copyToClipboardFallback = ::copyToClipboardFallback,
+            onClosed = { animate -> checkAndHideBubbleIfKeyboardClosed(animate) }
+        )
+
         ocrOverlayController = OcrOverlayController(
             context = themedCtx,
             lifecycleOwner = this,
@@ -3807,7 +3823,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     // ══════════════════════════════════════════════════════════════════
     // SLM (Small Language Model) Floating Chat Methods
-    // ══════════════════════════════════════════════════════════════════
+    // ??????????????????????????????????????????????????????????????????
 
     private fun openSlmChat() {
         if (isSlmChatActive) return
@@ -3822,759 +3838,32 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isOcrModeActive) stopOcrMode()
         if (isPhrasesDrawerActive) closePhrasesDrawer()
 
-        if (slmChatView == null) {
-            slmChatView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_slm_chat, null)
-        }
-        val chatView = slmChatView ?: return
-
-        val density = resources.displayMetrics.density
-        val bubbleWidthPx = (60 * density).toInt()
-        val gap = (10 * density).toInt()
-        val screenHeight = getScreenHeight()
-        val screenWidth = getScreenWidth()
-        val safeBottom = getSafeBottom()
-        val maxChatWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val chatWidth = (320 * density).toInt().coerceAtMost(maxChatWidth)
-
-        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-
-        val btnClose = chatView.findViewById<ImageButton>(R.id.btn_close_slm_chat)
-        val tvAccelBadge = chatView.findViewById<TextView>(R.id.tv_slm_accel_badge)
-        val btnModelToggle = chatView.findViewById<TextView>(R.id.btn_slm_model_toggle)
-        val btnThinkingToggle = chatView.findViewById<LinearLayout>(R.id.btn_slm_thinking_toggle)
-        val ivThinkingIcon = chatView.findViewById<ImageView>(R.id.iv_slm_thinking_icon)
-        val tvThinkingLabel = chatView.findViewById<TextView>(R.id.tv_slm_thinking_label)
-        val rvChat = chatView.findViewById<RecyclerView>(R.id.rv_slm_chat)
-        val layoutEmpty = chatView.findViewById<View>(R.id.layout_slm_empty)
-        val btnMic = chatView.findViewById<ImageButton>(R.id.btn_slm_mic)
-        val etPrompt = chatView.findViewById<EditText>(R.id.et_slm_prompt)
-        val btnSend = chatView.findViewById<ImageButton>(R.id.btn_slm_send)
-        val btnModeFast = chatView.findViewById<TextView>(R.id.btn_mode_fast)
-        val btnModeBullet = chatView.findViewById<TextView>(R.id.btn_mode_bullet)
-        val btnModeRefine = chatView.findViewById<TextView>(R.id.btn_mode_refine)
-
-        tvAccelBadge?.setOnClickListener {
-            HapticUtil.click(this)
-            val desc = SlmModelConfig.getHardwareAccelDescription(this)
-            Toast.makeText(this, desc, Toast.LENGTH_SHORT).show()
-        }
-
-        btnClose.setOnClickListener {
-            HapticUtil.click(this)
-            closeSlmChat()
-        }
-
-        val tvEmptyTitle = chatView.findViewById<TextView>(R.id.tv_slm_empty_title)
-        val tvEmptyDesc = chatView.findViewById<TextView>(R.id.tv_slm_empty_desc)
-        val btnEmptyDownload = chatView.findViewById<MaterialButton>(R.id.btn_slm_empty_download)
-        val btnEmptyLoad = chatView.findViewById<MaterialButton>(R.id.btn_slm_empty_load)
-        val progressEmpty = chatView.findViewById<LinearProgressIndicator>(R.id.progress_slm_empty)
-        val tvEmptyProgress = chatView.findViewById<TextView>(R.id.tv_slm_empty_progress)
-
-        // Refresh Model UI & Empty State Actions
-        fun updateModelUi() {
-            val selectedModel = SlmModelConfig.getSelectedModel(this)
-            val meta = SlmModelConfig.getModelMetadata(selectedModel)
-            val isDownloaded = SlmModelConfig.isModelDownloaded(this, selectedModel)
-            val isLoaded = slmInferenceEngine.isLoaded(selectedModel)
-
-            val statusTag = when {
-                isLoaded -> "· 已載入"
-                isDownloaded -> "· 已就緒"
-                else -> "· 未下載"
-            }
-            btnModelToggle.text = "${meta.chipLabel} $statusTag"
-
-            val active = ModelDownloadState.active.value
-            if (active != null && active.engine == selectedModel) {
-                btnEmptyDownload.visibility = View.VISIBLE
-                btnEmptyDownload.text = "取消下載"
-                btnEmptyLoad.visibility = View.GONE
-                progressEmpty.visibility = View.VISIBLE
-                progressEmpty.isIndeterminate = active.progress.percent < 0
-                if (active.progress.percent >= 0) progressEmpty.progress = active.progress.percent
-                tvEmptyProgress.visibility = View.VISIBLE
-                tvEmptyProgress.text = "${active.progress.label} (${active.progress.percent}%)"
-                tvEmptyTitle.text = "正在下載 ${meta.displayName}…"
-                tvEmptyDesc.text = "檔案大小約 ${meta.quantizedSize}，下載將於背景進行"
-            } else {
-                progressEmpty.visibility = View.GONE
-                tvEmptyProgress.visibility = View.GONE
-
-                if (isDownloaded) {
-                    btnEmptyDownload.visibility = View.GONE
-                    if (isLoaded) {
-                        btnEmptyLoad.visibility = View.GONE
-                        tvEmptyTitle.text = "端側 ${meta.displayName} 已載入 · GPU/NPU 加速中"
-                        tvEmptyDesc.text = "• 運算由 GPU (Vulkan) / NPU (NNAPI) 全層卸載加速\n• 點擊麥克風可用離線語音下達指令\n• 預設簡短扼要回覆，支援思考推導\n• 回覆後可一鍵複製或直接貼入輸入框"
-                    } else {
-                        btnEmptyLoad.visibility = View.VISIBLE
-                        btnEmptyLoad.text = "載入至記憶體"
-                        tvEmptyTitle.text = "端側 ${meta.displayName} 已就緒 (未載入)"
-                        tvEmptyDesc.text = "模型檔案已下載完成。點擊下方按鈕預熱載入至記憶體，或直接發送問題自動載入。"
-                    }
-                } else {
-                    btnEmptyLoad.visibility = View.GONE
-                    btnEmptyDownload.visibility = View.VISIBLE
-                    btnEmptyDownload.text = "下載此模型 (${meta.quantizedSize})"
-                    tvEmptyTitle.text = "端側 ${meta.displayName} 尚未下載 (${meta.parameterCount})"
-                    tvEmptyDesc.text = "${meta.description}\n\n檔案大小：${meta.quantizedSize}，點擊下方按鈕即可下載至手機本機運行。"
-                }
-            }
-        }
-        updateModelUi()
-
-        btnEmptyDownload.setOnClickListener {
-            HapticUtil.click(this)
-            val current = SlmModelConfig.getSelectedModel(this)
-            val active = ModelDownloadState.active.value
-            if (active != null && active.engine == current) {
-                ModelDownloadService.cancel(this)
-                Toast.makeText(this, R.string.toast_slm_download_cancelled, Toast.LENGTH_SHORT).show()
-            } else {
-                ModelDownloadService.start(this, current)
-                val m = SlmModelConfig.getModelMetadata(current)
-                Toast.makeText(this, getString(R.string.toast_slm_download_started, m.displayName), Toast.LENGTH_SHORT).show()
-            }
-            updateModelUi()
-        }
-
-        btnEmptyLoad.setOnClickListener {
-            HapticUtil.click(this)
-            val current = SlmModelConfig.getSelectedModel(this)
-            scope.launch {
-                btnEmptyLoad.isEnabled = false
-                btnEmptyLoad.text = "載入中…"
-                val res = slmInferenceEngine.loadModel(current)
-                btnEmptyLoad.isEnabled = true
-                if (res.isSuccess) {
-                    val m = SlmModelConfig.getModelMetadata(current)
-                    Toast.makeText(this@FloatingBubbleService, getString(R.string.toast_slm_loaded_memory, m.displayName), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@FloatingBubbleService, getString(R.string.toast_slm_load_failed, res.exceptionOrNull()?.message ?: "未知錯誤"), Toast.LENGTH_SHORT).show()
-                }
-                updateModelUi()
-            }
-        }
-
-        // Listen for download progress updates while SLM chat is open
-        scope.launch {
-            ModelDownloadState.active.collect {
-                if (isSlmChatActive && slmChatView != null) {
-                    updateModelUi()
-                }
-            }
-        }
-        scope.launch {
-            ModelDownloadState.results.collect { (engine, _) ->
-                if (isSlmChatActive && slmChatView != null && SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine }) {
-                    updateModelUi()
-                }
-            }
-        }
-
-        btnModelToggle.setOnClickListener {
-            HapticUtil.click(this)
-            val current = SlmModelConfig.getSelectedModel(this)
-            val nextMeta = SlmModelConfig.getNextModel(current)
-            SlmModelConfig.setSelectedModel(this, nextMeta.id)
-            if (SlmModelConfig.isModelDownloaded(this, nextMeta.id) && !slmInferenceEngine.isLoaded(nextMeta.id)) {
-                scope.launch {
-                    slmInferenceEngine.loadModel(nextMeta.id)
-                    updateModelUi()
-                }
-            }
-            updateModelUi()
-            Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${nextMeta.displayName} (${nextMeta.shortTag})"), Toast.LENGTH_SHORT).show()
-        }
-
-        btnModelToggle.setOnLongClickListener {
-            HapticUtil.heavyClick(this)
-            val popup = android.widget.PopupMenu(themedCtx, btnModelToggle)
-            SlmModelConfig.AVAILABLE_MODELS.forEachIndexed { index, meta ->
-                val current = SlmModelConfig.getSelectedModel(this)
-                val checkMark = if (meta.id == current) "● " else "   "
-                val isDownloaded = SlmModelConfig.isModelDownloaded(this, meta.id)
-                val isLoaded = slmInferenceEngine.isLoaded(meta.id)
-                val statusTag = when {
-                    isLoaded -> "[記憶體已載入]"
-                    isDownloaded -> "[已下載就緒]"
-                    else -> "[未下載 · ${meta.quantizedSize}]"
-                }
-                popup.menu.add(0, index, index, "$checkMark${meta.displayName} (${meta.chipLabel}) · $statusTag")
-            }
-            popup.setOnMenuItemClickListener { menuItem ->
-                HapticUtil.click(this)
-                val selected = SlmModelConfig.AVAILABLE_MODELS.getOrNull(menuItem.itemId)
-                if (selected != null) {
-                    SlmModelConfig.setSelectedModel(this, selected.id)
-                    updateModelUi()
-                    if (SlmModelConfig.isModelDownloaded(this, selected.id)) {
-                        scope.launch {
-                            slmInferenceEngine.loadModel(selected.id)
-                            updateModelUi()
-                        }
-                    }
-                    Toast.makeText(this, getString(R.string.toast_slm_switched_model, "${selected.displayName} (${selected.shortTag})"), Toast.LENGTH_SHORT).show()
-                }
-                true
-            }
-            popup.show()
-            true
-        }
-
-        // Refresh Thinking UI
-        fun updateThinkingUi() {
-            val thinkingEnabled = SlmModelConfig.isThinkingEnabled(this)
-            if (thinkingEnabled) {
-                btnThinkingToggle.setBackgroundResource(R.drawable.bg_slm_chip_active)
-                ivThinkingIcon.setColorFilter(android.graphics.Color.parseColor("#FBBF24"))
-                tvThinkingLabel.setTextColor(android.graphics.Color.parseColor("#FEF3C7"))
-            } else {
-                btnThinkingToggle.setBackgroundResource(R.drawable.bg_slm_chip_inactive)
-                ivThinkingIcon.setColorFilter(android.graphics.Color.parseColor("#94A3B8"))
-                tvThinkingLabel.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
-            }
-        }
-        updateThinkingUi()
-
-        btnThinkingToggle.setOnClickListener {
-            HapticUtil.click(this)
-            val next = !SlmModelConfig.isThinkingEnabled(this)
-            SlmModelConfig.setThinkingEnabled(this, next)
-            updateThinkingUi()
-            val msgRes = if (next) R.string.toast_slm_thinking_on else R.string.toast_slm_thinking_off
-            Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
-        }
-
-        // Refresh Output Mode UI
-        fun updateModeUi() {
-            val currentMode = SlmModelConfig.getOutputMode(this)
-            fun styleModeBtn(btn: TextView, isActive: Boolean) {
-                if (isActive) {
-                    btn.setBackgroundResource(R.drawable.bg_slm_chip_active)
-                    btn.setTextColor(android.graphics.Color.parseColor("#E0F2FE"))
-                } else {
-                    btn.setBackgroundResource(R.drawable.bg_slm_chip_inactive)
-                    btn.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
-                }
-            }
-            styleModeBtn(btnModeFast, currentMode == SlmModelConfig.OUTPUT_MODE_FAST)
-            styleModeBtn(btnModeBullet, currentMode == SlmModelConfig.OUTPUT_MODE_BULLET)
-            styleModeBtn(btnModeRefine, currentMode == SlmModelConfig.OUTPUT_MODE_REFINE)
-        }
-        updateModeUi()
-
-        btnModeFast.setOnClickListener {
-            HapticUtil.click(this)
-            SlmModelConfig.setOutputMode(this, SlmModelConfig.OUTPUT_MODE_FAST)
-            updateModeUi()
-            Toast.makeText(this, getString(R.string.toast_slm_mode_switched, getString(R.string.slm_mode_fast)), Toast.LENGTH_SHORT).show()
-        }
-
-        btnModeBullet.setOnClickListener {
-            HapticUtil.click(this)
-            SlmModelConfig.setOutputMode(this, SlmModelConfig.OUTPUT_MODE_BULLET)
-            updateModeUi()
-            Toast.makeText(this, getString(R.string.toast_slm_mode_switched, getString(R.string.slm_mode_bullet)), Toast.LENGTH_SHORT).show()
-        }
-
-        btnModeRefine.setOnClickListener {
-            HapticUtil.click(this)
-            SlmModelConfig.setOutputMode(this, SlmModelConfig.OUTPUT_MODE_REFINE)
-            updateModeUi()
-            Toast.makeText(this, getString(R.string.toast_slm_mode_switched, getString(R.string.slm_mode_refine)), Toast.LENGTH_SHORT).show()
-        }
-
-        // Chat RecyclerView & Adapter
-        slmChatAdapter = SlmChatAdapter(
-            messages = slmMessages,
-            onCopyClick = { msg -> copySlmAnswer(msg) },
-            onPasteClick = { msg -> pasteSlmAnswer(msg) }
-        )
-        rvChat.layoutManager = LinearLayoutManager(themedCtx).apply {
-            stackFromEnd = true
-        }
-        rvChat.adapter = slmChatAdapter
-        layoutEmpty.visibility = if (slmMessages.isEmpty()) View.VISIBLE else View.GONE
-
-        // Mic & Send Buttons
-        btnMic.setOnClickListener {
-            HapticUtil.click(this)
-            startOrStopVoiceForSlm(btnMic, etPrompt)
-        }
-
-        btnSend.setOnClickListener {
-            val text = etPrompt.text.toString().trim()
-            if (text.isNotEmpty()) {
-                HapticUtil.click(this)
-                submitSlmPrompt(text, etPrompt, rvChat, layoutEmpty)
-            }
-        }
-
-        etPrompt.setOnEditorActionListener { _, _, _ ->
-            val text = etPrompt.text.toString().trim()
-            if (text.isNotEmpty()) {
-                HapticUtil.click(this)
-                submitSlmPrompt(text, etPrompt, rvChat, layoutEmpty)
-                true
-            } else {
-                false
-            }
-        }
-
-        // Window Positioning
-        val maxAllowedHeight = maxOf((240 * density).toInt(), safeBottom - (16 * density).toInt())
-        val defaultChatHeight = (440 * density).toInt().coerceAtMost(maxAllowedHeight)
-
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val maxAllowedY = safeBottom - defaultChatHeight - (8 * density).toInt()
-        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
-
-        slmChatLayoutParams = WindowManager.LayoutParams(
-            chatWidth,
-            defaultChatHeight,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            if (isRight) {
-                gravity = Gravity.TOP or Gravity.RIGHT
-                x = bubbleWidthPx + gap
-            } else {
-                gravity = Gravity.TOP or Gravity.LEFT
-                x = bubbleWidthPx + gap
-            }
-            y = targetY
-        }
-
-        val bubbleCenterY = anchorY + (30 * density)
-        val relativePivotY = (bubbleCenterY - targetY).coerceIn(0f, defaultChatHeight.toFloat())
-
-        chatView.pivotX = if (isRight) chatWidth.toFloat() else 0f
-        chatView.pivotY = relativePivotY
-        chatView.alpha = 0f
-        chatView.scaleX = 0.5f
-        chatView.scaleY = 0.5f
-        chatView.translationX = if (isRight) (20 * density) else -(20 * density)
-
-        try {
-            if (chatView.isAttachedToWindow) {
-                windowManager.removeView(chatView)
-            }
-            windowManager.addView(chatView, slmChatLayoutParams)
-            isSlmChatActive = true
-            showXButton()
-
-            chatView.animate()
-                .alpha(1f)
-                .translationX(0f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setDuration(240)
-                .setInterpolator(DecelerateInterpolator(1.5f))
-                .start()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to add slmChatView", e)
-        }
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        slmChatOverlayController.open(
+            anchorY = anchorY,
+            isDockedOnRight = isRight,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom()
+        )
     }
 
     private fun closeSlmChat(hideX: Boolean = true) {
-        if (!isSlmChatActive) return
-        isSlmChatActive = false
-        if (isSlmVoiceRecording) {
-            val btnMic = slmChatView?.findViewById<ImageButton>(R.id.btn_slm_mic)
-            if (btnMic != null) stopRecordingForSlm(btnMic)
-        }
-        slmInferenceEngine.cancelCurrent()
-
-        if (hideX) {
-            hideXButton()
-        }
-        val chat = slmChatView ?: return
-        val density = resources.displayMetrics.density
-        val anchor = currentAnchorBubble
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        val targetTranslationX = if (isRight) (24 * density) else -(24 * density)
-
-        chat.animate()
-            .alpha(0f)
-            .translationX(targetTranslationX)
-            .scaleX(0.6f)
-            .scaleY(0.6f)
-            .setDuration(180)
-            .withEndAction {
-                if (chat.isAttachedToWindow) {
-                    try {
-                        windowManager.removeView(chat)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to remove slmChatView", e)
-                    }
-                }
-                slmChatView = null
-                slmChatAdapter = null
-                checkAndHideBubbleIfKeyboardClosed(animate = true)
-            }
-            .start()
+        if (!::slmChatOverlayController.isInitialized) return
+        slmChatOverlayController.close(hideX = hideX)
     }
 
     private fun updateSlmChatPosition() {
-        val chat = slmChatView ?: return
-        val lp = slmChatLayoutParams ?: return
-        val density = resources.displayMetrics.density
-        val bubbleWidthPx = (60 * density).toInt()
-        val gap = (10 * density).toInt()
-        val screenWidth = getScreenWidth()
-        val safeBottom = getSafeBottom()
-        val maxChatWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val chatWidth = (320 * density).toInt().coerceAtMost(maxChatWidth)
-        val defaultChatHeight = (440 * density).toInt().coerceAtMost(safeBottom - (16 * density).toInt())
-
+        if (!isSlmChatActive) return
         val anchor = currentAnchorBubble
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-
-        if (isRight) {
-            lp.gravity = Gravity.TOP or Gravity.RIGHT
-            lp.x = bubbleWidthPx + gap
-        } else {
-            lp.gravity = Gravity.TOP or Gravity.LEFT
-            lp.x = bubbleWidthPx + gap
-        }
-        lp.width = chatWidth
-        lp.height = defaultChatHeight
-        val maxAllowedY = safeBottom - defaultChatHeight - (8 * density).toInt()
-        lp.y = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
-
-        if (chat.isAttachedToWindow) {
-            try {
-                windowManager.updateViewLayout(chat, lp)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to update slmChatView layout", e)
-            }
-        }
-    }
-
-    private fun startOrStopVoiceForSlm(btnMic: ImageButton, etPrompt: EditText) {
-        if (isSlmVoiceRecording) {
-            stopRecordingForSlm(btnMic)
-            return
-        }
-
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, R.string.toast_mic_permission_voice, Toast.LENGTH_LONG).show()
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            startActivity(intent)
-            return
-        }
-
-        val isDual = isDualEngineActive()
-        val currentEngine = ModelConfig.selectedEngine(this)
-
-        // Validate model readiness per user's active engine preference
-        if (isDual) {
-            val xReady = ModelConfig.isXAsrReady(this)
-            val qReady = ModelConfig.isQwen3Ready(this)
-            if (!xReady || !qReady) {
-                val missing = if (!xReady && !qReady) "X-ASR 與 Qwen3-ASR" else if (!xReady) "X-ASR" else "Qwen3-ASR"
-                Toast.makeText(this, getString(R.string.toast_asr_model_not_ready, missing), Toast.LENGTH_SHORT).show()
-                return
-            }
-        } else if (currentEngine == ModelConfig.ENGINE_X_ASR) {
-            if (!ModelConfig.isXAsrReady(this)) {
-                Toast.makeText(this, getString(R.string.toast_asr_model_not_ready, "X-ASR"), Toast.LENGTH_SHORT).show()
-                return
-            }
-        } else {
-            if (!ModelConfig.isQwen3Ready(this)) {
-                Toast.makeText(this, getString(R.string.toast_asr_model_not_ready, "Qwen3-ASR"), Toast.LENGTH_SHORT).show()
-                return
-            }
-        }
-
-        slmVoiceJob = scope.launch {
-            // 1. Ensure required engine models are loaded into memory
-            val needXAsr = isDual || currentEngine == ModelConfig.ENGINE_X_ASR
-            val needQwen3 = isDual || currentEngine == ModelConfig.ENGINE_QWEN3
-
-            if ((needXAsr && !xAsr.isLoaded()) || (needQwen3 && (!qwen3Asr.isLoaded() || qwen3NeedsReload()))) {
-                etPrompt.hint = "載入語音引擎中…"
-                withContext(Dispatchers.IO) {
-                    if (needXAsr && !xAsr.isLoaded()) xAsr.load()
-                    if (needQwen3 && (!qwen3Asr.isLoaded() || qwen3NeedsReload())) qwen3Asr.load(buildHotwords())
-                }
-            }
-
-            // 2. Set recording UI state
-            isSlmVoiceRecording = true
-            btnMic.setBackgroundResource(R.drawable.bg_slm_mic_recording)
-            btnMic.setColorFilter(android.graphics.Color.WHITE)
-            HapticUtil.click(this@FloatingBubbleService)
-
-            val vadSilence = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService)
-
-            try {
-                if (isDual) {
-                    // Pipeline: Dual Engine (X-ASR streaming preview + Qwen3-ASR high-accuracy batch finalize)
-                    etPrompt.hint = "聆聽中 (雙引擎)…"
-                    val stream = xAsr.createStream() ?: return@launch
-                    val audioBuffer = mutableListOf<FloatArray>()
-                    var accumulated = ""
-
-                    withContext(Dispatchers.IO) {
-                        recorder.recordStreaming(
-                            silenceSeconds = vadSilence,
-                            onChunk = { chunk ->
-                                if (!isSlmVoiceRecording) return@recordStreaming
-                                audioBuffer.add(chunk.copyOf())
-                                xAsr.acceptWaveform(stream, chunk)
-                                while (xAsr.isReady(stream)) {
-                                    xAsr.decode(stream)
-                                }
-                                val partial = xAsr.getResult(stream)
-                                if (partial.isNotBlank()) {
-                                    val fullPreview = postProcess(accumulated + partial)
-                                    mainHandler.post {
-                                        etPrompt.setText(fullPreview)
-                                        etPrompt.setSelection(fullPreview.length)
-                                    }
-                                }
-                                if (xAsr.isEndpoint(stream)) {
-                                    accumulated += partial
-                                    xAsr.reset(stream)
-                                }
-                            }
-                        )
-                    }
-
-                    runCatching { xAsr.inputFinished(stream) }
-                    runCatching {
-                        while (xAsr.isReady(stream)) {
-                            xAsr.decode(stream)
-                        }
-                    }
-                    val finalStreamPartial = xAsr.getResult(stream).trim()
-                    runCatching { stream.release() }
-
-                    val totalSamples = audioBuffer.sumOf { it.size }
-                    if (totalSamples > 0 && qwen3Asr.isLoaded()) {
-                        withContext(Dispatchers.Main) { etPrompt.hint = "高精轉譯中…" }
-                        val combinedAudio = FloatArray(totalSamples)
-                        var offset = 0
-                        for (c in audioBuffer) {
-                            System.arraycopy(c, 0, combinedAudio, offset, c.size)
-                            offset += c.size
-                        }
-                        val qwen3Result = runCatching { qwen3Asr.transcribe(combinedAudio) }.getOrNull()
-                        val finalText = if (!qwen3Result.isNullOrBlank()) {
-                            postProcess(qwen3Result)
-                        } else {
-                            postProcess(accumulated + finalStreamPartial)
-                        }
-                        if (finalText.isNotBlank()) {
-                            withContext(Dispatchers.Main) {
-                                etPrompt.setText(finalText)
-                                etPrompt.setSelection(finalText.length)
-                            }
-                        }
-                    }
-                } else if (currentEngine == ModelConfig.ENGINE_X_ASR) {
-                    // Pipeline: X-ASR Streaming Transducer
-                    etPrompt.hint = "聆聽中 (X-ASR 串流)…"
-                    val stream = xAsr.createStream() ?: return@launch
-                    var accumulated = ""
-
-                    withContext(Dispatchers.IO) {
-                        recorder.recordStreaming(
-                            silenceSeconds = vadSilence,
-                            onChunk = { chunk ->
-                                if (!isSlmVoiceRecording) return@recordStreaming
-                                xAsr.acceptWaveform(stream, chunk)
-                                while (xAsr.isReady(stream)) {
-                                    xAsr.decode(stream)
-                                }
-                                val partial = xAsr.getResult(stream)
-                                if (partial.isNotBlank()) {
-                                    val fullPreview = postProcess(accumulated + partial)
-                                    mainHandler.post {
-                                        etPrompt.setText(fullPreview)
-                                        etPrompt.setSelection(fullPreview.length)
-                                    }
-                                }
-                                if (xAsr.isEndpoint(stream)) {
-                                    accumulated += partial
-                                    xAsr.reset(stream)
-                                }
-                            }
-                        )
-                    }
-
-                    runCatching { xAsr.inputFinished(stream) }
-                    runCatching {
-                        while (xAsr.isReady(stream)) {
-                            xAsr.decode(stream)
-                        }
-                    }
-                    val finalStreamPartial = xAsr.getResult(stream).trim()
-                    runCatching { stream.release() }
-
-                    val finalText = postProcess(accumulated + finalStreamPartial)
-                    if (finalText.isNotBlank()) {
-                        withContext(Dispatchers.Main) {
-                            etPrompt.setText(finalText)
-                            etPrompt.setSelection(finalText.length)
-                        }
-                    }
-                } else {
-                    // Pipeline: Qwen3-ASR Offline Speech Recognition
-                    etPrompt.hint = "聆聽中 (Qwen3-ASR 離線)…"
-                    val audioBuffer = mutableListOf<FloatArray>()
-
-                    withContext(Dispatchers.IO) {
-                        recorder.recordStreaming(
-                            silenceSeconds = vadSilence,
-                            onChunk = { chunk ->
-                                if (!isSlmVoiceRecording) return@recordStreaming
-                                audioBuffer.add(chunk.copyOf())
-                            }
-                        )
-                    }
-
-                    val totalSamples = audioBuffer.sumOf { it.size }
-                    if (totalSamples > 0 && qwen3Asr.isLoaded()) {
-                        withContext(Dispatchers.Main) { etPrompt.hint = "離線高精辨識中…" }
-                        val combinedAudio = FloatArray(totalSamples)
-                        var offset = 0
-                        for (c in audioBuffer) {
-                            System.arraycopy(c, 0, combinedAudio, offset, c.size)
-                            offset += c.size
-                        }
-                        val qwen3Result = runCatching { qwen3Asr.transcribe(combinedAudio) }.getOrNull()
-                        if (!qwen3Result.isNullOrBlank()) {
-                            val finalText = postProcess(qwen3Result)
-                            withContext(Dispatchers.Main) {
-                                etPrompt.setText(finalText)
-                                etPrompt.setSelection(finalText.length)
-                            }
-                        }
-                    }
-                }
-            } catch (e: Throwable) {
-                if (e !is kotlinx.coroutines.CancellationException) {
-                    Log.e(TAG, "SLM voice pipeline error", e)
-                }
-            } finally {
-                withContext(Dispatchers.Main) {
-                    stopRecordingForSlm(btnMic)
-                    etPrompt.hint = "語音或輸入指令..."
-                }
-            }
-        }
-    }
-
-    private fun stopRecordingForSlm(btnMic: ImageButton) {
-        if (!isSlmVoiceRecording) return
-        isSlmVoiceRecording = false
-        recorder.stopEarly()
-        slmVoiceJob?.cancel()
-        slmVoiceJob = null
-        btnMic.setBackgroundResource(R.drawable.bg_scanner_btn_circle)
-        btnMic.setColorFilter(android.graphics.Color.parseColor("#38BDF8"))
-        HapticUtil.click(this)
-    }
-
-    private fun submitSlmPrompt(
-        prompt: String,
-        etPrompt: EditText,
-        rvChat: RecyclerView,
-        emptyView: View
-    ) {
-        emptyView.visibility = View.GONE
-        etPrompt.text.clear()
-
-        // 1. Add user message
-        val userMsg = SlmChatMessage(
-            role = SlmChatMessage.Role.USER,
-            content = prompt
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        slmChatOverlayController.updatePosition(
+            anchorY = anchorY,
+            isDockedOnRight = isRight,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom()
         )
-        slmMessages.add(userMsg)
-        slmChatAdapter?.notifyItemInserted(slmMessages.size - 1)
-        rvChat.scrollToPosition(slmMessages.size - 1)
-
-        // 2. Add assistant placeholder
-        val selectedModel = SlmModelConfig.getSelectedModel(this)
-        val meta = SlmModelConfig.getModelMetadata(selectedModel)
-        val accelTag = SlmModelConfig.getHardwareAccelTag(this)
-        val modeLabel = SlmModelConfig.getOutputModeLabel(SlmModelConfig.getOutputMode(this))
-        val assistantMsg = SlmChatMessage(
-            role = SlmChatMessage.Role.ASSISTANT,
-            content = "",
-            thinkingContent = null,
-            isStreaming = true,
-            modelTag = "${meta.displayName} · $modeLabel · $accelTag"
-        )
-        slmMessages.add(assistantMsg)
-        val assistantPos = slmMessages.size - 1
-        slmChatAdapter?.notifyItemInserted(assistantPos)
-        rvChat.scrollToPosition(assistantPos)
-
-        // 3. Trigger generation
-        slmInferenceEngine.generate(
-            userPrompt = prompt,
-            history = slmMessages.dropLast(2),
-            callback = object : SlmInferenceEngine.StreamCallback {
-                override fun onThinkingUpdate(thinking: String) {
-                    assistantMsg.thinkingContent = thinking
-                    slmChatAdapter?.notifyItemChanged(assistantPos)
-                    rvChat.scrollToPosition(assistantPos)
-                }
-
-                override fun onAnswerUpdate(answer: String) {
-                    assistantMsg.content = answer
-                    slmChatAdapter?.notifyItemChanged(assistantPos)
-                    rvChat.scrollToPosition(assistantPos)
-                }
-
-                override fun onComplete(fullMessage: SlmChatMessage) {
-                    assistantMsg.isStreaming = false
-                    assistantMsg.content = fullMessage.content
-                    assistantMsg.thinkingContent = fullMessage.thinkingContent
-                    slmChatAdapter?.notifyItemChanged(assistantPos)
-                    rvChat.scrollToPosition(assistantPos)
-                }
-
-                override fun onError(error: Throwable) {
-                    assistantMsg.isStreaming = false
-                    assistantMsg.content = "推論失敗：${error.localizedMessage ?: "未知錯誤"}"
-                    slmChatAdapter?.notifyItemChanged(assistantPos)
-                }
-            }
-        )
-    }
-
-    private fun copySlmAnswer(message: SlmChatMessage) {
-        val clean = message.getCleanAnswer()
-        if (clean.isBlank()) return
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        cm.setPrimaryClip(ClipData.newPlainText("SLM Answer", clean))
-        Toast.makeText(this, R.string.toast_slm_copied, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun pasteSlmAnswer(message: SlmChatMessage) {
-        val clean = message.getCleanAnswer()
-        if (clean.isBlank()) return
-        val injected = VoiceAccessibilityService.instance?.inputText(clean) ?: false
-        if (injected) {
-            showPreviewText(getString(R.string.toast_slm_pasted), autoHide = true)
-            Toast.makeText(this, R.string.toast_slm_pasted, Toast.LENGTH_SHORT).show()
-        } else {
-            copyToClipboardFallback(clean)
-            showPreviewText(getString(R.string.toast_slm_pasted_fallback), autoHide = true)
-            Toast.makeText(this, R.string.toast_slm_pasted_fallback, Toast.LENGTH_SHORT).show()
-        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -4632,7 +3921,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             safely("scanner") { if (::scannerOverlayController.isInitialized) scannerOverlayController.destroy() }
             safely("ocr") { if (::ocrOverlayController.isInitialized) ocrOverlayController.destroy() }
             safely("phrasesDrawer") { if (::phrasesDrawerController.isInitialized) phrasesDrawerController.destroy() }
-            safely("slmChat") { closeSlmChat(hideX = false) }
+            safely("slmChat") { if (::slmChatOverlayController.isInitialized) slmChatOverlayController.destroy() }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }
             safely("deleteZone") { if (::bubbleDeleteZoneController.isInitialized) bubbleDeleteZoneController.hide(animated = false) }
                                     
