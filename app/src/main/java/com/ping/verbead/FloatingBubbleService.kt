@@ -45,6 +45,7 @@ import com.ping.verbead.bubble.BubbleState as State
 import com.ping.verbead.bubble.BubbleStateMachine
 import com.ping.verbead.bubble.CapsuleMenuController
 import com.ping.verbead.bubble.PhrasesDrawerController
+import com.ping.verbead.bubble.ScannerOverlayController
 import com.ping.verbead.bubble.BubblePhysics
 import com.ping.verbead.bubble.BubblePosition
 import com.ping.verbead.bubble.BubbleDeleteZoneController
@@ -204,24 +205,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var shakeDetector: BubbleShakeDetector? = null
     private var currentlyDraggedBubble: FloatingBubbleItem? = null
 
-    // Barcode scanner
-    private var scannerView: View? = null
-    private var scannerLayoutParams: WindowManager.LayoutParams? = null
-    private var isScannerModeActive = false
-    private var isScannerEnlarged = false
+        // Barcode scanner
+    private lateinit var scannerOverlayController: ScannerOverlayController
+    private val isScannerModeActive: Boolean
+        get() = ::scannerOverlayController.isInitialized && scannerOverlayController.isActive
+    private val isScannerEnlarged: Boolean
+        get() = ::scannerOverlayController.isInitialized && scannerOverlayController.isEnlarged
     private var cameraExecutor: ExecutorService? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var isFlashOn = false
-    @Volatile private var isProcessingBarcode = false
-    private val readerOptions = ZxingCpp.ReaderOptions(
-        tryHarder = true,
-        tryRotate = true,
-        tryInvert = true,
-        tryDownscale = true,
-        maxNumberOfSymbols = 1,
-        textMode = ZxingCpp.TextMode.PLAIN
-    )
 
     // Dedicated OCR floating window
     private var ocrWindowView: View? = null
@@ -396,6 +389,32 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 override fun onHideXButton() {
                     hideXButton()
+                }
+            }
+        )
+        scannerOverlayController = ScannerOverlayController(
+            context = themedCtx,
+            lifecycleOwner = this,
+            windowManager = windowManager,
+            listener = object : ScannerOverlayController.Listener {
+                override fun onBarcodeDetected(code: String) {
+                    handleBarcodeDetected(code)
+                }
+                override fun onScannerClosed(hideX: Boolean) {
+                    checkAndHideBubbleIfKeyboardClosed(animate = true)
+                }
+                override fun onShowXButton() {
+                    showXButton()
+                }
+                override fun onHideXButton() {
+                    if (state != State.PASTED) hideXButton()
+                }
+                override fun onRequestCameraPermission() {
+                    Toast.makeText(this@FloatingBubbleService, R.string.toast_camera_permission_scan, Toast.LENGTH_LONG).show()
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    startActivity(intent)
                 }
             }
         )
@@ -3499,7 +3518,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // ══════════════════════════════════════════════════════════════════
     // Scanner Mode Methods
     // ══════════════════════════════════════════════════════════════════
-    private fun toggleScannerMode() {
+        private fun toggleScannerMode() {
         if (isScannerModeActive) {
             stopScannerMode()
         } else {
@@ -3516,15 +3535,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         } else if (isTucked) {
             untuckBubble(animate = false)
         }
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, R.string.toast_camera_permission_scan, Toast.LENGTH_LONG).show()
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            startActivity(intent)
-            return
-        }
-
         if (isOcrModeActive) {
             stopOcrMode()
         }
@@ -3532,352 +3542,49 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             closePhrasesDrawer()
         }
 
-        if (scannerView == null) {
-            scannerView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_scanner, null)
-        }
-        val scanner = scannerView ?: return
-
-        val density = resources.displayMetrics.density
-        val bubbleWidthPx = (60 * density).toInt()
-        val gap = (10 * density).toInt()
-        val screenHeight = getScreenHeight()
-        val screenWidth = getScreenWidth()
-        val safeBottom = getSafeBottom()
-
-        isScannerEnlarged = ModelConfig.isCameraEnlarged(this, MODE_BARCODE)
-        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val scannerWidth = if (isScannerEnlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
-        } else {
-            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
-        }
-        val cardSize = scannerWidth - (16 * density).toInt()
-
-        val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-
-        val estimatedHeight = cardSize + (120 * density).toInt()
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val micY = anchorY + (30 * density).toInt()
-        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            0,
-            maxOf(0, maxAllowedY)
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        scannerOverlayController.start(
+            anchorY = anchorY,
+            isDockedOnRight = isRight,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom()
         )
-
-        scannerLayoutParams = WindowManager.LayoutParams(
-            scannerWidth,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            if (isRight) {
-                gravity = Gravity.TOP or Gravity.RIGHT
-                x = bubbleWidthPx + gap
-            } else {
-                gravity = Gravity.TOP or Gravity.LEFT
-                x = bubbleWidthPx + gap
-            }
-            y = targetY
-        }
-
-        val btnClose = scanner.findViewById<ImageButton>(R.id.btn_close_scanner)
-        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
-        val btnFlash = scanner.findViewById<ImageButton>(R.id.btn_scanner_flash)
-        val btnAutoEnter = scanner.findViewById<ImageButton>(R.id.btn_scanner_auto_enter)
-        val sliderZoom = scanner.findViewById<SeekBar>(R.id.slider_scanner_zoom)
-        val viewFinder = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
-        val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
-
-        btnScale?.setImageResource(if (isScannerEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
-        cardPreview?.layoutParams = cardPreview?.layoutParams?.apply {
-            width = cardSize
-            height = cardSize
-        }
-
-        btnClose.setOnClickListener {
-            HapticUtil.click(this)
-            stopScannerMode()
-        }
-
-        btnScale?.setOnClickListener {
-            HapticUtil.click(this)
-            setScannerEnlarged(!isScannerEnlarged)
-        }
-
-        btnFlash.setOnClickListener {
-            HapticUtil.click(this)
-            isFlashOn = !isFlashOn
-            camera?.cameraControl?.enableTorch(isFlashOn)
-            btnFlash.setImageResource(if (isFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off)
-        }
-
-        val isAutoEnter = ModelConfig.isOcrAutoEnterEnabled(this)
-        btnAutoEnter.setImageResource(if (isAutoEnter) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
-        btnAutoEnter.setOnClickListener {
-            HapticUtil.click(this)
-            val nextState = !ModelConfig.isOcrAutoEnterEnabled(this)
-            ModelConfig.setOcrAutoEnterEnabled(this, nextState)
-            btnAutoEnter.setImageResource(if (nextState) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
-            Toast.makeText(this, if (nextState) R.string.toast_auto_enter_enabled else R.string.toast_auto_enter_disabled, Toast.LENGTH_SHORT).show()
-        }
-
-        val savedZoom = ModelConfig.getCameraZoom(this, MODE_BARCODE)
-        sliderZoom.progress = (savedZoom * 100f).roundToInt().coerceIn(0, 100)
-
-        sliderZoom.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    val zoom = progress / 100f
-                    camera?.cameraControl?.setLinearZoom(zoom)
-                    ModelConfig.setCameraZoom(this@FloatingBubbleService, MODE_BARCODE, zoom)
-                    HapticUtil.tick(this@FloatingBubbleService)
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        // Float out smoothly from the side of the bubble
-        if (isRight) {
-            scanner.pivotX = scannerWidth.toFloat()
-            scanner.translationX = (40 * density)
-        } else {
-            scanner.pivotX = 0f
-            scanner.translationX = -(40 * density)
-        }
-        scanner.pivotY = (140 * density)
-        scanner.alpha = 0f
-        scanner.scaleX = 0.7f
-        scanner.scaleY = 0.7f
-
-        windowManager.addView(scanner, scannerLayoutParams)
-        isScannerModeActive = true
-        showXButton()
-
-        scanner.animate()
-            .alpha(1f)
-            .translationX(0f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(240)
-            .setInterpolator(DecelerateInterpolator(1.5f))
-            .start()
-
-        startCameraForScanner(viewFinder)
     }
 
     private fun setScannerEnlarged(enlarged: Boolean) {
-        isScannerEnlarged = enlarged
-        ModelConfig.setCameraEnlarged(this, MODE_BARCODE, enlarged)
-        val scanner = scannerView ?: return
-        val lp = scannerLayoutParams ?: return
-        val density = resources.displayMetrics.density
-        val screenWidth = getScreenWidth()
-        val safeBottom = getSafeBottom()
-        val bubbleWidthPx = (60 * density).toInt()
-        val gap = (10 * density).toInt()
-
-        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val targetWidth = if (enlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
-        } else {
-            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
-        }
-
-        val cardSize = targetWidth - (16 * density).toInt()
-        val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
-        cardPreview?.layoutParams?.apply {
-            width = cardSize
-            height = cardSize
-        }
-        cardPreview?.requestLayout()
-
-        lp.width = targetWidth
-        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
-        btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
-
-        val estimatedHeight = cardSize + (120 * density).toInt()
         val anchor = currentAnchorBubble
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val micY = anchorY + (30 * density).toInt()
-        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        val targetY = (micY - (estimatedHeight / 2)).coerceIn(
-            0,
-            maxOf(0, maxAllowedY)
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        scannerOverlayController.setEnlarged(
+            enlarged = enlarged,
+            anchorY = anchorY,
+            isDockedOnRight = isRight,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom()
         )
-        lp.y = targetY
-        lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
-        lp.x = bubbleWidthPx + gap
-
-        if (scanner.isAttachedToWindow) {
-            windowManager.updateViewLayout(scanner, lp)
-        }
     }
 
     private fun updateScannerPosition() {
-        val scanner = scannerView ?: return
-        val lp = scannerLayoutParams ?: return
-        if (!isScannerModeActive || !scanner.isAttachedToWindow) return
-        val density = resources.displayMetrics.density
-        val bubbleWidthPx = (60 * density).toInt()
-        val gap = (10 * density).toInt()
-        val screenWidth = getScreenWidth()
-        val safeBottom = getSafeBottom()
+        if (!isScannerModeActive) return
         val anchor = currentAnchorBubble
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
         val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-
-        val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val targetWidth = if (isScannerEnlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
-        } else {
-            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
-        }
-        if (lp.width != targetWidth) {
-            lp.width = targetWidth
-            val cardSize = targetWidth - (16 * density).toInt()
-            val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
-            cardPreview?.layoutParams?.apply {
-                width = cardSize
-                height = cardSize
-            }
-            cardPreview?.requestLayout()
-        }
-
-        val cardSize = lp.width - (16 * density).toInt()
-        val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = anchorY + (30 * density).toInt()
-        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        lp.y = (micY - (estimatedHeight / 2)).coerceIn(
-            0,
-            maxOf(0, maxAllowedY)
+        scannerOverlayController.updatePosition(
+            anchorY = anchorY,
+            isDockedOnRight = isRight,
+            screenWidth = getScreenWidth(),
+            safeBottom = getSafeBottom()
         )
-        lp.gravity = if (isRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
-        lp.x = bubbleWidthPx + gap
-        try {
-            windowManager.updateViewLayout(scanner, lp)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to update scanner window layout", e)
-        }
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupPinchToZoom(viewFinder: PreviewView, sliderZoom: SeekBar, mode: Int) {
-        val scaleGestureDetector = ScaleGestureDetector(
-            this,
-            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                override fun onScale(detector: ScaleGestureDetector): Boolean {
-                    val currentZoom = camera?.cameraInfo?.zoomState?.value?.linearZoom
-                        ?: (sliderZoom.progress / 100f)
-                    val delta = (detector.scaleFactor - 1.0f) * 1.5f
-                    val newZoom = (currentZoom + delta).coerceIn(0f, 1f)
-                    camera?.cameraControl?.setLinearZoom(newZoom)
-                    sliderZoom.progress = (newZoom * 100f).roundToInt().coerceIn(0, 100)
-                    ModelConfig.setCameraZoom(this@FloatingBubbleService, mode, newZoom)
-                    return true
-                }
-            }
-        )
-        viewFinder.setOnTouchListener { _, event ->
-            scaleGestureDetector.onTouchEvent(event)
-            true
-        }
-    }
-
-    private fun startCameraForScanner(viewFinder: PreviewView) {
-        if (cameraExecutor == null || cameraExecutor?.isShutdown == true) {
-            cameraExecutor = Executors.newSingleThreadExecutor()
-        }
-
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        cameraProviderFuture.addListener({
-            try {
-                cameraProvider = cameraProviderFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(viewFinder.surfaceProvider)
-                }
-
-                val resolutionSelector = ResolutionSelector.Builder()
-                    .setResolutionStrategy(
-                        ResolutionStrategy(
-                            android.util.Size(1280, 720),
-                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
-                        )
-                    )
-                    .build()
-
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setResolutionSelector(resolutionSelector)
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-
-                imageAnalysis.setAnalyzer(cameraExecutor!!) { imageProxy ->
-                    analyzeBarcodeImage(imageProxy)
-                }
-
-                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                cameraProvider?.unbindAll()
-                camera = cameraProvider?.bindToLifecycle(
-                    this@FloatingBubbleService,
-                    cameraSelector,
-                    preview,
-                    imageAnalysis
-                )
-                val savedZoom = ModelConfig.getCameraZoom(this@FloatingBubbleService, MODE_BARCODE)
-                camera?.cameraControl?.setLinearZoom(savedZoom)
-                val sliderZoom = scannerView?.findViewById<SeekBar>(R.id.slider_scanner_zoom)
-                if (sliderZoom != null) {
-                    setupPinchToZoom(viewFinder, sliderZoom, MODE_BARCODE)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Camera initialization failed: ${e.message}", e)
-            }
-        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun stopScannerMode(hideX: Boolean = true) {
-        val scanner = scannerView ?: return
         if (!isScannerModeActive) return
-        isScannerModeActive = false
-        isFlashOn = false
-
-        if (hideX && state != State.PASTED) {
-            hideXButton()
-        }
+        val isRight = currentAnchorBubble?.isDockedOnRight ?: isDockedOnRight
+        scannerOverlayController.stop(hideX = hideX, isDockedOnRight = isRight)
         if (state != State.PASTED) {
             setState(State.IDLE)
         }
-
-        try {
-            cameraProvider?.unbindAll()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to unbind cameraProvider in stopScannerMode", e)
-        }
-
-        val density = resources.displayMetrics.density
-        val isRight = currentAnchorBubble?.isDockedOnRight ?: isDockedOnRight
-        val targetTranslationX = if (isRight) (40 * density) else -(40 * density)
-        scanner.animate()
-            .alpha(0f)
-            .translationX(targetTranslationX)
-            .scaleX(0.7f)
-            .scaleY(0.7f)
-            .setDuration(180)
-            .withEndAction {
-                if (scanner.isAttachedToWindow) {
-                    try {
-                        windowManager.removeView(scanner)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to remove scannerView", e)
-                    }
-                }
-                scannerView = null
-                checkAndHideBubbleIfKeyboardClosed(animate = true)
-            }
-            .start()
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -4194,6 +3901,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             .start()
     }
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupPinchToZoom(viewFinder: PreviewView, sliderZoom: SeekBar, mode: Int) {
+        val scaleGestureDetector = ScaleGestureDetector(
+            this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    val currentZoom = camera?.cameraInfo?.zoomState?.value?.linearZoom
+                        ?: (sliderZoom.progress / 100f)
+                    val delta = (detector.scaleFactor - 1.0f) * 1.5f
+                    val newZoom = (currentZoom + delta).coerceIn(0f, 1f)
+                    camera?.cameraControl?.setLinearZoom(newZoom)
+                    sliderZoom.progress = (newZoom * 100f).roundToInt().coerceIn(0, 100)
+                    ModelConfig.setCameraZoom(this@FloatingBubbleService, mode, newZoom)
+                    return true
+                }
+            }
+        )
+        viewFinder.setOnTouchListener { _, event ->
+            scaleGestureDetector.onTouchEvent(event)
+            true
+        }
+    }
 
     private fun startCameraForOcr(viewFinder: PreviewView) {
         if (cameraExecutor == null || cameraExecutor?.isShutdown == true) {
@@ -4227,35 +3956,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun analyzeBarcodeImage(imageProxy: ImageProxy) {
-        if (isProcessingBarcode || isOcrSnapshotActive || !isScannerModeActive) {
-            imageProxy.close()
-            return
-        }
-
-        try {
-            val yPlane = imageProxy.planes[0]
-            val yBuffer = yPlane.buffer
-            val rowStride = yPlane.rowStride
-            val rotation = imageProxy.imageInfo.rotationDegrees
-            val cropRect = Rect(0, 0, imageProxy.width, imageProxy.height)
-
-            val results = ZxingCpp.readYBuffer(yBuffer, rowStride, cropRect, rotation, readerOptions)
-            val result = results?.firstOrNull()
-            if (result != null && result.text.isNotBlank()) {
-                isProcessingBarcode = true
-                Handler(Looper.getMainLooper()).post {
-                    onBarcodeDetected(result.text)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Barcode decode error: ${e.message}", e)
-        } finally {
-            imageProxy.close()
-        }
-    }
-
-    private fun onBarcodeDetected(code: String) {
+        private fun handleBarcodeDetected(code: String) {
         HapticUtil.heavyClick(this)
         if (code.isNotBlank()) {
             QuickPhrasesManager.addHistory(this, code)
@@ -4275,10 +3976,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
         }
         stopScannerMode(hideX = !injected)
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            isProcessingBarcode = false
-        }, 800)
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -4295,7 +3992,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         val viewFinder = ocrWindowView?.findViewById<PreviewView>(R.id.ocr_view_finder)
-            ?: scannerView?.findViewById<PreviewView>(R.id.scanner_view_finder)
+            ?: scannerOverlayController.previewView
             ?: return
         val rawBitmap = viewFinder.bitmap ?: run {
             Toast.makeText(this, R.string.toast_camera_capture_failed, Toast.LENGTH_SHORT).show()
@@ -5489,7 +5186,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
             safely("routingManager") { routingManager.stop() }
-            safely("scanner") { stopScannerMode() }
+            safely("scanner") { if (::scannerOverlayController.isInitialized) scannerOverlayController.destroy() }
             safely("ocr") { stopOcrMode() }
             safely("phrasesDrawer") { if (::phrasesDrawerController.isInitialized) phrasesDrawerController.destroy() }
             safely("slmChat") { closeSlmChat(hideX = false) }
