@@ -29,7 +29,7 @@
     <!-- General Surface & Text -->
     <color name="background">#F8FAFC</color>
     <color name="surface_card">#FFFFFF</color>
-    <color name="surface_card_stroke">#E2E8F0</color>
+    <color name="surface_card_stroke">#CBD5E1</color>
     <color name="text_primary">#0F172A</color>
     <color name="text_secondary">#475569</color>
     <color name="text_tertiary">#94A3B8</color>
@@ -37,6 +37,10 @@
     <!-- Tonal container surfaces (Material 3) used by cards / rows -->
     <color name="surface_container">#EEF2F7</color>
     <color name="surface_container_high">#E2E8F0</color>
+
+    <!-- SLM Prompt Editor Box -->
+    <color name="prompt_edit_box_bg">#DDE5EE</color>
+    <color name="prompt_edit_box_stroke">#CBD5E1</color>
 
     <!-- Launcher icon gradient (Verbead) -->
     <color name="ic_launcher_bg_start">#38BDF8</color>

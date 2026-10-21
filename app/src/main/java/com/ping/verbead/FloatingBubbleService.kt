@@ -483,18 +483,18 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (item.view.isAttachedToWindow) {
                         val squish = (0.16f * progress).coerceIn(0f, 0.18f)
                         if (isHorizontal) {
-                            item.view.scaleX = 1f
-                            item.view.scaleY = 1f - squish
+                            item.btnBubble.scaleX = 1f
+                            item.btnBubble.scaleY = 1f - squish
                         } else {
-                            item.view.scaleX = 1f - squish
-                            item.view.scaleY = 1f
+                            item.btnBubble.scaleX = 1f - squish
+                            item.btnBubble.scaleY = 1f
                         }
                     }
                 }
             },
             onShakeTriggered = {
                 currentlyDraggedBubble?.let { item ->
-                    item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
                     handleShakeToDuplicate(item)
                 }
             }
@@ -1088,14 +1088,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (mag?.isAttracted == true) {
                             item.windowLayoutParams.x = mag.targetX.toInt()
                             item.windowLayoutParams.y = mag.targetY.toInt()
-                            item.view.scaleX = if (mag.isLocked) 0.82f else 0.90f
-                            item.view.scaleY = if (mag.isLocked) 0.82f else 0.90f
+                            item.btnBubble.scaleX = if (mag.isLocked) 0.82f else 0.90f
+                            item.btnBubble.scaleY = if (mag.isLocked) 0.82f else 0.90f
                         } else {
                             item.windowLayoutParams.x = newX
                             item.windowLayoutParams.y = newY
                             if (shakeDetector?.isShaking == false) {
-                                item.view.scaleX = 1f
-                                item.view.scaleY = 1f
+                                item.btnBubble.scaleX = 1f
+                                item.btnBubble.scaleY = 1f
                             }
                         }
 
@@ -1226,7 +1226,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             item.view.setLayerType(View.LAYER_TYPE_NONE, null)
                             handleDeleteBubble(item)
                         } else {
-                            item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                            item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
                             if (bubbleDeleteZoneController.isShowing) {
                                 bubbleDeleteZoneController.hide(animated = true)
                             }
@@ -1254,7 +1254,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     longPressHandler.removeCallbacks(longPressRunnable)
-                    item.view.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
                     currentlyDraggedBubble = null
                     shakeDetector?.reset()
                     if (bubbleDeleteZoneController.isShowing) {
@@ -1538,13 +1538,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         HapticUtil.heavyClick(this)
 
         // Parent recoil/bounce (squish inward without exceeding 1.0f)
-        parent.view.animate().cancel()
-        parent.view.animate()
+        parent.btnBubble.animate().cancel()
+        parent.btnBubble.animate()
             .scaleX(0.88f)
             .scaleY(0.88f)
             .setDuration(120L)
             .withEndAction {
-                parent.view.animate().scaleX(1f).scaleY(1f).setDuration(160L).setInterpolator(DecelerateInterpolator()).start()
+                parent.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(160L).setInterpolator(DecelerateInterpolator()).start()
             }
             .start()
 
@@ -1637,6 +1637,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
                     bubbleToDelete.view.scaleX = 1f
                     bubbleToDelete.view.scaleY = 1f
+                    bubbleToDelete.btnBubble.scaleX = 1f
+                    bubbleToDelete.btnBubble.scaleY = 1f
                     bubbleToDelete.view.alpha = 1f
                     if (bubbleToDelete.view.isAttachedToWindow) {
                         windowManager.updateViewLayout(bubbleToDelete.view, bubbleToDelete.windowLayoutParams)

@@ -6,25 +6,34 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.provider.Settings
+import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.ModelZipInstaller
 import com.ping.verbead.settings.AboutSettingsActivity
-import com.ping.verbead.settings.BackupSettingsActivity
 import com.ping.verbead.settings.BubbleSettingsActivity
 import com.ping.verbead.settings.OcrSettingsActivity
 import com.ping.verbead.settings.SlmSettingsActivity
 import com.ping.verbead.settings.SpeechSettingsActivity
 import com.ping.verbead.slm.SlmModelConfig
 import com.ping.verbead.util.HapticUtil
+import kotlinx.coroutines.launch
+import java.io.File
 
 class ImeSettingsActivity : AppCompatActivity() {
 
@@ -86,8 +95,14 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var cardCatSlm: MaterialCardView
     private lateinit var tvCatSlmSummary: TextView
 
-    private lateinit var cardCatBackup: MaterialCardView
+    // Inline Offline Model Package Import
+    private lateinit var cardImportModels: MaterialCardView
     private lateinit var tvCatBackupSummary: TextView
+    private lateinit var tvAllModelsBadge: TextView
+    private lateinit var progressImportModels: LinearProgressIndicator
+    private lateinit var tvImportModelsStatus: TextView
+    private lateinit var btnImportModelsZip: MaterialButton
+    private lateinit var btnQuickImportDownload: MaterialButton
 
     private lateinit var cardCatAbout: MaterialCardView
     private lateinit var tvCatAboutSummary: TextView
@@ -97,6 +112,23 @@ class ImeSettingsActivity : AppCompatActivity() {
     ) {
         updateAllStatus()
         updateCategorySummaries()
+    }
+
+    private val pickZipFileLauncher = registerForActivityResult(
+        object : ActivityResultContracts.OpenDocument() {
+            override fun createIntent(context: Context, input: Array<String>): Intent {
+                val intent = super.createIntent(context, input)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val downloadUri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Download")
+                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, downloadUri)
+                }
+                return intent
+            }
+        }
+    ) { uri: Uri? ->
+        uri?.let {
+            runModelPackageImport(uri = it)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -145,11 +177,19 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
-        if (intent.getBooleanExtra("auto_import_default_zip", false) || intent.hasExtra("import_zip_path")) {
-            val backupIntent = Intent(this, BackupSettingsActivity::class.java).apply {
-                putExtras(intent)
+        if (intent.getBooleanExtra("auto_import_default_zip", false)) {
+            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
+            if (quickFile != null) {
+                runModelPackageImport(file = quickFile)
             }
-            startActivity(backupIntent)
+        } else if (intent.hasExtra("import_zip_path")) {
+            val path = intent.getStringExtra("import_zip_path")
+            if (!path.isNullOrEmpty()) {
+                val f = File(path)
+                if (f.exists()) {
+                    runModelPackageImport(file = f)
+                }
+            }
         }
     }
 
@@ -186,8 +226,14 @@ class ImeSettingsActivity : AppCompatActivity() {
         cardCatSlm = findViewById(R.id.card_cat_slm)
         tvCatSlmSummary = findViewById(R.id.tv_cat_slm_summary)
 
-        cardCatBackup = findViewById(R.id.card_cat_backup)
+        // Inline Model Package Import
+        cardImportModels = findViewById(R.id.card_import_models)
         tvCatBackupSummary = findViewById(R.id.tv_cat_backup_summary)
+        tvAllModelsBadge = findViewById(R.id.tv_all_models_badge)
+        progressImportModels = findViewById(R.id.progress_import_models)
+        tvImportModelsStatus = findViewById(R.id.tv_import_models_status)
+        btnImportModelsZip = findViewById(R.id.btn_import_models_zip)
+        btnQuickImportDownload = findViewById(R.id.btn_quick_import_download)
 
         cardCatAbout = findViewById(R.id.card_cat_about)
         tvCatAboutSummary = findViewById(R.id.tv_cat_about_summary)
@@ -246,7 +292,8 @@ class ImeSettingsActivity : AppCompatActivity() {
             HapticUtil.click(this)
             val anyModelReady = ModelConfig.isXAsrReady(this) || ModelConfig.isQwen3Ready(this)
             if (!anyModelReady) {
-                startActivity(Intent(this, BackupSettingsActivity::class.java))
+                // Focus on inline model package import or open speech settings
+                startActivity(Intent(this, SpeechSettingsActivity::class.java))
             } else {
                 startActivity(Intent(this, SpeechSettingsActivity::class.java))
             }
@@ -273,14 +320,103 @@ class ImeSettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, SlmSettingsActivity::class.java))
         }
 
-        cardCatBackup.setOnClickListener {
+        // Inline Offline Model Package Import Listeners
+        btnImportModelsZip.setOnClickListener {
             HapticUtil.click(this)
-            startActivity(Intent(this, BackupSettingsActivity::class.java))
+            try {
+                pickZipFileLauncher.launch(
+                    arrayOf(
+                        "application/zip",
+                        "application/x-zip-compressed",
+                        "application/octet-stream"
+                    )
+                )
+            } catch (ex: Exception) {
+                Toast.makeText(this, getString(R.string.toast_file_picker_error, ex.message ?: ""), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnQuickImportDownload.setOnClickListener {
+            HapticUtil.click(this)
+            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
+            if (quickFile != null) {
+                runModelPackageImport(file = quickFile)
+            } else {
+                Toast.makeText(this, "未在 Download 目錄中找到預設模型 ZIP 包", Toast.LENGTH_SHORT).show()
+            }
         }
 
         cardCatAbout.setOnClickListener {
             HapticUtil.click(this)
             startActivity(Intent(this, AboutSettingsActivity::class.java))
+        }
+    }
+
+    private fun runModelPackageImport(file: File? = null, uri: Uri? = null) {
+        btnImportModelsZip.isEnabled = false
+        btnQuickImportDownload.isEnabled = false
+        progressImportModels.visibility = View.VISIBLE
+        progressImportModels.progress = 0
+        tvImportModelsStatus.visibility = View.VISIBLE
+        tvImportModelsStatus.text = "正在準備解壓模型包…"
+
+        lifecycleScope.launch {
+            val result = if (file != null) {
+                ModelZipInstaller.installFromFile(this@ImeSettingsActivity, file) { currentFile, pct ->
+                    runOnUiThread {
+                        progressImportModels.progress = pct
+                        tvImportModelsStatus.text = "解壓中：$currentFile ($pct%)"
+                    }
+                }
+            } else if (uri != null) {
+                ModelZipInstaller.installFromUri(this@ImeSettingsActivity, uri) { currentFile, pct ->
+                    runOnUiThread {
+                        progressImportModels.progress = pct
+                        tvImportModelsStatus.text = "解壓中：$currentFile ($pct%)"
+                    }
+                }
+            } else {
+                ModelZipInstaller.InstallResult(
+                    isSuccess = false,
+                    xAsrReady = false,
+                    qwen3Ready = false,
+                    ocrReady = false,
+                    fileCount = 0,
+                    totalBytes = 0,
+                    message = "無效的檔案來源"
+                )
+            }
+
+            btnImportModelsZip.isEnabled = true
+            btnQuickImportDownload.isEnabled = true
+            progressImportModels.visibility = View.GONE
+
+            if (result.isSuccess) {
+                tvImportModelsStatus.text = result.message
+                updateAllStatus()
+                updateCategorySummaries()
+                val restoredListText = if (result.restoredModels.isNotEmpty()) {
+                    result.restoredModels.joinToString("\n") { "• $it" }
+                } else {
+                    "• 離線模型核心檔案"
+                }
+                AlertDialog.Builder(this@ImeSettingsActivity)
+                    .setTitle("離線模型一鍵復原成功")
+                    .setMessage(
+                        "已根據導入包內容智慧辨識並復原共 ${result.fileCount} 個模型核心檔案！\n\n" +
+                                "本次復原就緒項目：\n$restoredListText\n\n" +
+                                "所有對應功能均已自動啟用，可立即使用。"
+                    )
+                    .setPositiveButton("太棒了", null)
+                    .show()
+            } else {
+                tvImportModelsStatus.text = "匯入失敗：${result.message}"
+                AlertDialog.Builder(this@ImeSettingsActivity)
+                    .setTitle("導入失敗")
+                    .setMessage("無法順利解壓或安裝此模型包：\n${result.message}")
+                    .setPositiveButton("我知道了", null)
+                    .show()
+            }
         }
     }
 
@@ -318,7 +454,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             pendingCount++
         }
 
-        // 2. Overlay
+        // 2. Overlay Permission
         if (overlayGranted) {
             ivStatusDotOverlay.setImageResource(R.drawable.ic_check_circle)
             ivStatusDotOverlay.setColorFilter(successColor)
@@ -327,12 +463,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         } else {
             ivStatusDotOverlay.setImageResource(R.drawable.bg_icon_circle)
             ivStatusDotOverlay.setColorFilter(warningColor)
-            tvStatusValOverlay.text = "未授權 ➜"
+            tvStatusValOverlay.text = "未開啟 ➜"
             tvStatusValOverlay.setTextColor(warningColor)
             pendingCount++
         }
 
-        // 3. Accessibility
+        // 3. Accessibility Service
         if (accessibilityEnabled) {
             ivStatusDotAccessibility.setImageResource(R.drawable.ic_check_circle)
             ivStatusDotAccessibility.setColorFilter(successColor)
@@ -417,7 +553,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         val thinkingStr = if (SlmModelConfig.isThinkingEnabled(this)) "思考模式開" else "思考模式關"
         tvCatSlmSummary.text = "$slmName ($slmStatusStr) · $thinkingStr · 智慧改寫"
 
-        // 5. Backup
+        // 5. Offline Model Package Import (Main page inline)
         val totalCount = 4 + SlmModelConfig.AVAILABLE_MODELS.size
         var downloadedCount = 0
         if (ModelConfig.isXAsrReady(this)) downloadedCount++
@@ -428,6 +564,26 @@ class ImeSettingsActivity : AppCompatActivity() {
             if (SlmModelConfig.isModelDownloaded(this, it.id)) downloadedCount++
         }
         tvCatBackupSummary.text = "已下載 $downloadedCount/$totalCount 個離線模型 · 支援 ZIP 導入"
+
+        val allReady = ModelConfig.areAllModelsReady(this)
+        if (allReady) {
+            tvAllModelsBadge.text = "全部模型已就緒"
+            tvAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
+            tvAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
+        } else {
+            tvAllModelsBadge.text = "未完全就緒"
+            tvAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
+            tvAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
+        }
+
+        val quickZip = ModelZipInstaller.findDefaultZipPackage(this)
+        if (quickZip != null) {
+            btnQuickImportDownload.visibility = View.VISIBLE
+            val sizeMb = quickZip.length() / (1024 * 1024)
+            btnQuickImportDownload.text = "快速載入內部儲存模型包 (${sizeMb}MB)"
+        } else {
+            btnQuickImportDownload.visibility = View.GONE
+        }
 
         // 6. About
         tvCatAboutSummary.text = "版本 ${BuildConfig.VERSION_NAME} · 開源技術致謝與授權"

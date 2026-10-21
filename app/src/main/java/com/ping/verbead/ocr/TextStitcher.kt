@@ -104,7 +104,7 @@ object TextStitcher {
         panguSpacing: Boolean = false
     ): String {
         if (blocks.isEmpty()) return ""
-        if (blocks.size == 1) return blocks[0].text
+        if (blocks.size == 1) return if (panguSpacing) applyPanguSpacing(blocks[0].text) else blocks[0].text
 
         val maxLineWidth = blocks.maxOfOrNull { it.width } ?: 0f
 
@@ -123,7 +123,8 @@ object TextStitcher {
             sb.append(conn.separator)
         }
         sb.append(blocks.last().text)
-        return sb.toString()
+        val result = sb.toString()
+        return if (panguSpacing) applyPanguSpacing(result) else result
     }
 
     /**
@@ -341,6 +342,37 @@ object TextStitcher {
         return (code in 0xAC00..0xD7AF) ||   // Hangul Syllables
                (code in 0x1100..0x11FF) ||   // Hangul Jamo
                (code in 0x3130..0x318F)      // Hangul Compatibility Jamo
+    }
+
+    fun applyPanguSpacing(text: String): String {
+        if (text.isEmpty()) return ""
+        val sb = StringBuilder(text.length + 16)
+        val len = text.length
+        for (i in 0 until len) {
+            val c = text[i]
+            sb.append(c)
+            if (i < len - 1) {
+                val nextC = text[i + 1]
+                if (shouldInsertPanguSpace(c, nextC)) {
+                    sb.append(' ')
+                }
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun shouldInsertPanguSpace(curr: Char, next: Char): Boolean {
+        if (curr.isWhitespace() || next.isWhitespace()) return false
+        if (curr in OPENING_CHARS || next in CLOSING_CHARS) return false
+        if (curr in CLOSING_CHARS && !isCjk(curr)) return false
+        if (next in OPENING_CHARS && !isCjk(next)) return false
+        if (isCjkPunct(curr) || isCjkPunct(next)) return false
+        if (curr in TERMINAL_PUNCTS || next in TERMINAL_PUNCTS) return false
+
+        if (isCjk(curr) && (isLatin(next) || isDigit(next))) return true
+        if ((isLatin(curr) || isDigit(curr)) && isCjk(next)) return true
+
+        return false
     }
 
     internal fun isDigit(c: Char): Boolean {

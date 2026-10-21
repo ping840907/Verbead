@@ -632,14 +632,18 @@ class OcrOverlayController(
                 progress.visibility = View.GONE
                 if (recognizedBlocks.isNotEmpty()) {
                     val sep = ModelConfig.ocrSeparator(context)
-                    val processed = if (ModelConfig.isOcrSmartStitchEnabled(context)) {
+                    val pangu = ModelConfig.isOcrPanguSpacingEnabled(context)
+                    var processed = if (ModelConfig.isOcrSmartStitchEnabled(context)) {
                         TextStitcher.stitch(
                             recognizedBlocks,
                             fallbackSep = sep,
-                            panguSpacing = ModelConfig.isOcrPanguSpacingEnabled(context)
+                            panguSpacing = pangu
                         )
                     } else {
                         recognizedBlocks.joinToString(sep) { it.text }
+                    }
+                    if (pangu) {
+                        processed = TextStitcher.applyPanguSpacing(processed)
                     }
                     HapticUtil.heavyClick(context)
                     listener.onOcrTextConfirmed(processed)

@@ -19,14 +19,18 @@
     <color name="md_theme_light_outlineVariant">#334155</color>
 
     <color name="background">#0F172A</color>
-    <color name="surface_card">#1E293B</color>
-    <color name="surface_card_stroke">#334155</color>
+    <color name="surface_card">#273549</color>
+    <color name="surface_card_stroke">#475569</color>
     <color name="text_primary">#F1F5F9</color>
     <color name="text_secondary">#CBD5E1</color>
     <color name="text_tertiary">#94A3B8</color>
 
     <color name="surface_container">#1E293B</color>
     <color name="surface_container_high">#334155</color>
+
+    <!-- SLM Prompt Editor Box -->
+    <color name="prompt_edit_box_bg">#111827</color>
+    <color name="prompt_edit_box_stroke">#334155</color>
 
     <color name="status_success">#34D399</color>
     <color name="status_success_container">#064E3B</color>

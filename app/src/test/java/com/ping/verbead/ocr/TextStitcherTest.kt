@@ -155,7 +155,7 @@ class TextStitcherTest {
         assertEquals("請購買全新推出的iPhone保護套與配件", TextStitcher.stitch(listOf(mixed1, mixed2), panguSpacing = false))
 
         // 開啟盤古之白（中英交界補 1 空格）
-        assertEquals("請購買全新推出的iPhone 保護套與配件", TextStitcher.stitch(listOf(mixed1, mixed2), panguSpacing = true))
+        assertEquals("請購買全新推出的 iPhone 保護套與配件", TextStitcher.stitch(listOf(mixed1, mixed2), panguSpacing = true))
     }
 
     @Test
@@ -223,5 +223,18 @@ class TextStitcherTest {
 
         assertTrue("Execution should take less than 1ms, took ${durationMs}ms", durationMs < 1.0)
         assertTrue(result.isNotEmpty())
+    }
+
+    @Test
+    fun testFullTextPanguSpacing() {
+        val text1 = "請購買全新推出的iPhone保護套與配件"
+        assertEquals("請購買全新推出的 iPhone 保護套與配件", TextStitcher.applyPanguSpacing(text1))
+
+        val text2 = "共有128個檔案"
+        assertEquals("共有 128 個檔案", TextStitcher.applyPanguSpacing(text2))
+
+        val block = OcrBlock("在2026年使用Android系統體驗AI技術", 50f, 100f, 300f, 120f)
+        val stitched = TextStitcher.stitch(listOf(block), panguSpacing = true)
+        assertEquals("在 2026 年使用 Android 系統體驗 AI 技術", stitched)
     }
 }

@@ -17,42 +17,6 @@
         android:paddingEnd="16dp"
         android:paddingBottom="40dp">
 
-        <!-- ══════════════════════ 頂部品牌標題 ══════════════════════ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginBottom="16dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_bubble"
-                app:tint="@color/md_theme_light_primary" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    style="@style/Verbead.Text.Headline"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="珠璣 (Verbead)" />
-
-                <TextView
-                    style="@style/Verbead.Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="字字珠璣，串字成珠 · 系統控制儀表板" />
-            </LinearLayout>
-        </LinearLayout>
 
         <!-- ══════════════════════ 頂部狀態顯示器 ══════════════════════ -->
         <com.google.android.material.card.MaterialCardView
@@ -535,62 +499,112 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 5. 離線模型包備份與導入 -->
+        <!-- 5. 離線模型包匯入與復原（主頁直接實作） -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_cat_backup"
+            android:id="@+id/card_import_models"
             style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground">
+            android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:padding="16dp">
 
-                <ImageView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/bg_icon_circle"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_archive"
-                    app:tint="@color/md_theme_light_primary" />
-
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_archive"
+                        app:tint="@color/md_theme_light_primary" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/Verbead.Text.Title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="離線模型一鍵復原" />
+
+                        <TextView
+                            android:id="@+id/tv_cat_backup_summary"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="支援 X-ASR、Qwen3、PP-OCR 與 SLM 模型包 ZIP 自動復原" />
+                    </LinearLayout>
 
                     <TextView
-                        style="@style/Verbead.Text.Title"
+                        android:id="@+id/tv_all_models_badge"
+                        style="@style/Verbead.Text.Badge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/settings_cat_backup_title" />
-
-                    <TextView
-                        android:id="@+id/tv_cat_backup_summary"
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:ellipsize="end"
-                        android:maxLines="2"
-                        android:text="@string/settings_cat_backup_desc" />
+                        android:background="@drawable/bg_status_badge_warning"
+                        android:text="未完全就緒"
+                        android:textColor="@color/status_warning_text" />
                 </LinearLayout>
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_chevron_right"
-                    app:tint="@color/text_tertiary" />
+                <TextView
+                    style="@style/Verbead.Text.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="匯入離線模型包 (.zip) 將自動辨識並解壓復原模型檔案，免去手動逐一下載。" />
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progress_import_models"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:visibility="gone"
+                    app:indicatorColor="@color/md_theme_light_primary"
+                    app:trackColor="@color/md_theme_light_primaryContainer"
+                    app:trackCornerRadius="4dp"
+                    app:trackThickness="6dp" />
+
+                <TextView
+                    android:id="@+id/tv_import_models_status"
+                    style="@style/Verbead.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/md_theme_light_primary"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_import_models_zip"
+                    style="@style/Verbead.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="選擇模型包匯入 (.zip)"
+                    app:icon="@drawable/ic_archive"
+                    app:iconGravity="textStart" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_quick_import_download"
+                    style="@style/Verbead.Button.Tonal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="快速載入內部儲存模型包"
+                    android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -668,7 +682,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:gravity="center"
-            android:text="字字珠璣，串字成珠"
+            android:text="落辭成玉，字字珠璣"
             android:textColor="@color/text_tertiary"
             android:textSize="12sp" />
 

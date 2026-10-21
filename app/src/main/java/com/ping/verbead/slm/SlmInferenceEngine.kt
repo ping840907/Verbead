@@ -348,10 +348,11 @@ class SlmInferenceEngine(
             targetText: String?,
             voiceInput: String,
             thinkingEnabled: Boolean = false,
-            mode: String = SlmModelConfig.OUTPUT_MODE_REFINE
+            mode: String = SlmModelConfig.OUTPUT_MODE_REFINE,
+            customSystemPrompt: String? = null
         ): String {
             val hasTarget = !targetText.isNullOrBlank()
-            val systemPrompt = SlmModelConfig.buildInputTaskSystemPrompt(
+            val systemPrompt = customSystemPrompt?.ifBlank { null } ?: SlmModelConfig.buildInputTaskSystemPrompt(
                 hasTargetText = hasTarget,
                 thinkingEnabled = thinkingEnabled,
                 mode = mode
@@ -462,7 +463,8 @@ class SlmInferenceEngine(
                     targetText = cleanSource,
                     voiceInput = voiceInput,
                     thinkingEnabled = thinkingEnabled,
-                    mode = outputMode
+                    mode = outputMode,
+                    customSystemPrompt = SlmModelConfig.getCustomPrompt(context)
                 )
 
                 Log.i(TAG, "Starting SLM input task inference [hasTarget=${cleanSource.isNotEmpty()}, mode=$outputMode, thinking=$thinkingEnabled] on ${hwSpec.backendName}")
@@ -504,7 +506,7 @@ class SlmInferenceEngine(
         val outputMode = SlmModelConfig.getOutputMode(context)
         val meta = SlmModelConfig.getModelMetadata(selectedModel)
         val hwSpec = SlmModelConfig.getHardwareSpec(context)
-        val systemPrompt = SlmModelConfig.buildSystemPrompt(thinkingEnabled, outputMode)
+        val systemPrompt = SlmModelConfig.getEffectiveSystemPrompt(context)
         val modeLabel = SlmModelConfig.getOutputModeLabel(outputMode)
 
         val assistantMessage = SlmChatMessage(
@@ -548,6 +550,7 @@ class SlmInferenceEngine(
                     history = history,
                     newPrompt = userPrompt,
                     mode = outputMode,
+
                     thinkingEnabled = thinkingEnabled
                 )
 

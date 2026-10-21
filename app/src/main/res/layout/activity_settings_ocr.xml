@@ -309,6 +309,7 @@
                 </LinearLayout>
 
                 <View
+                    android:id="@+id/divider_ocr_sep"
                     style="@style/Verbead.Divider"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
@@ -317,6 +318,7 @@
 
                 <!-- Separator -->
                 <LinearLayout
+                    android:id="@+id/layout_ocr_sep_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"

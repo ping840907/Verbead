@@ -1,10 +1,11 @@
 package com.ping.verbead.settings
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -15,15 +16,18 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.google.android.material.textfield.TextInputEditText
 import com.ping.verbead.ModelDownloadService
+import com.ping.verbead.R
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
-import com.ping.verbead.R
 import com.ping.verbead.engine.ModelDownloader
 import com.ping.verbead.slm.SlmInferenceEngine
 import com.ping.verbead.slm.SlmModelConfig
+import com.ping.verbead.util.ChoiceButtonUtil
 import com.ping.verbead.util.HapticUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,6 +52,13 @@ class SlmSettingsActivity : AppCompatActivity() {
     private lateinit var switchSlmThinking: MaterialSwitch
     private lateinit var layoutSlmHardwareAccelToggle: View
     private lateinit var switchSlmHardwareAccel: MaterialSwitch
+
+    // Custom prompt views
+    private lateinit var cardPromptEditor: MaterialCardView
+    private lateinit var etSlmPrompt: TextInputEditText
+    private lateinit var btnResetSlmPrompt: MaterialButton
+    private lateinit var btnSaveSlmPrompt: MaterialButton
+    private lateinit var tvSlmPromptBadge: TextView
 
     private val downloader by lazy { ModelDownloader(this) }
     private var isDownloading = false
@@ -76,6 +87,17 @@ class SlmSettingsActivity : AppCompatActivity() {
         updateAllStatus()
     }
 
+    override fun onPause() {
+        super.onPause()
+        val text = etSlmPrompt.text?.toString()?.trim()
+        if (!text.isNullOrBlank()) {
+            val def = SlmModelConfig.getDefaultPrompt(this).trim()
+            if (text != def) {
+                SlmModelConfig.setCustomPrompt(this, text)
+            }
+        }
+    }
+
     private fun bindViews() {
         toolbar = findViewById(R.id.toolbar)
 
@@ -94,6 +116,12 @@ class SlmSettingsActivity : AppCompatActivity() {
         switchSlmThinking = findViewById(R.id.switch_slm_thinking)
         layoutSlmHardwareAccelToggle = findViewById(R.id.layout_slm_hardware_accel_toggle)
         switchSlmHardwareAccel = findViewById(R.id.switch_slm_hardware_accel)
+
+        cardPromptEditor = findViewById(R.id.card_prompt_editor)
+        etSlmPrompt = findViewById(R.id.et_slm_prompt)
+        btnResetSlmPrompt = findViewById(R.id.btn_reset_slm_prompt)
+        btnSaveSlmPrompt = findViewById(R.id.btn_save_slm_prompt)
+        tvSlmPromptBadge = findViewById(R.id.tv_slm_prompt_badge)
     }
 
     private fun setupToolbar() {
@@ -213,6 +241,7 @@ class SlmSettingsActivity : AppCompatActivity() {
             val isChecked = switchSlmThinking.isChecked
             SlmModelConfig.setThinkingEnabled(this, isChecked)
             HapticUtil.click(this)
+            updatePromptUI(forceReloadIfDefault = true)
         }
         layoutSlmThinkingToggle.setOnClickListener {
             switchSlmThinking.performClick()
@@ -225,6 +254,67 @@ class SlmSettingsActivity : AppCompatActivity() {
         }
         layoutSlmHardwareAccelToggle.setOnClickListener {
             switchSlmHardwareAccel.performClick()
+        }
+
+        // Custom prompt save and reset
+        btnSaveSlmPrompt.setOnClickListener {
+            val text = etSlmPrompt.text?.toString()?.trim() ?: ""
+            HapticUtil.click(this)
+            if (text.isBlank() || text == SlmModelConfig.getDefaultPrompt(this).trim()) {
+                SlmModelConfig.resetCustomPrompt(this)
+                Toast.makeText(this, "已恢復預設 Prompt", Toast.LENGTH_SHORT).show()
+            } else {
+                SlmModelConfig.setCustomPrompt(this, text)
+                Toast.makeText(this, "自訂 Prompt 已儲存生效", Toast.LENGTH_SHORT).show()
+            }
+            updatePromptUI()
+        }
+
+        btnResetSlmPrompt.setOnClickListener {
+            HapticUtil.click(this)
+            AlertDialog.Builder(this)
+                .setTitle("還原初始預設 Prompt")
+                .setMessage("確定要捨棄目前的自訂內容，還原為系統初始的預設提示詞契約嗎？")
+                .setPositiveButton("確認還原") { _, _ ->
+                    SlmModelConfig.resetCustomPrompt(this)
+                    val defaultPrompt = SlmModelConfig.getDefaultPrompt(this)
+                    etSlmPrompt.setText(defaultPrompt)
+                    HapticUtil.click(this)
+                    Toast.makeText(this, "已還原為初始狀態", Toast.LENGTH_SHORT).show()
+                    updatePromptUI()
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+
+        // Prompt editor focus highlight
+        etSlmPrompt.setOnFocusChangeListener { _, hasFocus ->
+            cardPromptEditor.strokeColor = if (hasFocus) {
+                ContextCompat.getColor(this, R.color.md_theme_light_primary)
+            } else {
+                ContextCompat.getColor(this, R.color.prompt_edit_box_stroke)
+            }
+            cardPromptEditor.strokeWidth = if (hasFocus) {
+                (2 * resources.displayMetrics.density).toInt()
+            } else {
+                (1 * resources.displayMetrics.density).toInt()
+            }
+        }
+
+        // Independent text scrolling mechanism within parent NestedScrollView
+        @SuppressLint("ClickableViewAccessibility")
+        etSlmPrompt.setOnTouchListener { v, event ->
+            if (v.canScrollVertically(-1) || v.canScrollVertically(1)) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                    }
+                }
+            }
+            false
         }
     }
 
@@ -251,26 +341,10 @@ class SlmSettingsActivity : AppCompatActivity() {
         val isSlmDownloaded = SlmModelConfig.isModelDownloaded(this, selectedSlm)
         val isSlmLoaded = SlmInferenceEngine.isModelLoaded(selectedSlm)
 
-        val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
-        val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)
-        val tonalColor = ContextCompat.getColor(this, R.color.md_theme_light_surfaceVariant)
-        val onTonalColor = ContextCompat.getColor(this, R.color.md_theme_light_onSurfaceVariant)
-
-        fun styleChoiceButton(btn: MaterialButton, isSelected: Boolean) {
-            if (isSelected) {
-                btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
-                btn.setTextColor(onPrimaryColor)
-            } else {
-                btn.backgroundTintList = ColorStateList.valueOf(tonalColor)
-                btn.setTextColor(onTonalColor)
-            }
-            btn.strokeWidth = 0
-        }
-
-        styleChoiceButton(btnSlmModel08b, selectedSlm == SlmModelConfig.MODEL_QWEN_0_8B)
-        styleChoiceButton(btnSlmModel2b, selectedSlm == SlmModelConfig.MODEL_QWEN_2B)
-        styleChoiceButton(btnSlmModel4b, selectedSlm == SlmModelConfig.MODEL_QWEN_4B)
-        styleChoiceButton(btnSlmModel9b, selectedSlm == SlmModelConfig.MODEL_QWEN_9B)
+        ChoiceButtonUtil.applyChoiceState(btnSlmModel08b, selectedSlm == SlmModelConfig.MODEL_QWEN_0_8B)
+        ChoiceButtonUtil.applyChoiceState(btnSlmModel2b, selectedSlm == SlmModelConfig.MODEL_QWEN_2B)
+        ChoiceButtonUtil.applyChoiceState(btnSlmModel4b, selectedSlm == SlmModelConfig.MODEL_QWEN_4B)
+        ChoiceButtonUtil.applyChoiceState(btnSlmModel9b, selectedSlm == SlmModelConfig.MODEL_QWEN_9B)
 
         tvSlmDescription.text = slmMeta.description
 
@@ -299,6 +373,36 @@ class SlmSettingsActivity : AppCompatActivity() {
 
         switchSlmThinking.isChecked = SlmModelConfig.isThinkingEnabled(this)
         switchSlmHardwareAccel.isChecked = SlmModelConfig.isHardwareAccelEnabled(this)
+
+        updatePromptUI()
+    }
+
+    private fun updatePromptUI(forceReloadIfDefault: Boolean = false) {
+        val isCustom = SlmModelConfig.isCustomPromptActive(this)
+        if (isCustom) {
+            tvSlmPromptBadge.text = "已自訂"
+            tvSlmPromptBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
+            tvSlmPromptBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
+        } else {
+            tvSlmPromptBadge.text = "預設狀態"
+            tvSlmPromptBadge.setBackgroundResource(R.drawable.bg_status_badge_recommend)
+            tvSlmPromptBadge.setTextColor(ContextCompat.getColor(this, R.color.tag_recommend))
+        }
+
+        // Pre-fill the prompt if not currently being typed into, or if force reload is requested
+        if (!etSlmPrompt.hasFocus() || forceReloadIfDefault) {
+            if (!isCustom) {
+                val defaultPrompt = SlmModelConfig.getDefaultPrompt(this)
+                if (etSlmPrompt.text?.toString() != defaultPrompt) {
+                    etSlmPrompt.setText(defaultPrompt)
+                }
+            } else {
+                val customPrompt = SlmModelConfig.getCustomPrompt(this)
+                if (customPrompt != null && etSlmPrompt.text?.toString() != customPrompt) {
+                    etSlmPrompt.setText(customPrompt)
+                }
+            }
+        }
     }
 
     private fun observeDownloadState() {

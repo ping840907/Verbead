@@ -2,7 +2,6 @@ package com.ping.verbead.settings
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -18,11 +17,12 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.ModelDownloadService
-import com.ping.verbead.engine.ModelDownloadSpec
-import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.R
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelDownloader
+import com.ping.verbead.engine.ModelDownloadSpec
+import com.ping.verbead.engine.ModelDownloadState
+import com.ping.verbead.util.ChoiceButtonUtil
 import com.ping.verbead.util.HapticUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,13 +37,23 @@ class OcrSettingsActivity : AppCompatActivity() {
     private lateinit var progressOcr: LinearProgressIndicator
     private lateinit var tvOcrProgress: TextView
 
+    private lateinit var btnSelectOcrTiny: MaterialButton
+    private lateinit var btnSelectOcrSmall: MaterialButton
+
+    private lateinit var layoutOcrAutoEnterToggle: View
+    private lateinit var switchOcrAutoEnter: MaterialSwitch
+
+    private lateinit var layoutOcrSmartStitchToggle: View
+    private lateinit var switchOcrSmartStitch: MaterialSwitch
+
+    private lateinit var layoutOcrPanguSpacingToggle: View
+    private lateinit var switchOcrPanguSpacing: MaterialSwitch
+
+    private lateinit var dividerOcrSep: View
+    private lateinit var layoutOcrSepContainer: View
     private lateinit var btnOcrSepNewline: MaterialButton
     private lateinit var btnOcrSepSpace: MaterialButton
     private lateinit var btnOcrSepNone: MaterialButton
-
-    private lateinit var switchOcrAutoEnter: MaterialSwitch
-    private lateinit var switchOcrSmartStitch: MaterialSwitch
-    private lateinit var switchOcrPanguSpacing: MaterialSwitch
 
     private val downloader by lazy { ModelDownloader(this) }
     private var isDownloading = false
@@ -79,13 +89,23 @@ class OcrSettingsActivity : AppCompatActivity() {
         progressOcr = findViewById(R.id.progress_download_ocr)
         tvOcrProgress = findViewById(R.id.tv_download_status_ocr)
 
+        btnSelectOcrTiny = findViewById(R.id.btn_select_ocr_tiny)
+        btnSelectOcrSmall = findViewById(R.id.btn_select_ocr_small)
+
+        layoutOcrAutoEnterToggle = findViewById(R.id.layout_ocr_auto_enter_toggle)
+        switchOcrAutoEnter = findViewById(R.id.switch_ocr_auto_enter)
+
+        layoutOcrSmartStitchToggle = findViewById(R.id.layout_ocr_smart_stitch_toggle)
+        switchOcrSmartStitch = findViewById(R.id.switch_ocr_smart_stitch)
+
+        layoutOcrPanguSpacingToggle = findViewById(R.id.layout_ocr_pangu_spacing_toggle)
+        switchOcrPanguSpacing = findViewById(R.id.switch_ocr_pangu_spacing)
+
+        dividerOcrSep = findViewById(R.id.divider_ocr_sep)
+        layoutOcrSepContainer = findViewById(R.id.layout_ocr_sep_container)
         btnOcrSepNewline = findViewById(R.id.btn_ocr_sep_newline)
         btnOcrSepSpace = findViewById(R.id.btn_ocr_sep_space)
         btnOcrSepNone = findViewById(R.id.btn_ocr_sep_none)
-
-        switchOcrAutoEnter = findViewById(R.id.switch_ocr_auto_enter)
-        switchOcrSmartStitch = findViewById(R.id.switch_ocr_smart_stitch)
-        switchOcrPanguSpacing = findViewById(R.id.switch_ocr_pangu_spacing)
     }
 
     private fun setupToolbar() {
@@ -96,7 +116,20 @@ class OcrSettingsActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        btnSelectOcrTiny.setOnClickListener {
+            HapticUtil.click(this)
+            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_TINY)
+            updateAllStatus()
+        }
+
+        btnSelectOcrSmall.setOnClickListener {
+            HapticUtil.click(this)
+            ModelConfig.setSelectedOcrModel(this, ModelConfig.ENGINE_PP_OCR_SMALL)
+            updateAllStatus()
+        }
+
         btnDownloadOcr.setOnClickListener {
+            val selectedModel = ModelConfig.selectedOcrModel(this)
             val active = ModelDownloadState.active.value
             if (active != null && (active.engine == ModelConfig.ENGINE_PP_OCR_TINY || active.engine == ModelConfig.ENGINE_PP_OCR_SMALL)) {
                 ModelDownloadService.cancel(this)
@@ -105,18 +138,19 @@ class OcrSettingsActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val target = ModelDownloadSpec.forEngine(ModelConfig.ENGINE_PP_OCR_TINY)
+            val target = ModelDownloadSpec.forEngine(selectedModel)
+            val modelName = if (selectedModel == ModelConfig.ENGINE_PP_OCR_SMALL) "PP-OCRv6 標準版" else "PP-OCRv6 輕量版"
             btnDownloadOcr.isEnabled = false
             btnDownloadOcr.text = "檢查檔案大小…"
 
             lifecycleScope.launch {
                 val bytes = withContext(Dispatchers.IO) { downloader.estimateTotalBytes(target) }
                 btnDownloadOcr.isEnabled = true
-                val ready = ModelConfig.isOcrReady(this@OcrSettingsActivity)
+                val ready = isSelectedModelReady()
                 btnDownloadOcr.text = if (ready) "重新下載" else "下載模型"
 
                 AlertDialog.Builder(this@OcrSettingsActivity)
-                    .setTitle("下載 PP-OCR 文字辨識模型")
+                    .setTitle("下載 $modelName")
                     .setMessage("即將下載約 ${ModelDownloader.formatBytes(bytes)} 的離線繁中辨識模型，下載完成後文字辨識全程在本機執行。\n\n是否繼續？")
                     .setPositiveButton("開始下載") { _, _ ->
                         HapticUtil.click(this@OcrSettingsActivity)
@@ -143,18 +177,32 @@ class OcrSettingsActivity : AppCompatActivity() {
         btnOcrSepSpace.setOnClickListener { updateSep(" ") }
         btnOcrSepNone.setOnClickListener { updateSep("") }
 
+        layoutOcrAutoEnterToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchOcrAutoEnter.toggle()
+        }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
         switchOcrAutoEnter.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
             ModelConfig.setOcrAutoEnterEnabled(this, isChecked)
         }
 
+        layoutOcrSmartStitchToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchOcrSmartStitch.toggle()
+        }
         switchOcrSmartStitch.isChecked = ModelConfig.isOcrSmartStitchEnabled(this)
+        updateSmartStitchUI(switchOcrSmartStitch.isChecked)
         switchOcrSmartStitch.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
             ModelConfig.setOcrSmartStitchEnabled(this, isChecked)
+            updateSmartStitchUI(isChecked)
         }
 
+        layoutOcrPanguSpacingToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchOcrPanguSpacing.toggle()
+        }
         switchOcrPanguSpacing.isChecked = ModelConfig.isOcrPanguSpacingEnabled(this)
         switchOcrPanguSpacing.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
@@ -162,8 +210,18 @@ class OcrSettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun isSelectedModelReady(): Boolean {
+        val selected = ModelConfig.selectedOcrModel(this)
+        return if (selected == ModelConfig.ENGINE_PP_OCR_SMALL) {
+            ModelConfig.isOcrSmallReady(this)
+        } else {
+            ModelConfig.isOcrTinyReady(this)
+        }
+    }
+
     private fun beginDownload() {
-        ModelDownloadService.start(this, ModelConfig.ENGINE_PP_OCR_TINY)
+        val selectedModel = ModelConfig.selectedOcrModel(this)
+        ModelDownloadService.start(this, selectedModel)
         btnDownloadOcr.text = "取消下載"
         progressOcr.visibility = View.VISIBLE
         progressOcr.isIndeterminate = true
@@ -174,38 +232,33 @@ class OcrSettingsActivity : AppCompatActivity() {
     private fun hideDownloadProgress() {
         progressOcr.visibility = View.GONE
         tvOcrProgress.visibility = View.GONE
-        val ready = ModelConfig.isOcrReady(this)
+        val ready = isSelectedModelReady()
         btnDownloadOcr.text = if (ready) "重新下載" else "下載模型"
     }
 
     private fun updateAllStatus() {
-        val ready = ModelConfig.isOcrReady(this)
+        val selected = ModelConfig.selectedOcrModel(this)
+        ChoiceButtonUtil.applyChoiceState(btnSelectOcrTiny, selected == ModelConfig.ENGINE_PP_OCR_TINY)
+        ChoiceButtonUtil.applyChoiceState(btnSelectOcrSmall, selected == ModelConfig.ENGINE_PP_OCR_SMALL)
+
+        val ready = isSelectedModelReady()
         tvOcrStatusBadge.text = if (ready) "已就緒" else "未下載"
         btnDownloadOcr.text = if (ready) "重新下載" else "下載模型"
         updateSepButtons()
+        updateSmartStitchUI(switchOcrSmartStitch.isChecked)
+    }
+
+    private fun updateSmartStitchUI(isSmartStitchEnabled: Boolean) {
+        // When smart paragraph stitching is enabled, hide manual multi-block separator choices
+        layoutOcrSepContainer.visibility = if (isSmartStitchEnabled) View.GONE else View.VISIBLE
+        dividerOcrSep.visibility = if (isSmartStitchEnabled) View.GONE else View.VISIBLE
     }
 
     private fun updateSepButtons() {
         val currentSep = ModelConfig.ocrSeparator(this)
-        val primaryColor = ContextCompat.getColor(this, R.color.md_theme_light_primary)
-        val onPrimaryColor = ContextCompat.getColor(this, R.color.md_theme_light_onPrimary)
-        val tonalColor = ContextCompat.getColor(this, R.color.md_theme_light_surfaceVariant)
-        val onTonalColor = ContextCompat.getColor(this, R.color.md_theme_light_onSurfaceVariant)
-
-        fun styleSepButton(btn: MaterialButton, isSelected: Boolean) {
-            if (isSelected) {
-                btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
-                btn.setTextColor(onPrimaryColor)
-            } else {
-                btn.backgroundTintList = ColorStateList.valueOf(tonalColor)
-                btn.setTextColor(onTonalColor)
-            }
-            btn.strokeWidth = 0
-        }
-
-        styleSepButton(btnOcrSepNewline, currentSep == "\n")
-        styleSepButton(btnOcrSepSpace, currentSep == " ")
-        styleSepButton(btnOcrSepNone, currentSep == "")
+        ChoiceButtonUtil.applyChoiceState(btnOcrSepNewline, currentSep == "\n")
+        ChoiceButtonUtil.applyChoiceState(btnOcrSepSpace, currentSep == " ")
+        ChoiceButtonUtil.applyChoiceState(btnOcrSepNone, currentSep == "")
     }
 
     private fun observeDownloadState() {

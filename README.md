@@ -4,7 +4,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-purple.svg)](https://kotlinlang.org)
 
-**珠璣 (Verbead)** 是一款專為 Android 設計的高隱私、純裝置端本機（On-Device）離線語音與視覺輸入助理。字字珠璣，串字成珠。結合 **X-ASR** 輕量即時串流模型、**Qwen3-ASR** 高精確度語音模型與 **PP-OCRv6** 本機文字辨識，採用「桌面智慧懸浮球」架構，無須替換您原本習慣的注音、倉頡或 Gboard 鍵盤，即可在任何應用程式中高速辨識並直接填入文字。所有語音辨識與 AI 推論全程在裝置本機離線運作，無需連網即可高速輸入。
+**珠璣 (Verbead)** 是一款專為 Android 設計的高隱私、純裝置端本機（On-Device）離線語音與視覺輸入助理。落辭成玉，字字珠璣。結合 **X-ASR** 輕量即時串流模型、**Qwen3-ASR** 高精確度語音模型與 **PP-OCRv6** 本機文字辨識，採用「桌面智慧懸浮球」架構，無須替換您原本習慣的注音、倉頡或 Gboard 鍵盤，即可在任何應用程式中高速辨識並直接填入文字。所有語音辨識與 AI 推論全程在裝置本機離線運作，無需連網即可高速輸入。
 
 ---
 

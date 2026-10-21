@@ -311,6 +311,21 @@ class SlmInferenceEngineTest {
         )
         assertEquals("「改寫後依然保留引號」", cleaned3)
     }
+
+    @Test
+    fun testBuildInputTaskChatMlPromptWithCustomSystemPrompt() {
+        val custom = "【自訂測試指示】：以中英雙語回答"
+        val prompt = SlmInferenceEngine.buildInputTaskChatMlPrompt(
+            targetText = "Hello",
+            voiceInput = "翻譯",
+            thinkingEnabled = false,
+            mode = SlmModelConfig.OUTPUT_MODE_REFINE,
+            customSystemPrompt = custom
+        )
+        assertTrue(prompt.contains("<|im_start|>system\n【自訂測試指示】：以中英雙語回答<|im_end|>"))
+        assertTrue(prompt.contains("<source_text>Hello</source_text>"))
+    }
+
     @Test
     fun testDeleteModelRemovesFiles() {
         val tempDir = java.nio.file.Files.createTempDirectory("slm_test").toFile()

@@ -6,10 +6,12 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,23 +28,41 @@ import com.ping.verbead.util.HapticUtil
 class BubbleSettingsActivity : AppCompatActivity() {
 
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var tvBubbleBadge: TextView
     private lateinit var btnGrantOverlay: MaterialButton
     private lateinit var tvOverlayStatus: TextView
     private lateinit var tvOverlayRestrictedHelp: TextView
     private lateinit var btnGrantAccessibility: MaterialButton
     private lateinit var tvAccessibilityStatus: TextView
     private lateinit var tvRestrictedSettingsHelp: TextView
+    private lateinit var dividerAppInfoRow: View
     private lateinit var layoutAppInfoRow: View
     private lateinit var btnOpenAppInfo: MaterialButton
 
+    private lateinit var layoutShowOnlyOnKeyboardToggle: View
     private lateinit var switchShowOnlyOnKeyboard: MaterialSwitch
+
+    private lateinit var layoutMultiBubbleToggle: View
     private lateinit var switchMultiBubble: MaterialSwitch
+    private lateinit var layoutMultiBubbleCount: View
+    private lateinit var dividerMultiBubbleCount: View
+    private lateinit var sbMultiBubbleCount: SeekBar
+    private lateinit var tvMultiBubbleCountValue: TextView
+
     private lateinit var rvBubbleModes: RecyclerView
     private lateinit var tvBubbleModesSummary: TextView
+
+    private lateinit var layoutPasteModeToggle: View
     private lateinit var switchPasteMode: MaterialSwitch
     private lateinit var tvPasteModeDesc: TextView
+
+    private lateinit var layoutHistoryEnabledToggle: View
     private lateinit var switchHistoryEnabled: MaterialSwitch
     private lateinit var tvHistoryDesc: TextView
+    private lateinit var layoutHistoryLimit: View
+    private lateinit var dividerHistoryLimit: View
+    private lateinit var sbHistoryLimit: SeekBar
+    private lateinit var tvHistoryLimitValue: TextView
 
     private var bubbleModeConfigAdapter: BubbleModeConfigAdapter? = null
     private var bubbleModesTouchHelper: ItemTouchHelper? = null
@@ -65,23 +85,41 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
     private fun bindViews() {
         toolbar = findViewById(R.id.toolbar)
+        tvBubbleBadge = findViewById(R.id.tv_bubble_badge)
         btnGrantOverlay = findViewById(R.id.btn_grant_overlay)
         tvOverlayStatus = findViewById(R.id.tv_overlay_status)
         tvOverlayRestrictedHelp = findViewById(R.id.tv_overlay_restricted_help)
         btnGrantAccessibility = findViewById(R.id.btn_grant_accessibility)
         tvAccessibilityStatus = findViewById(R.id.tv_accessibility_status)
         tvRestrictedSettingsHelp = findViewById(R.id.tv_restricted_settings_help)
+        dividerAppInfoRow = findViewById(R.id.divider_app_info_row)
         layoutAppInfoRow = findViewById(R.id.layout_app_info_row)
         btnOpenAppInfo = findViewById(R.id.btn_open_app_info)
 
+        layoutShowOnlyOnKeyboardToggle = findViewById(R.id.layout_show_only_on_keyboard_toggle)
         switchShowOnlyOnKeyboard = findViewById(R.id.switch_show_only_on_keyboard)
+
+        layoutMultiBubbleToggle = findViewById(R.id.layout_multi_bubble_toggle)
         switchMultiBubble = findViewById(R.id.switch_multi_bubble)
+        layoutMultiBubbleCount = findViewById(R.id.layout_multi_bubble_count)
+        dividerMultiBubbleCount = findViewById(R.id.divider_multi_bubble_count)
+        sbMultiBubbleCount = findViewById(R.id.sb_multi_bubble_count)
+        tvMultiBubbleCountValue = findViewById(R.id.tv_multi_bubble_count_value)
+
         rvBubbleModes = findViewById(R.id.rv_bubble_modes)
         tvBubbleModesSummary = findViewById(R.id.tv_bubble_modes_summary)
+
+        layoutPasteModeToggle = findViewById(R.id.layout_paste_mode_toggle)
         switchPasteMode = findViewById(R.id.switch_paste_mode)
         tvPasteModeDesc = findViewById(R.id.tv_injection_method_desc)
+
+        layoutHistoryEnabledToggle = findViewById(R.id.layout_history_enabled_toggle)
         switchHistoryEnabled = findViewById(R.id.switch_history_enabled)
         tvHistoryDesc = findViewById(R.id.tv_history_enabled_desc)
+        layoutHistoryLimit = findViewById(R.id.layout_history_limit)
+        dividerHistoryLimit = findViewById(R.id.divider_history_limit)
+        sbHistoryLimit = findViewById(R.id.sb_history_limit)
+        tvHistoryLimitValue = findViewById(R.id.tv_history_limit_value)
     }
 
     private fun setupToolbar() {
@@ -124,6 +162,11 @@ class BubbleSettingsActivity : AppCompatActivity() {
         layoutAppInfoRow.setOnClickListener(openAppInfo)
         btnOpenAppInfo.setOnClickListener(openAppInfo)
 
+        // Show only on keyboard
+        layoutShowOnlyOnKeyboardToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchShowOnlyOnKeyboard.toggle()
+        }
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
         switchShowOnlyOnKeyboard.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
@@ -131,6 +174,11 @@ class BubbleSettingsActivity : AppCompatActivity() {
             FloatingBubbleService.instance?.applyKeyboardOnlySetting()
         }
 
+        // Multi bubble
+        layoutMultiBubbleToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchMultiBubble.toggle()
+        }
         switchMultiBubble.isChecked = ModelConfig.isMultiBubbleEnabled(this)
         switchMultiBubble.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
@@ -139,6 +187,29 @@ class BubbleSettingsActivity : AppCompatActivity() {
             FloatingBubbleService.instance?.updateMultiBubbleMode()
         }
 
+        // Multi bubble count slider (2..5 -> progress 0..3)
+        val curCount = ModelConfig.getMultiBubbleCount(this)
+        sbMultiBubbleCount.progress = (curCount - 2).coerceIn(0, 3)
+        tvMultiBubbleCountValue.text = "${curCount} 個"
+        sbMultiBubbleCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    val count = progress + 2
+                    ModelConfig.setMultiBubbleCount(this@BubbleSettingsActivity, count)
+                    tvMultiBubbleCountValue.text = "${count} 個"
+                    HapticUtil.tick(this@BubbleSettingsActivity)
+                    FloatingBubbleService.instance?.updateMultiBubbleMode()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Paste mode
+        layoutPasteModeToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchPasteMode.toggle()
+        }
         switchPasteMode.isChecked = ModelConfig.isPasteModeEnabled(this)
         updatePasteModeDesc(switchPasteMode.isChecked)
         switchPasteMode.setOnCheckedChangeListener { _, isChecked ->
@@ -147,6 +218,11 @@ class BubbleSettingsActivity : AppCompatActivity() {
             updatePasteModeDesc(isChecked)
         }
 
+        // History enabled
+        layoutHistoryEnabledToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchHistoryEnabled.toggle()
+        }
         switchHistoryEnabled.isChecked = ModelConfig.isHistoryEnabled(this)
         updateHistoryUI(switchHistoryEnabled.isChecked)
         switchHistoryEnabled.setOnCheckedChangeListener { _, isChecked ->
@@ -155,6 +231,23 @@ class BubbleSettingsActivity : AppCompatActivity() {
             updateHistoryUI(isChecked)
             FloatingBubbleService.instance?.updateBubbleModesConfig()
         }
+
+        // History limit slider (1..12 -> progress 0..11)
+        val curLimit = ModelConfig.getHistoryLimit(this)
+        sbHistoryLimit.progress = (curLimit - 1).coerceIn(0, 11)
+        tvHistoryLimitValue.text = "${curLimit} 筆"
+        sbHistoryLimit.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    val limit = progress + 1
+                    ModelConfig.setHistoryLimit(this@BubbleSettingsActivity, limit)
+                    tvHistoryLimitValue.text = "${limit} 筆"
+                    HapticUtil.tick(this@BubbleSettingsActivity)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
     }
 
     private fun setupBubbleModesRecyclerView() {
@@ -247,11 +340,37 @@ class BubbleSettingsActivity : AppCompatActivity() {
             btnGrantAccessibility.isEnabled = true
             tvRestrictedSettingsHelp.visibility = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) View.VISIBLE else View.GONE
         }
+
+        val allReady = overlayGranted && accessibilityEnabled
+        if (allReady) {
+            tvBubbleBadge.text = "已就緒"
+            tvBubbleBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
+            tvBubbleBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
+            layoutAppInfoRow.visibility = View.GONE
+            dividerAppInfoRow.visibility = View.GONE
+            tvOverlayRestrictedHelp.visibility = View.GONE
+            tvRestrictedSettingsHelp.visibility = View.GONE
+        } else {
+            tvBubbleBadge.text = "未就緒"
+            tvBubbleBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
+            tvBubbleBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
+            layoutAppInfoRow.visibility = View.VISIBLE
+            dividerAppInfoRow.visibility = View.VISIBLE
+        }
     }
 
     private fun updateMultiBubbleUI() {
         val enabled = switchMultiBubble.isChecked
         val enabledModes = ModelConfig.getEnabledBubbleModes(this)
+
+        layoutMultiBubbleCount.visibility = if (enabled) View.VISIBLE else View.GONE
+        dividerMultiBubbleCount.visibility = if (enabled) View.VISIBLE else View.GONE
+        sbMultiBubbleCount.isEnabled = enabled
+
+        val count = ModelConfig.getMultiBubbleCount(this)
+        sbMultiBubbleCount.progress = (count - 2).coerceIn(0, 3)
+        tvMultiBubbleCountValue.text = "${count} 個"
+
         tvBubbleModesSummary.text = if (enabled) {
             "已開啟多球：已啟用 ${enabledModes.size} 個功能模式，畫面將同時呈現多顆懸浮球"
         } else {
@@ -269,6 +388,14 @@ class BubbleSettingsActivity : AppCompatActivity() {
     }
 
     private fun updateHistoryUI(enabled: Boolean) {
+        layoutHistoryLimit.visibility = if (enabled) View.VISIBLE else View.GONE
+        dividerHistoryLimit.visibility = if (enabled) View.VISIBLE else View.GONE
+        sbHistoryLimit.isEnabled = enabled
+
+        val limit = ModelConfig.getHistoryLimit(this)
+        sbHistoryLimit.progress = (limit - 1).coerceIn(0, 11)
+        tvHistoryLimitValue.text = "${limit} 筆"
+
         tvHistoryDesc.text = if (enabled) {
             "在快速常用語抽屜上方即時顯示近期的轉譯歷史紀錄"
         } else {

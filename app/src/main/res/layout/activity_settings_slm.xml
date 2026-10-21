@@ -28,24 +28,292 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingBottom="32dp">
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_slm"
-            style="@style/Verbead.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
 
-            <LinearLayout
+            <!-- ══════════════════════ SLM 模型配置卡片 ══════════════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_slm"
+                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                style="@style/Verbead.RowIcon"
+                                android:layout_width="44dp"
+                                android:layout_height="44dp"
+                                android:layout_marginEnd="16dp"
+                                android:src="@drawable/ic_ai_sparkle"
+                                app:tint="@color/md_theme_light_primary" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    style="@style/Verbead.Text.Title"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Qwen 3.5 端側小語言模型" />
+
+                                <TextView
+                                    style="@style/Verbead.Text.Caption"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="支援 0.8B、2B、4B、9B 離線運行 · GPU/NPU 加速" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- 4 Models Choice Row -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_slm_model_0_8b"
+                                style="@style/Verbead.Button.Choice"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:text="0.8B 能效" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_slm_model_2b"
+                                style="@style/Verbead.Button.Choice"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:text="2B 平衡" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_slm_model_4b"
+                                style="@style/Verbead.Button.Choice"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:text="4B 聰明" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_slm_model_9b"
+                                style="@style/Verbead.Button.Choice"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="9B 旗艦" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_slm_description"
+                            style="@style/Verbead.Text.Body"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="2dp"
+                            android:text="兼顧速度與優秀語言理解力，日常對話、郵件草擬與精準摘要的最佳平衡點。" />
+
+                        <TextView
+                            android:id="@+id/tv_slm_status"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="檢查中…"
+                            android:textStyle="bold" />
+
+                        <!-- Download Progress Indicator -->
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/progress_download_slm"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            app:indicatorColor="@color/md_theme_light_primary"
+                            app:trackColor="@color/md_theme_light_primaryContainer"
+                            app:trackCornerRadius="4dp"
+                            app:trackThickness="6dp" />
+
+                        <TextView
+                            android:id="@+id/tv_download_status_slm"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/md_theme_light_primary"
+                            android:visibility="gone" />
+
+                        <!-- Actions Layout: Load memory primary row, download & delete symmetrical row -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_load_slm_memory"
+                                style="@style/Verbead.Button.Tonal"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="載入至記憶體" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_download_slm"
+                                    style="@style/Verbead.Button.Outlined"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="下載模型" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_delete_slm"
+                                    style="@style/Verbead.Button.Outlined"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:textColor="@color/status_error"
+                                    app:strokeColor="@color/status_error"
+                                    android:visibility="gone"
+                                    android:text="@string/btn_delete_model" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View
+                        style="@style/Verbead.Divider"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Thinking toggle -->
+                    <LinearLayout
+                        android:id="@+id/layout_slm_thinking_toggle"
+                        style="@style/Verbead.Row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Verbead.Text.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="思考推導開關" />
+
+                            <TextView
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="開啟時模型會展開思考草稿，完成後給予簡短結論；關閉時直接輸出答案" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_slm_thinking"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
+                    <View
+                        style="@style/Verbead.Divider"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Hardware Accel toggle -->
+                    <LinearLayout
+                        android:id="@+id/layout_slm_hardware_accel_toggle"
+                        style="@style/Verbead.Row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Verbead.Text.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="GPU / NPU 硬體加速" />
+
+                            <TextView
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="將 99 層運算完全卸載至手機 GPU (Vulkan) 或 NPU (NNAPI)，極速串流推論" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_slm_hardware_accel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ══════════════════════ 自訂模型預設 Prompt 卡片 ══════════════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_slm_prompt"
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="16dp">
 
+                    <!-- Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -57,7 +325,7 @@
                             android:layout_width="44dp"
                             android:layout_height="44dp"
                             android:layout_marginEnd="16dp"
-                            android:src="@drawable/ic_ai_sparkle"
+                            android:src="@drawable/ic_edit"
                             app:tint="@color/md_theme_light_primary" />
 
                         <LinearLayout
@@ -70,225 +338,87 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Qwen 3.5 端側小語言模型" />
+                                android:text="模型預設 Prompt (系統提示詞)" />
 
                             <TextView
+                                android:id="@+id/tv_slm_prompt_subtitle"
                                 style="@style/Verbead.Text.Caption"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="支援 0.8B、2B、4B、9B 離線運行 · GPU/NPU 加速" />
+                                android:text="自訂發送給端側大模型的系統指示，設定語氣與回答規範" />
                         </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_slm_prompt_badge"
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_recommend"
+                            android:text="預設狀態"
+                            android:textColor="@color/tag_recommend" />
                     </LinearLayout>
 
-                    <!-- 4 Models Choice Row -->
+                    <!-- Darker Prompt Editor Container with Independent Scrolling -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_prompt_editor"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        app:cardBackgroundColor="@color/prompt_edit_box_bg"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/prompt_edit_box_stroke"
+                        app:strokeWidth="1dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_slm_prompt"
+                            android:layout_width="match_parent"
+                            android:layout_height="320dp"
+                            android:background="@android:color/transparent"
+                            android:fadeScrollbars="false"
+                            android:gravity="top|start"
+                            android:importantForAutofill="no"
+                            android:inputType="textMultiLine|textCapSentences"
+                            android:lineSpacingMultiplier="1.25"
+                            android:nestedScrollingEnabled="true"
+                            android:overScrollMode="always"
+                            android:padding="16dp"
+                            android:scrollbars="vertical"
+                            android:scrollbarStyle="insideInset"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_tertiary"
+                            android:textSize="13.5sp" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Actions: Restore default button & Save button -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_slm_model_0_8b"
-                            style="@style/Verbead.Button.Choice"
+                            android:id="@+id/btn_reset_slm_prompt"
+                            style="@style/Verbead.Button.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="4dp"
+                            android:layout_marginEnd="8dp"
                             android:layout_weight="1"
-                            android:text="0.8B 能效" />
+                            android:text="還原初始狀態" />
 
                         <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_slm_model_2b"
-                            style="@style/Verbead.Button.Choice"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="4dp"
-                            android:layout_weight="1"
-                            android:text="2B 平衡" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_slm_model_4b"
-                            style="@style/Verbead.Button.Choice"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="4dp"
-                            android:layout_weight="1"
-                            android:text="4B 聰明" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_slm_model_9b"
-                            style="@style/Verbead.Button.Choice"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="9B 旗艦" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tv_slm_description"
-                        style="@style/Verbead.Text.Body"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="兼顧速度與優秀語言理解力，日常對話、郵件草擬與精準摘要的最佳平衡點。" />
-
-                    <TextView
-                        android:id="@+id/tv_slm_status"
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="檢查中…"
-                        android:textStyle="bold" />
-
-                    <!-- Download Progress Indicator -->
-                    <com.google.android.material.progressindicator.LinearProgressIndicator
-                        android:id="@+id/progress_download_slm"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:visibility="gone"
-                        app:indicatorColor="@color/md_theme_light_primary"
-                        app:trackColor="@color/md_theme_light_primaryContainer"
-                        app:trackCornerRadius="4dp"
-                        app:trackThickness="6dp" />
-
-                    <TextView
-                        android:id="@+id/tv_download_status_slm"
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textColor="@color/md_theme_light_primary"
-                        android:visibility="gone" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_load_slm_memory"
+                            android:id="@+id/btn_save_slm_prompt"
                             style="@style/Verbead.Button.Tonal"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
                             android:layout_weight="1"
-                            android:text="載入至記憶體" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_download_slm"
-                            style="@style/Verbead.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="8dp"
-                            android:text="下載模型" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_delete_slm"
-                            style="@style/Verbead.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="0.8"
-                            android:textColor="@color/status_error"
-                            app:strokeColor="@color/status_error"
-                            android:visibility="gone"
-                            android:text="@string/btn_delete_model" />
+                            android:text="儲存 Prompt" />
                     </LinearLayout>
                 </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <View
-                    style="@style/Verbead.Divider"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp" />
-
-                <!-- Thinking toggle -->
-                <LinearLayout
-                    android:id="@+id/layout_slm_thinking_toggle"
-                    style="@style/Verbead.Row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/Verbead.Text.Title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="思考推導開關" />
-
-                        <TextView
-                            style="@style/Verbead.Text.Caption"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="開啟時模型會展開思考草稿，完成後給予簡短結論；關閉時直接輸出答案" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_slm_thinking"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
-                <View
-                    style="@style/Verbead.Divider"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp" />
-
-                <!-- Hardware Accel toggle -->
-                <LinearLayout
-                    android:id="@+id/layout_slm_hardware_accel_toggle"
-                    style="@style/Verbead.Row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/Verbead.Text.Title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="GPU / NPU 硬體加速" />
-
-                        <TextView
-                            style="@style/Verbead.Text.Caption"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="將 99 層運算完全卸載至手機 GPU (Vulkan) 或 NPU (NNAPI)，極速串流推論" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_slm_hardware_accel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

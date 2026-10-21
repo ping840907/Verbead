@@ -10,6 +10,7 @@ object SlmModelConfig {
     const val KEY_SLM_THINKING = "slm_thinking_enabled"
     const val KEY_SLM_OUTPUT_MODE = "slm_output_mode"
     const val KEY_SLM_HARDWARE_ACCEL = "slm_hardware_accel"
+    const val KEY_SLM_CUSTOM_PROMPT = "slm_custom_system_prompt"
 
     // 輸出模式設定：極簡快答 (預設)、重點條列、潤飾/翻譯、深度推論
     const val OUTPUT_MODE_FAST = "fast"
@@ -212,7 +213,40 @@ object SlmModelConfig {
      * Builds the injected system prompt tailored for concise mobile answers,
      * enforcing negative constraints (no filler, no greetings) and few-shot grounding.
      */
+    fun getCustomPrompt(context: Context): String? {
+        val p = context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .getString(KEY_SLM_CUSTOM_PROMPT, null)
+        return if (p.isNullOrBlank()) null else p
+    }
+
+    fun setCustomPrompt(context: Context, prompt: String?) {
+        val prefs = context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+        if (prompt.isNullOrBlank()) {
+            prefs.edit().remove(KEY_SLM_CUSTOM_PROMPT).apply()
+        } else {
+            prefs.edit().putString(KEY_SLM_CUSTOM_PROMPT, prompt.trim()).apply()
+        }
+    }
+
+    fun resetCustomPrompt(context: Context) {
+        context.getSharedPreferences(PREF_SLM, Context.MODE_PRIVATE)
+            .edit().remove(KEY_SLM_CUSTOM_PROMPT).apply()
+    }
+
+    fun isCustomPromptActive(context: Context): Boolean =
+        !getCustomPrompt(context).isNullOrBlank()
+
+    fun getDefaultPrompt(context: Context): String =
+        buildSystemPrompt(isThinkingEnabled(context), getOutputMode(context))
+
+    fun getEffectiveSystemPrompt(context: Context): String =
+        getCustomPrompt(context) ?: getDefaultPrompt(context)
+
     fun buildSystemPrompt(context: Context): String {
+        val custom = getCustomPrompt(context)
+        if (!custom.isNullOrBlank()) {
+            return custom
+        }
         val thinking = isThinkingEnabled(context)
         val mode = getOutputMode(context)
         return buildSystemPrompt(thinking, mode)
