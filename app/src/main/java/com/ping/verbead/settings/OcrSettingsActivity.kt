@@ -49,6 +49,9 @@ class OcrSettingsActivity : AppCompatActivity() {
     private lateinit var layoutOcrPanguSpacingToggle: View
     private lateinit var switchOcrPanguSpacing: MaterialSwitch
 
+    private lateinit var layoutOcrToTraditionalToggle: View
+    private lateinit var switchOcrToTraditional: MaterialSwitch
+
     private lateinit var dividerOcrSep: View
     private lateinit var layoutOcrSepContainer: View
     private lateinit var btnOcrSepNewline: MaterialButton
@@ -100,6 +103,9 @@ class OcrSettingsActivity : AppCompatActivity() {
 
         layoutOcrPanguSpacingToggle = findViewById(R.id.layout_ocr_pangu_spacing_toggle)
         switchOcrPanguSpacing = findViewById(R.id.switch_ocr_pangu_spacing)
+
+        layoutOcrToTraditionalToggle = findViewById(R.id.layout_ocr_to_traditional_toggle)
+        switchOcrToTraditional = findViewById(R.id.switch_ocr_to_traditional)
 
         dividerOcrSep = findViewById(R.id.divider_ocr_sep)
         layoutOcrSepContainer = findViewById(R.id.layout_ocr_sep_container)
@@ -171,6 +177,7 @@ class OcrSettingsActivity : AppCompatActivity() {
             ModelConfig.setOcrSeparator(this, sep)
             HapticUtil.click(this)
             updateSepButtons()
+
         }
 
         btnOcrSepNewline.setOnClickListener { updateSep("\n") }
@@ -207,6 +214,16 @@ class OcrSettingsActivity : AppCompatActivity() {
         switchOcrPanguSpacing.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
             ModelConfig.setOcrPanguSpacingEnabled(this, isChecked)
+        }
+
+        layoutOcrToTraditionalToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchOcrToTraditional.toggle()
+        }
+        switchOcrToTraditional.isChecked = ModelConfig.isOcrToTraditionalEnabled(this)
+        switchOcrToTraditional.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setOcrToTraditionalEnabled(this, isChecked)
         }
     }
 
@@ -245,6 +262,7 @@ class OcrSettingsActivity : AppCompatActivity() {
         tvOcrStatusBadge.text = if (ready) "已就緒" else "未下載"
         btnDownloadOcr.text = if (ready) "重新下載" else "下載模型"
         updateSepButtons()
+
         updateSmartStitchUI(switchOcrSmartStitch.isChecked)
     }
 

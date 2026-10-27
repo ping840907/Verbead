@@ -237,4 +237,23 @@ class TextStitcherTest {
         val stitched = TextStitcher.stitch(listOf(block), panguSpacing = true)
         assertEquals("在 2026 年使用 Android 系統體驗 AI 技術", stitched)
     }
+
+    @Test
+    fun testOcrToTraditionalWithOpenCC() {
+        val simplifiedBlock1 = OcrBlock("这是简体中文光学字符识别测试，", 50f, 100f, 400f, 120f)
+        val simplifiedBlock2 = OcrBlock("包含台湾在地化用词与异体字校正。", 50f, 130f, 400f, 150f)
+
+        // 1. toTraditional = false: 保留簡體原字
+        val rawResult = TextStitcher.stitch(listOf(simplifiedBlock1, simplifiedBlock2), toTraditional = false)
+        assertEquals("这是简体中文光学字符识别测试，包含台湾在地化用词与异体字校正。", rawResult)
+
+        // 2. toTraditional = true: 轉為台灣繁體中文 (含 OpenCC 與台灣常用異體字校正)
+        val tradResult = TextStitcher.stitch(listOf(simplifiedBlock1, simplifiedBlock2), toTraditional = true)
+        assertEquals("這是簡體中文光學字符識別測試，包含臺灣在地化用詞與異體字校正。", tradResult)
+
+        // 3. 結合盤古之白 (pangu spacing) 與繁體轉換
+        val mixedBlock = OcrBlock("在2026年使用Android系统体验AI技术", 50f, 100f, 300f, 120f)
+        val tradPanguResult = TextStitcher.stitch(listOf(mixedBlock), panguSpacing = true, toTraditional = true)
+        assertEquals("在 2026 年使用 Android 系統體驗 AI 技術", tradPanguResult)
+    }
 }

@@ -368,6 +368,16 @@ object ModelConfig {
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_OCR_PANGU_SPACING, enabled).apply()
 
+    const val KEY_OCR_TO_TRADITIONAL = "ocr_to_traditional"
+
+    fun isOcrToTraditionalEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_TO_TRADITIONAL, true)
+
+    fun setOcrToTraditionalEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_TO_TRADITIONAL, enabled).apply()
+
     fun ocrSeparator(context: Context): String =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
             .getString(KEY_OCR_SEPARATOR, "\n") ?: "\n"

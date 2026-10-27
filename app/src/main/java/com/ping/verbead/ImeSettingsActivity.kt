@@ -542,7 +542,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         val ocrName = if (ocrEngine == ModelConfig.ENGINE_PP_OCR_SMALL) "PP-OCRv6 標準版" else "PP-OCRv6 輕量版"
         val ocrStatusStr = if (ocrReady) "已就緒" else "未下載"
         val pangu = if (ModelConfig.isOcrPanguSpacingEnabled(this)) "盤古空格" else "緊湊排版"
-        tvCatOcrSummary.text = "$ocrName ($ocrStatusStr) · 條碼掃描 · $pangu"
+        val trad = if (ModelConfig.isOcrToTraditionalEnabled(this)) "繁中" else "原字"
+        tvCatOcrSummary.text = "$ocrName ($ocrStatusStr) · $trad · $pangu"
 
         // 4. SLM
         val slmModelId = SlmModelConfig.getSelectedModel(this)

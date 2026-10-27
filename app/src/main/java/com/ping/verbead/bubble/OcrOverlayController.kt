@@ -633,17 +633,22 @@ class OcrOverlayController(
                 if (recognizedBlocks.isNotEmpty()) {
                     val sep = ModelConfig.ocrSeparator(context)
                     val pangu = ModelConfig.isOcrPanguSpacingEnabled(context)
+                    val toTrad = ModelConfig.isOcrToTraditionalEnabled(context)
                     var processed = if (ModelConfig.isOcrSmartStitchEnabled(context)) {
                         TextStitcher.stitch(
                             recognizedBlocks,
                             fallbackSep = sep,
-                            panguSpacing = pangu
+                            panguSpacing = pangu,
+                            toTraditional = toTrad
                         )
                     } else {
                         recognizedBlocks.joinToString(sep) { it.text }
                     }
                     if (pangu) {
                         processed = TextStitcher.applyPanguSpacing(processed)
+                    }
+                    if (toTrad) {
+                        processed = ModelConfig.toTaiwanTraditional(processed)
                     }
                     HapticUtil.heavyClick(context)
                     listener.onOcrTextConfirmed(processed)

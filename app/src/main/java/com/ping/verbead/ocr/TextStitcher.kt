@@ -2,6 +2,7 @@ package com.ping.verbead.ocr
 
 import android.graphics.PointF
 import android.graphics.RectF
+import com.ping.verbead.engine.ModelConfig
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -101,30 +102,34 @@ object TextStitcher {
     fun stitch(
         blocks: List<OcrBlock>,
         fallbackSep: String = "\n",
-        panguSpacing: Boolean = false
+        panguSpacing: Boolean = false,
+        toTraditional: Boolean = false
     ): String {
         if (blocks.isEmpty()) return ""
-        if (blocks.size == 1) return if (panguSpacing) applyPanguSpacing(blocks[0].text) else blocks[0].text
+        val initial = if (blocks.size == 1) {
+            if (panguSpacing) applyPanguSpacing(blocks[0].text) else blocks[0].text
+        } else {
+            val maxLineWidth = blocks.maxOfOrNull { it.width } ?: 0f
 
-        val maxLineWidth = blocks.maxOfOrNull { it.width } ?: 0f
-
-        val sb = StringBuilder()
-        for (i in 0 until blocks.size - 1) {
-            val prev = blocks[i]
-            val curr = blocks[i + 1]
-            val conn = determineConnection(
-                prev = prev,
-                curr = curr,
-                fallbackSep = fallbackSep,
-                maxLineWidth = maxLineWidth,
-                panguSpacing = panguSpacing
-            )
-            sb.append(conn.prevText)
-            sb.append(conn.separator)
+            val sb = StringBuilder()
+            for (i in 0 until blocks.size - 1) {
+                val prev = blocks[i]
+                val curr = blocks[i + 1]
+                val conn = determineConnection(
+                    prev = prev,
+                    curr = curr,
+                    fallbackSep = fallbackSep,
+                    maxLineWidth = maxLineWidth,
+                    panguSpacing = panguSpacing
+                )
+                sb.append(conn.prevText)
+                sb.append(conn.separator)
+            }
+            sb.append(blocks.last().text)
+            val result = sb.toString()
+            if (panguSpacing) applyPanguSpacing(result) else result
         }
-        sb.append(blocks.last().text)
-        val result = sb.toString()
-        return if (panguSpacing) applyPanguSpacing(result) else result
+        return if (toTraditional) ModelConfig.toTaiwanTraditional(initial) else initial
     }
 
     /**
