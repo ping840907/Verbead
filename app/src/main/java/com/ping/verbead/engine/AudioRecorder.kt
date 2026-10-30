@@ -138,6 +138,15 @@ class AudioRecorder(private val context: Context? = null) {
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
+        // 依雙管線獨立設定決定是否路由至 FARGAN 神經語音增強
+        val isFarganRouted = if (isExternal) {
+            context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true
+        } else {
+            context?.let { ModelConfig.isFarganInternalMicEnabled(it) } ?: false
+        }
+        FarganProcessor.reset()
+        Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
+
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
             CHUNK_FRAMES * 2
@@ -210,6 +219,11 @@ class AudioRecorder(private val context: Context? = null) {
 
                 if (isExternal) {
                     applyGain(chunkBuffer, read, externalGain)
+                }
+
+                // 依雙管線路由決定是否套用 FARGAN 增強
+                if (isFarganRouted) {
+                    FarganProcessor.process(chunkBuffer, read)
                 }
 
                 val copy = minOf(read, maxFrames - sampleCount)
@@ -306,6 +320,15 @@ class AudioRecorder(private val context: Context? = null) {
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
+        // 依雙管線獨立設定決定是否路由至 FARGAN 神經語音增強
+        val isFarganRouted = if (isExternal) {
+            context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true
+        } else {
+            context?.let { ModelConfig.isFarganInternalMicEnabled(it) } ?: false
+        }
+        FarganProcessor.reset()
+        Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
+
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
             CHUNK_FRAMES * 2
@@ -377,6 +400,11 @@ class AudioRecorder(private val context: Context? = null) {
 
                 if (isExternal) {
                     applyGain(chunkBuffer, read, externalGain)
+                }
+
+                // 依雙管線路由決定是否套用 FARGAN 增強
+                if (isFarganRouted) {
+                    FarganProcessor.process(chunkBuffer, read)
                 }
 
                 val floats = FloatArray(read) { chunkBuffer[it] / 32768.0f }

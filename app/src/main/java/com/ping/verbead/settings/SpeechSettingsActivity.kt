@@ -69,6 +69,12 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var layoutFilterPunctuationToggle: View
     private lateinit var switchFilterPunctuation: MaterialSwitch
 
+    // FARGAN Speech Enhancement
+    private lateinit var layoutFarganExternalAudioToggle: View
+    private lateinit var switchFarganExternalAudio: MaterialSwitch
+    private lateinit var layoutFarganInternalMicToggle: View
+    private lateinit var switchFarganInternalMic: MaterialSwitch
+
     // Custom dictionary option card
     private lateinit var cardCustomDict: MaterialCardView
     private lateinit var layoutDictToggle: View
@@ -139,6 +145,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvVadSilenceVal = findViewById(R.id.tv_vad_value)
         layoutFilterPunctuationToggle = findViewById(R.id.layout_filter_punctuation_toggle)
         switchFilterPunctuation = findViewById(R.id.switch_filter_punctuation)
+
+        layoutFarganExternalAudioToggle = findViewById(R.id.layout_fargan_external_audio_toggle)
+        switchFarganExternalAudio = findViewById(R.id.switch_fargan_external_audio)
+        layoutFarganInternalMicToggle = findViewById(R.id.layout_fargan_internal_mic_toggle)
+        switchFarganInternalMic = findViewById(R.id.switch_fargan_internal_mic)
 
         cardCustomDict = findViewById(R.id.card_custom_dict)
         layoutDictToggle = findViewById(R.id.layout_dict_toggle)
@@ -232,6 +243,28 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setFilterPunctuationEnabled(this, isChecked)
         }
 
+        // FARGAN External Audio Toggle
+        layoutFarganExternalAudioToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchFarganExternalAudio.toggle()
+        }
+        switchFarganExternalAudio.isChecked = ModelConfig.isFarganExternalAudioEnabled(this)
+        switchFarganExternalAudio.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setFarganExternalAudioEnabled(this, isChecked)
+        }
+
+        // FARGAN Internal Mic Toggle
+        layoutFarganInternalMicToggle.setOnClickListener {
+            HapticUtil.click(this)
+            switchFarganInternalMic.toggle()
+        }
+        switchFarganInternalMic.isChecked = ModelConfig.isFarganInternalMicEnabled(this)
+        switchFarganInternalMic.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setFarganInternalMicEnabled(this, isChecked)
+        }
+
         // Custom vocabulary option card navigation
         val openDictAction = {
             HapticUtil.click(this)
@@ -282,6 +315,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
             "加入常用人名、專有名詞或修正字"
         }
 
+        switchFarganExternalAudio.isChecked = ModelConfig.isFarganExternalAudioEnabled(this)
+        switchFarganInternalMic.isChecked = ModelConfig.isFarganInternalMicEnabled(this)
         updateAudioGainVisibility(switchPreferExternalAudio.isChecked)
     }
 

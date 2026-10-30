@@ -153,6 +153,28 @@ object ModelConfig {
         context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
             .edit().putFloat(KEY_EXTERNAL_AUDIO_GAIN, gain).apply()
 
+    // ── FARGAN Neural Speech Enhancement Pipeline ─────────────────────────────
+    const val KEY_FARGAN_EXTERNAL_AUDIO = "fargan_external_audio"
+    const val KEY_FARGAN_INTERNAL_MIC   = "fargan_internal_mic"
+
+    /** 外部/藍牙耳機是否路由至 FARGAN 增強管線 (預設開啟，針對 mSBC 泛音損失修復) */
+    fun isFarganExternalAudioEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .getBoolean(KEY_FARGAN_EXTERNAL_AUDIO, true)
+
+    fun setFarganExternalAudioEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_FARGAN_EXTERNAL_AUDIO, enabled).apply()
+
+    /** 手機內建麥克風是否路由至 FARGAN 增強管線 (預設關閉，保護內建高品質直通收音) */
+    fun isFarganInternalMicEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .getBoolean(KEY_FARGAN_INTERNAL_MIC, false)
+
+    fun setFarganInternalMicEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_FARGAN_INTERNAL_MIC, enabled).apply()
+
     private val CHINESE_PUNCTUATION_REGEX = Regex("[，。！？、…：；「」『』—～（）《》〈〉【】〔〕]")
 
     fun filterChinesePunctuation(text: String): String =
