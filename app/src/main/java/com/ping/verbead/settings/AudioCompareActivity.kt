@@ -15,6 +15,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.R
 import com.ping.verbead.engine.AudioRecorder
+import com.ping.verbead.engine.DeepFilterNetProcessor
 import com.ping.verbead.engine.FarganProcessor
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.Qwen3AsrEngine
@@ -57,10 +58,19 @@ class AudioCompareActivity : AppCompatActivity() {
     private lateinit var btnReprocessFargan: MaterialButton
     private lateinit var tvAsrHeadsetFargan: TextView
 
+    // Track 4: Headset + DeepFilterNet
+    private lateinit var tvDurationHeadsetDeepfilter: TextView
+    private lateinit var tvBadgeHeadsetDeepfilter: TextView
+    private lateinit var progressHeadsetDeepfilter: LinearProgressIndicator
+    private lateinit var btnPlayHeadsetDeepfilter: MaterialButton
+    private lateinit var btnReprocessDeepfilter: MaterialButton
+    private lateinit var tvAsrHeadsetDeepfilter: TextView
+
     // Quick Switch Controls
     private lateinit var btnQuickPhone: MaterialButton
     private lateinit var btnQuickHeadsetRaw: MaterialButton
     private lateinit var btnQuickHeadsetFargan: MaterialButton
+    private lateinit var btnQuickHeadsetDfnet: MaterialButton
     private lateinit var btnStopAll: MaterialButton
 
     private val audioRecorder by lazy { AudioRecorder(this) }
@@ -71,6 +81,7 @@ class AudioCompareActivity : AppCompatActivity() {
     private var phoneSamples: FloatArray? = null
     private var headsetRawSamples: FloatArray? = null
     private var headsetFarganSamples: FloatArray? = null
+    private var headsetDeepfilterSamples: FloatArray? = null
 
     private var activeRecordingJob: Job? = null
     private var activePlaybackJob: Job? = null
@@ -127,10 +138,19 @@ class AudioCompareActivity : AppCompatActivity() {
         btnReprocessFargan = findViewById(R.id.btn_reprocess_fargan)
         tvAsrHeadsetFargan = findViewById(R.id.tv_asr_headset_fargan)
 
+        // Track 4
+        tvDurationHeadsetDeepfilter = findViewById(R.id.tv_duration_headset_deepfilter)
+        tvBadgeHeadsetDeepfilter = findViewById(R.id.tv_badge_headset_deepfilter)
+        progressHeadsetDeepfilter = findViewById(R.id.progress_headset_deepfilter)
+        btnPlayHeadsetDeepfilter = findViewById(R.id.btn_play_headset_deepfilter)
+        btnReprocessDeepfilter = findViewById(R.id.btn_reprocess_deepfilter)
+        tvAsrHeadsetDeepfilter = findViewById(R.id.tv_asr_headset_deepfilter)
+
         // Quick Controls
         btnQuickPhone = findViewById(R.id.btn_quick_phone)
         btnQuickHeadsetRaw = findViewById(R.id.btn_quick_headset_raw)
         btnQuickHeadsetFargan = findViewById(R.id.btn_quick_headset_fargan)
+        btnQuickHeadsetDfnet = findViewById(R.id.btn_quick_headset_dfnet)
         btnStopAll = findViewById(R.id.btn_stop_all)
     }
 
@@ -156,7 +176,7 @@ class AudioCompareActivity : AppCompatActivity() {
             playTrack(1)
         }
 
-        // Track 2 & 3: Headset Record (Dual generation)
+        // Track 2, 3 & 4: Headset Record (Triple simultaneous generation)
         btnRecordHeadset.setOnClickListener {
             HapticUtil.click(this)
             if (isRecordingHeadset) {
@@ -180,10 +200,21 @@ class AudioCompareActivity : AppCompatActivity() {
             reprocessFargan()
         }
 
+        // Track 4: DeepFilterNet Play & Reprocess
+        btnPlayHeadsetDeepfilter.setOnClickListener {
+            HapticUtil.click(this)
+            playTrack(4)
+        }
+        btnReprocessDeepfilter.setOnClickListener {
+            HapticUtil.click(this)
+            reprocessDeepfilter()
+        }
+
         // Quick controls
         btnQuickPhone.setOnClickListener { HapticUtil.click(this); playTrack(1) }
         btnQuickHeadsetRaw.setOnClickListener { HapticUtil.click(this); playTrack(2) }
         btnQuickHeadsetFargan.setOnClickListener { HapticUtil.click(this); playTrack(3) }
+        btnQuickHeadsetDfnet.setOnClickListener { HapticUtil.click(this); playTrack(4) }
         btnStopAll.setOnClickListener {
             HapticUtil.click(this)
             stopAllPlayback()
@@ -292,7 +323,7 @@ class AudioCompareActivity : AppCompatActivity() {
                     btnPlayHeadsetRaw.isEnabled = true
                     btnQuickHeadsetRaw.isEnabled = true
 
-                    // Track 3: Process through FARGAN using the exact same acoustic samples
+                    // Track 3: FARGAN Enhanced (Exact same take)
                     val farganSamples = FarganProcessor.processStreaming(rec.samples.copyOf())
                     headsetFarganSamples = farganSamples
                     tvDurationHeadsetFargan.text = "FARGAN 修復 · 時長：%.1f 秒".format(sec)
@@ -303,9 +334,21 @@ class AudioCompareActivity : AppCompatActivity() {
                     btnReprocessFargan.isEnabled = true
                     btnQuickHeadsetFargan.isEnabled = true
 
-                    // Run ASR for both to compare textual accuracy
+                    // Track 4: DeepFilterNet Enhanced (Exact same take)
+                    val dfSamples = DeepFilterNetProcessor.processStreaming(rec.samples.copyOf())
+                    headsetDeepfilterSamples = dfSamples
+                    tvDurationHeadsetDeepfilter.text = "DFNet 降噪 · 時長：%.1f 秒".format(sec)
+                    tvBadgeHeadsetDeepfilter.text = "已降噪"
+                    tvBadgeHeadsetDeepfilter.setBackgroundResource(R.drawable.bg_status_badge_recommend)
+                    tvBadgeHeadsetDeepfilter.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.tag_recommend))
+                    btnPlayHeadsetDeepfilter.isEnabled = true
+                    btnReprocessDeepfilter.isEnabled = true
+                    btnQuickHeadsetDfnet.isEnabled = true
+
+                    // Run ASR for all three to compare textual accuracy
                     runAsrTranscription(rec.samples, tvAsrHeadsetRaw)
                     runAsrTranscription(farganSamples, tvAsrHeadsetFargan)
+                    runAsrTranscription(dfSamples, tvAsrHeadsetDeepfilter)
                 } else {
                     tvBadgeHeadsetRaw.text = "未錄得聲音"
                     tvBadgeHeadsetRaw.setBackgroundResource(R.drawable.bg_status_badge_neutral)
@@ -336,6 +379,16 @@ class AudioCompareActivity : AppCompatActivity() {
         runAsrTranscription(farganSamples, tvAsrHeadsetFargan)
     }
 
+    private fun reprocessDeepfilter() {
+        val raw = headsetRawSamples ?: return
+        DeepFilterNetProcessor.reset()
+        val dfSamples = DeepFilterNetProcessor.processStreaming(raw.copyOf())
+        headsetDeepfilterSamples = dfSamples
+        tvBadgeHeadsetDeepfilter.text = "重新降噪就緒"
+        Toast.makeText(this, "已重新以 DeepFilterNet 增強耳機原音", Toast.LENGTH_SHORT).show()
+        runAsrTranscription(dfSamples, tvAsrHeadsetDeepfilter)
+    }
+
     private fun playTrack(trackId: Int) {
         stopAllPlayback()
 
@@ -343,6 +396,7 @@ class AudioCompareActivity : AppCompatActivity() {
             1 -> phoneSamples
             2 -> headsetRawSamples
             3 -> headsetFarganSamples
+            4 -> headsetDeepfilterSamples
             else -> null
         } ?: run {
             Toast.makeText(this, "該軌道尚未錄音", Toast.LENGTH_SHORT).show()
@@ -352,12 +406,14 @@ class AudioCompareActivity : AppCompatActivity() {
         val progressIndicator = when (trackId) {
             1 -> progressPhone
             2 -> progressHeadsetRaw
-            else -> progressHeadsetFargan
+            3 -> progressHeadsetFargan
+            else -> progressHeadsetDeepfilter
         }
         val playButton = when (trackId) {
             1 -> btnPlayPhone
             2 -> btnPlayHeadsetRaw
-            else -> btnPlayHeadsetFargan
+            3 -> btnPlayHeadsetFargan
+            else -> btnPlayHeadsetDeepfilter
         }
 
         playButton.setIconResource(R.drawable.ic_stop)
@@ -381,7 +437,8 @@ class AudioCompareActivity : AppCompatActivity() {
                     playButton.text = when (trackId) {
                         1 -> "播放原音"
                         2 -> "播放耳機原音"
-                        else -> "播放 FARGAN 增強"
+                        3 -> "播放 FARGAN 增強"
+                        else -> "播放 DeepFilter 增強"
                     }
                 }
             )
@@ -396,6 +453,7 @@ class AudioCompareActivity : AppCompatActivity() {
         progressPhone.post { progressPhone.setProgressCompat(0, false) }
         progressHeadsetRaw.post { progressHeadsetRaw.setProgressCompat(0, false) }
         progressHeadsetFargan.post { progressHeadsetFargan.setProgressCompat(0, false) }
+        progressHeadsetDeepfilter.post { progressHeadsetDeepfilter.setProgressCompat(0, false) }
 
         btnPlayPhone.setIconResource(R.drawable.ic_play_arrow)
         btnPlayPhone.text = "播放原音"
@@ -403,6 +461,8 @@ class AudioCompareActivity : AppCompatActivity() {
         btnPlayHeadsetRaw.text = "播放耳機原音"
         btnPlayHeadsetFargan.setIconResource(R.drawable.ic_play_arrow)
         btnPlayHeadsetFargan.text = "播放 FARGAN 增強"
+        btnPlayHeadsetDeepfilter.setIconResource(R.drawable.ic_play_arrow)
+        btnPlayHeadsetDeepfilter.text = "播放 DeepFilter 增強"
     }
 
     private fun runAsrTranscription(samples: FloatArray, targetView: TextView) {

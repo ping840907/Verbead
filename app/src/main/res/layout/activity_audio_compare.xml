@@ -389,7 +389,118 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 4. Quick A/B/C Switching Player -->
+            <!-- 4. 耳機 + DeepFilterNet 深度降噪 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_track_headset_deepfilter"
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            style="@style/Verbead.RowIcon"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="12dp"
+                            android:src="@drawable/ic_bolt" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Verbead.Text.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="4. 耳機 + DeepFilterNet 深度降噪" />
+
+                            <TextView
+                                android:id="@+id/tv_duration_headset_deepfilter"
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="等待耳機錄音 · 時長：0.0 秒" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_badge_headset_deepfilter"
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_neutral"
+                            android:text="未處理"
+                            android:textColor="@color/text_tertiary" />
+                    </LinearLayout>
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_headset_deepfilter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:max="100"
+                        android:progress="0"
+                        app:indicatorColor="@color/md_theme_light_primary"
+                        app:trackColor="@color/surface_card_stroke" />
+
+                    <!-- Buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_play_headset_deepfilter"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="播放 DFNet 降噪"
+                            app:icon="@drawable/ic_play_arrow" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_reprocess_deepfilter"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="重新深度濾波"
+                            app:icon="@drawable/ic_rotate" />
+                    </LinearLayout>
+
+                    <!-- ASR Result -->
+                    <TextView
+                        android:id="@+id/tv_asr_headset_deepfilter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_status_badge_neutral"
+                        android:padding="8dp"
+                        android:text="ASR 辨識：(尚未錄音)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 5. Quick Switching Player -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Verbead.Card"
                 android:layout_width="match_parent"
@@ -413,7 +524,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="在三種音訊軌道間切換聆聽，比較高頻細節、底噪與咬字清晰度" />
+                        android:text="在四種音訊軌道間切換聆聽，比較高頻細節、背景底噪與咬字清晰度" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -429,8 +540,12 @@
                             android:layout_marginEnd="4dp"
                             android:layout_weight="1"
                             android:enabled="false"
+                            android:insetLeft="0dp"
+                            android:insetRight="0dp"
+                            android:paddingStart="0dp"
+                            android:paddingEnd="0dp"
                             android:text="1. 手機"
-                            android:textSize="11sp" />
+                            android:textSize="10sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_quick_headset_raw"
@@ -440,8 +555,12 @@
                             android:layout_marginEnd="4dp"
                             android:layout_weight="1"
                             android:enabled="false"
-                            android:text="2. 耳機原音"
-                            android:textSize="11sp" />
+                            android:insetLeft="0dp"
+                            android:insetRight="0dp"
+                            android:paddingStart="0dp"
+                            android:paddingEnd="0dp"
+                            android:text="2. 原音"
+                            android:textSize="10sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_quick_headset_fargan"
@@ -451,8 +570,27 @@
                             android:layout_marginEnd="4dp"
                             android:layout_weight="1"
                             android:enabled="false"
+                            android:insetLeft="0dp"
+                            android:insetRight="0dp"
+                            android:paddingStart="0dp"
+                            android:paddingEnd="0dp"
                             android:text="3. FARGAN"
-                            android:textSize="11sp" />
+                            android:textSize="10sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_quick_headset_dfnet"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:insetLeft="0dp"
+                            android:insetRight="0dp"
+                            android:paddingStart="0dp"
+                            android:paddingEnd="0dp"
+                            android:text="4. DFNet"
+                            android:textSize="10sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_stop_all"
@@ -460,7 +598,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="停止"
-                            android:textSize="11sp"
+                            android:textSize="10sp"
                             app:icon="@drawable/ic_stop" />
                     </LinearLayout>
                 </LinearLayout>
