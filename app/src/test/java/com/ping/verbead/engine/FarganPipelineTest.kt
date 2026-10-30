@@ -45,28 +45,21 @@ class FarganPipelineTest {
     }
 
     @Test
-    fun testFarganDualPipelineDecisionLogic() {
-        // Verification of dual-pipeline routing policy:
-        // Policy:
-        // 1. External audio (Bluetooth headset) -> Route to FARGAN enabled by default (reconstruct mSBC loss)
-        // 2. Internal mic (Phone microphone)    -> Bypass FARGAN by default (preserve pristine acoustic features)
+    fun testFarganRoutingPolicy() {
+        // Verification of FARGAN routing policy:
+        // 1. External audio (Bluetooth headset) -> Route to FARGAN controlled by isFarganExternalAudioEnabled (default true)
+        // 2. Internal mic (Phone microphone)    -> ALWAYS bypass FARGAN (preserve pristine acoustic features and prevent neural vocoder phase distortion)
 
-        fun decideRoute(isExternal: Boolean, extPref: Boolean, intPref: Boolean): Boolean {
-            return if (isExternal) extPref else intPref
+        fun decideRoute(isExternal: Boolean, extPref: Boolean): Boolean {
+            return isExternal && extPref
         }
 
-        // Case 1: Default configuration
-        val defaultExtRoute = decideRoute(isExternal = true, extPref = true, intPref = false)
-        val defaultIntRoute = decideRoute(isExternal = false, extPref = true, intPref = false)
-        assertTrue("External audio must route to FARGAN by default", defaultExtRoute)
-        assertFalse("Internal microphone must bypass FARGAN by default", defaultIntRoute)
+        // Case 1: Default configuration (external audio routes, internal mic strictly bypasses)
+        assertTrue("External audio must route to FARGAN by default", decideRoute(isExternal = true, extPref = true))
+        assertFalse("Internal microphone must strictly bypass FARGAN", decideRoute(isExternal = false, extPref = true))
 
-        // Case 2: User explicitly enables FARGAN for internal mic
-        val userEnabledIntRoute = decideRoute(isExternal = false, extPref = true, intPref = true)
-        assertTrue("Internal microphone routes to FARGAN when explicitly enabled", userEnabledIntRoute)
-
-        // Case 3: User explicitly disables FARGAN for external audio
-        val userDisabledExtRoute = decideRoute(isExternal = true, extPref = false, intPref = false)
-        assertFalse("External audio bypasses FARGAN when disabled", userDisabledExtRoute)
+        // Case 2: User disables FARGAN for external audio
+        assertFalse("External audio bypasses FARGAN when disabled", decideRoute(isExternal = true, extPref = false))
+        assertFalse("Internal microphone remains bypassed", decideRoute(isExternal = false, extPref = false))
     }
 }

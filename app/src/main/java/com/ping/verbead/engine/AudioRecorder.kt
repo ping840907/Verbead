@@ -138,12 +138,8 @@ class AudioRecorder(private val context: Context? = null) {
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
-        // 依雙管線獨立設定決定是否路由至 FARGAN 神經語音增強
-        val isFarganRouted = if (isExternal) {
-            context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true
-        } else {
-            context?.let { ModelConfig.isFarganInternalMicEnabled(it) } ?: false
-        }
+        // 僅外部音訊 (藍牙/耳機) 可路由至 FARGAN 神經語音增強；手機內建麥克風固定高品質純淨直通
+        val isFarganRouted = isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true)
         FarganProcessor.reset()
         Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
 
@@ -320,12 +316,8 @@ class AudioRecorder(private val context: Context? = null) {
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
-        // 依雙管線獨立設定決定是否路由至 FARGAN 神經語音增強
-        val isFarganRouted = if (isExternal) {
-            context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true
-        } else {
-            context?.let { ModelConfig.isFarganInternalMicEnabled(it) } ?: false
-        }
+        // 僅外部音訊 (藍牙/耳機) 可路由至 FARGAN 神經語音增強；手機內建麥克風固定高品質純淨直通
+        val isFarganRouted = isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true)
         FarganProcessor.reset()
         Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
 

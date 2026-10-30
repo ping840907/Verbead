@@ -72,8 +72,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
     // FARGAN Speech Enhancement
     private lateinit var layoutFarganExternalAudioToggle: View
     private lateinit var switchFarganExternalAudio: MaterialSwitch
-    private lateinit var layoutFarganInternalMicToggle: View
-    private lateinit var switchFarganInternalMic: MaterialSwitch
 
     // Custom dictionary option card
     private lateinit var cardCustomDict: MaterialCardView
@@ -148,8 +146,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
         layoutFarganExternalAudioToggle = findViewById(R.id.layout_fargan_external_audio_toggle)
         switchFarganExternalAudio = findViewById(R.id.switch_fargan_external_audio)
-        layoutFarganInternalMicToggle = findViewById(R.id.layout_fargan_internal_mic_toggle)
-        switchFarganInternalMic = findViewById(R.id.switch_fargan_internal_mic)
 
         cardCustomDict = findViewById(R.id.card_custom_dict)
         layoutDictToggle = findViewById(R.id.layout_dict_toggle)
@@ -254,17 +250,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setFarganExternalAudioEnabled(this, isChecked)
         }
 
-        // FARGAN Internal Mic Toggle
-        layoutFarganInternalMicToggle.setOnClickListener {
-            HapticUtil.click(this)
-            switchFarganInternalMic.toggle()
-        }
-        switchFarganInternalMic.isChecked = ModelConfig.isFarganInternalMicEnabled(this)
-        switchFarganInternalMic.setOnCheckedChangeListener { _, isChecked ->
-            HapticUtil.click(this)
-            ModelConfig.setFarganInternalMicEnabled(this, isChecked)
-        }
-
         // Custom vocabulary option card navigation
         val openDictAction = {
             HapticUtil.click(this)
@@ -316,7 +301,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
 
         switchFarganExternalAudio.isChecked = ModelConfig.isFarganExternalAudioEnabled(this)
-        switchFarganInternalMic.isChecked = ModelConfig.isFarganInternalMicEnabled(this)
         updateAudioGainVisibility(switchPreferExternalAudio.isChecked)
     }
 
