@@ -2,9 +2,8 @@ package com.ping.verbead.settings
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
-import android.view.View
+import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +26,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AudioCompareActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "AudioCompareActivity"
+    }
 
     private lateinit var toolbar: MaterialToolbar
 
@@ -208,36 +211,46 @@ class AudioCompareActivity : AppCompatActivity() {
         btnRecordHeadset.isEnabled = false
 
         activeRecordingJob = lifecycleScope.launch {
-            val rec = audioRecorder.recordUntilSilence(
-                maxSeconds = 15f,
-                silenceSeconds = 1.2f,
-                forceExternal = false,
-                forceFargan = false,
-                onRmsUpdate = { rms ->
-                    progressPhone.progress = (rms * 1000f).toInt().coerceIn(0, 100)
+            try {
+                val rec = audioRecorder.recordUntilSilence(
+                    maxSeconds = 15f,
+                    silenceSeconds = 1.2f,
+                    forceExternal = false,
+                    forceFargan = false,
+                    onRmsUpdate = { rms ->
+                        val p = (rms * 1000f).toInt().coerceIn(0, 100)
+                        progressPhone.post {
+                            progressPhone.setProgressCompat(p, false)
+                        }
+                    }
+                )
+
+                if (rec.samples.isNotEmpty()) {
+                    phoneSamples = rec.samples
+                    val sec = rec.samples.size / 16000f
+                    tvDurationPhone.text = "已錄製 · 時長：%.1f 秒".format(sec)
+                    tvBadgePhone.text = "已就緒"
+                    tvBadgePhone.setBackgroundResource(R.drawable.bg_status_badge_recommend)
+                    tvBadgePhone.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.tag_recommend))
+                    btnPlayPhone.isEnabled = true
+                    btnQuickPhone.isEnabled = true
+                    runAsrTranscription(rec.samples, tvAsrPhone)
+                } else {
+                    tvBadgePhone.text = "未錄得聲音"
+                    tvBadgePhone.setBackgroundResource(R.drawable.bg_status_badge_neutral)
+                    tvBadgePhone.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.text_tertiary))
                 }
-            )
-
-            isRecordingPhone = false
-            btnRecordPhone.text = "錄製手機麥克風"
-            btnRecordPhone.setIconResource(R.drawable.ic_mic)
-            btnRecordHeadset.isEnabled = true
-            progressPhone.progress = 0
-
-            if (rec.samples.isNotEmpty()) {
-                phoneSamples = rec.samples
-                val sec = rec.samples.size / 16000f
-                tvDurationPhone.text = "已錄製 · 時長：%.1f 秒".format(sec)
-                tvBadgePhone.text = "已就緒"
-                tvBadgePhone.setBackgroundResource(R.drawable.bg_status_badge_recommend)
-                tvBadgePhone.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.tag_recommend))
-                btnPlayPhone.isEnabled = true
-                btnQuickPhone.isEnabled = true
-                runAsrTranscription(rec.samples, tvAsrPhone)
-            } else {
-                tvBadgePhone.text = "未錄得聲音"
-                tvBadgePhone.setBackgroundResource(R.drawable.bg_status_badge_neutral)
-                tvBadgePhone.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.text_tertiary))
+            } catch (e: Throwable) {
+                Log.e(TAG, "Recording phone error: ${e.message}", e)
+                Toast.makeText(this@AudioCompareActivity, "錄音失敗：${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isRecordingPhone = false
+                btnRecordPhone.text = "錄製手機麥克風"
+                btnRecordPhone.setIconResource(R.drawable.ic_mic)
+                btnRecordHeadset.isEnabled = true
+                progressPhone.post {
+                    progressPhone.setProgressCompat(0, false)
+                }
             }
         }
     }
@@ -255,50 +268,60 @@ class AudioCompareActivity : AppCompatActivity() {
         btnRecordPhone.isEnabled = false
 
         activeRecordingJob = lifecycleScope.launch {
-            val rec = audioRecorder.recordUntilSilence(
-                maxSeconds = 15f,
-                silenceSeconds = 1.2f,
-                forceExternal = true,
-                forceFargan = false,
-                onRmsUpdate = { rms ->
-                    progressHeadsetRaw.progress = (rms * 1000f).toInt().coerceIn(0, 100)
+            try {
+                val rec = audioRecorder.recordUntilSilence(
+                    maxSeconds = 15f,
+                    silenceSeconds = 1.2f,
+                    forceExternal = true,
+                    forceFargan = false,
+                    onRmsUpdate = { rms ->
+                        val p = (rms * 1000f).toInt().coerceIn(0, 100)
+                        progressHeadsetRaw.post {
+                            progressHeadsetRaw.setProgressCompat(p, false)
+                        }
+                    }
+                )
+
+                if (rec.samples.isNotEmpty()) {
+                    headsetRawSamples = rec.samples
+                    val sec = rec.samples.size / 16000f
+
+                    // Track 2: Raw
+                    tvDurationHeadsetRaw.text = "耳機原音 · 時長：%.1f 秒".format(sec)
+                    tvBadgeHeadsetRaw.text = "已就緒"
+                    btnPlayHeadsetRaw.isEnabled = true
+                    btnQuickHeadsetRaw.isEnabled = true
+
+                    // Track 3: Process through FARGAN using the exact same acoustic samples
+                    val farganSamples = FarganProcessor.processStreaming(rec.samples.copyOf())
+                    headsetFarganSamples = farganSamples
+                    tvDurationHeadsetFargan.text = "FARGAN 修復 · 時長：%.1f 秒".format(sec)
+                    tvBadgeHeadsetFargan.text = "已增強"
+                    tvBadgeHeadsetFargan.setBackgroundResource(R.drawable.bg_status_badge_recommend)
+                    tvBadgeHeadsetFargan.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.tag_recommend))
+                    btnPlayHeadsetFargan.isEnabled = true
+                    btnReprocessFargan.isEnabled = true
+                    btnQuickHeadsetFargan.isEnabled = true
+
+                    // Run ASR for both to compare textual accuracy
+                    runAsrTranscription(rec.samples, tvAsrHeadsetRaw)
+                    runAsrTranscription(farganSamples, tvAsrHeadsetFargan)
+                } else {
+                    tvBadgeHeadsetRaw.text = "未錄得聲音"
+                    tvBadgeHeadsetRaw.setBackgroundResource(R.drawable.bg_status_badge_neutral)
+                    tvBadgeHeadsetRaw.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.text_tertiary))
                 }
-            )
-
-            isRecordingHeadset = false
-            btnRecordHeadset.text = "錄製耳機音訊"
-            btnRecordHeadset.setIconResource(R.drawable.ic_tune)
-            btnRecordPhone.isEnabled = true
-            progressHeadsetRaw.progress = 0
-
-            if (rec.samples.isNotEmpty()) {
-                headsetRawSamples = rec.samples
-                val sec = rec.samples.size / 16000f
-
-                // Track 2: Raw
-                tvDurationHeadsetRaw.text = "耳機原音 · 時長：%.1f 秒".format(sec)
-                tvBadgeHeadsetRaw.text = "已就緒"
-                btnPlayHeadsetRaw.isEnabled = true
-                btnQuickHeadsetRaw.isEnabled = true
-
-                // Track 3: Process through FARGAN using the exact same acoustic samples
-                val farganSamples = FarganProcessor.processStreaming(rec.samples.copyOf())
-                headsetFarganSamples = farganSamples
-                tvDurationHeadsetFargan.text = "FARGAN 修復 · 時長：%.1f 秒".format(sec)
-                tvBadgeHeadsetFargan.text = "已增強"
-                tvBadgeHeadsetFargan.setBackgroundResource(R.drawable.bg_status_badge_recommend)
-                tvBadgeHeadsetFargan.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.tag_recommend))
-                btnPlayHeadsetFargan.isEnabled = true
-                btnReprocessFargan.isEnabled = true
-                btnQuickHeadsetFargan.isEnabled = true
-
-                // Run ASR for both to compare textual accuracy
-                runAsrTranscription(rec.samples, tvAsrHeadsetRaw)
-                runAsrTranscription(farganSamples, tvAsrHeadsetFargan)
-            } else {
-                tvBadgeHeadsetRaw.text = "未錄得聲音"
-                tvBadgeHeadsetRaw.setBackgroundResource(R.drawable.bg_status_badge_neutral)
-                tvBadgeHeadsetRaw.setTextColor(ContextCompat.getColor(this@AudioCompareActivity, R.color.text_tertiary))
+            } catch (e: Throwable) {
+                Log.e(TAG, "Recording headset error: ${e.message}", e)
+                Toast.makeText(this@AudioCompareActivity, "耳機錄音失敗：${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isRecordingHeadset = false
+                btnRecordHeadset.text = "錄製耳機音訊"
+                btnRecordHeadset.setIconResource(R.drawable.ic_tune)
+                btnRecordPhone.isEnabled = true
+                progressHeadsetRaw.post {
+                    progressHeadsetRaw.setProgressCompat(0, false)
+                }
             }
         }
     }
@@ -345,10 +368,15 @@ class AudioCompareActivity : AppCompatActivity() {
                 floats = samples,
                 sampleRate = ModelConfig.ASR_SAMPLE_RATE,
                 onProgress = { p ->
-                    progressIndicator.progress = (p * 100f).toInt().coerceIn(0, 100)
+                    val progressVal = (p * 100f).toInt().coerceIn(0, 100)
+                    progressIndicator.post {
+                        progressIndicator.setProgressCompat(progressVal, false)
+                    }
                 },
                 onCompletion = {
-                    progressIndicator.progress = 0
+                    progressIndicator.post {
+                        progressIndicator.setProgressCompat(0, false)
+                    }
                     playButton.setIconResource(R.drawable.ic_play_arrow)
                     playButton.text = when (trackId) {
                         1 -> "播放原音"
@@ -365,9 +393,9 @@ class AudioCompareActivity : AppCompatActivity() {
         activePlaybackJob = null
         pcmPlayer.stop()
 
-        progressPhone.progress = 0
-        progressHeadsetRaw.progress = 0
-        progressHeadsetFargan.progress = 0
+        progressPhone.post { progressPhone.setProgressCompat(0, false) }
+        progressHeadsetRaw.post { progressHeadsetRaw.setProgressCompat(0, false) }
+        progressHeadsetFargan.post { progressHeadsetFargan.setProgressCompat(0, false) }
 
         btnPlayPhone.setIconResource(R.drawable.ic_play_arrow)
         btnPlayPhone.text = "播放原音"
@@ -378,6 +406,10 @@ class AudioCompareActivity : AppCompatActivity() {
     }
 
     private fun runAsrTranscription(samples: FloatArray, targetView: TextView) {
+        if (!ModelConfig.isQwen3Ready(this)) {
+            targetView.text = "ASR 辨識：(Qwen3 模型未就緒，可至設定下載)"
+            return
+        }
         targetView.text = "ASR 辨識中..."
         lifecycleScope.launch {
             try {
