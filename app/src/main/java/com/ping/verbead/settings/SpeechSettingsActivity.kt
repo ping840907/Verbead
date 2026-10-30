@@ -87,6 +87,14 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
     }
 
+    private val bluetoothPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(this, "未授予藍牙連線權限，可能無法自動切換至藍牙耳機", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings_speech)
@@ -170,6 +178,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
             HapticUtil.click(this)
             ModelConfig.setPreferExternalAudio(this, isChecked)
             updateAudioGainVisibility(isChecked)
+            if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                }
+            }
         }
 
         // Gain slider (1.0x - 3.0x in 0.1x steps)
