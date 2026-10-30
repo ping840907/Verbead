@@ -126,6 +126,8 @@ class AudioRecorder(private val context: Context? = null) {
         silenceThreshold:      Float = ModelConfig.VAD_SILENCE_THRESHOLD,
         initialTimeoutSeconds: Float = ModelConfig.VAD_INITIAL_TIMEOUT_SECONDS,
         speechThreshold:       Float = ModelConfig.VAD_SPEECH_THRESHOLD,
+        forceExternal:         Boolean? = null,
+        forceFargan:           Boolean? = null,
         onRmsUpdate: ((Float) -> Unit)? = null,
     ): Recording = withContext(Dispatchers.IO) {
 
@@ -133,13 +135,13 @@ class AudioRecorder(private val context: Context? = null) {
 
         // 1. 先準備音訊路由（設定 MODE_IN_COMMUNICATION 並等待 CommunicationDevice / Bluetooth SCO 連線穩定）
         val routingManager = context?.let { AudioRoutingManager.getInstance(it) }
-        val routingSession = routingManager?.prepareForRecording()
+        val routingSession = routingManager?.prepareForRecording(forceExternal = forceExternal)
         val isExternal = routingSession?.isExternal == true
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
         // 僅外部音訊 (藍牙/耳機) 可路由至 FARGAN 神經語音增強；手機內建麥克風固定高品質純淨直通
-        val isFarganRouted = isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true)
+        val isFarganRouted = forceFargan ?: (isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true))
         FarganProcessor.reset()
         Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
 
@@ -303,6 +305,8 @@ class AudioRecorder(private val context: Context? = null) {
         maxSeconds:            Float = ModelConfig.MAX_RECORD_SECONDS,
         initialTimeoutSeconds: Float = ModelConfig.VAD_INITIAL_TIMEOUT_SECONDS,
         speechThreshold:       Float = ModelConfig.VAD_SPEECH_THRESHOLD,
+        forceExternal:         Boolean? = null,
+        forceFargan:           Boolean? = null,
         onChunk:          (FloatArray) -> Unit,
         onRmsUpdate:      ((Float) -> Unit)? = null,
     ): StopReason = withContext(Dispatchers.IO) {
@@ -311,13 +315,13 @@ class AudioRecorder(private val context: Context? = null) {
 
         // 1. 先準備音訊路由（設定 MODE_IN_COMMUNICATION 並等待 CommunicationDevice / Bluetooth SCO 連線穩定）
         val routingManager = context?.let { AudioRoutingManager.getInstance(it) }
-        val routingSession = routingManager?.prepareForRecording()
+        val routingSession = routingManager?.prepareForRecording(forceExternal = forceExternal)
         val isExternal = routingSession?.isExternal == true
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
         // 僅外部音訊 (藍牙/耳機) 可路由至 FARGAN 神經語音增強；手機內建麥克風固定高品質純淨直通
-        val isFarganRouted = isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true)
+        val isFarganRouted = forceFargan ?: (isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true))
         FarganProcessor.reset()
         Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
 

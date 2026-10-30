@@ -72,6 +72,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     // FARGAN Speech Enhancement
     private lateinit var layoutFarganExternalAudioToggle: View
     private lateinit var switchFarganExternalAudio: MaterialSwitch
+    private lateinit var layoutOpenAudioCompare: View
 
     // Custom dictionary option card
     private lateinit var cardCustomDict: MaterialCardView
@@ -146,6 +147,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
         layoutFarganExternalAudioToggle = findViewById(R.id.layout_fargan_external_audio_toggle)
         switchFarganExternalAudio = findViewById(R.id.switch_fargan_external_audio)
+        layoutOpenAudioCompare = findViewById(R.id.layout_open_audio_compare)
 
         cardCustomDict = findViewById(R.id.card_custom_dict)
         layoutDictToggle = findViewById(R.id.layout_dict_toggle)
@@ -248,6 +250,12 @@ class SpeechSettingsActivity : AppCompatActivity() {
         switchFarganExternalAudio.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
             ModelConfig.setFarganExternalAudioEnabled(this, isChecked)
+        }
+
+        // Open Audio Compare Lab
+        layoutOpenAudioCompare.setOnClickListener {
+            HapticUtil.click(this)
+            startActivity(Intent(this, AudioCompareActivity::class.java))
         }
 
         // Custom vocabulary option card navigation

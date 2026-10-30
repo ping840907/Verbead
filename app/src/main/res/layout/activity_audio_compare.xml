@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/background"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/text_primary"
+        app:title="音訊實驗室：錄音回放對比"
+        app:titleTextColor="@color/text_primary" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="32dp">
+
+            <!-- Intro Card -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="三軌聲學對比實驗室" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="精確對比三種聲學管線之音質與 ASR 辨識表現：\n1. 手機麥克風原音：極高硬體訊噪比與純淨直通特徵\n2. 耳機麥克風原音：藍牙 16kHz mSBC 原始壓縮音訊\n3. 耳機 + FARGAN：神經聲碼器修復高頻泛音與訊噪比\n\n提示：錄製耳機音訊時將自動同時生成耳機原音與 FARGAN 增強版，確保聲學發音完全相同進行嚴謹對比！" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 1. 手機麥克風原音 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_track_phone"
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            style="@style/Verbead.RowIcon"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="12dp"
+                            android:src="@drawable/ic_mic" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Verbead.Text.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="1. 手機麥克風原音" />
+
+                            <TextView
+                                android:id="@+id/tv_duration_phone"
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="未錄音 · 時長：0.0 秒" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_badge_phone"
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_neutral"
+                            android:text="未錄音"
+                            android:textColor="@color/text_tertiary" />
+                    </LinearLayout>
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_phone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:max="100"
+                        android:progress="0"
+                        app:indicatorColor="@color/md_theme_light_primary"
+                        app:trackColor="@color/surface_card_stroke" />
+
+                    <!-- Buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_record_phone"
+                            style="@style/Verbead.Button.Choice"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="錄製手機麥克風"
+                            app:icon="@drawable/ic_mic" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_play_phone"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="播放原音"
+                            app:icon="@drawable/ic_play_arrow" />
+                    </LinearLayout>
+
+                    <!-- ASR Result -->
+                    <TextView
+                        android:id="@+id/tv_asr_phone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_status_badge_neutral"
+                        android:padding="8dp"
+                        android:text="ASR 辨識：(尚未錄音)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 2. 耳機麥克風原音 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_track_headset_raw"
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            style="@style/Verbead.RowIcon"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="12dp"
+                            android:src="@drawable/ic_tune" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Verbead.Text.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="2. 耳機麥克風原音 (16kHz mSBC)" />
+
+                            <TextView
+                                android:id="@+id/tv_duration_headset_raw"
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="未錄音 · 時長：0.0 秒" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_badge_headset_raw"
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_neutral"
+                            android:text="未錄音"
+                            android:textColor="@color/text_tertiary" />
+                    </LinearLayout>
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_headset_raw"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:max="100"
+                        android:progress="0"
+                        app:indicatorColor="@color/md_theme_light_primary"
+                        app:trackColor="@color/surface_card_stroke" />
+
+                    <!-- Buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_record_headset"
+                            style="@style/Verbead.Button.Choice"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="錄製耳機音訊"
+                            app:icon="@drawable/ic_tune" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_play_headset_raw"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="播放耳機原音"
+                            app:icon="@drawable/ic_play_arrow" />
+                    </LinearLayout>
+
+                    <!-- ASR Result -->
+                    <TextView
+                        android:id="@+id/tv_asr_headset_raw"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_status_badge_neutral"
+                        android:padding="8dp"
+                        android:text="ASR 辨識：(尚未錄音)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 3. 耳機 + FARGAN 音訊處理 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_track_headset_fargan"
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            style="@style/Verbead.RowIcon"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="12dp"
+                            android:src="@drawable/ic_ai_sparkle" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Verbead.Text.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="3. 耳機 + FARGAN 音訊處理" />
+
+                            <TextView
+                                android:id="@+id/tv_duration_headset_fargan"
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="等待耳機錄音 · 時長：0.0 秒" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_badge_headset_fargan"
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_neutral"
+                            android:text="未處理"
+                            android:textColor="@color/text_tertiary" />
+                    </LinearLayout>
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_headset_fargan"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:max="100"
+                        android:progress="0"
+                        app:indicatorColor="@color/md_theme_light_primary"
+                        app:trackColor="@color/surface_card_stroke" />
+
+                    <!-- Buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_play_headset_fargan"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="播放 FARGAN 增強"
+                            app:icon="@drawable/ic_play_arrow" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_reprocess_fargan"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="重新套用增強"
+                            app:icon="@drawable/ic_rotate" />
+                    </LinearLayout>
+
+                    <!-- ASR Result -->
+                    <TextView
+                        android:id="@+id/tv_asr_headset_fargan"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_status_badge_neutral"
+                        android:padding="8dp"
+                        android:text="ASR 辨識：(尚未錄音)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 4. Quick A/B/C Switching Player -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="一鍵切換回放對比" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="在三種音訊軌道間切換聆聽，比較高頻細節、底噪與咬字清晰度" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_quick_phone"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="1. 手機"
+                            android:textSize="11sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_quick_headset_raw"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="2. 耳機原音"
+                            android:textSize="11sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_quick_headset_fargan"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:enabled="false"
+                            android:text="3. FARGAN"
+                            android:textSize="11sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_stop_all"
+                            style="@style/Verbead.Button.Compact"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="停止"
+                            android:textSize="11sp"
+                            app:icon="@drawable/ic_stop" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

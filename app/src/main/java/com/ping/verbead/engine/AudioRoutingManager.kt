@@ -246,8 +246,12 @@ class AudioRoutingManager(private val context: Context) {
      * at the hardware HAL level rather than falling back to 8kHz CVSD or built-in microphone.
      */
     @SuppressLint("MissingPermission")
-    suspend fun prepareForRecording(preferredDevice: AudioDeviceInfo? = null): RoutingSession {
-        if (!ModelConfig.isPreferExternalAudio(context)) {
+    suspend fun prepareForRecording(
+        preferredDevice: AudioDeviceInfo? = null,
+        forceExternal: Boolean? = null
+    ): RoutingSession {
+        val useExternal = forceExternal ?: ModelConfig.isPreferExternalAudio(context)
+        if (!useExternal) {
             val inputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
             val builtinMic = inputDevices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
                 ?: inputDevices.firstOrNull()
