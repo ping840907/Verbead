@@ -321,12 +321,22 @@ object Lfm3AudioEngine {
             generateReplyText(rawUserText, history)
         }
 
-        // 3. 語音合成訊號：依據偏好執行 LFM3 原生神經聲學合成 (decoder_q4 -> depth_decoder -> codec_decoder)
+        // 3. 語音合成訊號：依據偏好執行 LFM3 原生神經聲學合成或 Qwen3-TTS 語音合成
         val mode = ModelConfig.getLfm3SynthesisMode(context)
-        val replyAudio: FloatArray? = if (mode == ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC) {
-            synthesizeNativeSpeech(context, replyText)
-        } else {
-            null
+        val replyAudio: FloatArray? = when (mode) {
+            ModelConfig.SYNTHESIS_MODE_QWEN3_TTS -> {
+                if (Qwen3TtsRunner.isAvailable(context)) {
+                    Qwen3TtsRunner.synthesizeSpeech(context, replyText)
+                } else {
+                    synthesizeNativeSpeech(context, replyText)
+                }
+            }
+            ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC -> {
+                synthesizeNativeSpeech(context, replyText)
+            }
+            else -> {
+                null
+            }
         }
 
         val latencyMs = System.currentTimeMillis() - t0

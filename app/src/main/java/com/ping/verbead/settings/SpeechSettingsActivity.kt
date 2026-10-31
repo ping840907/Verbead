@@ -409,16 +409,18 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val label = when (engine) {
             ModelConfig.ENGINE_LFM3_AUDIO -> "LFM3-Audio-2B 旗艦模型"
             ModelConfig.ENGINE_X_ASR -> "X-ASR 繁中串流模型"
+            ModelConfig.ENGINE_QWEN3_TTS -> "Qwen3-TTS 語音合成模型"
             else -> "Qwen3-ASR 語音模型"
         }
         lifecycleScope.launch {
             val totalBytes = withContext(Dispatchers.IO) { downloader.estimateTotalBytes(target) }
             val totalMb = totalBytes / 1024 / 1024
             val ready = when (engine) {
-            ModelConfig.ENGINE_LFM3_AUDIO -> ModelConfig.isLfm3AudioReady(this@SpeechSettingsActivity)
-            ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this@SpeechSettingsActivity)
-            else -> ModelConfig.isQwen3Ready(this@SpeechSettingsActivity)
-        }
+                ModelConfig.ENGINE_LFM3_AUDIO -> ModelConfig.isLfm3AudioReady(this@SpeechSettingsActivity)
+                ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this@SpeechSettingsActivity)
+                ModelConfig.ENGINE_QWEN3_TTS -> ModelConfig.isQwen3TtsReady(this@SpeechSettingsActivity)
+                else -> ModelConfig.isQwen3Ready(this@SpeechSettingsActivity)
+            }
             val action = if (ready) "重新下載" else "下載"
 
             AlertDialog.Builder(this@SpeechSettingsActivity)

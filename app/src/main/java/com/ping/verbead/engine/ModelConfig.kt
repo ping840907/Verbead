@@ -50,6 +50,18 @@ object ModelConfig {
     const val LFM3_AUDIO_GGUF_MMPROJ         = "mmproj-LFM3-Audio-2B-Q8_0.gguf"
     const val LFM3_AUDIO_THREADS             = 4
 
+    // ── Alibaba Qwen3-TTS-12Hz-1.7B-Base (multilingual zero-shot neural TTS) ───
+    // Model files from: https://huggingface.co/ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF
+    // Place under: <modelsDir>/qwen3_tts/
+    //   Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf
+    //   mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf
+    //   speaker_default.wav
+    const val QWEN3_TTS_DIR              = "qwen3_tts"
+    const val QWEN3_TTS_GGUF_MODEL       = "Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf"
+    const val QWEN3_TTS_GGUF_MMPROJ      = "mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf"
+    const val QWEN3_TTS_SPEAKER_DEFAULT  = "speaker_default.wav"
+    const val ENGINE_QWEN3_TTS           = "qwen3_tts"
+
     // ── Shared ────────────────────────────────────────────────────────────────
     const val ASR_SAMPLE_RATE = 16_000
     val ASR_PROVIDER_PRIORITY = listOf("nnapi", "cpu")
@@ -119,6 +131,10 @@ object ModelConfig {
     fun lfm3AudioTokenizerPath(context: Context)         = "${lfm3AudioDir(context)}/$LFM3_AUDIO_TOKENIZER"
     fun lfm3AudioGgufModelPath(context: Context)         = "${lfm3AudioDir(context)}/$LFM3_AUDIO_GGUF_MODEL"
     fun lfm3AudioGgufMmprojPath(context: Context)        = "${lfm3AudioDir(context)}/$LFM3_AUDIO_GGUF_MMPROJ"
+    fun qwen3TtsDir(context: Context)                   = "${modelsDir(context)}/$QWEN3_TTS_DIR"
+    fun qwen3TtsModelPath(context: Context)             = "${qwen3TtsDir(context)}/$QWEN3_TTS_GGUF_MODEL"
+    fun qwen3TtsMmprojPath(context: Context)            = "${qwen3TtsDir(context)}/$QWEN3_TTS_GGUF_MMPROJ"
+    fun qwen3TtsDefaultSpeakerPath(context: Context)    = "${qwen3TtsDir(context)}/$QWEN3_TTS_SPEAKER_DEFAULT"
 
     // Engine selection helpers
     fun selectedEngine(context: Context): String =
@@ -665,6 +681,7 @@ object ModelConfig {
     private const val PREF_LFM3_CHAT = "lfm3_chat_settings"
     private const val KEY_SYNTHESIS_MODE = "synthesis_mode"
     const val SYNTHESIS_MODE_NATIVE_CODEC = "native_codec"
+    const val SYNTHESIS_MODE_QWEN3_TTS    = "qwen3_tts"
     const val SYNTHESIS_MODE_SYSTEM_TTS   = "system_tts"
 
     fun getLfm3SynthesisMode(context: Context): String =
@@ -674,6 +691,12 @@ object ModelConfig {
     fun setLfm3SynthesisMode(context: Context, mode: String) =
         context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
             .edit().putString(KEY_SYNTHESIS_MODE, mode).apply()
+
+    fun isQwen3TtsReady(context: Context): Boolean {
+        val m = java.io.File(qwen3TtsModelPath(context))
+        val p = java.io.File(qwen3TtsMmprojPath(context))
+        return m.exists() && m.length() > 1024L && p.exists() && p.length() > 1024L
+    }
 
     fun isLfm3GgufReady(context: Context): Boolean {
         val m = java.io.File(lfm3AudioGgufModelPath(context))

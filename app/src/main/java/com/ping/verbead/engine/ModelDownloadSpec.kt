@@ -137,8 +137,26 @@ object ModelDownloadSpec {
         ),
     )
 
+    // Alibaba Qwen3-TTS (12Hz / 24kHz Q4_K_M GGUF backbone + Q8_0 mmproj)
+    fun qwen3Tts(): DownloadTarget = DownloadTarget(
+        engine = ModelConfig.ENGINE_QWEN3_TTS,
+        files = listOf(
+            RemoteFile(
+                url = "https://huggingface.co/ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF/resolve/main/${ModelConfig.QWEN3_TTS_GGUF_MODEL}",
+                relativePath = ModelConfig.QWEN3_TTS_GGUF_MODEL,
+                sha256 = null,
+            ),
+            RemoteFile(
+                url = "https://huggingface.co/ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF/resolve/main/${ModelConfig.QWEN3_TTS_GGUF_MMPROJ}",
+                relativePath = ModelConfig.QWEN3_TTS_GGUF_MMPROJ,
+                sha256 = null,
+            ),
+        ),
+    )
+
     fun forEngine(engine: String): DownloadTarget = when {
         engine == ModelConfig.ENGINE_LFM3_AUDIO -> lfm3Audio()
+        engine == ModelConfig.ENGINE_QWEN3_TTS -> qwen3Tts()
         engine == ModelConfig.ENGINE_X_ASR -> xAsr()
         engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
         com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine } -> slm(engine)

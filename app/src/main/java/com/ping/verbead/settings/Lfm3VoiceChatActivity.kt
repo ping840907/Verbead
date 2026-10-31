@@ -151,16 +151,22 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         btnChatDownloadAction.setOnClickListener {
             HapticUtil.click(this)
             val active = ModelDownloadState.active.value
-            if (active != null && active.engine == ModelConfig.ENGINE_LFM3_AUDIO) {
+            if (active != null && (active.engine == ModelConfig.ENGINE_LFM3_AUDIO || active.engine == ModelConfig.ENGINE_QWEN3_TTS)) {
                 ModelDownloadService.cancel(this)
             } else {
-                ModelDownloadService.start(this, ModelConfig.ENGINE_LFM3_AUDIO)
+                val currentMode = ModelConfig.getLfm3SynthesisMode(this)
+                val targetEngine = if (currentMode == ModelConfig.SYNTHESIS_MODE_QWEN3_TTS && !ModelConfig.isQwen3TtsReady(this)) {
+                    ModelConfig.ENGINE_QWEN3_TTS
+                } else {
+                    ModelConfig.ENGINE_LFM3_AUDIO
+                }
+                ModelDownloadService.start(this, targetEngine)
             }
         }
 
         lifecycleScope.launch {
             ModelDownloadState.active.collect { active ->
-                if (active != null && active.engine == ModelConfig.ENGINE_LFM3_AUDIO) {
+                if (active != null && (active.engine == ModelConfig.ENGINE_LFM3_AUDIO || active.engine == ModelConfig.ENGINE_QWEN3_TTS)) {
                     cardDownloadPrompt.visibility = View.VISIBLE
                     btnChatDownloadAction.text = "取消下載"
                     progressChatDownload.visibility = View.VISIBLE
@@ -168,14 +174,21 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
                     if (active.progress.percent >= 0) progressChatDownload.progress = active.progress.percent
                     tvChatDownloadStatus.text = "下載中：${active.progress.label} (${active.progress.percent}%)"
                 } else {
-                    val ready = ModelConfig.isLfm3AudioReady(this@Lfm3VoiceChatActivity)
-                    if (ready) {
-                        cardDownloadPrompt.visibility = View.GONE
-                    } else {
+                    val lfm3Ready = ModelConfig.isLfm3AudioReady(this@Lfm3VoiceChatActivity)
+                    val currentMode = ModelConfig.getLfm3SynthesisMode(this@Lfm3VoiceChatActivity)
+                    val qwen3TtsReady = ModelConfig.isQwen3TtsReady(this@Lfm3VoiceChatActivity)
+                    if (!lfm3Ready) {
                         cardDownloadPrompt.visibility = View.VISIBLE
                         btnChatDownloadAction.text = "一鍵下載"
                         progressChatDownload.visibility = View.GONE
-                        tvChatDownloadStatus.text = "GGUF 官方權重尚未下載 (約 1.29 GB，支援 NPU/GPU)"
+                        tvChatDownloadStatus.text = "LFM3 GGUF 官方權重尚未下載 (約 1.29 GB，支援 NPU/GPU)"
+                    } else if (currentMode == ModelConfig.SYNTHESIS_MODE_QWEN3_TTS && !qwen3TtsReady) {
+                        cardDownloadPrompt.visibility = View.VISIBLE
+                        btnChatDownloadAction.text = "下載 Qwen3"
+                        progressChatDownload.visibility = View.GONE
+                        tvChatDownloadStatus.text = "Qwen3-TTS 權重尚未下載 (約 1.41 GB，支援 NPU/GPU)"
+                    } else {
+                        cardDownloadPrompt.visibility = View.GONE
                     }
                 }
             }
@@ -183,12 +196,14 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             ModelDownloadState.results.collect { (engine, result) ->
-                if (engine == ModelConfig.ENGINE_LFM3_AUDIO) {
+                if (engine == ModelConfig.ENGINE_LFM3_AUDIO || engine == ModelConfig.ENGINE_QWEN3_TTS) {
+                    val name = if (engine == ModelConfig.ENGINE_QWEN3_TTS) "Qwen3-TTS" else "LFM3"
                     if (result.isSuccess) {
-                        Toast.makeText(this@Lfm3VoiceChatActivity, "LFM3 模型下載完成！", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Lfm3VoiceChatActivity, "$name 模型下載完成！", Toast.LENGTH_SHORT).show()
                         cardDownloadPrompt.visibility = View.GONE
+                        updateSynthesisModeUi()
                     } else {
-                        Toast.makeText(this@Lfm3VoiceChatActivity, "下載失敗，請檢查網路連線", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Lfm3VoiceChatActivity, "$name 下載失敗，請檢查網路連線", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -230,34 +245,57 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         updateSynthesisModeUi()
         btnToggleSynthesisMode.setOnClickListener {
             HapticUtil.click(this)
-            val currentMode = ModelConfig.getLfm3SynthesisMode(this)
-            val newMode = if (currentMode == ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC) {
+            val modes = arrayOf(
+                ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC,
+                ModelConfig.SYNTHESIS_MODE_QWEN3_TTS,
                 ModelConfig.SYNTHESIS_MODE_SYSTEM_TTS
-            } else {
-                ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC
-            }
-            ModelConfig.setLfm3SynthesisMode(this, newMode)
-            updateSynthesisModeUi()
-            val label = if (newMode == ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC) {
-                "已切換為 LFM3 原生神經聲學 (LiquidCodec 24kHz)"
-            } else {
-                "已切換為系統端側類神經朗讀 (Google SeaNet TTS)"
-            }
-            Toast.makeText(this, label, Toast.LENGTH_SHORT).show()
+            )
+            val modeLabels = arrayOf(
+                "LFM3 原生神經聲學 (LiquidCodec 24kHz，端到端對話)",
+                "Qwen3-TTS 旗艦語音 (Alibaba 12Hz Codec，支援聲音克隆與 NPU)",
+                "系統端側類神經朗讀 (Google SeaNet TTS)"
+            )
+            val currentMode = ModelConfig.getLfm3SynthesisMode(this)
+            val currentIndex = modes.indexOf(currentMode).coerceAtLeast(0)
+
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("選擇語音合成來源")
+                .setSingleChoiceItems(modeLabels, currentIndex) { dialog, which ->
+                    val selectedMode = modes[which]
+                    ModelConfig.setLfm3SynthesisMode(this@Lfm3VoiceChatActivity, selectedMode)
+                    updateSynthesisModeUi()
+                    HapticUtil.click(this@Lfm3VoiceChatActivity)
+                    dialog.dismiss()
+                    if (selectedMode == ModelConfig.SYNTHESIS_MODE_QWEN3_TTS && !ModelConfig.isQwen3TtsReady(this@Lfm3VoiceChatActivity)) {
+                        Toast.makeText(this@Lfm3VoiceChatActivity, "已切換為 Qwen3-TTS (點選上方下載卡片以取得模型)", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(this@Lfm3VoiceChatActivity, "已切換發聲來源為：${modeLabels[which].substringBefore('(').trim()}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
         }
     }
 
     private fun updateSynthesisModeUi() {
         val currentMode = ModelConfig.getLfm3SynthesisMode(this)
-        val isNative = (currentMode == ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC)
-        if (isNative) {
-            tvSynthesisModeTitle.text = "發聲：LFM3 原生神經聲學"
-            tvSynthesisModeDesc.text = "LiquidCodec 24kHz 端到端神經聲學合成"
-            btnToggleSynthesisMode.text = "切換為 TTS"
-        } else {
-            tvSynthesisModeTitle.text = "發聲：系統端側類神經朗讀"
-            tvSynthesisModeDesc.text = "Google SeaNet 高傳真離線神經 TTS"
-            btnToggleSynthesisMode.text = "切換為原生"
+        when (currentMode) {
+            ModelConfig.SYNTHESIS_MODE_QWEN3_TTS -> {
+                val ready = ModelConfig.isQwen3TtsReady(this)
+                tvSynthesisModeTitle.text = "發聲：Qwen3-TTS 旗艦語音"
+                tvSynthesisModeDesc.text = if (ready) "Alibaba Qwen3-TTS 12Hz GGUF (NPU/GPU 已就緒)" else "尚未下載 Qwen3-TTS 權重 (約 1.41 GB)"
+                btnToggleSynthesisMode.text = "切換引擎"
+            }
+            ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC -> {
+                tvSynthesisModeTitle.text = "發聲：LFM3 原生神經聲學"
+                tvSynthesisModeDesc.text = "LiquidCodec 24kHz 端到端神經聲學合成"
+                btnToggleSynthesisMode.text = "切換引擎"
+            }
+            else -> {
+                tvSynthesisModeTitle.text = "發聲：系統端側類神經朗讀"
+                tvSynthesisModeDesc.text = "Google SeaNet 高傳真離線神經 TTS"
+                btnToggleSynthesisMode.text = "切換引擎"
+            }
         }
     }
 
