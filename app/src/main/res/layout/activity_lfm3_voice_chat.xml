@@ -238,27 +238,27 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="10dp">
 
             <!-- Dynamic Pulse Orb Icon -->
             <FrameLayout
-                android:layout_width="64dp"
-                android:layout_height="64dp">
+                android:layout_width="44dp"
+                android:layout_height="44dp">
 
                 <View
                     android:id="@+id/view_pulse_ring"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
                     android:background="@drawable/bg_bubble_pulse"
                     android:visibility="invisible" />
 
                 <ImageView
                     android:id="@+id/iv_status_icon"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_gravity="center"
                     android:background="@drawable/bg_icon_circle"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@drawable/ic_mic"
                     app:tint="@color/md_theme_light_primary" />
             </FrameLayout>
@@ -267,18 +267,18 @@
                 android:id="@+id/tv_acoustic_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="點擊下方麥克風開始對話"
+                android:layout_marginTop="4dp"
+                android:text="輸入文字直接唸出或點擊麥克風說話"
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <!-- Live RMS Volume Progress -->
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/progress_rms"
-                android:layout_width="160dp"
-                android:layout_height="4dp"
-                android:layout_marginTop="8dp"
+                android:layout_width="140dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="4dp"
                 android:max="100"
                 android:progress="0"
                 app:indicatorColor="@color/md_theme_light_primary"
@@ -286,42 +286,90 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Bottom Controls -->
+    <!-- Bottom Controls & Direct Text Input -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/surface_card"
         android:elevation="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="24dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="20dp">
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_stop_speech"
-            style="@style/Verbead.Button.Compact"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="12dp"
-            android:layout_weight="1"
-            android:enabled="false"
-            android:text="停止"
-            app:icon="@drawable/ic_stop" />
+        <!-- Row 1: Direct Text Input Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_mic_action"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="2"
-            android:backgroundTint="@color/md_theme_light_primary"
-            android:text="開始說話"
-            android:textColor="@color/md_theme_light_onPrimary"
-            android:textStyle="bold"
-            app:cornerRadius="24dp"
-            app:icon="@drawable/ic_mic"
-            app:iconTint="@color/md_theme_light_onPrimary" />
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_text_input"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="輸入文字直接由 TTS 唸出…"
+                app:boxCornerRadiusBottomEnd="22dp"
+                app:boxCornerRadiusBottomStart="22dp"
+                app:boxCornerRadiusTopEnd="22dp"
+                app:boxCornerRadiusTopStart="22dp"
+                app:endIconMode="clear_text">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_input_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionSend"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:maxLines="3"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_speak_text"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/md_theme_light_primary"
+                android:text="唸出"
+                android:textColor="@color/md_theme_light_onPrimary"
+                android:textStyle="bold"
+                app:cornerRadius="24dp"
+                app:icon="@drawable/ic_play_arrow"
+                app:iconTint="@color/md_theme_light_onPrimary" />
+        </LinearLayout>
+
+        <!-- Row 2: Secondary Voice Actions -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_stop_speech"
+                style="@style/Verbead.Button.Compact"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="停止"
+                app:icon="@drawable/ic_stop" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_mic_action"
+                style="@style/Verbead.Button.Tonal"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="2"
+                android:text="麥克風對話"
+                app:icon="@drawable/ic_mic" />
+        </LinearLayout>
 
     </LinearLayout>
 

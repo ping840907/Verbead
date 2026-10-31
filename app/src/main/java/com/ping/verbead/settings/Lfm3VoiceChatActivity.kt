@@ -11,6 +11,10 @@ import android.view.animation.ScaleAnimation
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import com.google.android.material.textfield.TextInputEditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +29,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.R
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.Lfm3AudioEngine
+import com.ping.verbead.engine.Qwen3TtsRunner
 import com.ping.verbead.engine.Lfm3ChatMessage
 import com.ping.verbead.util.HapticUtil
 import com.ping.verbead.util.PcmPlayer
@@ -74,6 +79,8 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
     private lateinit var tvSynthesisModeTitle: TextView
     private lateinit var tvSynthesisModeDesc: TextView
     private lateinit var btnToggleSynthesisMode: MaterialButton
+    private lateinit var etInputText: TextInputEditText
+    private lateinit var btnSpeakText: MaterialButton
 
     private lateinit var chatAdapter: Lfm3ChatAdapter
     private val audioRecorder by lazy { AudioRecorder(this) }
@@ -131,6 +138,8 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         tvSynthesisModeTitle = findViewById(R.id.tv_synthesis_mode_title)
         tvSynthesisModeDesc = findViewById(R.id.tv_synthesis_mode_desc)
         btnToggleSynthesisMode = findViewById(R.id.btn_toggle_synthesis_mode)
+        etInputText = findViewById(R.id.et_input_text)
+        btnSpeakText = findViewById(R.id.btn_speak_text)
     }
 
     private fun setupChatList() {
@@ -233,6 +242,36 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
                     pcmPlayer.stop()
                     checkPermissionAndListen()
                 }
+            }
+        }
+
+        btnSpeakText.setOnClickListener {
+            HapticUtil.click(this)
+            val text = etInputText.text?.toString().orEmpty()
+            if (text.isNotBlank()) {
+                etInputText.setText("")
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(etInputText.windowToken, 0)
+                handleDirectTtsSpeak(text)
+            } else {
+                Toast.makeText(this, "請輸入欲朗讀的文字", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        etInputText.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_SEND || actionId == EditorInfo.IME_ACTION_DONE ||
+                (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+            ) {
+                val text = etInputText.text?.toString().orEmpty()
+                if (text.isNotBlank()) {
+                    etInputText.setText("")
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(etInputText.windowToken, 0)
+                    handleDirectTtsSpeak(text)
+                }
+                true
+            } else {
+                false
             }
         }
 
@@ -393,6 +432,66 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleDirectTtsSpeak(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return
+        stopAll()
+        setState(ChatState.THINKING)
+        tvAcousticStatus.text = "TTS 正在合成語音中..."
+
+        lifecycleScope.launch {
+            try {
+                val mode = ModelConfig.getLfm3SynthesisMode(this@Lfm3VoiceChatActivity)
+                val synthSamples: FloatArray? = when (mode) {
+                    ModelConfig.SYNTHESIS_MODE_QWEN3_TTS -> {
+                        if (Qwen3TtsRunner.isAvailable(this@Lfm3VoiceChatActivity)) {
+                            Qwen3TtsRunner.synthesizeSpeech(this@Lfm3VoiceChatActivity, trimmed)
+                        } else {
+                            null
+                        }
+                    }
+                    ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC -> {
+                        Lfm3AudioEngine.synthesizeNativeSpeech(this@Lfm3VoiceChatActivity, trimmed)
+                    }
+                    else -> {
+                        null
+                    }
+                }
+
+                val modeLabel = when (mode) {
+                    ModelConfig.SYNTHESIS_MODE_QWEN3_TTS -> if (synthSamples != null) "Qwen3-TTS" else "系統 TTS (Qwen3 未下載)"
+                    ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC -> if (synthSamples != null) "LFM3 原生" else "系統 TTS"
+                    else -> "系統 TTS"
+                }
+
+                // 加入聊天清單
+                chatAdapter.addMessage(
+                    Lfm3ChatMessage(
+                        isUser = false,
+                        text = "[$modeLabel 朗讀] $trimmed",
+                        audioSamples = synthSamples
+                    )
+                )
+                rvChatMessages.scrollToPosition(chatAdapter.itemCount - 1)
+
+                // 播放語音
+                if (synthSamples != null && synthSamples.isNotEmpty()) {
+                    playAudio(synthSamples, 24_000) {
+                        setState(ChatState.IDLE)
+                    }
+                } else {
+                    speakText(trimmed) {
+                        setState(ChatState.IDLE)
+                    }
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Direct TTS synthesis failed: ${e.message}", e)
+                Toast.makeText(this@Lfm3VoiceChatActivity, "語音合成失敗：${e.message}", Toast.LENGTH_SHORT).show()
+                setState(ChatState.IDLE)
+            }
+        }
+    }
+
     private fun speakText(text: String, onFinished: (() -> Unit)? = null) {
         stopAll()
         setState(ChatState.SPEAKING)
@@ -455,11 +554,12 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         runOnUiThread {
             when (state) {
                 ChatState.IDLE -> {
-                    tvAcousticStatus.text = "點擊下方麥克風開始對話"
+                    tvAcousticStatus.text = "輸入文字直接唸出或點擊麥克風說話"
                     ivStatusIcon.setImageResource(R.drawable.ic_mic)
                     ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.md_theme_light_primary))
-                    btnMicAction.text = "開始說話"
+                    btnMicAction.text = "麥克風對話"
                     btnMicAction.isEnabled = true
+                    btnSpeakText.isEnabled = true
                     btnStopSpeech.isEnabled = false
                     progressRms.setProgressCompat(0, false)
                     stopPulseAnimation()
@@ -470,24 +570,26 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
                     ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.status_success))
                     btnMicAction.text = "點擊發送"
                     btnMicAction.isEnabled = true
+                    btnSpeakText.isEnabled = false
                     btnStopSpeech.isEnabled = true
                     startPulseAnimation()
                 }
                 ChatState.THINKING -> {
-                    tvAcousticStatus.text = "LFM3 基礎模型思考中..."
                     ivStatusIcon.setImageResource(R.drawable.ic_ai_sparkle)
                     ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.tag_recommend))
                     btnMicAction.text = "處理中..."
                     btnMicAction.isEnabled = false
+                    btnSpeakText.isEnabled = false
                     btnStopSpeech.isEnabled = true
                     stopPulseAnimation()
                 }
                 ChatState.SPEAKING -> {
-                    tvAcousticStatus.text = "正在播放 LFM3 語音回覆..."
+                    tvAcousticStatus.text = "正在播放 TTS 語音朗讀..."
                     ivStatusIcon.setImageResource(R.drawable.ic_play_arrow)
                     ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.tag_recommend))
                     btnMicAction.text = "插話打斷"
                     btnMicAction.isEnabled = true
+                    btnSpeakText.isEnabled = true
                     btnStopSpeech.isEnabled = true
                     startPulseAnimation()
                 }
