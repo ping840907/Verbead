@@ -147,11 +147,7 @@ object Lfm3GgufRunner {
             val hasChinese = text.any { it.code in 0x4E00..0x9FFF }
             val ttsLang = if (hasChinese) "Chinese" else "English"
             val normalizedPrompt = if (hasChinese) {
-                try {
-                    ZhConverterUtil.toSimple(text)
-                } catch (_: Throwable) {
-                    text
-                }
+                TaiwanesePromptAdapter.buildQwen3Prompt(text)
             } else {
                 text
             }
