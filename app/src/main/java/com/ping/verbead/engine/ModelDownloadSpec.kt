@@ -145,6 +145,16 @@ object ModelDownloadSpec {
                 sha256 = "b069b656f2610fd6c4d1a297596adcb26a53a9dbcef0baa16432b72a4077b773",
             ),
             RemoteFile(
+                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_DEPTH_DECODER}",
+                relativePath = ModelConfig.LFM3_AUDIO_DEPTH_DECODER,
+                sha256 = "cbe5945206042a1b34f74bbb2979135374f594d7e4502405c86d76f2f5f3965a",
+            ),
+            RemoteFile(
+                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_DEPTH_DECODER_DATA}",
+                relativePath = ModelConfig.LFM3_AUDIO_DEPTH_DECODER_DATA,
+                sha256 = "022a87e4eb269c194f723e5d124d9389a9f9d7a993dfcd09dea283699df40c45",
+            ),
+            RemoteFile(
                 url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_CODEC_DECODER}",
                 relativePath = ModelConfig.LFM3_AUDIO_CODEC_DECODER,
                 sha256 = "5e1d03189d2169ca0e961d1b468b1625bdc57e082bdae7c332178c8aad719878",

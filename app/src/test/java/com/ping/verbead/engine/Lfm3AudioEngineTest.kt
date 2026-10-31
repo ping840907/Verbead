@@ -84,4 +84,36 @@ class Lfm3AudioEngineTest {
         assertEquals(24_000, response.audioSampleRate)
         assertEquals(45L, response.latencyMs)
     }
+
+    @Test
+    fun testLiquidCodecSynthesizerConstantsAndIrfft() {
+        assertEquals(24_000, LiquidCodecSynthesizer.SAMPLE_RATE)
+        assertEquals(12, LiquidCodecSynthesizer.NUM_CODEBOOKS)
+        assertEquals(1280, LiquidCodecSynthesizer.N_FFT)
+        assertEquals(320, LiquidCodecSynthesizer.HOP_LENGTH)
+        assertEquals(1280, LiquidCodecSynthesizer.WIN_LENGTH)
+        assertEquals(641, LiquidCodecSynthesizer.NUM_BINS)
+        assertEquals(1282, LiquidCodecSynthesizer.FEATURE_DIM)
+
+        val real = FloatArray(641) { 0.1f }
+        val imag = FloatArray(641) { 0.0f }
+        val out = FloatArray(1280)
+        LiquidCodecSynthesizer.irfft1280(real, imag, out)
+        for (v in out) {
+            assertFalse(v.isNaN())
+            assertFalse(v.isInfinite())
+        }
+
+        // Test stftToWaveform
+        val seqLen = 12 // 2 frames * 6
+        val stft = FloatArray(seqLen * 1282) { 0.01f }
+        val wave = LiquidCodecSynthesizer.stftToWaveform(stft, seqLen)
+        assertNotNull(wave)
+        assertTrue(wave.isNotEmpty())
+        for (w in wave) {
+            assertFalse(w.isNaN())
+            assertFalse(w.isInfinite())
+            assertTrue(w in -1.0f..1.0f)
+        }
+    }
 }

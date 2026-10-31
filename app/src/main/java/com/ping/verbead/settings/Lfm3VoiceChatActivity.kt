@@ -71,6 +71,9 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
     private lateinit var tvChatDownloadStatus: TextView
     private lateinit var btnChatDownloadAction: MaterialButton
     private lateinit var progressChatDownload: LinearProgressIndicator
+    private lateinit var tvSynthesisModeTitle: TextView
+    private lateinit var tvSynthesisModeDesc: TextView
+    private lateinit var btnToggleSynthesisMode: MaterialButton
 
     private lateinit var chatAdapter: Lfm3ChatAdapter
     private val audioRecorder by lazy { AudioRecorder(this) }
@@ -125,6 +128,9 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         tvChatDownloadStatus = findViewById(R.id.tv_chat_download_status)
         btnChatDownloadAction = findViewById(R.id.btn_chat_download_action)
         progressChatDownload = findViewById(R.id.progress_chat_download)
+        tvSynthesisModeTitle = findViewById(R.id.tv_synthesis_mode_title)
+        tvSynthesisModeDesc = findViewById(R.id.tv_synthesis_mode_desc)
+        btnToggleSynthesisMode = findViewById(R.id.btn_toggle_synthesis_mode)
     }
 
     private fun setupChatList() {
@@ -169,7 +175,7 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
                         cardDownloadPrompt.visibility = View.VISIBLE
                         btnChatDownloadAction.text = "一鍵下載"
                         progressChatDownload.visibility = View.GONE
-                        tvChatDownloadStatus.text = "ONNX 官方權重尚未下載 (約 2.38 GB)"
+                        tvChatDownloadStatus.text = "ONNX 官方權重尚未下載 (約 2.72 GB)"
                     }
                 }
             }
@@ -219,6 +225,39 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
             HapticUtil.click(this)
             stopAll()
             setState(ChatState.IDLE)
+        }
+
+        updateSynthesisModeUi()
+        btnToggleSynthesisMode.setOnClickListener {
+            HapticUtil.click(this)
+            val currentMode = ModelConfig.getLfm3SynthesisMode(this)
+            val newMode = if (currentMode == ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC) {
+                ModelConfig.SYNTHESIS_MODE_SYSTEM_TTS
+            } else {
+                ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC
+            }
+            ModelConfig.setLfm3SynthesisMode(this, newMode)
+            updateSynthesisModeUi()
+            val label = if (newMode == ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC) {
+                "已切換為 LFM3 原生神經聲學 (LiquidCodec 24kHz)"
+            } else {
+                "已切換為系統端側類神經朗讀 (Google SeaNet TTS)"
+            }
+            Toast.makeText(this, label, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateSynthesisModeUi() {
+        val currentMode = ModelConfig.getLfm3SynthesisMode(this)
+        val isNative = (currentMode == ModelConfig.SYNTHESIS_MODE_NATIVE_CODEC)
+        if (isNative) {
+            tvSynthesisModeTitle.text = "發聲：LFM3 原生神經聲學"
+            tvSynthesisModeDesc.text = "LiquidCodec 24kHz 端到端神經聲學合成"
+            btnToggleSynthesisMode.text = "切換為 TTS"
+        } else {
+            tvSynthesisModeTitle.text = "發聲：系統端側類神經朗讀"
+            tvSynthesisModeDesc.text = "Google SeaNet 高傳真離線神經 TTS"
+            btnToggleSynthesisMode.text = "切換為原生"
         }
     }
 

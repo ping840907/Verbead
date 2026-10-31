@@ -87,11 +87,13 @@ class ModelDownloaderTest {
         )
         val lfm3Target = ModelDownloadSpec.lfm3Audio()
         assertEquals(ModelConfig.ENGINE_LFM3_AUDIO, lfm3Target.engine)
-        assertEquals(7, lfm3Target.files.size)
+        assertEquals(9, lfm3Target.files.size)
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_ENCODER })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_ENCODER_DATA })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_DECODER_Q4 })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_DECODER_Q4_DATA })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_DEPTH_DECODER })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_DEPTH_DECODER_DATA })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_CODEC_DECODER })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_CODEC_DECODER_DATA })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_TOKENIZER })
@@ -108,7 +110,7 @@ class ModelDownloaderTest {
 
         val targetForEngine = ModelDownloadSpec.forEngine(ModelConfig.ENGINE_LFM3_AUDIO)
         assertEquals(ModelConfig.ENGINE_LFM3_AUDIO, targetForEngine.engine)
-        assertEquals(7, targetForEngine.files.size)
+        assertEquals(9, targetForEngine.files.size)
 
         for ((modelId, expectedHash) in expectedSlmHashes) {
             val slmTarget = ModelDownloadSpec.slm(modelId)

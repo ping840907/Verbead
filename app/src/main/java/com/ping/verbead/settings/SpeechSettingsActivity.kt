@@ -304,7 +304,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
         // LFM3-Audio
         val lfm3Ready = ModelConfig.isLfm3AudioReady(this)
-        tvStatusBadgeLfm3.text = if (lfm3Ready) "已就緒 (ONNX)" else "未下載 (約 2.38 GB)"
+        tvStatusBadgeLfm3.text = if (lfm3Ready) "已就緒 (ONNX)" else "未下載 (約 2.72 GB)"
         btnDownloadLfm3.text = if (lfm3Ready) "重新下載" else "下載模型"
         val isLfm3Selected = !isDual && selected == ModelConfig.ENGINE_LFM3_AUDIO
         btnSelectLfm3.isEnabled = !isLfm3Selected

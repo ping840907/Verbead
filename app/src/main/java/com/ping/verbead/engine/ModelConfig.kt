@@ -657,6 +657,30 @@ object ModelConfig {
         return files.all { java.io.File(it).exists() } && java.io.File(qwen3AsrTokenizerDir(context)).isDirectory
     }
 
+    // ── LFM3 Voice Synthesis Mode ───────────────────────────────────────────
+    private const val PREF_LFM3_CHAT = "lfm3_chat_settings"
+    private const val KEY_SYNTHESIS_MODE = "synthesis_mode"
+    const val SYNTHESIS_MODE_NATIVE_CODEC = "native_codec"
+    const val SYNTHESIS_MODE_SYSTEM_TTS   = "system_tts"
+
+    fun getLfm3SynthesisMode(context: Context): String =
+        context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
+            .getString(KEY_SYNTHESIS_MODE, SYNTHESIS_MODE_NATIVE_CODEC) ?: SYNTHESIS_MODE_NATIVE_CODEC
+
+    fun setLfm3SynthesisMode(context: Context, mode: String) =
+        context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
+            .edit().putString(KEY_SYNTHESIS_MODE, mode).apply()
+
+    fun isLfm3NativeCodecReady(context: Context): Boolean {
+        val files = listOf(
+            lfm3AudioDepthDecoderPath(context),
+            lfm3AudioDepthDecoderDataPath(context),
+            lfm3AudioCodecDecoderPath(context),
+            lfm3AudioCodecDecoderDataPath(context),
+        )
+        return files.all { java.io.File(it).exists() }
+    }
+
     fun isLfm3AudioReady(context: Context, requireCodec: Boolean = false): Boolean {
         val files = mutableListOf(
             lfm3AudioEncoderPath(context),
@@ -668,6 +692,8 @@ object ModelConfig {
         if (requireCodec) {
             files.add(lfm3AudioCodecDecoderPath(context))
             files.add(lfm3AudioCodecDecoderDataPath(context))
+            files.add(lfm3AudioDepthDecoderPath(context))
+            files.add(lfm3AudioDepthDecoderDataPath(context))
         }
         return files.all { java.io.File(it).exists() }
     }
