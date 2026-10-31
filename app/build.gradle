@@ -37,7 +37,8 @@ android {
     buildFeatures { viewBinding true; buildConfig true }
     packagingOptions {
         jniLibs {
-            useLegacyPackaging = false
+            useLegacyPackaging = true
+            keepDebugSymbols += ['**/libggml-htp-*.so', '**/liblfm3_*_exec.so']
         }
         pickFirst 'lib/*/libonnxruntime.so'
         pickFirst 'lib/*/libc++_shared.so'

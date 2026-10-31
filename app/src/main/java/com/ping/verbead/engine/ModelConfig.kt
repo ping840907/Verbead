@@ -46,6 +46,8 @@ object ModelConfig {
     const val LFM3_AUDIO_CODEC_DECODER       = "codec_decoder.onnx"
     const val LFM3_AUDIO_CODEC_DECODER_DATA  = "codec_decoder.onnx_data"
     const val LFM3_AUDIO_TOKENIZER           = "tokenizer.json"
+    const val LFM3_AUDIO_GGUF_MODEL          = "LFM3-Audio-2B-Q4_0.gguf"
+    const val LFM3_AUDIO_GGUF_MMPROJ         = "mmproj-LFM3-Audio-2B-Q8_0.gguf"
     const val LFM3_AUDIO_THREADS             = 4
 
     // ── Shared ────────────────────────────────────────────────────────────────
@@ -115,6 +117,8 @@ object ModelConfig {
     fun lfm3AudioCodecDecoderPath(context: Context)       = "${lfm3AudioDir(context)}/$LFM3_AUDIO_CODEC_DECODER"
     fun lfm3AudioCodecDecoderDataPath(context: Context)   = "${lfm3AudioDir(context)}/$LFM3_AUDIO_CODEC_DECODER_DATA"
     fun lfm3AudioTokenizerPath(context: Context)         = "${lfm3AudioDir(context)}/$LFM3_AUDIO_TOKENIZER"
+    fun lfm3AudioGgufModelPath(context: Context)         = "${lfm3AudioDir(context)}/$LFM3_AUDIO_GGUF_MODEL"
+    fun lfm3AudioGgufMmprojPath(context: Context)        = "${lfm3AudioDir(context)}/$LFM3_AUDIO_GGUF_MMPROJ"
 
     // Engine selection helpers
     fun selectedEngine(context: Context): String =
@@ -671,7 +675,13 @@ object ModelConfig {
         context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
             .edit().putString(KEY_SYNTHESIS_MODE, mode).apply()
 
-    fun isLfm3NativeCodecReady(context: Context): Boolean {
+    fun isLfm3GgufReady(context: Context): Boolean {
+        val m = java.io.File(lfm3AudioGgufModelPath(context))
+        val p = java.io.File(lfm3AudioGgufMmprojPath(context))
+        return m.exists() && m.length() > 1024L && p.exists() && p.length() > 1024L
+    }
+
+    fun isLfm3OnnxCodecReady(context: Context): Boolean {
         val files = listOf(
             lfm3AudioDepthDecoderPath(context),
             lfm3AudioDepthDecoderDataPath(context),
@@ -681,7 +691,11 @@ object ModelConfig {
         return files.all { java.io.File(it).exists() }
     }
 
-    fun isLfm3AudioReady(context: Context, requireCodec: Boolean = false): Boolean {
+    fun isLfm3NativeCodecReady(context: Context): Boolean {
+        return isLfm3GgufReady(context) || isLfm3OnnxCodecReady(context)
+    }
+
+    fun isLfm3OnnxReady(context: Context, requireCodec: Boolean = false): Boolean {
         val files = mutableListOf(
             lfm3AudioEncoderPath(context),
             lfm3AudioEncoderDataPath(context),
@@ -696,6 +710,10 @@ object ModelConfig {
             files.add(lfm3AudioDepthDecoderDataPath(context))
         }
         return files.all { java.io.File(it).exists() }
+    }
+
+    fun isLfm3AudioReady(context: Context, requireCodec: Boolean = false): Boolean {
+        return isLfm3GgufReady(context) || isLfm3OnnxReady(context, requireCodec)
     }
 
     fun areAllModelsReady(context: Context): Boolean =

@@ -79,6 +79,7 @@ object Lfm3AudioEngine {
     private val ATTN_LAYER_INDICES = intArrayOf(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22)
 
     @Volatile private var isInitialized = false
+    @Volatile private var isGgufReady = false
     private var ortEnv: OrtEnvironment? = null
     private var audioEncoderSession: OrtSession? = null
     private var decoderSession: OrtSession? = null
@@ -114,7 +115,7 @@ object Lfm3AudioEngine {
      * 引擎是否已載入至記憶體隨時可推論。
      */
     fun isSessionReady(): Boolean =
-        isInitialized && audioEncoderSession != null && decoderSession != null && Lfm3Tokenizer.isReady()
+        isGgufReady || (isInitialized && audioEncoderSession != null && decoderSession != null && Lfm3Tokenizer.isReady())
 
     /**
      * 初始化 ONNX Runtime Session 與 Tokenizer (建議於背景協程呼叫)。
@@ -126,6 +127,14 @@ object Lfm3AudioEngine {
     suspend fun init(context: Context, numThreads: Int = 0): Boolean = withContext(Dispatchers.IO) {
         synchronized(this@Lfm3AudioEngine) {
             if (isSessionReady()) return@withContext true
+        }
+
+        // 優先啟用官方 GGUF 硬體加速後端 (Qualcomm Hexagon NPU HTP0 / Adreno OpenCL GPU)
+        if (Lfm3GgufRunner.isAvailable(context)) {
+            isGgufReady = true
+            isInitialized = true
+            Log.i(TAG, "LFM3-Audio-2B GGUF backend ready (Snapdragon NPU HTP0 / Adreno GPUOpenCL enabled)")
+            return@withContext true
         }
 
         val encoderFile = File(ModelConfig.lfm3AudioEncoderPath(context))
@@ -222,6 +231,14 @@ object Lfm3AudioEngine {
 
         if (context != null && !isSessionReady()) {
             init(context)
+        }
+
+        // 0. 優先使用官方 GGUF 硬體加速管線 (Hexagon NPU HTP0 / Adreno GPUOpenCL)
+        if (context != null && Lfm3GgufRunner.isAvailable(context)) {
+            val ggufText = Lfm3GgufRunner.transcribe(context, audioSamples)
+            if (ggufText.isNotBlank()) {
+                return@withContext ggufText
+            }
         }
 
         // 1. 提取 128-channel Slaney Log-Mel Spectrogram
@@ -428,6 +445,14 @@ object Lfm3AudioEngine {
 
         if (!isSessionReady()) {
             init(context)
+        }
+
+        // 0. 優先使用官方 GGUF 硬體加速管線 (Hexagon NPU HTP0 / Adreno GPUOpenCL)
+        if (Lfm3GgufRunner.isAvailable(context)) {
+            val ggufAudio = Lfm3GgufRunner.synthesizeSpeech(context, text)
+            if (ggufAudio != null && ggufAudio.isNotEmpty()) {
+                return@withContext ggufAudio
+            }
         }
 
         val env = ortEnv ?: return@withContext null
@@ -858,6 +883,7 @@ object Lfm3AudioEngine {
             depthDecoderSession = null
             codecDecoderSession = null
             isInitialized = false
+            isGgufReady = false
         }
     }
 

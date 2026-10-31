@@ -125,49 +125,14 @@ object ModelDownloadSpec {
         engine = ModelConfig.ENGINE_LFM3_AUDIO,
         files = listOf(
             RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_ENCODER}",
-                relativePath = ModelConfig.LFM3_AUDIO_ENCODER,
-                sha256 = "c68ddaf64339aa2bc6c841b0ec0da3be89027849991cbd7e546d3d3156094921",
+                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-GGUF/resolve/main/${ModelConfig.LFM3_AUDIO_GGUF_MODEL}",
+                relativePath = ModelConfig.LFM3_AUDIO_GGUF_MODEL,
+                sha256 = "112e4acb79be79dcd8df5749495614817e51c064cd9ca576aead02b64b2b7584",
             ),
             RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_ENCODER_DATA}",
-                relativePath = ModelConfig.LFM3_AUDIO_ENCODER_DATA,
-                sha256 = "d5fed72d461d7c052f2e65c79421f955fe02c55b220caeba69b40201cffb0358",
-            ),
-            RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_DECODER_Q4}",
-                relativePath = ModelConfig.LFM3_AUDIO_DECODER_Q4,
-                sha256 = "448efb66fb4181f23242d7d54b8e9ddbd7c3b6e247f018f871c3d17cf58a58a8",
-            ),
-            RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_DECODER_Q4_DATA}",
-                relativePath = ModelConfig.LFM3_AUDIO_DECODER_Q4_DATA,
-                sha256 = "b069b656f2610fd6c4d1a297596adcb26a53a9dbcef0baa16432b72a4077b773",
-            ),
-            RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_DEPTH_DECODER}",
-                relativePath = ModelConfig.LFM3_AUDIO_DEPTH_DECODER,
-                sha256 = "cbe5945206042a1b34f74bbb2979135374f594d7e4502405c86d76f2f5f3965a",
-            ),
-            RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_DEPTH_DECODER_DATA}",
-                relativePath = ModelConfig.LFM3_AUDIO_DEPTH_DECODER_DATA,
-                sha256 = "022a87e4eb269c194f723e5d124d9389a9f9d7a993dfcd09dea283699df40c45",
-            ),
-            RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_CODEC_DECODER}",
-                relativePath = ModelConfig.LFM3_AUDIO_CODEC_DECODER,
-                sha256 = "5e1d03189d2169ca0e961d1b468b1625bdc57e082bdae7c332178c8aad719878",
-            ),
-            RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/onnx/${ModelConfig.LFM3_AUDIO_CODEC_DECODER_DATA}",
-                relativePath = ModelConfig.LFM3_AUDIO_CODEC_DECODER_DATA,
-                sha256 = "d0eda417de1c477cc627b730608daa92d43838f3b2865869e74662af7334acfe",
-            ),
-            RemoteFile(
-                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/${ModelConfig.LFM3_AUDIO_TOKENIZER}",
-                relativePath = ModelConfig.LFM3_AUDIO_TOKENIZER,
-                sha256 = "41927bd314d17d7d7fadb44e10cd0919f7b71528d7741596d8cbd15c6945ec44",
+                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-GGUF/resolve/main/${ModelConfig.LFM3_AUDIO_GGUF_MMPROJ}",
+                relativePath = ModelConfig.LFM3_AUDIO_GGUF_MMPROJ,
+                sha256 = "2b6648b1fd48af16aa0877b0592b144d15070783673e038a379fdbc51d40e365",
             ),
         ),
     )

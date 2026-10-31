@@ -175,7 +175,7 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
                         cardDownloadPrompt.visibility = View.VISIBLE
                         btnChatDownloadAction.text = "一鍵下載"
                         progressChatDownload.visibility = View.GONE
-                        tvChatDownloadStatus.text = "ONNX 官方權重尚未下載 (約 2.72 GB)"
+                        tvChatDownloadStatus.text = "GGUF 官方權重尚未下載 (約 1.29 GB，支援 NPU/GPU)"
                     }
                 }
             }
