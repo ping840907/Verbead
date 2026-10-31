@@ -99,4 +99,28 @@ class TaiwanesePromptAdapterTest {
         assertTrue("哪兒應轉為哪裡", adapted.contains("哪裡"))
         assertTrue("好的應轉為好喔～", adapted.contains("好喔～"))
     }
+
+    @Test
+    fun testVoiceProfilesAndStylePrompts() {
+        // 測試知性沉穩風格 (Calm)
+        val calmAdapted = TaiwanesePromptAdapter.adapt(
+            rawText = "好的，沒問題！",
+            profile = ModelConfig.TTS_PROFILE_TAIWAN_CALM
+        )
+        assertTrue("沉穩知性應平穩收尾", calmAdapted.contains("好的。") && calmAdapted.contains("沒問題。"))
+
+        // 測試活潑熱情風格 (Lively)
+        val livelyAdapted = TaiwanesePromptAdapter.adapt(
+            rawText = "好的，沒問題！",
+            profile = ModelConfig.TTS_PROFILE_TAIWAN_LIVELY
+        )
+        assertTrue("活潑元氣應有活力助詞", livelyAdapted.contains("好呀！") || livelyAdapted.contains("沒問題唷！"))
+
+        // 測試陽光男聲 (Male)
+        val maleAdapted = TaiwanesePromptAdapter.adapt(
+            rawText = "好的，沒問題！",
+            profile = ModelConfig.TTS_PROFILE_TAIWAN_MALE
+        )
+        assertTrue("陽光男聲應自然明快", maleAdapted.contains("好的！") || maleAdapted.contains("沒問題～"))
+    }
 }

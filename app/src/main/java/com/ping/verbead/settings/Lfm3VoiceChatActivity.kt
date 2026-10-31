@@ -11,11 +11,14 @@ import android.view.animation.ScaleAnimation
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.LinearLayout
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.Toast
+import android.widget.RadioGroup
+import android.widget.RadioButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -81,6 +84,10 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
     private lateinit var btnToggleSynthesisMode: MaterialButton
     private lateinit var etInputText: TextInputEditText
     private lateinit var btnSpeakText: MaterialButton
+    private lateinit var btnVoiceTuning: ImageButton
+    private lateinit var layoutVoiceTuningIndicator: LinearLayout
+    private lateinit var chipVoiceProfile: com.google.android.material.chip.Chip
+    private lateinit var tvActiveStylePrompt: TextView
 
     private lateinit var chatAdapter: Lfm3ChatAdapter
     private val audioRecorder by lazy { AudioRecorder(this) }
@@ -140,6 +147,10 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         btnToggleSynthesisMode = findViewById(R.id.btn_toggle_synthesis_mode)
         etInputText = findViewById(R.id.et_input_text)
         btnSpeakText = findViewById(R.id.btn_speak_text)
+        btnVoiceTuning = findViewById(R.id.btn_voice_tuning)
+        layoutVoiceTuningIndicator = findViewById(R.id.layout_voice_tuning_indicator)
+        chipVoiceProfile = findViewById(R.id.chip_voice_profile)
+        tvActiveStylePrompt = findViewById(R.id.tv_active_style_prompt)
     }
 
     private fun setupChatList() {
@@ -282,6 +293,16 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         }
 
         updateSynthesisModeUi()
+        updateVoiceTuningUi()
+
+        val openTuningAction = View.OnClickListener {
+            HapticUtil.click(this@Lfm3VoiceChatActivity)
+            showVoiceTuningDialog()
+        }
+        btnVoiceTuning.setOnClickListener(openTuningAction)
+        chipVoiceProfile.setOnClickListener(openTuningAction)
+        layoutVoiceTuningIndicator.setOnClickListener(openTuningAction)
+
         btnToggleSynthesisMode.setOnClickListener {
             HapticUtil.click(this)
             val modes = arrayOf(
@@ -314,6 +335,134 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
                 .setNegativeButton("取消", null)
                 .show()
         }
+    }
+
+    private fun updateVoiceTuningUi() {
+        val profile = ModelConfig.getTtsSpeakerProfile(this)
+        val stylePrompt = ModelConfig.getTtsStylePrompt(this)
+
+        chipVoiceProfile.text = when (profile) {
+            ModelConfig.TTS_PROFILE_TAIWAN_CALM -> "🎙️ 台灣知性專業"
+            ModelConfig.TTS_PROFILE_TAIWAN_MALE -> "☀️ 台灣陽光溫和"
+            ModelConfig.TTS_PROFILE_TAIWAN_LIVELY -> "⚡ 台灣活潑元氣"
+            ModelConfig.TTS_PROFILE_CUSTOM -> "✍️ 自訂音色與 Prompt"
+            else -> "🌸 台灣甜美親切"
+        }
+        tvActiveStylePrompt.text = "風格: $stylePrompt"
+    }
+
+    private fun showVoiceTuningDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_tts_voice_tuning, null)
+        val rgProfiles = dialogView.findViewById<RadioGroup>(R.id.rg_voice_profiles)
+        val rbSweet = dialogView.findViewById<RadioButton>(R.id.rb_voice_taiwan_sweet)
+        val rbCalm = dialogView.findViewById<RadioButton>(R.id.rb_voice_taiwan_calm)
+        val rbMale = dialogView.findViewById<RadioButton>(R.id.rb_voice_taiwan_male)
+        val rbLively = dialogView.findViewById<RadioButton>(R.id.rb_voice_taiwan_lively)
+        val rbCustom = dialogView.findViewById<RadioButton>(R.id.rb_voice_custom)
+        val etPrompt = dialogView.findViewById<TextInputEditText>(R.id.et_dialog_style_prompt)
+
+        val chipTagSweet = dialogView.findViewById<View>(R.id.chip_tag_sweet)
+        val chipTagCalm = dialogView.findViewById<View>(R.id.chip_tag_calm)
+        val chipTagLively = dialogView.findViewById<View>(R.id.chip_tag_lively)
+        val chipTagSmile = dialogView.findViewById<View>(R.id.chip_tag_smile)
+        val chipTagNatural = dialogView.findViewById<View>(R.id.chip_tag_natural)
+
+        val btnTestSpeak = dialogView.findViewById<MaterialButton>(R.id.btn_dialog_test_speak)
+        val btnSave = dialogView.findViewById<MaterialButton>(R.id.btn_dialog_save_tuning)
+
+        val currentProfile = ModelConfig.getTtsSpeakerProfile(this)
+        val currentPrompt = ModelConfig.getTtsStylePrompt(this)
+
+        when (currentProfile) {
+            ModelConfig.TTS_PROFILE_TAIWAN_CALM -> rbCalm.isChecked = true
+            ModelConfig.TTS_PROFILE_TAIWAN_MALE -> rbMale.isChecked = true
+            ModelConfig.TTS_PROFILE_TAIWAN_LIVELY -> rbLively.isChecked = true
+            ModelConfig.TTS_PROFILE_CUSTOM -> rbCustom.isChecked = true
+            else -> rbSweet.isChecked = true
+        }
+        etPrompt.setText(currentPrompt)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        rgProfiles.setOnCheckedChangeListener { _, checkedId ->
+            HapticUtil.click(this)
+            when (checkedId) {
+                R.id.rb_voice_taiwan_sweet -> etPrompt.setText("親切自然、帶有甜美微笑感的台灣女生")
+                R.id.rb_voice_taiwan_calm -> etPrompt.setText("成熟知性、沉穩端莊的專業播報風格")
+                R.id.rb_voice_taiwan_male -> etPrompt.setText("溫和誠懇、自然親切的台灣男聲")
+                R.id.rb_voice_taiwan_lively -> etPrompt.setText("活潑開朗、輕快俏皮的元氣聲線")
+                R.id.rb_voice_custom -> etPrompt.setText(etPrompt.text?.toString() ?: "")
+            }
+        }
+
+        fun appendTag(tag: String) {
+            HapticUtil.tick(this)
+            val oldText = etPrompt.text?.toString().orEmpty().trim()
+            if (oldText.isEmpty()) {
+                etPrompt.setText(tag)
+            } else if (!oldText.contains(tag)) {
+                etPrompt.setText("$oldText, $tag")
+            }
+            etPrompt.setSelection(etPrompt.text?.length ?: 0)
+        }
+
+        chipTagSweet.setOnClickListener { appendTag("溫柔甜美") }
+        chipTagCalm.setOnClickListener { appendTag("知性沉穩") }
+        chipTagLively.setOnClickListener { appendTag("活潑熱情") }
+        chipTagSmile.setOnClickListener { appendTag("帶微笑感") }
+        chipTagNatural.setOnClickListener { appendTag("自然台灣腔") }
+
+        btnTestSpeak.setOnClickListener {
+            HapticUtil.click(this)
+            val selectedProfile = when (rgProfiles.checkedRadioButtonId) {
+                R.id.rb_voice_taiwan_calm -> ModelConfig.TTS_PROFILE_TAIWAN_CALM
+                R.id.rb_voice_taiwan_male -> ModelConfig.TTS_PROFILE_TAIWAN_MALE
+                R.id.rb_voice_taiwan_lively -> ModelConfig.TTS_PROFILE_TAIWAN_LIVELY
+                R.id.rb_voice_custom -> ModelConfig.TTS_PROFILE_CUSTOM
+                else -> ModelConfig.TTS_PROFILE_TAIWAN_SWEET
+            }
+            val styleText = etPrompt.text?.toString().orEmpty()
+            val testSentence = "哈囉你好！這是我現在的語音音色與說話風格喔，企劃和品質都很棒呢！"
+
+            lifecycleScope.launch {
+                Toast.makeText(this@Lfm3VoiceChatActivity, "正在試聽合成...", Toast.LENGTH_SHORT).show()
+                val samples = Qwen3TtsRunner.synthesizeSpeech(
+                    context = this@Lfm3VoiceChatActivity,
+                    text = testSentence,
+                    stylePrompt = styleText,
+                    profile = selectedProfile
+                )
+                if (samples != null && samples.isNotEmpty()) {
+                    playAudio(samples, 24_000)
+                } else {
+                    speakText(testSentence)
+                }
+            }
+        }
+
+        btnSave.setOnClickListener {
+            HapticUtil.click(this)
+            val selectedProfile = when (rgProfiles.checkedRadioButtonId) {
+                R.id.rb_voice_taiwan_calm -> ModelConfig.TTS_PROFILE_TAIWAN_CALM
+                R.id.rb_voice_taiwan_male -> ModelConfig.TTS_PROFILE_TAIWAN_MALE
+                R.id.rb_voice_taiwan_lively -> ModelConfig.TTS_PROFILE_TAIWAN_LIVELY
+                R.id.rb_voice_custom -> ModelConfig.TTS_PROFILE_CUSTOM
+                else -> ModelConfig.TTS_PROFILE_TAIWAN_SWEET
+            }
+            val promptText = etPrompt.text?.toString().orEmpty().ifBlank {
+                "親切自然、帶有甜美微笑感的台灣女生"
+            }
+
+            ModelConfig.setTtsSpeakerProfile(this, selectedProfile)
+            ModelConfig.setTtsStylePrompt(this, promptText)
+            updateVoiceTuningUi()
+            Toast.makeText(this, "已套用音色與風格設定！", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun updateSynthesisModeUi() {
@@ -442,10 +591,17 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val mode = ModelConfig.getLfm3SynthesisMode(this@Lfm3VoiceChatActivity)
+                val profile = ModelConfig.getTtsSpeakerProfile(this@Lfm3VoiceChatActivity)
+                val stylePrompt = ModelConfig.getTtsStylePrompt(this@Lfm3VoiceChatActivity)
                 val synthSamples: FloatArray? = when (mode) {
                     ModelConfig.SYNTHESIS_MODE_QWEN3_TTS -> {
                         if (Qwen3TtsRunner.isAvailable(this@Lfm3VoiceChatActivity)) {
-                            Qwen3TtsRunner.synthesizeSpeech(this@Lfm3VoiceChatActivity, trimmed)
+                            Qwen3TtsRunner.synthesizeSpeech(
+                                context = this@Lfm3VoiceChatActivity,
+                                text = trimmed,
+                                stylePrompt = stylePrompt,
+                                profile = profile
+                            )
                         } else {
                             null
                         }

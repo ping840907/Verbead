@@ -17,6 +17,17 @@
         app:title="LFM3 語音對話實驗室">
 
         <ImageButton
+            android:id="@+id/btn_voice_tuning"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="音色與風格 Prompt 調節"
+            android:src="@drawable/ic_tune"
+            app:tint="@color/tag_recommend" />
+
+        <ImageButton
             android:id="@+id/btn_clear_chat"
             android:layout_width="40dp"
             android:layout_height="40dp"
@@ -297,6 +308,46 @@
         android:paddingTop="10dp"
         android:paddingEnd="16dp"
         android:paddingBottom="16dp">
+
+        <!-- Row 0: Active Voice & Style Prompt Indicator / Quick Tune -->
+        <LinearLayout
+            android:id="@+id/layout_voice_tuning_indicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_voice_profile"
+                style="@style/Widget.Material3.Chip.Assist.Elevated"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="🌸 台灣甜美女聲"
+                android:textSize="11sp"
+                app:chipIcon="@drawable/ic_tune"
+                app:chipIconSize="14dp"
+                app:chipStrokeWidth="0.5dp" />
+
+            <TextView
+                android:id="@+id/tv_active_style_prompt"
+                style="@style/Verbead.Text.Caption"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="風格: 親切自然、帶有甜美微笑感的台灣女生"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/text_secondary" />
+        </LinearLayout>
 
         <!-- Row 1: Direct Text Input Bar -->
         <LinearLayout

@@ -204,8 +204,16 @@ object TaiwanesePromptAdapter {
 
     /**
      * 將輸入文字調節為貼向台灣腔的 TTS Prompting 文字。
+     *
+     * @param rawText 輸入原文
+     * @param stylePrompt 自訂音色風格提示詞 (如：「親切溫柔」、「沉穩專業」、「活潑元氣」或使用者任意自訂 Prompt)
+     * @param profile 聲線模型識別碼 (ModelConfig.TTS_PROFILE_*)
      */
-    fun adapt(rawText: String): String {
+    fun adapt(
+        rawText: String,
+        stylePrompt: String = "",
+        profile: String = ModelConfig.TTS_PROFILE_TAIWAN_SWEET
+    ): String {
         if (rawText.isBlank()) return ""
 
         var text = rawText
@@ -236,16 +244,55 @@ object TaiwanesePromptAdapter {
             }
         }
 
-        // 3. 語氣詞與句末柔化 (增加台灣自然語調親和感)
-        text = text.replace(Regex("什麼呢[？?]"), "什麼啊？")
-        text = text.replace(Regex("好的[。！!]"), "好喔～")
-        text = text.replace(Regex("沒問題[。！!]"), "沒問題啦～")
-        text = text.replace(Regex("謝謝[。！!]?"), "謝謝喔！")
-        text = text.replace(Regex("不用客氣[。！!]?"), "不會啦，不用客氣喔！")
-        text = text.replace(Regex("是的[。！!]"), "對啊～")
-        text = text.replace(Regex("再見[。！!]?"), "掰掰囉！")
+        // 5. 語氣詞與句末柔化 (依據音色與自訂風格 Prompt 動態適配)
+        val isCalm = profile == ModelConfig.TTS_PROFILE_TAIWAN_CALM ||
+                stylePrompt.contains("沉穩") || stylePrompt.contains("知性") || stylePrompt.contains("專業")
+        val isLively = profile == ModelConfig.TTS_PROFILE_TAIWAN_LIVELY ||
+                stylePrompt.contains("活潑") || stylePrompt.contains("元氣") || stylePrompt.contains("熱情")
+        val isMale = profile == ModelConfig.TTS_PROFILE_TAIWAN_MALE ||
+                stylePrompt.contains("男") || stylePrompt.contains("陽光")
 
-        // 4. 連接詞後的微停頓節奏調節 (加入逗號舒緩語速)
+        when {
+            isCalm -> {
+                text = text.replace(Regex("什麼呢[？?]"), "什麼呢？")
+                text = text.replace(Regex("好的[。！!~～]?"), "好的。")
+                text = text.replace(Regex("沒問題[。！!~～]?"), "沒問題。")
+                text = text.replace(Regex("謝謝[。！!~～]?"), "謝謝您。")
+                text = text.replace(Regex("不用客氣[。！!~～]?"), "不用客氣。")
+                text = text.replace(Regex("是的[。！!~～]?"), "是的。")
+                text = text.replace(Regex("再見[。！!~～]?"), "再見。")
+            }
+            isLively -> {
+                text = text.replace(Regex("什麼呢[？?]"), "什麼呀？")
+                text = text.replace(Regex("好的[。！!~～]?"), "好呀！")
+                text = text.replace(Regex("沒問題[。！!~～]?"), "沒問題唷！")
+                text = text.replace(Regex("謝謝[。！!~～]?"), "太感謝啦！")
+                text = text.replace(Regex("不用客氣[。！!~～]?"), "別客氣啦！")
+                text = text.replace(Regex("是的[。！!~～]?"), "對呀！")
+                text = text.replace(Regex("再見[。！!~～]?"), "下次見囉！")
+            }
+            isMale -> {
+                text = text.replace(Regex("什麼呢[？?]"), "什麼呢？")
+                text = text.replace(Regex("好的[。！!~～]?"), "好的！")
+                text = text.replace(Regex("沒問題[。！!~～]?"), "沒問題～")
+                text = text.replace(Regex("謝謝[。！!~～]?"), "謝謝你！")
+                text = text.replace(Regex("不用客氣[。！!~～]?"), "不會，不客氣！")
+                text = text.replace(Regex("是的[。！!~～]?"), "沒錯！")
+                text = text.replace(Regex("再見[。！!~～]?"), "再見囉！")
+            }
+            else -> {
+                // 預設甜美親切
+                text = text.replace(Regex("什麼呢[？?]"), "什麼啊？")
+                text = text.replace(Regex("好的[。！!~～]?"), "好喔～")
+                text = text.replace(Regex("沒問題[。！!~～]?"), "沒問題啦～")
+                text = text.replace(Regex("謝謝[。！!~～]?"), "謝謝喔！")
+                text = text.replace(Regex("不用客氣[。！!~～]?"), "不會啦，不用客氣喔！")
+                text = text.replace(Regex("是的[。！!~～]?"), "對啊～")
+                text = text.replace(Regex("再見[。！!~～]?"), "掰掰囉！")
+            }
+        }
+
+        // 6. 連接詞後的微停頓節奏調節 (加入逗號舒緩語速)
         text = text.replace(Regex("(?<![，,、])然後(?![，,])"), "，然後")
         text = text.replace(Regex("(?<![，,、])所以(?![，,])"), "，所以")
 
@@ -254,10 +301,14 @@ object TaiwanesePromptAdapter {
 
     /**
      * 產出送入 Qwen3-TTS 的最終 Prompt：
-     * 先進行台灣腔詞彙與標點適配，再轉換為 Qwen3 最佳詞表簡體字形表示。
+     * 先進行台灣腔詞彙、破音字與標點適配，再轉換為 Qwen3 最佳詞表簡體字形表示。
      */
-    fun buildQwen3Prompt(rawText: String): String {
-        val adaptedTaiwanese = adapt(rawText)
+    fun buildQwen3Prompt(
+        rawText: String,
+        stylePrompt: String = "",
+        profile: String = ModelConfig.TTS_PROFILE_TAIWAN_SWEET
+    ): String {
+        val adaptedTaiwanese = adapt(rawText, stylePrompt = stylePrompt, profile = profile)
         return try {
             ZhConverterUtil.toSimple(adaptedTaiwanese)
         } catch (_: Throwable) {

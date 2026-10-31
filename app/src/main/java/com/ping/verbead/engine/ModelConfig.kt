@@ -60,6 +60,16 @@ object ModelConfig {
     const val QWEN3_TTS_GGUF_MODEL       = "Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf"
     const val QWEN3_TTS_GGUF_MMPROJ      = "mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf"
     const val QWEN3_TTS_SPEAKER_DEFAULT  = "speaker_default.wav"
+    const val QWEN3_TTS_SPEAKER_CALM     = "speaker_taiwan_calm.wav"
+    const val QWEN3_TTS_SPEAKER_MALE     = "speaker_taiwan_male.wav"
+    const val QWEN3_TTS_SPEAKER_LIVELY   = "speaker_taiwan_lively.wav"
+    const val TTS_PROFILE_TAIWAN_SWEET   = "taiwan_sweet"
+    const val TTS_PROFILE_TAIWAN_CALM    = "taiwan_calm"
+    const val TTS_PROFILE_TAIWAN_MALE    = "taiwan_male"
+    const val TTS_PROFILE_TAIWAN_LIVELY  = "taiwan_lively"
+    const val TTS_PROFILE_CUSTOM         = "custom"
+    const val KEY_TTS_SPEAKER_PROFILE    = "tts_speaker_profile"
+    const val KEY_TTS_STYLE_PROMPT       = "tts_style_prompt"
     const val ENGINE_QWEN3_TTS           = "qwen3_tts"
 
     // ── Shared ────────────────────────────────────────────────────────────────
@@ -691,6 +701,32 @@ object ModelConfig {
     fun setLfm3SynthesisMode(context: Context, mode: String) =
         context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
             .edit().putString(KEY_SYNTHESIS_MODE, mode).apply()
+
+    fun getTtsSpeakerProfile(context: Context): String =
+        context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
+            .getString(KEY_TTS_SPEAKER_PROFILE, TTS_PROFILE_TAIWAN_SWEET) ?: TTS_PROFILE_TAIWAN_SWEET
+
+    fun setTtsSpeakerProfile(context: Context, profile: String) =
+        context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
+            .edit().putString(KEY_TTS_SPEAKER_PROFILE, profile).apply()
+
+    fun getTtsStylePrompt(context: Context): String =
+        context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
+            .getString(KEY_TTS_STYLE_PROMPT, "親切自然、帶有甜美微笑感的台灣女生") ?: "親切自然、帶有甜美微笑感的台灣女生"
+
+    fun setTtsStylePrompt(context: Context, prompt: String) =
+        context.getSharedPreferences(PREF_LFM3_CHAT, Context.MODE_PRIVATE)
+            .edit().putString(KEY_TTS_STYLE_PROMPT, prompt).apply()
+
+    fun qwen3TtsSpeakerPath(context: Context, profile: String = getTtsSpeakerProfile(context)): String {
+        val fileName = when (profile) {
+            TTS_PROFILE_TAIWAN_CALM -> QWEN3_TTS_SPEAKER_CALM
+            TTS_PROFILE_TAIWAN_MALE -> QWEN3_TTS_SPEAKER_MALE
+            TTS_PROFILE_TAIWAN_LIVELY -> QWEN3_TTS_SPEAKER_LIVELY
+            else -> QWEN3_TTS_SPEAKER_DEFAULT
+        }
+        return "${qwen3TtsDir(context)}/$fileName"
+    }
 
     fun isQwen3TtsReady(context: Context): Boolean {
         val m = java.io.File(qwen3TtsModelPath(context))

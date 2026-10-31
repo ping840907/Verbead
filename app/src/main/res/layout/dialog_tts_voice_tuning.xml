@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TTS 音色與風格 Prompt 調節"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            style="@style/Verbead.Text.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="16dp"
+            android:text="選擇預設音色選項，或直接在 Prompt 框輸入自訂語氣與風格設定。" />
+
+        <!-- Section 1: Voice Profile Options -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="1. 預設音色選項"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rg_voice_profiles"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rb_voice_taiwan_sweet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🌸 台灣甜美親切（女聲，自然台灣腔）"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rb_voice_taiwan_calm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🎙️ 台灣知性專業（女聲，沉穩播報風格）"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rb_voice_taiwan_male"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="☀️ 台灣陽光溫和（男聲，自然親和感）"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rb_voice_taiwan_lively"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚡ 台灣活潑元氣（女聲，明快輕巧俏皮）"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rb_voice_custom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="✍️ 自訂風格 Prompt / 自訂音色"
+                android:textSize="13sp" />
+        </RadioGroup>
+
+        <!-- Section 2: Direct Style Prompt Input -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="2. 開放音色風格 Prompt（自由編輯）"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_dialog_style_prompt"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="輸入自訂風格 Prompt / 角色設定"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_dialog_style_prompt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
+                android:maxLines="4"
+                android:minLines="2"
+                android:textSize="13sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Quick Style Tag Chips -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_quick_tags"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleLine="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_tag_sweet"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ 溫柔甜美"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_tag_calm"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ 知性沉穩"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_tag_lively"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ 活潑熱情"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_tag_smile"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ 帶微笑感"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_tag_natural"
+                    style="@style/Widget.Material3.Chip.Suggestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ 自然台灣腔"
+                    android:textSize="11sp" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_dialog_test_speak"
+                style="@style/Verbead.Button.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="試聽效果"
+                app:icon="@drawable/ic_play_arrow" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_dialog_save_tuning"
+                style="@style/Verbead.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="儲存套用" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

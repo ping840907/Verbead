@@ -69,6 +69,35 @@ object Qwen3TtsRunner {
     }
 
     /**
+     * 確保指定音色選項之參考音訊樣本就緒。
+     */
+    fun ensureSpeaker(
+        context: Context,
+        profile: String = ModelConfig.getTtsSpeakerProfile(context)
+    ): File? {
+        val targetPath = ModelConfig.qwen3TtsSpeakerPath(context, profile)
+        val target = File(targetPath)
+        if (target.exists() && target.length() > 1024L) {
+            return target
+        }
+        val assetName = target.name
+        try {
+            target.parentFile?.mkdirs()
+            context.assets.open(assetName).use { input ->
+                FileOutputStream(target).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            if (target.exists() && target.length() > 1024L) {
+                return target
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "Could not extract $assetName from assets: ${e.message}")
+        }
+        return ensureDefaultSpeaker(context)
+    }
+
+    /**
      * 確保預設參考聲音樣本就緒 (若本地尚無則從 assets 提取或寫入)。
      */
     fun ensureDefaultSpeaker(context: Context): File? {
@@ -97,12 +126,16 @@ object Qwen3TtsRunner {
      *
      * @param context Android 上下文
      * @param text 欲朗讀的文字 (支援繁簡中文與英文)
-     * @param speakerAudioFile 自訂聲音克隆參考音訊 (若為 null 則採用系統預設聲音)
+     * @param speakerAudioFile 自訂聲音克隆參考音訊 (若為 null 則依 profile 提取)
+     * @param stylePrompt 自訂音色與風格 Prompt (若為 null 則取自 ModelConfig 設定)
+     * @param profile 預設音色選項 (若為 null 則取自 ModelConfig 設定)
      */
     suspend fun synthesizeSpeech(
         context: Context,
         text: String,
-        speakerAudioFile: File? = null
+        speakerAudioFile: File? = null,
+        stylePrompt: String? = null,
+        profile: String? = null
     ): FloatArray? = withContext(Dispatchers.IO) {
         if (text.isBlank()) return@withContext null
         if (!ModelConfig.isQwen3TtsReady(context)) {
@@ -114,12 +147,18 @@ object Qwen3TtsRunner {
             val ttsBin = resolveExecutable(context) ?: return@withLock null
             val modelPath = ModelConfig.qwen3TtsModelPath(context)
             val mmprojPath = ModelConfig.qwen3TtsMmprojPath(context)
-            val speakerFile = speakerAudioFile ?: ensureDefaultSpeaker(context)
+            val effectiveProfile = profile ?: ModelConfig.getTtsSpeakerProfile(context)
+            val effectiveStyle = stylePrompt ?: ModelConfig.getTtsStylePrompt(context)
+            val speakerFile = speakerAudioFile ?: ensureSpeaker(context, effectiveProfile)
 
             val hasChinese = text.any { it.code in 0x4E00..0x9FFF }
             val ttsLang = if (hasChinese) "zh" else "en"
             val normalizedPrompt = if (hasChinese) {
-                TaiwanesePromptAdapter.buildQwen3Prompt(text)
+                TaiwanesePromptAdapter.buildQwen3Prompt(
+                    rawText = text,
+                    stylePrompt = effectiveStyle,
+                    profile = effectiveProfile
+                )
             } else {
                 text
             }
