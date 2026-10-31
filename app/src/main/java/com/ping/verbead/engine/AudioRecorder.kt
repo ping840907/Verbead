@@ -286,6 +286,7 @@ class AudioRecorder(private val context: Context? = null) {
     }
 
     fun stopEarly() { shouldStop = true }
+    fun stop() { shouldStop = true }
 
     @SuppressLint("MissingPermission")
     suspend fun recordStreaming(

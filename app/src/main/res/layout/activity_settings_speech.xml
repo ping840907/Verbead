@@ -267,6 +267,75 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- LFM3-Audio-2B 旗艦多模態基礎模型選項卡 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_lfm3"
+                style="@style/Verbead.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/Verbead.Text.Title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LFM3-Audio-2B 旗艦音訊大模型" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Body"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Liquid AI Tri-Hybrid 骨幹 · 端到端智慧聽寫與來回語音對話" />
+
+                        <TextView
+                            android:id="@+id/tv_lfm3_status"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="檢查中…"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_select_lfm3"
+                            style="@style/Verbead.Button.Tonal"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="選為聽寫引擎" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_launch_lfm3_chat"
+                            style="@style/Verbead.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="語音對話"
+                            app:icon="@drawable/ic_bolt" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- 4. 語音輸入偏好 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_speech_settings"

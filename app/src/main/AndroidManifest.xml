@@ -62,9 +62,15 @@
 
         <activity
             android:name=".settings.SpeechSettingsActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/settings_cat_speech_title"
             android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
+            android:name=".settings.Lfm3VoiceChatActivity"
+            android:exported="true"
+            android:label="LFM3 語音對話實驗室"
+            android:parentActivityName=".settings.SpeechSettingsActivity" />
 
         <activity
             android:name=".settings.OcrSettingsActivity"

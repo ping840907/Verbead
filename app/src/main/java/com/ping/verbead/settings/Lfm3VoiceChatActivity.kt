@@ -1,0 +1,361 @@
+package com.ping.verbead.settings
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.util.Log
+import android.view.View
+import android.view.animation.Animation
+import android.view.animation.ScaleAnimation
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.ping.verbead.R
+import com.ping.verbead.engine.AudioRecorder
+import com.ping.verbead.engine.Lfm3AudioEngine
+import com.ping.verbead.engine.Lfm3ChatMessage
+import com.ping.verbead.util.HapticUtil
+import com.ping.verbead.util.PcmPlayer
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+/**
+ * LFM3 Audio 即時來回語音對話實驗室 Activity。
+ * 實現語音輪替對話狀態機 (Listening -> Thinking -> Speaking -> Listening 循環)。
+ */
+class Lfm3VoiceChatActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "Lfm3VoiceChatActivity"
+    }
+
+    private enum class ChatState {
+        IDLE,
+        LISTENING,
+        THINKING,
+        SPEAKING
+    }
+
+    @Volatile private var currentState = ChatState.IDLE
+
+    // UI 元件
+    private lateinit var toolbar: MaterialToolbar
+    private lateinit var btnClearChat: ImageButton
+    private lateinit var switchContinuousLoop: MaterialSwitch
+    private lateinit var rvChatMessages: RecyclerView
+    private lateinit var viewPulseRing: View
+    private lateinit var ivStatusIcon: ImageView
+    private lateinit var tvAcousticStatus: TextView
+    private lateinit var progressRms: LinearProgressIndicator
+    private lateinit var btnStopSpeech: MaterialButton
+    private lateinit var btnMicAction: MaterialButton
+
+    private lateinit var chatAdapter: Lfm3ChatAdapter
+    private val audioRecorder by lazy { AudioRecorder(this) }
+    private val pcmPlayer = PcmPlayer()
+
+    private var recordingJob: Job? = null
+    private var playbackJob: Job? = null
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants[Manifest.permission.RECORD_AUDIO] == true) {
+            startListening()
+        } else {
+            Toast.makeText(this, "需要麥克風權限以進行語音對話", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_lfm3_voice_chat)
+
+        initViews()
+        setupListeners()
+        setupChatList()
+
+        // 歡迎訊息
+        lifecycleScope.launch {
+            chatAdapter.addMessage(
+                Lfm3ChatMessage(
+                    isUser = false,
+                    text = "您好！我是 Verbead LFM3 端側語音對話助理。您可以點擊下方按鈕或開啟「連續對話模式」，我會即時透過 16kHz 音訊進行語音理解與生成！"
+                )
+            )
+        }
+    }
+
+    private fun initViews() {
+        toolbar = findViewById(R.id.toolbar)
+        btnClearChat = findViewById(R.id.btn_clear_chat)
+        switchContinuousLoop = findViewById(R.id.switch_continuous_loop)
+        rvChatMessages = findViewById(R.id.rv_chat_messages)
+        viewPulseRing = findViewById(R.id.view_pulse_ring)
+        ivStatusIcon = findViewById(R.id.iv_status_icon)
+        tvAcousticStatus = findViewById(R.id.tv_acoustic_status)
+        progressRms = findViewById(R.id.progress_rms)
+        btnStopSpeech = findViewById(R.id.btn_stop_speech)
+        btnMicAction = findViewById(R.id.btn_mic_action)
+    }
+
+    private fun setupChatList() {
+        chatAdapter = Lfm3ChatAdapter(mutableListOf()) { msg ->
+            msg.audioSamples?.let { samples ->
+                playAudio(samples)
+            }
+        }
+        rvChatMessages.layoutManager = LinearLayoutManager(this).apply {
+            stackFromEnd = true
+        }
+        rvChatMessages.adapter = chatAdapter
+    }
+
+    private fun setupListeners() {
+        toolbar.setNavigationOnClickListener {
+            HapticUtil.click(this)
+            finish()
+        }
+
+        btnClearChat.setOnClickListener {
+            HapticUtil.click(this)
+            stopAll()
+            chatAdapter.clearMessages()
+            setState(ChatState.IDLE)
+        }
+
+        btnMicAction.setOnClickListener {
+            HapticUtil.click(this)
+            when (currentState) {
+                ChatState.IDLE -> checkPermissionAndListen()
+                ChatState.LISTENING -> audioRecorder.stop()
+                ChatState.THINKING -> {} // 思考中忽略
+                ChatState.SPEAKING -> {
+                    pcmPlayer.stop()
+                    checkPermissionAndListen()
+                }
+            }
+        }
+
+        btnStopSpeech.setOnClickListener {
+            HapticUtil.click(this)
+            stopAll()
+            setState(ChatState.IDLE)
+        }
+    }
+
+    private fun checkPermissionAndListen() {
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+
+        val allGranted = permissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+
+        if (allGranted) {
+            startListening()
+        } else {
+            permissionLauncher.launch(permissions.toTypedArray())
+        }
+    }
+
+    private fun startListening() {
+        if (currentState == ChatState.LISTENING) return
+        stopAll()
+        setState(ChatState.LISTENING)
+
+        recordingJob = lifecycleScope.launch {
+            Log.i(TAG, "Starting audio recording session...")
+            val recording = audioRecorder.recordUntilSilence(
+                maxSeconds = 12.0f,
+                silenceSeconds = 1.2f, // 1.2 秒無聲音自動切入思考
+                onRmsUpdate = { rms ->
+                    val progress = (rms * 400).toInt().coerceIn(0, 100)
+                    progressRms.post {
+                        progressRms.setProgressCompat(progress, false)
+                    }
+                }
+            )
+
+            if (recording.samples.isNotEmpty()) {
+                handleUserSpeech(recording.samples)
+            } else {
+                setState(ChatState.IDLE)
+            }
+        }
+    }
+
+    private fun handleUserSpeech(audioSamples: FloatArray) {
+        setState(ChatState.THINKING)
+
+        lifecycleScope.launch {
+            try {
+                // 呼叫 LFM3 對話核心
+                val history = chatAdapter.getMessages()
+                val response = Lfm3AudioEngine.chat(
+                    context = this@Lfm3VoiceChatActivity,
+                    userAudio = audioSamples,
+                    history = history
+                )
+
+                // 更新聊天列表
+                chatAdapter.addMessage(
+                    Lfm3ChatMessage(
+                        isUser = true,
+                        text = response.userText,
+                        audioSamples = audioSamples
+                    )
+                )
+
+                chatAdapter.addMessage(
+                    Lfm3ChatMessage(
+                        isUser = false,
+                        text = response.replyText,
+                        audioSamples = response.replyAudioSamples
+                    )
+                )
+
+                rvChatMessages.scrollToPosition(chatAdapter.itemCount - 1)
+
+                // 播放語音回覆
+                if (response.replyAudioSamples != null && response.replyAudioSamples.isNotEmpty()) {
+                    playAudio(response.replyAudioSamples, response.audioSampleRate) {
+                        // 播放結束後的連續對話回呼
+                        onAssistantSpeechFinished()
+                    }
+                } else {
+                    onAssistantSpeechFinished()
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Error in LFM3 chat round: ${e.message}", e)
+                setState(ChatState.IDLE)
+            }
+        }
+    }
+
+    private fun playAudio(samples: FloatArray, sampleRate: Int = 24_000, onFinished: (() -> Unit)? = null) {
+        setState(ChatState.SPEAKING)
+        playbackJob?.cancel()
+        playbackJob = lifecycleScope.launch {
+            pcmPlayer.play(samples, sampleRate) {
+                onFinished?.invoke()
+            }
+        }
+    }
+
+    private fun onAssistantSpeechFinished() {
+        if (!switchContinuousLoop.isChecked) {
+            setState(ChatState.IDLE)
+            return
+        }
+
+        // 連續對話模式：稍候 350ms 避開聲音餘波，立即自動開啟下一輪聆聽
+        lifecycleScope.launch {
+            delay(350L)
+            if (switchContinuousLoop.isChecked && (currentState == ChatState.SPEAKING || currentState == ChatState.IDLE)) {
+                HapticUtil.tick(this@Lfm3VoiceChatActivity)
+                startListening()
+            }
+        }
+    }
+
+    private fun stopAll() {
+        recordingJob?.cancel()
+        recordingJob = null
+        playbackJob?.cancel()
+        playbackJob = null
+        audioRecorder.stop()
+        pcmPlayer.stop()
+    }
+
+    private fun setState(state: ChatState) {
+        currentState = state
+        runOnUiThread {
+            when (state) {
+                ChatState.IDLE -> {
+                    tvAcousticStatus.text = "點擊下方麥克風開始對話"
+                    ivStatusIcon.setImageResource(R.drawable.ic_mic)
+                    ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.md_theme_light_primary))
+                    btnMicAction.text = "開始說話"
+                    btnMicAction.isEnabled = true
+                    btnStopSpeech.isEnabled = false
+                    progressRms.setProgressCompat(0, false)
+                    stopPulseAnimation()
+                }
+                ChatState.LISTENING -> {
+                    tvAcousticStatus.text = "正在聆聽... 請說話 (停頓自動發送)"
+                    ivStatusIcon.setImageResource(R.drawable.ic_mic)
+                    ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.status_success))
+                    btnMicAction.text = "點擊發送"
+                    btnMicAction.isEnabled = true
+                    btnStopSpeech.isEnabled = true
+                    startPulseAnimation()
+                }
+                ChatState.THINKING -> {
+                    tvAcousticStatus.text = "LFM3 基礎模型思考中..."
+                    ivStatusIcon.setImageResource(R.drawable.ic_ai_sparkle)
+                    ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.tag_recommend))
+                    btnMicAction.text = "處理中..."
+                    btnMicAction.isEnabled = false
+                    btnStopSpeech.isEnabled = true
+                    stopPulseAnimation()
+                }
+                ChatState.SPEAKING -> {
+                    tvAcousticStatus.text = "正在播放 LFM3 語音回覆..."
+                    ivStatusIcon.setImageResource(R.drawable.ic_play_arrow)
+                    ivStatusIcon.setColorFilter(ContextCompat.getColor(this, R.color.tag_recommend))
+                    btnMicAction.text = "插話打斷"
+                    btnMicAction.isEnabled = true
+                    btnStopSpeech.isEnabled = true
+                    startPulseAnimation()
+                }
+            }
+        }
+    }
+
+    private fun startPulseAnimation() {
+        viewPulseRing.visibility = View.VISIBLE
+        val anim = ScaleAnimation(
+            1.0f, 1.35f, 1.0f, 1.35f,
+            Animation.RELATIVE_TO_SELF, 0.5f,
+            Animation.RELATIVE_TO_SELF, 0.5f
+        ).apply {
+            duration = 800L
+            repeatCount = Animation.INFINITE
+            repeatMode = Animation.REVERSE
+        }
+        viewPulseRing.startAnimation(anim)
+    }
+
+    private fun stopPulseAnimation() {
+        viewPulseRing.clearAnimation()
+        viewPulseRing.visibility = View.INVISIBLE
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopAll()
+        setState(ChatState.IDLE)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopAll()
+        Lfm3AudioEngine.onTrimMemory()
+    }
+}

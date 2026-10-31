@@ -25,6 +25,7 @@ import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
 import com.ping.verbead.UserDictionary
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.settings.Lfm3VoiceChatActivity
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.ModelDownloader
@@ -57,6 +58,12 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var progressQwen3: LinearProgressIndicator
     private lateinit var tvProgressQwen3: TextView
     private lateinit var tvStatusBadgeQwen3: TextView
+
+    // LFM3-Audio
+    private lateinit var cardLfm3: MaterialCardView
+    private lateinit var btnSelectLfm3: MaterialButton
+    private lateinit var btnLaunchLfm3Chat: MaterialButton
+    private lateinit var tvStatusBadgeLfm3: TextView
 
     // Audio & VAD Preferences
     private lateinit var layoutPreferExternalAudioToggle: View
@@ -131,6 +138,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvProgressQwen3 = findViewById(R.id.tv_download_status_qwen3)
         tvStatusBadgeQwen3 = findViewById(R.id.tv_qwen3_status)
 
+        cardLfm3 = findViewById(R.id.card_lfm3)
+        btnSelectLfm3 = findViewById(R.id.btn_select_lfm3)
+        btnLaunchLfm3Chat = findViewById(R.id.btn_launch_lfm3_chat)
+        tvStatusBadgeLfm3 = findViewById(R.id.tv_lfm3_status)
+
         layoutPreferExternalAudioToggle = findViewById(R.id.layout_prefer_external_audio_toggle)
         switchPreferExternalAudio = findViewById(R.id.switch_prefer_external_audio)
         layoutAudioGain = findViewById(R.id.layout_audio_gain)
@@ -168,6 +180,14 @@ class SpeechSettingsActivity : AppCompatActivity() {
         cardQwen3.setOnClickListener { onSelectButtonClick(ModelConfig.ENGINE_QWEN3) }
         btnSelectQwen3.setOnClickListener { onSelectButtonClick(ModelConfig.ENGINE_QWEN3) }
         btnDownloadQwen3.setOnClickListener { handleDownloadButtonClick(ModelConfig.ENGINE_QWEN3) }
+
+        // LFM3-Audio
+        cardLfm3.setOnClickListener { onSelectButtonClick(ModelConfig.ENGINE_LFM3_AUDIO) }
+        btnSelectLfm3.setOnClickListener { onSelectButtonClick(ModelConfig.ENGINE_LFM3_AUDIO) }
+        btnLaunchLfm3Chat.setOnClickListener {
+            HapticUtil.click(this)
+            startActivity(Intent(this, Lfm3VoiceChatActivity::class.java))
+        }
 
         // External audio toggle
         layoutPreferExternalAudioToggle.setOnClickListener {
@@ -274,6 +294,15 @@ class SpeechSettingsActivity : AppCompatActivity() {
         btnSelectQwen3.text = if (isQSelected) "使用中" else "切換為此引擎"
         ChoiceButtonUtil.applyChoiceState(btnSelectQwen3, isQSelected)
         updateModelCardSelection(cardQwen3, isQSelected)
+
+        // LFM3-Audio
+        val lfm3Ready = ModelConfig.isLfm3AudioReady(this)
+        tvStatusBadgeLfm3.text = if (lfm3Ready) "已就緒 (ONNX)" else "準備就緒 (自適應端側橋接)"
+        val isLfm3Selected = !isDual && selected == ModelConfig.ENGINE_LFM3_AUDIO
+        btnSelectLfm3.isEnabled = !isLfm3Selected
+        btnSelectLfm3.text = if (isLfm3Selected) "使用中" else "切換為此引擎"
+        ChoiceButtonUtil.applyChoiceState(btnSelectLfm3, isLfm3Selected)
+        updateModelCardSelection(cardLfm3, isLfm3Selected)
 
         // Custom Dictionary word count
         val dictCount = try {

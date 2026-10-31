@@ -58,6 +58,7 @@ import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.Lfm3AudioEngine
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
@@ -2741,7 +2742,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 try {
                     val raw = withContext(Dispatchers.Default) {
                         if (isAborted) return@withContext ""
-                        qwen3Asr.transcribe(recording.samples)
+                        if (ModelConfig.selectedEngine(this@FloatingBubbleService) == ModelConfig.ENGINE_LFM3_AUDIO) {
+                            Lfm3AudioEngine.transcribe(this@FloatingBubbleService, recording.samples)
+                        } else {
+                            qwen3Asr.transcribe(recording.samples)
+                        }
                     }
                     if (isAborted) return@launch
                     val text = if (raw.isNotBlank()) postProcess(raw) else ""
