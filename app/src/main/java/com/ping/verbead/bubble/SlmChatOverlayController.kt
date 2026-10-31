@@ -543,6 +543,11 @@ class SlmChatOverlayController(
                 Toast.makeText(context, context.getString(R.string.toast_asr_model_not_ready, "X-ASR"), Toast.LENGTH_SHORT).show()
                 return
             }
+        } else if (currentEngine == ModelConfig.ENGINE_LFM3_AUDIO) {
+            if (!ModelConfig.isLfm3AudioReady(context)) {
+                Toast.makeText(context, context.getString(R.string.toast_asr_model_not_ready, "LFM3-Audio"), Toast.LENGTH_SHORT).show()
+                return
+            }
         } else {
             if (!ModelConfig.isQwen3Ready(context)) {
                 Toast.makeText(context, context.getString(R.string.toast_asr_model_not_ready, "Qwen3-ASR"), Toast.LENGTH_SHORT).show()
@@ -554,12 +559,19 @@ class SlmChatOverlayController(
             // 1. Ensure required engine models are loaded into memory
             val needXAsr = isDual || currentEngine == ModelConfig.ENGINE_X_ASR
             val needQwen3 = isDual || currentEngine == ModelConfig.ENGINE_QWEN3
+            val needLfm3 = !isDual && currentEngine == ModelConfig.ENGINE_LFM3_AUDIO
 
-            if ((needXAsr && !xAsr.isLoaded()) || (needQwen3 && (!qwen3Asr.isLoaded() || qwen3NeedsReload()))) {
+            if ((needXAsr && !xAsr.isLoaded()) ||
+                (needQwen3 && (!qwen3Asr.isLoaded() || qwen3NeedsReload())) ||
+                (needLfm3 && !com.ping.verbead.engine.Lfm3AudioEngine.isSessionReady())
+            ) {
                 etPrompt.hint = "載入語音引擎中…"
                 withContext(Dispatchers.IO) {
                     if (needXAsr && !xAsr.isLoaded()) xAsr.load()
                     if (needQwen3 && (!qwen3Asr.isLoaded() || qwen3NeedsReload())) qwen3Asr.load(buildHotwords())
+                    if (needLfm3 && !com.ping.verbead.engine.Lfm3AudioEngine.isSessionReady()) {
+                        com.ping.verbead.engine.Lfm3AudioEngine.init(context)
+                    }
                 }
             }
 
@@ -699,7 +711,8 @@ class SlmChatOverlayController(
                     }
 
                     val totalSamples = audioBuffer.sumOf { it.size }
-                    if (totalSamples > 0 && qwen3Asr.isLoaded()) {
+                    val canRunOffline = (currentEngine == ModelConfig.ENGINE_LFM3_AUDIO && com.ping.verbead.engine.Lfm3AudioEngine.isSessionReady()) || qwen3Asr.isLoaded()
+                    if (totalSamples > 0 && canRunOffline) {
                         withContext(Dispatchers.Main) { etPrompt.hint = "離線高精辨識中…" }
                         val combinedAudio = FloatArray(totalSamples)
                         var offset = 0
@@ -707,7 +720,13 @@ class SlmChatOverlayController(
                             System.arraycopy(c, 0, combinedAudio, offset, c.size)
                             offset += c.size
                         }
-                        val qwen3Result = runCatching { qwen3Asr.transcribe(combinedAudio) }.getOrNull()
+                        val qwen3Result = runCatching {
+                            if (currentEngine == ModelConfig.ENGINE_LFM3_AUDIO) {
+                                com.ping.verbead.engine.Lfm3AudioEngine.transcribe(context, combinedAudio)
+                            } else {
+                                qwen3Asr.transcribe(combinedAudio)
+                            }
+                        }.getOrNull()
                         if (!qwen3Result.isNullOrBlank()) {
                             val finalText = postProcess(qwen3Result)
                             withContext(Dispatchers.Main) {

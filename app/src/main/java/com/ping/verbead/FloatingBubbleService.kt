@@ -2522,18 +2522,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
 
             val engine = ModelConfig.selectedEngine(this)
-            if (engine == ModelConfig.ENGINE_X_ASR) {
-                if (!xAsr.isLoaded()) {
-                    preloadAndStart(engine)
-                    return
+            when (engine) {
+                ModelConfig.ENGINE_X_ASR -> {
+                    if (!xAsr.isLoaded()) {
+                        preloadAndStart(engine)
+                        return
+                    }
+                    startStreamingRecording()
                 }
-                startStreamingRecording()
-            } else {
-                if (!qwen3Asr.isLoaded() || qwen3NeedsReload()) {
-                    preloadAndStart(engine)
-                    return
+                ModelConfig.ENGINE_LFM3_AUDIO -> {
+                    if (!Lfm3AudioEngine.isSessionReady()) {
+                        preloadAndStart(engine)
+                        return
+                    }
+                    startOfflineRecording()
                 }
-                startOfflineRecording()
+                else -> {
+                    if (!qwen3Asr.isLoaded() || qwen3NeedsReload()) {
+                        preloadAndStart(engine)
+                        return
+                    }
+                    startOfflineRecording()
+                }
             }
         } catch (e: Throwable) {
             Log.e(TAG, "startRecording failed: ${e.message}", e)
@@ -2571,10 +2581,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         scope.launch {
             val success = withContext(Dispatchers.IO) {
-                if (engine == ModelConfig.ENGINE_X_ASR) {
-                    xAsr.load().success
-                } else {
-                    qwen3Asr.load(buildHotwords()).success
+                when (engine) {
+                    ModelConfig.ENGINE_X_ASR -> xAsr.load().success
+                    ModelConfig.ENGINE_LFM3_AUDIO -> Lfm3AudioEngine.init(this@FloatingBubbleService)
+                    else -> qwen3Asr.load(buildHotwords()).success
                 }
             }
             if (success) {

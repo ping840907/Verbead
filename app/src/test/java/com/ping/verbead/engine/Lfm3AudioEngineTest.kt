@@ -11,12 +11,27 @@ class Lfm3AudioEngineTest {
     @Test
     fun testAudioHyperparameters() {
         assertEquals(16_000, Lfm3AudioEngine.SAMPLE_RATE)
-        assertEquals(80, Lfm3AudioEngine.NUM_MELS)
+        assertEquals(128, Lfm3AudioEngine.NUM_MELS)
         assertEquals(400, Lfm3AudioEngine.N_FFT)
+        assertEquals(400, Lfm3AudioEngine.WIN_LENGTH)
         assertEquals(160, Lfm3AudioEngine.HOP_LENGTH)
         assertEquals(2048, Lfm3AudioEngine.HIDDEN_SIZE)
         assertEquals(24, Lfm3AudioEngine.NUM_LAYERS)
         assertEquals(7, Lfm3AudioEngine.CONV_KERNEL_SIZE)
+        assertEquals(2017, LiquidCodecSynthesizer.CODEBOOK_VOCAB_SIZE)
+        assertEquals(2016L, LiquidCodecSynthesizer.AUDIO_EOS_CODE)
+        assertEquals(125031L, Lfm3Tokenizer.AUDIO_TOKEN_ID)
+        assertEquals(125032L, Lfm3Tokenizer.AUDIO_OUT_TOKEN_ID)
+        assertEquals(125012L, Lfm3Tokenizer.AUDIO_START_TOKEN_ID)
+        assertEquals(125014L, Lfm3Tokenizer.TEXT_END_TOKEN_ID)
+    }
+
+    @Test
+    fun testPadLengthCalculation() {
+        assertEquals(400, Lfm3AudioEngine.padLength(100))
+        assertEquals(400, Lfm3AudioEngine.padLength(400))
+        assertEquals(560, Lfm3AudioEngine.padLength(401))
+        assertEquals(16_080, Lfm3AudioEngine.padLength(16_000))
     }
 
     @Test

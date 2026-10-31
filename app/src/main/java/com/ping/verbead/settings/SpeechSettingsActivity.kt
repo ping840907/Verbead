@@ -307,7 +307,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvStatusBadgeLfm3.text = if (lfm3Ready) "已就緒 (ONNX)" else "未下載 (約 2.72 GB)"
         btnDownloadLfm3.text = if (lfm3Ready) "重新下載" else "下載模型"
         val isLfm3Selected = !isDual && selected == ModelConfig.ENGINE_LFM3_AUDIO
-        btnSelectLfm3.isEnabled = !isLfm3Selected
+        btnSelectLfm3.isEnabled = lfm3Ready && !isLfm3Selected
         btnSelectLfm3.text = if (isLfm3Selected) "使用中" else "切換為此引擎"
         ChoiceButtonUtil.applyChoiceState(btnSelectLfm3, isLfm3Selected)
         updateModelCardSelection(cardLfm3, isLfm3Selected)
@@ -346,7 +346,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
     }
 
     private fun onSelectButtonClick(targetEngine: String) {
-        val ready = if (targetEngine == ModelConfig.ENGINE_X_ASR) ModelConfig.isXAsrReady(this) else ModelConfig.isQwen3Ready(this)
+        val ready = when (targetEngine) {
+            ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this)
+            ModelConfig.ENGINE_LFM3_AUDIO -> ModelConfig.isLfm3AudioReady(this)
+            else -> ModelConfig.isQwen3Ready(this)
+        }
         HapticUtil.click(this)
         if (ready) {
             val isDual = ModelConfig.isDualEngineActive(this)
@@ -357,7 +361,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setSelectedEngine(this, targetEngine)
             ModelConfig.setDualEngineEnabled(this, false)
             updateAllStatus()
-            val name = if (targetEngine == ModelConfig.ENGINE_X_ASR) "X-ASR 串流引擎" else "Qwen3-ASR 離線引擎"
+            val name = when (targetEngine) {
+                ModelConfig.ENGINE_X_ASR -> "X-ASR 串流引擎"
+                ModelConfig.ENGINE_LFM3_AUDIO -> "LFM3-Audio-2B 旗艦引擎"
+                else -> "Qwen3-ASR 離線引擎"
+            }
             Toast.makeText(this, "已切換主辨識引擎為 $name", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, R.string.toast_model_not_downloaded, Toast.LENGTH_SHORT).show()

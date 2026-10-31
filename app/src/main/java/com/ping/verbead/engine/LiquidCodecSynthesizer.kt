@@ -10,13 +10,14 @@ import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.sin
+import kotlin.random.Random
 
 /**
  * Liquid AI LiquidCodec 24 kHz 神經聲學解碼器與 iSTFT 波形合成器。
- * 
- * 依據 LiquidCodecModel 規格：
+ *
+ * 依據 LiquidCodecModel 規格 (`modeling_liquid_codec.py` & `modeling_lfm3_audio.py`)：
  * - 採樣率: 24,000 Hz
- * - 碼簿數量: 12 (FSQ 階層 [8, 7, 6, 6])
+ * - 碼簿數量: 12 (FSQ 階層 [8, 7, 6, 6] = 2016 聲學碼 + 2016 EOS 結束碼 = 2017)
  * - STFT 規格: N_FFT = 1280, Hop = 320, Win = 1280
  * - 幀堆疊: 6 倍 (每幀 80ms，共 1920 樣本點)
  * - 輸出: 24 kHz 單聲道 Float PCM
@@ -27,9 +28,12 @@ object LiquidCodecSynthesizer {
 
     const val SAMPLE_RATE = 24_000
     const val NUM_CODEBOOKS = 12
+    const val CODEBOOK_VOCAB_SIZE = 2017
+    const val AUDIO_EOS_CODE = 2016L
     const val N_FFT = 1280
     const val HOP_LENGTH = 320
     const val WIN_LENGTH = 1280
+    const val TRIM_SAMPLES = (WIN_LENGTH - HOP_LENGTH) / 2 // 480
     const val FRAME_STACK = 6
     const val NUM_BINS = 641 // N_FFT / 2 + 1
     const val FEATURE_DIM = 1282 // 2 * NUM_BINS (log_mag + angle)
@@ -48,7 +52,7 @@ object LiquidCodecSynthesizer {
 
     /**
      * 針對 1280 點 STFT 頻譜進行極速逆實數傅立葉變換 (iRFFT)，
-     * 數學結果與 PyTorch torch.fft.irfft(spec, n=1280) 100% 精確吻合。
+     * 數學結果與 PyTorch torch.fft.irfft(spec, n=1280, norm="backward") 100% 精確吻合。
      */
     fun irfft1280(real: FloatArray, imag: FloatArray, out: FloatArray) {
         val invN = 1.0f / N_FFT
@@ -65,7 +69,7 @@ object LiquidCodecSynthesizer {
 
     /**
      * 將 ONNX codec_decoder 輸出的 stft_features (shape: [1, seqLen, 1282])
-     * 透過逆向重疊相加 (Overlap-Add iSTFT) 還原為 24 kHz PCM 聲學波形。
+     * 透過逆向重疊相加 (Overlap-Add iSTFT) 與首尾修剪 (trim = 480) 還原為 24 kHz PCM 聲學波形。
      */
     fun stftToWaveform(stftFeatures: FloatArray, seqLen: Int): FloatArray {
         if (seqLen <= 0) return FloatArray(0)
@@ -101,37 +105,59 @@ object LiquidCodecSynthesizer {
             }
         }
 
-        // 依窗函數能量正規化 (避免振幅失真)
+        // 對齊 modeling_liquid_codec.py: audio[:, trim:-trim] / envelope[trim:-trim]
+        if (audioLen > 2 * TRIM_SAMPLES) {
+            val trimmedLen = audioLen - 2 * TRIM_SAMPLES
+            val trimmed = FloatArray(trimmedLen)
+            for (i in 0 until trimmedLen) {
+                val srcIdx = i + TRIM_SAMPLES
+                val env = max(envelope[srcIdx], 1e-4f)
+                trimmed[i] = (audio[srcIdx] / env).coerceIn(-1.0f, 1.0f)
+            }
+            return trimmed
+        }
+
         for (i in 0 until audioLen) {
             val env = max(envelope[i], 1e-4f)
             audio[i] = (audio[i] / env).coerceIn(-1.0f, 1.0f)
         }
-
         return audio
     }
 
     /**
-     * 透過 Depth Decoder (MaskGIT 3-pass 排程 [4, 4, 4])，
-     * 將語言模型 2048 維隱狀態 (hidden_states) 解碼為 12 軌 FSQ 碼點。
+     * 透過 Depth Decoder (MaskGIT 3-pass 隨機順序排程 [4, 4, 4])，
+     * 將語言模型 2048 維隱狀態 (hidden_states) 解碼為 12 軌 FSQ 碼點 (含 EOS 2016 判定)。
      */
     fun sampleCodesWithMaskGit(
         env: OrtEnvironment,
         depthSession: OrtSession,
-        hiddenState: FloatArray // shape: [2048]
+        hiddenState: FloatArray, // shape: [2048]
+        history: List<LongArray> = emptyList(),
+        temperature: Float = 0.4f,
+        topK: Int = 64,
+        repetitionPenalty: Float = 1.15f
     ): LongArray {
         val numCodebooks = NUM_CODEBOOKS // 12
         val codes = Array(1) { LongArray(numCodebooks) { 0L } }
         val masked = Array(1) { BooleanArray(numCodebooks) { true } }
 
-        val schedule = listOf(0 until 4, 4 until 8, 8 until 12)
+        // 對齊 modeling_lfm3_audio.py: 隨機排列 12 個 codebook 分 3 輪 [4, 4, 4] 揭露
+        val order = (0 until numCodebooks).shuffled()
+        val passes = listOf(
+            order.subList(0, 4),
+            order.subList(4, 8),
+            order.subList(8, 12)
+        )
 
         val hiddenTensor = OnnxTensor.createTensor(
             env,
             arrayOf(hiddenState) // [1, 2048]
         )
 
+        val scores = FloatArray(CODEBOOK_VOCAB_SIZE)
+
         hiddenTensor.use { hTensor ->
-            for (stepRange in schedule) {
+            for (pick in passes) {
                 val codesTensor = OnnxTensor.createTensor(env, codes)
                 val maskedTensor = OnnxTensor.createTensor(env, masked)
 
@@ -146,23 +172,31 @@ object LiquidCodecSynthesizer {
                             val logitsTensor = results[0] as OnnxTensor
                             // logits shape: [1, 12, 2017]
                             val logitsBuffer = logitsTensor.floatBuffer
-                            val vocabSize = 2017
-                            val frameLogits = FloatArray(numCodebooks * vocabSize)
+                            val frameLogits = FloatArray(numCodebooks * CODEBOOK_VOCAB_SIZE)
                             logitsBuffer.get(frameLogits)
 
-                            // 針對本輪 stepRange 解除遮罩並進行 Greedy / Argmax 採樣
-                            for (c in stepRange) {
-                                val offset = c * vocabSize
-                                var maxVal = -Float.MAX_VALUE
-                                var bestIdx = 0
-                                for (v in 0 until 2016) { // 限制在 0..2015 FSQ 範圍
-                                    val logit = frameLogits[offset + v]
-                                    if (logit > maxVal) {
-                                        maxVal = logit
-                                        bestIdx = v
+                            for (c in pick) {
+                                val offset = c * CODEBOOK_VOCAB_SIZE
+                                System.arraycopy(frameLogits, offset, scores, 0, CODEBOOK_VOCAB_SIZE)
+
+                                // 1. Repetition Penalty (針對該 codebook 歷史已出現的碼點進行懲罰)
+                                if (repetitionPenalty != 1.0f && history.isNotEmpty()) {
+                                    for (pastFrame in history) {
+                                        val pastCode = pastFrame[c].toInt()
+                                        if (pastCode in 0 until CODEBOOK_VOCAB_SIZE) {
+                                            val s = scores[pastCode]
+                                            scores[pastCode] = if (s < 0f) {
+                                                s * repetitionPenalty
+                                            } else {
+                                                s / repetitionPenalty
+                                            }
+                                        }
                                     }
                                 }
-                                codes[0][c] = bestIdx.toLong()
+
+                                // 2. Temperature & Top-K Sampling
+                                val sampledCode = sampleFromLogits(scores, temperature, topK)
+                                codes[0][c] = sampledCode.toLong()
                                 masked[0][c] = false
                             }
                         }
@@ -172,6 +206,62 @@ object LiquidCodecSynthesizer {
         }
 
         return codes[0]
+    }
+
+    private fun sampleFromLogits(
+        scores: FloatArray,
+        temperature: Float,
+        topK: Int
+    ): Int {
+        if (temperature <= 1e-4f || topK == 1) {
+            var maxVal = -Float.MAX_VALUE
+            var bestIdx = 0
+            for (i in scores.indices) {
+                if (scores[i] > maxVal) {
+                    maxVal = scores[i]
+                    bestIdx = i
+                }
+            }
+            return bestIdx
+        }
+
+        val k = if (topK > 0) minOf(topK, scores.size) else scores.size
+        // 找出前 k 大索引
+        val topIndices = IntArray(k)
+        val topValues = FloatArray(k) { -Float.MAX_VALUE }
+
+        for (i in scores.indices) {
+            val v = scores[i] / temperature
+            if (v > topValues[k - 1]) {
+                var pos = k - 1
+                while (pos > 0 && v > topValues[pos - 1]) {
+                    topValues[pos] = topValues[pos - 1]
+                    topIndices[pos] = topIndices[pos - 1]
+                    pos--
+                }
+                topValues[pos] = v
+                topIndices[pos] = i
+            }
+        }
+
+        val maxLogit = topValues[0]
+        var sumExp = 0.0f
+        val probs = FloatArray(k)
+        for (i in 0 until k) {
+            val p = exp((topValues[i] - maxLogit).toDouble()).toFloat()
+            probs[i] = p
+            sumExp += p
+        }
+
+        if (sumExp <= 0f) return topIndices[0]
+
+        val r = Random.nextFloat() * sumExp
+        var acc = 0.0f
+        for (i in 0 until k) {
+            acc += probs[i]
+            if (r <= acc) return topIndices[i]
+        }
+        return topIndices[0]
     }
 
     /**
@@ -184,13 +274,15 @@ object LiquidCodecSynthesizer {
         codes: Array<LongArray> // shape: [12][numFrames]
     ): FloatArray {
         val numFrames = codes[0].size
+        if (numFrames <= 0) return FloatArray(0)
         val totalElements = NUM_CODEBOOKS * numFrames
         val longBuffer = LongBuffer.allocate(totalElements)
 
-        // 展平為 [1, 12, numFrames]
+        // 展平為 [1, 12, numFrames] (確保每個碼點限制於合法範圍 0..2015)
         for (c in 0 until NUM_CODEBOOKS) {
             for (f in 0 until numFrames) {
-                longBuffer.put(codes[c][f])
+                val safeCode = codes[c][f].coerceIn(0L, (AUDIO_EOS_CODE - 1))
+                longBuffer.put(safeCode)
             }
         }
         longBuffer.flip()
