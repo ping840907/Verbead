@@ -28,6 +28,7 @@ import com.ping.verbead.engine.Lfm3AudioEngine
 import com.ping.verbead.engine.Lfm3ChatMessage
 import com.ping.verbead.util.HapticUtil
 import com.ping.verbead.util.PcmPlayer
+import com.ping.verbead.util.TtsSpeaker
 import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.ModelConfig
@@ -74,6 +75,7 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
     private lateinit var chatAdapter: Lfm3ChatAdapter
     private val audioRecorder by lazy { AudioRecorder(this) }
     private val pcmPlayer = PcmPlayer()
+    private val ttsSpeaker by lazy { TtsSpeaker(this) }
 
     private var recordingJob: Job? = null
     private var playbackJob: Job? = null
@@ -127,8 +129,10 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
 
     private fun setupChatList() {
         chatAdapter = Lfm3ChatAdapter(mutableListOf()) { msg ->
-            msg.audioSamples?.let { samples ->
-                playAudio(samples)
+            if (msg.audioSamples != null && msg.audioSamples.isNotEmpty()) {
+                playAudio(msg.audioSamples, if (msg.isUser) 16_000 else 24_000)
+            } else if (msg.text.isNotBlank()) {
+                speakText(msg.text)
             }
         }
         rvChatMessages.layoutManager = LinearLayoutManager(this).apply {
@@ -293,10 +297,13 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
 
                 rvChatMessages.scrollToPosition(chatAdapter.itemCount - 1)
 
-                // 播放語音回覆
+                // 播放語音回覆 (若有神經編碼音訊則回放，否則以高傳真繁中 TTS 自然朗讀)
                 if (response.replyAudioSamples != null && response.replyAudioSamples.isNotEmpty()) {
                     playAudio(response.replyAudioSamples, response.audioSampleRate) {
-                        // 播放結束後的連續對話回呼
+                        onAssistantSpeechFinished()
+                    }
+                } else if (response.replyText.isNotBlank()) {
+                    speakText(response.replyText) {
                         onAssistantSpeechFinished()
                     }
                 } else {
@@ -307,6 +314,27 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
                 setState(ChatState.IDLE)
             }
         }
+    }
+
+    private fun speakText(text: String, onFinished: (() -> Unit)? = null) {
+        stopAll()
+        setState(ChatState.SPEAKING)
+        ttsSpeaker.speak(
+            text = text,
+            onStart = {
+                runOnUiThread {
+                    if (currentState == ChatState.SPEAKING) {
+                        startPulseAnimation()
+                    }
+                }
+            },
+            onDone = {
+                runOnUiThread {
+                    stopPulseAnimation()
+                    onFinished?.invoke()
+                }
+            }
+        )
     }
 
     private fun playAudio(samples: FloatArray, sampleRate: Int = 24_000, onFinished: (() -> Unit)? = null) {
@@ -342,6 +370,7 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         playbackJob = null
         audioRecorder.stop()
         pcmPlayer.stop()
+        ttsSpeaker.stop()
     }
 
     private fun setState(state: ChatState) {
@@ -417,6 +446,7 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         stopAll()
+        ttsSpeaker.release()
         Lfm3AudioEngine.onTrimMemory()
     }
 }

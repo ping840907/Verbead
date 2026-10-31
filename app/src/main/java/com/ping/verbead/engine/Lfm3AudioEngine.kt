@@ -212,8 +212,8 @@ object Lfm3AudioEngine {
         // 2. 生成助理回覆內容 (基於對話歷史與使用者問題)
         val replyText = generateReplyText(userText, history)
 
-        // 3. 產生 24 kHz 語音合成訊號 (優先使用 LiquidCodec，若無則生成高品質提示聲波)
-        val replyAudio = synthesizeReplyWaveform(replyText)
+        // 3. 語音合成訊號 (若有神經編解碼輸出則提供，否則由端側 TTS 自然朗讀)
+        val replyAudio: FloatArray? = null
 
         val latencyMs = System.currentTimeMillis() - t0
         Log.i(TAG, "LFM3 Chat Turn complete: reply=\"$replyText\", latency=${latencyMs}ms")
@@ -275,32 +275,7 @@ object Lfm3AudioEngine {
         return ModelConfig.toTaiwanTraditional(reply)
     }
 
-    /**
-     * 生成 24 kHz 語音回覆波形 (LiquidCodec 解碼或平滑合成音)。
-     */
-    private fun synthesizeReplyWaveform(text: String): FloatArray {
-        // 依文字長度動態生成平滑自然的聲學波形 (24 kHz)
-        val durationSec = (text.length * 0.12f).coerceIn(1.0f, 4.0f)
-        val numSamples = (durationSec * 24_000).toInt()
-        val wave = FloatArray(numSamples)
 
-        val fundamentalFreq = 220.0 // 基頻 A3 (220 Hz 溫暖柔和語音頻率)
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / 24_000.0
-            // 窗函數淡入淡出避免開頭結尾爆音
-            val envelope = when {
-                i < 2400 -> i / 2400.0
-                i > numSamples - 2400 -> (numSamples - i) / 2400.0
-                else -> 1.0
-            }
-            // 模擬基頻與二次諧波泛音
-            val s1 = sin(2.0 * PI * fundamentalFreq * t) * 0.3
-            val s2 = sin(2.0 * PI * (fundamentalFreq * 2.0) * t) * 0.15
-            val s3 = sin(2.0 * PI * (fundamentalFreq * 3.0) * t) * 0.08
-            wave[i] = ((s1 + s2 + s3) * envelope * 0.4).toFloat()
-        }
-        return wave
-    }
 
     /**
      * 記憶體防護與收縮：當 Android 系統記憶體緊縮 (Low Memory) 或離開語音介面時釋放原生記憶體。

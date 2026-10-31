@@ -67,7 +67,7 @@ class Lfm3ChatAdapter(
                 layoutAssistant.visibility = View.VISIBLE
                 tvAssistantText.text = msg.text
                 tvAssistantTime.text = formattedTime
-                btnPlayVoice.visibility = if (msg.audioSamples != null && msg.audioSamples.isNotEmpty()) View.VISIBLE else View.GONE
+                btnPlayVoice.visibility = if (msg.text.isNotBlank() || (msg.audioSamples != null && msg.audioSamples.isNotEmpty())) View.VISIBLE else View.GONE
                 btnPlayVoice.setOnClickListener {
                     onPlayVoice(msg)
                 }
