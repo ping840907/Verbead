@@ -64,6 +64,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var btnSelectLfm3: MaterialButton
     private lateinit var btnLaunchLfm3Chat: MaterialButton
     private lateinit var tvStatusBadgeLfm3: TextView
+    private lateinit var btnDownloadLfm3: MaterialButton
+    private lateinit var progressLfm3: LinearProgressIndicator
+    private lateinit var tvProgressLfm3: TextView
 
     // Audio & VAD Preferences
     private lateinit var layoutPreferExternalAudioToggle: View
@@ -142,6 +145,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
         btnSelectLfm3 = findViewById(R.id.btn_select_lfm3)
         btnLaunchLfm3Chat = findViewById(R.id.btn_launch_lfm3_chat)
         tvStatusBadgeLfm3 = findViewById(R.id.tv_lfm3_status)
+        btnDownloadLfm3 = findViewById(R.id.btn_download_lfm3)
+        progressLfm3 = findViewById(R.id.progress_download_lfm3)
+        tvProgressLfm3 = findViewById(R.id.tv_download_status_lfm3)
 
         layoutPreferExternalAudioToggle = findViewById(R.id.layout_prefer_external_audio_toggle)
         switchPreferExternalAudio = findViewById(R.id.switch_prefer_external_audio)
@@ -184,6 +190,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         // LFM3-Audio
         cardLfm3.setOnClickListener { onSelectButtonClick(ModelConfig.ENGINE_LFM3_AUDIO) }
         btnSelectLfm3.setOnClickListener { onSelectButtonClick(ModelConfig.ENGINE_LFM3_AUDIO) }
+        btnDownloadLfm3.setOnClickListener { handleDownloadButtonClick(ModelConfig.ENGINE_LFM3_AUDIO) }
         btnLaunchLfm3Chat.setOnClickListener {
             HapticUtil.click(this)
             startActivity(Intent(this, Lfm3VoiceChatActivity::class.java))
@@ -297,7 +304,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
         // LFM3-Audio
         val lfm3Ready = ModelConfig.isLfm3AudioReady(this)
-        tvStatusBadgeLfm3.text = if (lfm3Ready) "已就緒 (ONNX)" else "準備就緒 (自適應端側橋接)"
+        tvStatusBadgeLfm3.text = if (lfm3Ready) "已就緒 (ONNX)" else "未下載 (約 2.09 GB)"
+        btnDownloadLfm3.text = if (lfm3Ready) "重新下載" else "下載模型"
         val isLfm3Selected = !isDual && selected == ModelConfig.ENGINE_LFM3_AUDIO
         btnSelectLfm3.isEnabled = !isLfm3Selected
         btnSelectLfm3.text = if (isLfm3Selected) "使用中" else "切換為此引擎"
@@ -385,11 +393,19 @@ class SpeechSettingsActivity : AppCompatActivity() {
             return
         }
         val target = ModelDownloadSpec.forEngine(engine)
-        val label = if (engine == ModelConfig.ENGINE_X_ASR) "X-ASR 繁中串流模型" else "Qwen3-ASR 語音模型"
+        val label = when (engine) {
+            ModelConfig.ENGINE_LFM3_AUDIO -> "LFM3-Audio-2B 旗艦模型"
+            ModelConfig.ENGINE_X_ASR -> "X-ASR 繁中串流模型"
+            else -> "Qwen3-ASR 語音模型"
+        }
         lifecycleScope.launch {
             val totalBytes = withContext(Dispatchers.IO) { downloader.estimateTotalBytes(target) }
             val totalMb = totalBytes / 1024 / 1024
-            val ready = if (engine == ModelConfig.ENGINE_X_ASR) ModelConfig.isXAsrReady(this@SpeechSettingsActivity) else ModelConfig.isQwen3Ready(this@SpeechSettingsActivity)
+            val ready = when (engine) {
+            ModelConfig.ENGINE_LFM3_AUDIO -> ModelConfig.isLfm3AudioReady(this@SpeechSettingsActivity)
+            ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this@SpeechSettingsActivity)
+            else -> ModelConfig.isQwen3Ready(this@SpeechSettingsActivity)
+        }
             val action = if (ready) "重新下載" else "下載"
 
             AlertDialog.Builder(this@SpeechSettingsActivity)
@@ -426,6 +442,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
     }
 
     private fun getDownloadViews(engine: String): Triple<MaterialButton, LinearProgressIndicator, TextView> {
+        if (engine == ModelConfig.ENGINE_LFM3_AUDIO) {
+            return Triple(btnDownloadLfm3, progressLfm3, tvProgressLfm3)
+        }
         return if (engine == ModelConfig.ENGINE_X_ASR) {
             Triple(btnDownloadXasr, progressXasr, tvProgressXasr)
         } else {
@@ -437,14 +456,18 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val (btn, prog, tv) = getDownloadViews(engine)
         prog.visibility = View.GONE
         tv.visibility = View.GONE
-        val ready = if (engine == ModelConfig.ENGINE_X_ASR) ModelConfig.isXAsrReady(this) else ModelConfig.isQwen3Ready(this)
+        val ready = when (engine) {
+            ModelConfig.ENGINE_LFM3_AUDIO -> ModelConfig.isLfm3AudioReady(this)
+            ModelConfig.ENGINE_X_ASR -> ModelConfig.isXAsrReady(this)
+            else -> ModelConfig.isQwen3Ready(this)
+        }
         btn.text = if (ready) "重新下載" else "下載模型"
     }
 
     private fun observeDownloadState() {
         lifecycleScope.launch {
             ModelDownloadState.active.collect { active ->
-                if (active != null && (active.engine == ModelConfig.ENGINE_X_ASR || active.engine == ModelConfig.ENGINE_QWEN3)) {
+                if (active != null && (active.engine == ModelConfig.ENGINE_X_ASR || active.engine == ModelConfig.ENGINE_QWEN3 || active.engine == ModelConfig.ENGINE_LFM3_AUDIO)) {
                     val (btn, prog, tv) = getDownloadViews(active.engine)
                     btn.text = "取消下載"
                     prog.visibility = View.VISIBLE
@@ -456,6 +479,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
                     if (ModelDownloadState.active.value == null) {
                         hideDownloadProgress(ModelConfig.ENGINE_X_ASR)
                         hideDownloadProgress(ModelConfig.ENGINE_QWEN3)
+                        hideDownloadProgress(ModelConfig.ENGINE_LFM3_AUDIO)
                         updateAllStatus()
                     }
                 }
@@ -463,7 +487,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             ModelDownloadState.results.collect { (engine, result) ->
-                if (engine == ModelConfig.ENGINE_X_ASR || engine == ModelConfig.ENGINE_QWEN3) {
+                if (engine == ModelConfig.ENGINE_X_ASR || engine == ModelConfig.ENGINE_QWEN3 || engine == ModelConfig.ENGINE_LFM3_AUDIO) {
                     hideDownloadProgress(engine)
                     updateAllStatus()
                     if (result.isSuccess) {

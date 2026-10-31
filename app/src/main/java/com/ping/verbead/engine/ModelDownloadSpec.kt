@@ -118,7 +118,27 @@ object ModelDownloadSpec {
         )
     }
 
+    // Liquid AI LFM3-Audio-2B (ONNX 16kHz encoder + Q4 decoder + tokenizer)
+    fun lfm3Audio(): DownloadTarget = DownloadTarget(
+        engine = ModelConfig.ENGINE_LFM3_AUDIO,
+        files = listOf(
+            RemoteFile(
+                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/${ModelConfig.LFM3_AUDIO_ENCODER}",
+                relativePath = ModelConfig.LFM3_AUDIO_ENCODER,
+            ),
+            RemoteFile(
+                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/${ModelConfig.LFM3_AUDIO_DECODER_Q4}",
+                relativePath = ModelConfig.LFM3_AUDIO_DECODER_Q4,
+            ),
+            RemoteFile(
+                url = "https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX/resolve/main/${ModelConfig.LFM3_AUDIO_TOKENIZER}",
+                relativePath = ModelConfig.LFM3_AUDIO_TOKENIZER,
+            ),
+        ),
+    )
+
     fun forEngine(engine: String): DownloadTarget = when {
+        engine == ModelConfig.ENGINE_LFM3_AUDIO -> lfm3Audio()
         engine == ModelConfig.ENGINE_X_ASR -> xAsr()
         engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
         com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine } -> slm(engine)

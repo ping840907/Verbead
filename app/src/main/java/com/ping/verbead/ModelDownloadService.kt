@@ -65,6 +65,7 @@ class ModelDownloadService : Service() {
         val engineLabel = when {
             slmMeta != null -> slmMeta.displayName
             engine == ModelConfig.ENGINE_X_ASR -> "X-ASR"
+            engine == ModelConfig.ENGINE_LFM3_AUDIO -> "LFM3-Audio-2B"
             engine == ModelConfig.OCR_MODEL_TINY -> "PP-OCRv6 Tiny"
             engine == ModelConfig.OCR_MODEL_SMALL -> "PP-OCRv6 Small"
             else -> "Qwen3-ASR"

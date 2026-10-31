@@ -309,6 +309,26 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_download_lfm3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:visibility="gone"
+                        app:indicatorColor="@color/md_theme_light_primary"
+                        app:trackColor="@color/md_theme_light_primaryContainer"
+                        app:trackCornerRadius="4dp"
+                        app:trackThickness="6dp" />
+
+                    <TextView
+                        android:id="@+id/tv_download_status_lfm3"
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:visibility="gone" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -320,9 +340,20 @@
                             style="@style/Verbead.Button.Tonal"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
+                            android:layout_marginEnd="6dp"
                             android:layout_weight="1"
-                            android:text="選為聽寫引擎" />
+                            android:text="選為聽寫"
+                            android:textSize="12sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_download_lfm3"
+                            style="@style/Verbead.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:text="下載模型"
+                            android:textSize="12sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_launch_lfm3_chat"
@@ -331,6 +362,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="語音對話"
+                            android:textSize="12sp"
                             app:icon="@drawable/ic_bolt" />
                     </LinearLayout>
                 </LinearLayout>

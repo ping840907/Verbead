@@ -27,6 +27,78 @@
             android:src="@drawable/ic_delete"
             app:tint="@color/text_secondary" />
     </com.google.android.material.appbar.MaterialToolbar>
+    <!-- One-click Download Banner if Model Not Ready -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_download_prompt"
+        style="@style/Verbead.Card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_bolt"
+                    app:tint="@color/tag_recommend" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="LFM3 基礎模型權重"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_chat_download_status"
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ONNX 官方權重尚未下載 (約 2.09 GB)" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_chat_download_action"
+                    style="@style/Verbead.Button.Compact"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="一鍵下載"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progress_chat_download"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                app:indicatorColor="@color/md_theme_light_primary"
+                app:trackColor="@color/surface_container_high" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
 
     <!-- Top Mode & Status Banner -->
     <com.google.android.material.card.MaterialCardView

@@ -28,6 +28,10 @@ import com.ping.verbead.engine.Lfm3AudioEngine
 import com.ping.verbead.engine.Lfm3ChatMessage
 import com.ping.verbead.util.HapticUtil
 import com.ping.verbead.util.PcmPlayer
+import com.ping.verbead.ModelDownloadService
+import com.ping.verbead.engine.ModelDownloadState
+import com.ping.verbead.engine.ModelConfig
+import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,6 +66,10 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
     private lateinit var progressRms: LinearProgressIndicator
     private lateinit var btnStopSpeech: MaterialButton
     private lateinit var btnMicAction: MaterialButton
+    private lateinit var cardDownloadPrompt: MaterialCardView
+    private lateinit var tvChatDownloadStatus: TextView
+    private lateinit var btnChatDownloadAction: MaterialButton
+    private lateinit var progressChatDownload: LinearProgressIndicator
 
     private lateinit var chatAdapter: Lfm3ChatAdapter
     private val audioRecorder by lazy { AudioRecorder(this) }
@@ -87,6 +95,7 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         initViews()
         setupListeners()
         setupChatList()
+        setupDownloadObserver()
 
         // 歡迎訊息
         lifecycleScope.launch {
@@ -110,6 +119,10 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
         progressRms = findViewById(R.id.progress_rms)
         btnStopSpeech = findViewById(R.id.btn_stop_speech)
         btnMicAction = findViewById(R.id.btn_mic_action)
+        cardDownloadPrompt = findViewById(R.id.card_download_prompt)
+        tvChatDownloadStatus = findViewById(R.id.tv_chat_download_status)
+        btnChatDownloadAction = findViewById(R.id.btn_chat_download_action)
+        progressChatDownload = findViewById(R.id.progress_chat_download)
     }
 
     private fun setupChatList() {
@@ -122,6 +135,54 @@ class Lfm3VoiceChatActivity : AppCompatActivity() {
             stackFromEnd = true
         }
         rvChatMessages.adapter = chatAdapter
+    }
+
+    private fun setupDownloadObserver() {
+        btnChatDownloadAction.setOnClickListener {
+            HapticUtil.click(this)
+            val active = ModelDownloadState.active.value
+            if (active != null && active.engine == ModelConfig.ENGINE_LFM3_AUDIO) {
+                ModelDownloadService.cancel(this)
+            } else {
+                ModelDownloadService.start(this, ModelConfig.ENGINE_LFM3_AUDIO)
+            }
+        }
+
+        lifecycleScope.launch {
+            ModelDownloadState.active.collect { active ->
+                if (active != null && active.engine == ModelConfig.ENGINE_LFM3_AUDIO) {
+                    cardDownloadPrompt.visibility = View.VISIBLE
+                    btnChatDownloadAction.text = "取消下載"
+                    progressChatDownload.visibility = View.VISIBLE
+                    progressChatDownload.isIndeterminate = active.progress.percent < 0
+                    if (active.progress.percent >= 0) progressChatDownload.progress = active.progress.percent
+                    tvChatDownloadStatus.text = "下載中：${active.progress.label} (${active.progress.percent}%)"
+                } else {
+                    val ready = ModelConfig.isLfm3AudioReady(this@Lfm3VoiceChatActivity)
+                    if (ready) {
+                        cardDownloadPrompt.visibility = View.GONE
+                    } else {
+                        cardDownloadPrompt.visibility = View.VISIBLE
+                        btnChatDownloadAction.text = "一鍵下載"
+                        progressChatDownload.visibility = View.GONE
+                        tvChatDownloadStatus.text = "ONNX 官方權重尚未下載 (約 2.09 GB)"
+                    }
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            ModelDownloadState.results.collect { (engine, result) ->
+                if (engine == ModelConfig.ENGINE_LFM3_AUDIO) {
+                    if (result.isSuccess) {
+                        Toast.makeText(this@Lfm3VoiceChatActivity, "LFM3 模型下載完成！", Toast.LENGTH_SHORT).show()
+                        cardDownloadPrompt.visibility = View.GONE
+                    } else {
+                        Toast.makeText(this@Lfm3VoiceChatActivity, "下載失敗，請檢查網路連線", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
     private fun setupListeners() {

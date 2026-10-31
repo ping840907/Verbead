@@ -85,6 +85,17 @@ class ModelDownloaderTest {
             com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_4B to "25082a7dd3776cc3c741c6347d3bd04523f05796607b3fbc32fa3a25dfa1418c",
             com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_9B to "cd76ec205963b3b33350093e6904d9de16c4e666fd104e1f632d25c7f15f2a13"
         )
+        val lfm3Target = ModelDownloadSpec.lfm3Audio()
+        assertEquals(ModelConfig.ENGINE_LFM3_AUDIO, lfm3Target.engine)
+        assertEquals(3, lfm3Target.files.size)
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_ENCODER })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_DECODER_Q4 })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_TOKENIZER })
+
+        val targetForEngine = ModelDownloadSpec.forEngine(ModelConfig.ENGINE_LFM3_AUDIO)
+        assertEquals(ModelConfig.ENGINE_LFM3_AUDIO, targetForEngine.engine)
+        assertEquals(3, targetForEngine.files.size)
+
         for ((modelId, expectedHash) in expectedSlmHashes) {
             val slmTarget = ModelDownloadSpec.slm(modelId)
             assertEquals(1, slmTarget.files.size)
