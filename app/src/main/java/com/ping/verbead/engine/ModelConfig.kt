@@ -36,13 +36,17 @@ object ModelConfig {
     // Model files from: https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX
     // Place under: <modelsDir>/lfm3_audio/
     //   audio_encoder.onnx   decoder_q4.onnx   tokenizer.json
-    const val LFM3_AUDIO_DIR            = "lfm3_audio"
-    const val LFM3_AUDIO_ENCODER        = "audio_encoder.onnx"
-    const val LFM3_AUDIO_DECODER_Q4     = "decoder_q4.onnx"
-    const val LFM3_AUDIO_DEPTH_DECODER  = "depth_decoder.onnx"
-    const val LFM3_AUDIO_CODEC_DECODER  = "codec_decoder.onnx"
-    const val LFM3_AUDIO_TOKENIZER      = "tokenizer.json"
-    const val LFM3_AUDIO_THREADS        = 4
+    const val LFM3_AUDIO_DIR                 = "lfm3_audio"
+    const val LFM3_AUDIO_ENCODER             = "audio_encoder.onnx"
+    const val LFM3_AUDIO_ENCODER_DATA        = "audio_encoder.onnx_data"
+    const val LFM3_AUDIO_DECODER_Q4          = "decoder_q4.onnx"
+    const val LFM3_AUDIO_DECODER_Q4_DATA     = "decoder_q4.onnx_data"
+    const val LFM3_AUDIO_DEPTH_DECODER       = "depth_decoder.onnx"
+    const val LFM3_AUDIO_DEPTH_DECODER_DATA  = "depth_decoder.onnx_data"
+    const val LFM3_AUDIO_CODEC_DECODER       = "codec_decoder.onnx"
+    const val LFM3_AUDIO_CODEC_DECODER_DATA  = "codec_decoder.onnx_data"
+    const val LFM3_AUDIO_TOKENIZER           = "tokenizer.json"
+    const val LFM3_AUDIO_THREADS             = 4
 
     // ── Shared ────────────────────────────────────────────────────────────────
     const val ASR_SAMPLE_RATE = 16_000
@@ -101,12 +105,16 @@ object ModelConfig {
     fun xAsrTokensPath(context: Context)  = "${xAsrDir(context)}/$X_ASR_TOKENS"
 
     // LFM3-Audio
-    fun lfm3AudioDir(context: Context)             = "${modelsDir(context)}/$LFM3_AUDIO_DIR"
-    fun lfm3AudioEncoderPath(context: Context)      = "${lfm3AudioDir(context)}/$LFM3_AUDIO_ENCODER"
-    fun lfm3AudioDecoderPath(context: Context)      = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DECODER_Q4"
-    fun lfm3AudioDepthDecoderPath(context: Context)  = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DEPTH_DECODER"
-    fun lfm3AudioCodecDecoderPath(context: Context)  = "${lfm3AudioDir(context)}/$LFM3_AUDIO_CODEC_DECODER"
-    fun lfm3AudioTokenizerPath(context: Context)    = "${lfm3AudioDir(context)}/$LFM3_AUDIO_TOKENIZER"
+    fun lfm3AudioDir(context: Context)                  = "${modelsDir(context)}/$LFM3_AUDIO_DIR"
+    fun lfm3AudioEncoderPath(context: Context)           = "${lfm3AudioDir(context)}/$LFM3_AUDIO_ENCODER"
+    fun lfm3AudioEncoderDataPath(context: Context)       = "${lfm3AudioDir(context)}/$LFM3_AUDIO_ENCODER_DATA"
+    fun lfm3AudioDecoderPath(context: Context)           = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DECODER_Q4"
+    fun lfm3AudioDecoderDataPath(context: Context)       = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DECODER_Q4_DATA"
+    fun lfm3AudioDepthDecoderPath(context: Context)       = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DEPTH_DECODER"
+    fun lfm3AudioDepthDecoderDataPath(context: Context)   = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DEPTH_DECODER_DATA"
+    fun lfm3AudioCodecDecoderPath(context: Context)       = "${lfm3AudioDir(context)}/$LFM3_AUDIO_CODEC_DECODER"
+    fun lfm3AudioCodecDecoderDataPath(context: Context)   = "${lfm3AudioDir(context)}/$LFM3_AUDIO_CODEC_DECODER_DATA"
+    fun lfm3AudioTokenizerPath(context: Context)         = "${lfm3AudioDir(context)}/$LFM3_AUDIO_TOKENIZER"
 
     // Engine selection helpers
     fun selectedEngine(context: Context): String =
@@ -649,12 +657,18 @@ object ModelConfig {
         return files.all { java.io.File(it).exists() } && java.io.File(qwen3AsrTokenizerDir(context)).isDirectory
     }
 
-    fun isLfm3AudioReady(context: Context): Boolean {
-        val files = listOf(
+    fun isLfm3AudioReady(context: Context, requireCodec: Boolean = false): Boolean {
+        val files = mutableListOf(
             lfm3AudioEncoderPath(context),
+            lfm3AudioEncoderDataPath(context),
             lfm3AudioDecoderPath(context),
+            lfm3AudioDecoderDataPath(context),
             lfm3AudioTokenizerPath(context),
         )
+        if (requireCodec) {
+            files.add(lfm3AudioCodecDecoderPath(context))
+            files.add(lfm3AudioCodecDecoderDataPath(context))
+        }
         return files.all { java.io.File(it).exists() }
     }
 

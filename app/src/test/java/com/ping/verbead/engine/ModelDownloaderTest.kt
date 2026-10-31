@@ -87,14 +87,28 @@ class ModelDownloaderTest {
         )
         val lfm3Target = ModelDownloadSpec.lfm3Audio()
         assertEquals(ModelConfig.ENGINE_LFM3_AUDIO, lfm3Target.engine)
-        assertEquals(3, lfm3Target.files.size)
+        assertEquals(7, lfm3Target.files.size)
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_ENCODER })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_ENCODER_DATA })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_DECODER_Q4 })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_DECODER_Q4_DATA })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_CODEC_DECODER })
+        assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_CODEC_DECODER_DATA })
         assertTrue(lfm3Target.files.any { it.relativePath == ModelConfig.LFM3_AUDIO_TOKENIZER })
+
+        for (f in lfm3Target.files) {
+            assertTrue("File ${f.relativePath} must have sha256", !f.sha256.isNullOrBlank())
+            assertEquals(64, f.sha256!!.length)
+            if (f.relativePath == ModelConfig.LFM3_AUDIO_TOKENIZER) {
+                assertTrue("tokenizer.json should be at root", f.url.endsWith("/main/${ModelConfig.LFM3_AUDIO_TOKENIZER}"))
+            } else {
+                assertTrue("ONNX file ${f.relativePath} should be under onnx/ subdirectory", f.url.contains("/resolve/main/onnx/"))
+            }
+        }
 
         val targetForEngine = ModelDownloadSpec.forEngine(ModelConfig.ENGINE_LFM3_AUDIO)
         assertEquals(ModelConfig.ENGINE_LFM3_AUDIO, targetForEngine.engine)
-        assertEquals(3, targetForEngine.files.size)
+        assertEquals(7, targetForEngine.files.size)
 
         for ((modelId, expectedHash) in expectedSlmHashes) {
             val slmTarget = ModelDownloadSpec.slm(modelId)
