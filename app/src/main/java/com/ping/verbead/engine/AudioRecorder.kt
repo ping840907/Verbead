@@ -138,10 +138,6 @@ class AudioRecorder(private val context: Context? = null) {
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
-        // 僅外部音訊 (藍牙/耳機) 可路由至 FARGAN 神經語音增強；手機內建麥克風固定高品質純淨直通
-        val isFarganRouted = isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true)
-        FarganProcessor.reset()
-        Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
 
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
@@ -217,10 +213,6 @@ class AudioRecorder(private val context: Context? = null) {
                     applyGain(chunkBuffer, read, externalGain)
                 }
 
-                // 依雙管線路由決定是否套用 FARGAN 增強
-                if (isFarganRouted) {
-                    FarganProcessor.process(chunkBuffer, read)
-                }
 
                 val copy = minOf(read, maxFrames - sampleCount)
                 System.arraycopy(chunkBuffer, 0, allSamples, sampleCount, copy)
@@ -316,10 +308,6 @@ class AudioRecorder(private val context: Context? = null) {
         val externalGain = context?.let { ModelConfig.externalAudioGain(it) } ?: ModelConfig.DEFAULT_EXTERNAL_AUDIO_GAIN
         val preferredSource = routingSession?.audioSource ?: MediaRecorder.AudioSource.VOICE_RECOGNITION
 
-        // 僅外部音訊 (藍牙/耳機) 可路由至 FARGAN 神經語音增強；手機內建麥克風固定高品質純淨直通
-        val isFarganRouted = isExternal && (context?.let { ModelConfig.isFarganExternalAudioEnabled(it) } ?: true)
-        FarganProcessor.reset()
-        Log.i(TAG, "Audio enhancement pipeline configured: isExternal=$isExternal, routeToFargan=$isFarganRouted (nativeReady=${FarganProcessor.isNativeEngineReady()})")
 
         val bufSize = maxOf(
             AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CFG, AUDIO_FORMAT),
@@ -394,10 +382,6 @@ class AudioRecorder(private val context: Context? = null) {
                     applyGain(chunkBuffer, read, externalGain)
                 }
 
-                // 依雙管線路由決定是否套用 FARGAN 增強
-                if (isFarganRouted) {
-                    FarganProcessor.process(chunkBuffer, read)
-                }
 
                 val floats = FloatArray(read) { chunkBuffer[it] / 32768.0f }
                 onChunk(floats)
