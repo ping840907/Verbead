@@ -11,6 +11,7 @@ object ModelConfig {
     const val KEY_ENGINE    = "engine"
     const val ENGINE_QWEN3  = "qwen3"
     const val ENGINE_X_ASR  = "x_asr"
+    const val ENGINE_LFM3_AUDIO = "lfm3_audio"
 
     // ── Qwen3-ASR-0.6B-int8 (offline, Simplified→Traditional via OpenCC) ─────
     const val QWEN3_ASR_DIR           = "qwen3_asr"
@@ -30,6 +31,18 @@ object ModelConfig {
     const val X_ASR_JOINER  = "joiner.int8.onnx"
     const val X_ASR_TOKENS  = "tokens.txt"
     const val X_ASR_THREADS = 4
+
+    // ── Liquid AI LFM3-Audio-2B (multimodal offline foundation model) ─────────
+    // Model files from: https://huggingface.co/LiquidAI/LFM3-Audio-2B-ONNX
+    // Place under: <modelsDir>/lfm3_audio/
+    //   audio_encoder.onnx   decoder_q4.onnx   tokenizer.json
+    const val LFM3_AUDIO_DIR            = "lfm3_audio"
+    const val LFM3_AUDIO_ENCODER        = "audio_encoder.onnx"
+    const val LFM3_AUDIO_DECODER_Q4     = "decoder_q4.onnx"
+    const val LFM3_AUDIO_DEPTH_DECODER  = "depth_decoder.onnx"
+    const val LFM3_AUDIO_CODEC_DECODER  = "codec_decoder.onnx"
+    const val LFM3_AUDIO_TOKENIZER      = "tokenizer.json"
+    const val LFM3_AUDIO_THREADS        = 4
 
     // ── Shared ────────────────────────────────────────────────────────────────
     const val ASR_SAMPLE_RATE = 16_000
@@ -86,6 +99,14 @@ object ModelConfig {
     fun xAsrDecoderPath(context: Context) = "${xAsrDir(context)}/$X_ASR_DECODER"
     fun xAsrJoinerPath(context: Context)  = "${xAsrDir(context)}/$X_ASR_JOINER"
     fun xAsrTokensPath(context: Context)  = "${xAsrDir(context)}/$X_ASR_TOKENS"
+
+    // LFM3-Audio
+    fun lfm3AudioDir(context: Context)             = "${modelsDir(context)}/$LFM3_AUDIO_DIR"
+    fun lfm3AudioEncoderPath(context: Context)      = "${lfm3AudioDir(context)}/$LFM3_AUDIO_ENCODER"
+    fun lfm3AudioDecoderPath(context: Context)      = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DECODER_Q4"
+    fun lfm3AudioDepthDecoderPath(context: Context)  = "${lfm3AudioDir(context)}/$LFM3_AUDIO_DEPTH_DECODER"
+    fun lfm3AudioCodecDecoderPath(context: Context)  = "${lfm3AudioDir(context)}/$LFM3_AUDIO_CODEC_DECODER"
+    fun lfm3AudioTokenizerPath(context: Context)    = "${lfm3AudioDir(context)}/$LFM3_AUDIO_TOKENIZER"
 
     // Engine selection helpers
     fun selectedEngine(context: Context): String =
@@ -626,6 +647,15 @@ object ModelConfig {
             qwen3AsrDecoderPath(context),
         )
         return files.all { java.io.File(it).exists() } && java.io.File(qwen3AsrTokenizerDir(context)).isDirectory
+    }
+
+    fun isLfm3AudioReady(context: Context): Boolean {
+        val files = listOf(
+            lfm3AudioEncoderPath(context),
+            lfm3AudioDecoderPath(context),
+            lfm3AudioTokenizerPath(context),
+        )
+        return files.all { java.io.File(it).exists() }
     }
 
     fun areAllModelsReady(context: Context): Boolean =
