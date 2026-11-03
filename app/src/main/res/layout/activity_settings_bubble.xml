@@ -64,14 +64,14 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="懸浮語音泡泡" />
+                            android:text="@string/settings_bubble_header_title" />
 
                         <TextView
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="貼邊常駐，一鍵語音、條碼與文字辨識" />
+                            android:text="@string/settings_bubble_header_desc" />
                     </LinearLayout>
 
                     <TextView
@@ -80,7 +80,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_status_badge_warning"
-                        android:text="未就緒"
+                        android:text="@string/settings_bubble_status_not_ready"
                         android:textColor="@color/status_warning_text" />
                 </LinearLayout>
 
@@ -115,7 +115,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="顯示在上層" />
+                            android:text="@string/settings_bubble_overlay_title" />
 
                         <TextView
                             android:id="@+id/tv_overlay_status"
@@ -123,7 +123,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="允許顯示在其他應用程式上層" />
+                            android:text="@string/settings_bubble_overlay_desc" />
 
                         <TextView
                             android:id="@+id/tv_overlay_restricted_help"
@@ -135,7 +135,7 @@
                             android:focusable="true"
                             android:paddingTop="4dp"
                             android:paddingBottom="4dp"
-                            android:text="無法開啟顯示在上層？點此查看解除受限制設定指引"
+                            android:text="@string/settings_bubble_overlay_help"
                             android:textColor="@color/md_theme_light_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -146,7 +146,7 @@
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="前往授權" />
+                        android:text="@string/settings_bubble_overlay_action" />
                 </LinearLayout>
 
                 <View
@@ -179,7 +179,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="自動填入（無障礙）" />
+                            android:text="@string/settings_bubble_autofill_title" />
 
                         <TextView
                             android:id="@+id/tv_accessibility_status"
@@ -187,7 +187,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="將辨識文字直接填入焦點欄位" />
+                            android:text="@string/settings_bubble_autofill_desc" />
 
                         <TextView
                             android:id="@+id/tv_restricted_settings_help"
@@ -199,7 +199,7 @@
                             android:focusable="true"
                             android:paddingTop="4dp"
                             android:paddingBottom="4dp"
-                            android:text="無法開啟自動填入？點此查看解除受限制設定指引"
+                            android:text="@string/settings_bubble_autofill_help"
                             android:textColor="@color/md_theme_light_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -210,7 +210,7 @@
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="前往開啟" />
+                        android:text="@string/settings_bubble_autofill_action" />
                 </LinearLayout>
 
                 <View
@@ -248,7 +248,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="解除受限制的設定" />
+                            android:text="@string/settings_bubble_restricted_title" />
 
                         <TextView
                             style="@style/Verbead.Text.Caption"
@@ -256,7 +256,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:lineSpacingExtra="2dp"
-                            android:text="若「顯示在上層」或「自動填入」開關被系統反灰鎖定，請點此前往應用程式資訊頁面，點選畫面右上角「︙」（三點選單）並選擇「解除受限制的設定」即可解除鎖定" />
+                            android:text="@string/settings_bubble_restricted_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
@@ -264,7 +264,7 @@
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="前往解除" />
+                        android:text="@string/settings_bubble_restricted_action" />
                 </LinearLayout>
 
                 <View
@@ -301,14 +301,14 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="僅在鍵盤出現時顯示" />
+                            android:text="@string/settings_bubble_keyboard_only_title" />
 
                         <TextView
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="開啟時僅於輸入鍵盤彈出時顯示懸浮球；關閉時常駐貼邊" />
+                            android:text="@string/settings_bubble_keyboard_only_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -351,7 +351,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="多懸浮球並存模式" />
+                            android:text="@string/settings_bubble_multi_title" />
 
                         <TextView
                             android:id="@+id/tv_multi_bubble_desc"
@@ -359,7 +359,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="畫面同時顯示多個功能懸浮球，支援智慧碰撞推擠避讓，貼邊不重疊" />
+                            android:text="@string/settings_bubble_multi_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -406,14 +406,14 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="懸浮球數量" />
+                                android:text="@string/settings_bubble_count_title" />
 
                             <TextView
                                 style="@style/Verbead.Text.Caption"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="設定同時顯示的懸浮球數量 (2～4 個：語音、辨識、條碼、常用語)" />
+                                android:text="@string/settings_bubble_count_desc" />
                         </LinearLayout>
 
                         <TextView
@@ -422,7 +422,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:background="@drawable/bg_status_badge_recommend"
-                            android:text="4 個"
+                            android:text="@string/settings_bubble_count_value_default"
                             android:textColor="@color/tag_recommend" />
                     </LinearLayout>
 
@@ -472,7 +472,7 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="懸浮球功能模式與排序" />
+                                android:text="@string/settings_bubble_modes_title" />
 
                             <TextView
                                 android:id="@+id/tv_bubble_modes_summary"
@@ -480,7 +480,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="按住拖曳把手或點選箭頭調整膠囊選單與複製球順序，亦可開關個別模式" />
+                                android:text="@string/settings_bubble_modes_desc" />
                         </LinearLayout>
 
                         <com.google.android.material.button.MaterialButton
@@ -488,7 +488,7 @@
                             style="@style/Verbead.Button.Compact"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="重置預設" />
+                            android:text="@string/settings_bubble_modes_reset" />
                     </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -535,7 +535,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="使用剪貼簿貼上模式" />
+                            android:text="@string/settings_bubble_paste_title" />
 
                         <TextView
                             android:id="@+id/tv_injection_method_desc"
@@ -543,7 +543,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="開啟時使用剪貼簿貼上 (Paste) 填入文字；關閉時使用無障礙直接填入 (SetText)" />
+                            android:text="@string/settings_bubble_paste_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -586,7 +586,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="常用語抽屜輸入紀錄" />
+                            android:text="@string/settings_bubble_history_title" />
 
                         <TextView
                             android:id="@+id/tv_history_enabled_desc"
@@ -594,7 +594,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="開啟時自動暫存其他模式 (語音/辨識/條碼) 輸入內容於常用語抽屜" />
+                            android:text="@string/settings_bubble_history_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -640,14 +640,14 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="保留歷史紀錄筆數" />
+                                android:text="@string/settings_bubble_history_count_title" />
 
                             <TextView
                                 style="@style/Verbead.Text.Caption"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="設定常用語抽屜頂端最多保留幾筆歷史回溯紀錄 (1～12 筆)" />
+                                android:text="@string/settings_bubble_history_count_desc" />
                         </LinearLayout>
 
                         <TextView
@@ -656,7 +656,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:background="@drawable/bg_status_badge_recommend"
-                            android:text="6 筆"
+                            android:text="@string/settings_bubble_history_count_value_default"
                             android:textColor="@color/tag_recommend" />
                     </LinearLayout>
 

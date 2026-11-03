@@ -64,14 +64,14 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="雙引擎模式" />
+                            android:text="@string/settings_speech_dual_title" />
 
                         <TextView
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="說話時即時預覽文字，結束後自動精準潤飾輸入" />
+                            android:text="@string/settings_speech_dual_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -108,7 +108,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="X-ASR 極速串流引擎" />
+                            android:text="@string/settings_speech_xasr_title" />
 
                         <TextView
                             android:id="@+id/tv_xasr_description"
@@ -116,7 +116,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="隨說隨出字、低延遲即時辨識、原生繁中詞庫" />
+                            android:text="@string/settings_speech_xasr_desc" />
 
                         <TextView
                             android:id="@+id/tv_xasr_status"
@@ -124,7 +124,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
-                            android:text="檢查中…"
+                            android:text="@string/common_checking"
                             android:textStyle="bold" />
                     </LinearLayout>
 
@@ -161,7 +161,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="8dp"
                             android:layout_weight="1"
-                            android:text="選取引擎" />
+                            android:text="@string/common_select_engine" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_download_xasr"
@@ -169,7 +169,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="下載模型" />
+                            android:text="@string/common_download_model" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -201,7 +201,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Qwen3-ASR 高精度離線引擎" />
+                            android:text="@string/settings_speech_qwen_title" />
 
                         <TextView
                             android:id="@+id/tv_qwen3_description"
@@ -209,7 +209,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="標點完整、語意通順、專為精準批次轉譯打造" />
+                            android:text="@string/settings_speech_qwen_desc" />
 
                         <TextView
                             android:id="@+id/tv_qwen3_status"
@@ -217,7 +217,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
-                            android:text="檢查中…"
+                            android:text="@string/common_checking"
                             android:textStyle="bold" />
                     </LinearLayout>
 
@@ -254,7 +254,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="8dp"
                             android:layout_weight="1"
-                            android:text="選取引擎" />
+                            android:text="@string/common_select_engine" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_download_qwen3"
@@ -262,7 +262,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="下載模型" />
+                            android:text="@string/common_download_model" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -302,14 +302,14 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="語音輸入偏好" />
+                                android:text="@string/settings_speech_prefs_title" />
 
                             <TextView
                                 style="@style/Verbead.Text.Caption"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="適用於所有語音辨識模式與引擎" />
+                                android:text="@string/settings_speech_prefs_desc" />
                         </LinearLayout>
                     </LinearLayout>
 
@@ -338,7 +338,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="優先使用外部音訊"
+                                android:text="@string/settings_speech_external_audio_title"
                                 android:textColor="@color/text_primary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
@@ -348,7 +348,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="連線藍牙耳機或外接麥克風時優先收音，關閉則固定使用手機麥克風" />
+                                android:text="@string/settings_speech_external_audio_desc" />
                         </LinearLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch
@@ -384,7 +384,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="外部音訊增益"
+                                    android:text="@string/settings_speech_gain_title"
                                     android:textColor="@color/text_primary"
                                     android:textSize="14sp"
                                     android:textStyle="bold" />
@@ -394,7 +394,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
-                                    android:text="調整耳機或外接麥克風收音音量倍率，解決遠距偏小問題" />
+                                    android:text="@string/settings_speech_gain_desc" />
                             </LinearLayout>
 
                             <TextView
@@ -403,7 +403,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:background="@drawable/bg_status_badge_recommend"
-                                android:text="2.5x 增益"
+                                android:text="@string/settings_speech_gain_value_default"
                                 android:textColor="@color/tag_recommend" />
                         </LinearLayout>
 
@@ -451,7 +451,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="停頓斷句緩衝 (VAD)"
+                                    android:text="@string/settings_speech_vad_title"
                                     android:textColor="@color/text_primary"
                                     android:textSize="14sp"
                                     android:textStyle="bold" />
@@ -461,7 +461,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
-                                    android:text="停止說話達此秒數後自動結束並送出辨識" />
+                                    android:text="@string/settings_speech_vad_desc" />
                             </LinearLayout>
 
                             <TextView
@@ -470,7 +470,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:background="@drawable/bg_status_badge_recommend"
-                                android:text="1.0 秒"
+                                android:text="@string/settings_speech_vad_value_default"
                                 android:textColor="@color/tag_recommend" />
                         </LinearLayout>
 
@@ -527,7 +527,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="自訂管理詞彙" />
+                            android:text="@string/settings_speech_vocab_title" />
 
                         <TextView
                             android:id="@+id/tv_vocab_desc"
@@ -535,7 +535,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="加入常用人名、專有名詞或修正字" />
+                            android:text="@string/settings_speech_vocab_desc" />
                     </LinearLayout>
 
                     <ImageView
@@ -550,7 +550,7 @@
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="管理詞彙"
+                        android:text="@string/settings_speech_vocab_button"
                         android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -590,14 +590,14 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Qwen3 辨識偏好" />
+                                android:text="@string/settings_speech_qwen_prefs_title" />
 
                             <TextView
                                 style="@style/Verbead.Text.Caption"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="套用於 Qwen3-ASR 及雙引擎最終潤飾階段" />
+                                android:text="@string/settings_speech_qwen_prefs_desc" />
                         </LinearLayout>
                     </LinearLayout>
 
@@ -626,7 +626,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="轉換為繁體中文"
+                                android:text="@string/settings_speech_to_traditional_title"
                                 android:textColor="@color/text_primary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
@@ -636,7 +636,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="簡體轉繁體；日文、韓文段落不會被轉換。關閉則完全保留辨識原文" />
+                                android:text="@string/settings_speech_to_traditional_desc" />
                         </LinearLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch
@@ -677,7 +677,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="口語數字轉阿拉伯數字"
+                                android:text="@string/settings_speech_spoken_numbers_title"
                                 android:textColor="@color/text_primary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
@@ -687,7 +687,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="把「一百二十三」轉成 123，並處理加減乘除、百分比、分數、負數、根號與時間；單獨的一位數（三個、一下）不會被轉換" />
+                                android:text="@string/settings_speech_spoken_numbers_desc" />
                         </LinearLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch
@@ -728,7 +728,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="過濾中文標點符號"
+                                android:text="@string/settings_speech_filter_punct_title"
                                 android:textColor="@color/text_primary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
@@ -738,7 +738,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="自動去除逗號、句號、問號等全形符號" />
+                                android:text="@string/settings_speech_filter_punct_desc" />
                         </LinearLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch

@@ -18,11 +18,6 @@ java/com/ping/verbead/settings/OcrSettingsActivity.kt 14
 java/com/ping/verbead/settings/SpeechSettingsActivity.kt 27
 java/com/ping/verbead/util/TextInsertion.kt 2
 res/layout/activity_onboarding.xml 3
-res/layout/activity_settings.xml 23
-res/layout/activity_settings_about.xml 11
-res/layout/activity_settings_bubble.xml 31
-res/layout/activity_settings_ocr.xml 15
-res/layout/activity_settings_speech.xml 33
 res/layout/layout_onboarding_slide_capsule.xml 6
 res/layout/layout_onboarding_slide_gestures.xml 4
 res/layout/layout_onboarding_slide_privacy.xml 6

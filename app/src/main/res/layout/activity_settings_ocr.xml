@@ -69,14 +69,14 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="PP-OCRv6 端側文字辨識" />
+                                android:text="@string/settings_ocr_header_title" />
 
                             <TextView
                                 style="@style/Verbead.Text.Caption"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="於懸浮掃描器中點選相機畫面文字即可定格辨識並自動填入" />
+                                android:text="@string/settings_ocr_header_desc" />
                         </LinearLayout>
                     </LinearLayout>
 
@@ -86,7 +86,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="檢查中…"
+                        android:text="@string/common_checking"
                         android:textStyle="bold" />
 
                     <LinearLayout
@@ -139,7 +139,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="下載模型" />
+                        android:text="@string/common_download_model" />
                 </LinearLayout>
 
                 <View
@@ -163,14 +163,14 @@
                         style="@style/Verbead.Text.Body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="直排文字自動展開：書籍、菜單、春聯等直排中文會自動正立展開，精準辨識不顛倒。" />
+                        android:text="@string/settings_ocr_tip_vertical" />
 
                     <TextView
                         style="@style/Verbead.Text.Body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="多選區塊依序組合：點選文字區塊顯示 ①②③ 序號，可依自訂順序拼接；雙擊任一區塊立即確認貼入。" />
+                        android:text="@string/settings_ocr_tip_multiselect" />
                 </LinearLayout>
 
                 <View
@@ -201,7 +201,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="辨識與掃描後自動換行"
+                            android:text="@string/settings_ocr_auto_enter_title"
                             android:textColor="@color/text_primary"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -211,7 +211,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="填入條碼或選取文字後自動送出 Enter 鍵" />
+                            android:text="@string/settings_ocr_auto_enter_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -248,14 +248,14 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="智慧段落折行拼接" />
+                            android:text="@string/settings_ocr_smart_join_title" />
 
                         <TextView
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="智慧判定相鄰文字框是否為自然折行，自動消除換行或補入空格；關閉時使用下方固定間隔" />
+                            android:text="@string/settings_ocr_smart_join_desc" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -374,7 +374,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="多選區塊拼接間隔"
+                        android:text="@string/settings_ocr_join_spacing_title"
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -384,7 +384,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="同時選取多個文字框時，組合字串之間的間隔方式" />
+                        android:text="@string/settings_ocr_join_spacing_desc" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -399,7 +399,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
                             android:layout_weight="1"
-                            android:text="換行" />
+                            android:text="@string/settings_ocr_join_newline" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_ocr_sep_space"
@@ -408,7 +408,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
                             android:layout_weight="1"
-                            android:text="空格" />
+                            android:text="@string/settings_ocr_join_space" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_ocr_sep_none"
@@ -416,7 +416,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="無間隔" />
+                            android:text="@string/settings_ocr_join_none" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>

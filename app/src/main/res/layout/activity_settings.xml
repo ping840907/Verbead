@@ -59,7 +59,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="功能配置狀態" />
+                            android:text="@string/settings_status_title" />
 
                         <TextView
                             android:id="@+id/tv_indicator_subtitle"
@@ -67,7 +67,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="點擊未完成項目可直接跳轉設定" />
+                            android:text="@string/settings_status_desc" />
                     </LinearLayout>
 
                     <TextView
@@ -76,7 +76,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_status_badge_warning"
-                        android:text="檢查中"
+                        android:text="@string/settings_status_checking"
                         android:textColor="@color/status_warning_text" />
                 </LinearLayout>
 
@@ -113,7 +113,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="麥克風錄音權限"
+                            android:text="@string/settings_perm_mic_title"
                             android:textSize="13sp" />
 
                         <TextView
@@ -121,7 +121,7 @@
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="未授權 ➜"
+                            android:text="@string/settings_perm_denied_action"
                             android:textColor="@color/status_warning_text"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -151,7 +151,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="相機權限（文字辨識與條碼掃描）"
+                            android:text="@string/settings_perm_camera_title"
                             android:textSize="13sp" />
 
                         <TextView
@@ -159,7 +159,7 @@
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="未授權 ➜"
+                            android:text="@string/settings_perm_denied_action"
                             android:textColor="@color/status_warning_text"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -189,7 +189,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="懸浮窗顯示權限"
+                            android:text="@string/settings_perm_overlay_title"
                             android:textSize="13sp" />
 
                         <TextView
@@ -197,7 +197,7 @@
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="未授權 ➜"
+                            android:text="@string/settings_perm_denied_action"
                             android:textColor="@color/status_warning_text"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -227,7 +227,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="無障礙焦點填入"
+                            android:text="@string/settings_perm_accessibility_title"
                             android:textSize="13sp" />
 
                         <TextView
@@ -235,7 +235,7 @@
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="未啟用 ➜"
+                            android:text="@string/settings_perm_disabled_action"
                             android:textColor="@color/status_warning_text"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -265,7 +265,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="語音辨識模型"
+                            android:text="@string/settings_perm_model_title"
                             android:textSize="13sp" />
 
                         <TextView
@@ -273,7 +273,7 @@
                             style="@style/Verbead.Text.Caption"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="未下載 ➜"
+                            android:text="@string/settings_perm_not_downloaded_action"
                             android:textColor="@color/status_warning_text"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -286,7 +286,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="操作示範與功能導覽"
+                    android:text="@string/settings_tour_button"
                     app:icon="@drawable/ic_info"
                     app:iconGravity="textStart" />
             </LinearLayout>
@@ -299,7 +299,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginBottom="12dp"
-            android:text="功能設置分類" />
+            android:text="@string/settings_categories_title" />
 
         <!-- 1. 懸浮球與操作模式 -->
         <com.google.android.material.card.MaterialCardView
@@ -518,7 +518,7 @@
                             style="@style/Verbead.Text.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="離線模型一鍵復原" />
+                            android:text="@string/settings_backup_restore_title" />
 
                         <TextView
                             android:id="@+id/tv_cat_backup_summary"
@@ -526,7 +526,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="支援 X-ASR、Qwen3 與 PP-OCR 模型包 ZIP 自動復原" />
+                            android:text="@string/settings_restore_desc_short" />
                     </LinearLayout>
 
                     <TextView
@@ -535,7 +535,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_status_badge_warning"
-                        android:text="未完全就緒"
+                        android:text="@string/settings_backup_status_not_ready"
                         android:textColor="@color/status_warning_text" />
                 </LinearLayout>
 
@@ -544,7 +544,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="匯入離線模型包 (.zip) 將自動辨識並解壓復原模型檔案，免去手動逐一下載。" />
+                    android:text="@string/settings_restore_desc_long" />
 
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_import_models"
@@ -572,7 +572,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="選擇模型包匯入 (.zip)"
+                    android:text="@string/settings_restore_pick_zip"
                     app:icon="@drawable/ic_archive"
                     app:iconGravity="textStart" />
 
@@ -582,7 +582,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="快速載入內部儲存模型包"
+                    android:text="@string/settings_restore_load_internal"
                     android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -651,7 +651,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="珠璣 (Verbead)"
+            android:text="@string/settings_footer_title"
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -661,7 +661,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:gravity="center"
-            android:text="落辭成玉，字字珠璣"
+            android:text="@string/settings_footer_tagline"
             android:textColor="@color/text_tertiary"
             android:textSize="12sp" />
 
