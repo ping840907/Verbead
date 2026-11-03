@@ -203,6 +203,7 @@ Kotlin（由多到少）：`ImeSettingsActivity` 44、`engine/ModelConfig` 34、
 - [x] P1-5 資料層解耦（實際減少 30；盤點 95→65。`ModelConfig` 內 22 行台灣用詞規則屬輸入語言規則，留到 P3，不在此包處理；已編譯、單元測試與 lint 通過並安裝，匯入模型包與下載進度的畫面尚未實機確認）
 - [x] P1-6 其餘與 Manifest（實際減少 36；盤點 65→29；Manifest 的 label 已在 P0-B 處理。剩下 29 行全是語言規則，留到 P3 判斷：`ModelConfig` 台灣用詞規則 22、`UserDictionary` 的簡繁關鍵字與匯入表頭相容 3、`TextStitcher` 清單序號標點 2、`TextInsertion` 復原/重做多語關鍵字 2；已編譯、測試與 lint 通過並安裝，懸浮球與 OCR 視窗的畫面尚未實機確認）
 - [x] P2 英文翻譯（`values/` 改放英文、繁中整檔搬到 `values-zh-rTW/`；Lint `MissingTranslation`、`ExtraTranslation` 已設為 error，建置與 lint 通過；機器翻譯初稿，待使用者校對與實機檢視文字長度；日文、韓文尚未做）
+- [x] P2 日文翻譯（新增 `values-ja/`，`AppLocale` 與 `locales_config.xml` 加入 `ja`，介面語言選單多「日本語」；機器翻譯初稿，待校對；繁中版已拿掉「珠璣 (Verbead)」的英文括號；韓文尚未做）
 - [ ] P3 `LanguageProfile`
 - [ ] P4 辨識整合
 - [ ] P5 品質與驗收
