@@ -170,7 +170,108 @@ static void prv_watchdog_start(void) {
 // 麥克風串流
 // ---------------------------------------------------------------------------
 
-static const char *prv_start_result_text(MicStreamStartResult result) {
+// SDK 4.33.1（目前穩定版，CloudPebble 也是）的標頭沒有 mic_stream_to_phone_*。
+// 這裡自行宣告型別（與 PebbleOS fw/applib/mic_stream.h 一致），函式則在執行時從韌體解析。
+typedef enum {
+  MicStreamStartOk = 0,
+  MicStreamStartErrBusy,
+  MicStreamStartErrNotForeground,
+  MicStreamStartErrInvalidArgs,
+  MicStreamStartErrNoMemory,
+  MicStreamStartErrWatchface,
+  MicStreamStartErrUnavailable,
+} PrvMicStartResult;
+
+typedef enum {
+  MicStreamStopReasonStopped = 0,
+  MicStreamStopReasonFocusLost,
+  MicStreamStopReasonInterrupted,
+  MicStreamStopReasonPhone,
+  MicStreamStopReasonError,
+} PrvMicStopReason;
+
+typedef struct {
+  void (*started)(void *context);
+  void (*stopped)(PrvMicStopReason reason, void *context);
+} PrvMicHandlers;
+
+// SDK 4.33.1 的 libpebble.a 沒有這三個函式的 shim，所以連 weak 符號都不存在。
+// 改成像 SDK 的 shim 一樣，直接查韌體的 jump table（PebbleOS: tools/generate_native_sdk）：
+//   索引 = 全部匯出函式依 (addedRevision, sortName) 排序後的位置，*4 即位移；
+//   舊函式的位置不會被新函式擠動，所以韌體 4.43+（SDK revision 110）固定是下面這幾個。
+// jump table 的基底位址藏在 libpebble.a 的 shim 裡（開機時由系統填入），
+// 這裡讀任一既有 shim 的 `b jump_to_pbl_function` 反推出來。
+#define MIC_JT_IDX_IS_ACTIVE 677
+#define MIC_JT_IDX_START 678
+#define MIC_JT_IDX_STOP 679
+
+static PrvMicStartResult (*prv_mic_start)(PrvMicHandlers handlers, void *context);
+static void (*prv_mic_stop)(void);
+static bool (*prv_mic_is_active)(void);
+
+// 從 shim 的 `b.w jump_to_pbl_function` 再到 `adr r3, pbl_table_addr`，取出 jump table 基底
+static const uint32_t *prv_jump_table(void) {
+  const uint16_t *shim = (const uint16_t *)((uintptr_t)vibes_short_pulse & ~(uintptr_t)1);
+  for (int i = 0; i < 8; i++) {
+    const uint16_t hw1 = shim[i];
+    const uint16_t hw2 = shim[i + 1];
+    if ((hw1 & 0xF800) != 0xF000 || (hw2 & 0xD000) != 0x9000) {
+      continue;  // 不是 32 位元 B.W (T4)
+    }
+    const uint32_t s = (hw1 >> 10) & 1;
+    const uint32_t j1 = (hw2 >> 13) & 1;
+    const uint32_t j2 = (hw2 >> 11) & 1;
+    const uint32_t i1 = !(j1 ^ s);
+    const uint32_t i2 = !(j2 ^ s);
+    int32_t imm = (int32_t)((s << 24) | (i1 << 23) | (i2 << 22) | ((hw1 & 0x3FFu) << 12) |
+                            ((hw2 & 0x7FFu) << 1));
+    if (s) {
+      imm -= (int32_t)(1u << 25);
+    }
+    const uint16_t *target = (const uint16_t *)((uintptr_t)&shim[i] + 4 + imm);
+    const uint16_t adr = target[0];
+    if ((adr & 0xF800) != 0xA000 || ((adr >> 8) & 7) != 3) {
+      return NULL;  // jump_to_pbl_function 的第一行應為 adr r3, pbl_table_addr
+    }
+    const uintptr_t table_addr = (((uintptr_t)target + 4) & ~(uintptr_t)3) + (adr & 0xFFu) * 4;
+    return (const uint32_t *)*(const uint32_t *)table_addr;
+  }
+  return NULL;
+}
+
+// 韌體 4.43 以上才有 jump table 的這幾格；之前讀取會越界，必須先擋
+static bool prv_mic_resolve(void) {
+  if (prv_mic_start) {
+    return true;
+  }
+  const WatchInfoVersion fw = watch_info_get_firmware_version();
+  if (fw.major < 4 || (fw.major == 4 && fw.minor < 43)) {
+    return false;
+  }
+  const uint32_t *table = prv_jump_table();
+  if (!table) {
+    return false;
+  }
+  const uint32_t start = table[MIC_JT_IDX_START];
+  const uint32_t stop = table[MIC_JT_IDX_STOP];
+  const uint32_t active = table[MIC_JT_IDX_IS_ACTIVE];
+  // Thumb 函式位址最低位必為 1，且三者不同；否則視為解析失敗
+  if (!(start & stop & active & 1) || start == stop || start == active || stop == active) {
+    return false;
+  }
+  prv_mic_stop = (void (*)(void))stop;
+  prv_mic_is_active = (bool (*)(void))active;
+  prv_mic_start = (PrvMicStartResult (*)(PrvMicHandlers, void *))start;
+  return true;
+}
+
+static void prv_mic_stop_safe(void) {
+  if (prv_mic_stop) {
+    prv_mic_stop();
+  }
+}
+
+static const char *prv_start_result_text(PrvMicStartResult result) {
   switch (result) {
     case MicStreamStartErrBusy: return "The microphone is busy.";
     case MicStreamStartErrNotForeground: return "The app is not in the foreground.";
@@ -191,7 +292,7 @@ static void prv_stream_started(void *context) {
 
 // 串流因「不是我們呼叫 stop」而結束（失去焦點、被系統或手機中斷…）。呼叫時串流已不存在。
 // 已送出的音訊 PKJS 仍會定稿並填入，所以這裡只更新畫面，後續由手機的狀態覆蓋。
-static void prv_stream_stopped(MicStreamStopReason reason, void *context) {
+static void prv_stream_stopped(PrvMicStopReason reason, void *context) {
   s_streaming = false;
   switch (reason) {
     case MicStreamStopReasonFocusLost:
@@ -213,11 +314,15 @@ static void prv_stream_stopped(MicStreamStopReason reason, void *context) {
 }
 
 static void prv_start_listening(void) {
-  if (s_streaming || mic_stream_to_phone_is_active()) {
+  if (!prv_mic_resolve()) {
+    prv_show(StatusError, "This watch firmware has no microphone streaming API (needs firmware 4.43+).");
+    return;
+  }
+  if (s_streaming || prv_mic_is_active()) {
     return;
   }
   prv_watchdog_cancel();
-  const MicStreamStartResult result = mic_stream_to_phone_start((MicStreamHandlers) {
+  const PrvMicStartResult result = prv_mic_start((PrvMicHandlers) {
     .started = prv_stream_started,
     .stopped = prv_stream_stopped,
   }, NULL);
@@ -236,7 +341,7 @@ static void prv_stop_listening(void) {
     return;
   }
   s_streaming = false;
-  mic_stream_to_phone_stop();
+  prv_mic_stop_safe();
   prv_show(StatusProcessing, NULL);
   prv_watchdog_start();
 }
@@ -244,7 +349,7 @@ static void prv_stop_listening(void) {
 // 完成或失敗時確保麥克風已關閉（mic_stream_to_phone_stop 在未串流時呼叫是安全的）
 static void prv_force_stop_stream(void) {
   s_streaming = false;
-  mic_stream_to_phone_stop();
+  prv_mic_stop_safe();
 }
 
 static void prv_send_cancel(void) {
@@ -261,7 +366,7 @@ static void prv_cancel_listening(void) {
   prv_send_cancel();
   s_streaming = false;
   prv_watchdog_cancel();
-  mic_stream_to_phone_stop();
+  prv_mic_stop_safe();
   prv_show(StatusIdle, "Cancelled");
 }
 
@@ -335,7 +440,7 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     prv_stop_listening();
   } else if (stop) {
     // 已不在串流中：確保系統麥克風確實關閉
-    mic_stream_to_phone_stop();
+    prv_mic_stop_safe();
   }
 }
 
@@ -403,7 +508,7 @@ static void prv_window_unload(Window *window) {
   prv_watchdog_cancel();
   if (s_streaming) {
     s_streaming = false;
-    mic_stream_to_phone_stop();
+    prv_mic_stop_safe();
   }
   text_layer_destroy(s_status_layer);
   text_layer_destroy(s_text_layer);
