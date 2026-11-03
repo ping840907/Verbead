@@ -13,7 +13,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="目標詞彙 / 正確文字（必填）"
+        android:hint="@string/dialog_add_entry_target_hint"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         app:boxCornerRadiusTopStart="12dp"
         app:boxCornerRadiusTopEnd="12dp"
@@ -32,7 +32,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="原辨識字 / 欲替換詞（選填）"
+        android:hint="@string/dialog_add_entry_source_hint"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         app:boxCornerRadiusTopStart="12dp"
         app:boxCornerRadiusTopEnd="12dp"
@@ -51,7 +51,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="提示：若填寫「原辨識字」，辨識出該字時將自動替換為「目標詞彙」；若留空，則直接作為專屬詞庫加強語音識別。"
+        android:text="@string/dialog_add_entry_tip"
         android:textSize="12sp"
         android:textColor="@color/text_secondary"
         android:layout_marginTop="10dp"

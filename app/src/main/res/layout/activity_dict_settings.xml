@@ -40,7 +40,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="詞彙作用方式"
+                android:text="@string/dict_settings_how_title"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:textColor="@color/md_theme_light_primary"
@@ -49,7 +49,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="1. Qwen3-ASR 會將自訂詞彙加入熱詞清單以提升辨識率。\n2. 於輸入法中長按選取文字，可直接點選詞彙進行置換。\n3. 或點擊鍵盤「詞彙」按鈕開啟面板快速插入。"
+                android:text="@string/dict_settings_how_body"
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary"
                 android:lineSpacingMultiplier="1.4" />
@@ -84,7 +84,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:layout_weight="1"
-                android:text="使用詞彙作為熱詞" />
+                android:text="@string/dict_settings_use_as_hotwords" />
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switch_hotwords"
@@ -119,7 +119,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="尚無自定義詞彙"
+                android:text="@string/dict_settings_empty_title"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_secondary"
@@ -128,7 +128,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="點擊下方按鈕加入專用名詞、自訂詞語或特殊術語"
+                android:text="@string/dict_settings_empty_hint"
                 android:textSize="13sp"
                 android:textColor="@color/text_tertiary"
                 android:gravity="center" />
@@ -150,7 +150,7 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:text="匯入 CSV"
+            android:text="@string/dict_settings_import_csv"
             android:textSize="13sp"
             app:cornerRadius="12dp"
             style="@style/Widget.Material3.Button.TonalButton"
@@ -161,7 +161,7 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:text="匯出 CSV"
+            android:text="@string/dict_settings_export_csv"
             android:textSize="13sp"
             app:cornerRadius="12dp"
             style="@style/Widget.Material3.Button.TonalButton"
@@ -172,7 +172,7 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1.2"
-            android:text="＋ 新增"
+            android:text="@string/dict_settings_add"
             android:textSize="13sp"
             android:textStyle="bold"
             app:cornerRadius="12dp" />

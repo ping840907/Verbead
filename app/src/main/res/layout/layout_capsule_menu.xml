@@ -42,7 +42,7 @@
                 android:layout_height="26dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_mic"
-                android:contentDescription="語音模式" />
+                android:contentDescription="@string/capsule_voice_mode_desc" />
         </FrameLayout>
 
         <!-- Item 1: Barcode Scanner (條碼辨識) -->
@@ -67,7 +67,7 @@
                 android:layout_height="26dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_barcode"
-                android:contentDescription="條碼辨識" />
+                android:contentDescription="@string/capsule_barcode_desc" />
         </FrameLayout>
 
         <!-- Item 2: OCR (文字辨識) -->
@@ -92,7 +92,7 @@
                 android:layout_height="26dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_ocr"
-                android:contentDescription="文字辨識" />
+                android:contentDescription="@string/common_text_recognition" />
         </FrameLayout>
 
         <!-- Item 3: Quick Phrases (常用語抽屜) -->
@@ -117,7 +117,7 @@
                 android:layout_height="26dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_quick_phrases"
-                android:contentDescription="常用語抽屜" />
+                android:contentDescription="@string/capsule_phrases_drawer_desc" />
         </FrameLayout>
 
     </LinearLayout>

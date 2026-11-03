@@ -24,7 +24,7 @@
             android:layout_height="28dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_mic"
-            android:contentDescription="珠璣懸浮球" />
+            android:contentDescription="@string/floating_bubble_desc" />
 
         <ProgressBar
             android:id="@+id/progress_bubble"

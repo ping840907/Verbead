@@ -12,7 +12,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="常用語句內容"
+        android:hint="@string/dialog_phrase_entry_hint"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         app:boxCornerRadiusTopStart="12dp"
         app:boxCornerRadiusTopEnd="12dp"
@@ -32,7 +32,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="提示：點擊抽屜中的常用語即可直接填入焦點輸入框。"
+        android:text="@string/dialog_phrase_entry_tip"
         android:textSize="12sp"
         android:textColor="@color/text_secondary"
         android:layout_marginTop="10dp"

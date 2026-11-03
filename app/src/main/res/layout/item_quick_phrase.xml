@@ -40,7 +40,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="編輯常用語"
+            android:contentDescription="@string/quick_phrase_edit_desc"
             android:padding="7dp"
             android:src="@drawable/ic_edit"
             app:tint="#B3FFFFFF" />
@@ -50,7 +50,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="刪除常用語"
+            android:contentDescription="@string/quick_phrase_delete_desc"
             android:padding="7dp"
             android:src="@drawable/ic_delete"
             app:tint="#B3FFFFFF" />
@@ -62,7 +62,7 @@
             android:padding="6dp"
             android:src="@drawable/ic_drag_handle"
             app:tint="#66FFFFFF"
-            android:contentDescription="拖曳排序" />
+            android:contentDescription="@string/quick_phrase_drag_desc" />
     </LinearLayout>
 
 </LinearLayout>

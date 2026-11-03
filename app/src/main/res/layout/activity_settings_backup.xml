@@ -60,7 +60,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:layout_weight="1"
-                        android:text="離線模型一鍵復原" />
+                        android:text="@string/settings_backup_restore_title" />
 
                     <TextView
                         android:id="@+id/tv_all_models_badge"
@@ -68,7 +68,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_status_badge_warning"
-                        android:text="未完全就緒"
+                        android:text="@string/settings_backup_status_not_ready"
                         android:textColor="@color/status_warning_text" />
                 </LinearLayout>
 
@@ -77,7 +77,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="支援 Qwen3-ASR、X-ASR 與 PP-OCRv6 離線模型。載入模型包 (.zip) 將智慧辨識內容並自動解壓復原所含模型，免去逐一下載。" />
+                    android:text="@string/settings_backup_restore_desc" />
 
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_import_models"
@@ -105,7 +105,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="選擇模型包匯入"
+                    android:text="@string/settings_backup_pick_package"
                     app:icon="@drawable/ic_archive"
                     app:iconGravity="textStart" />
 
@@ -115,7 +115,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="快速載入內部模型包"
+                    android:text="@string/settings_backup_load_internal"
                     android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

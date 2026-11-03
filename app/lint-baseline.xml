@@ -1494,6 +1494,61 @@
     </issue>
 
     <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_backup_restore_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_backup_restore_title&quot;>離線模型一鍵復原&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="163"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_backup_status_not_ready` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_backup_status_not_ready&quot;>未完全就緒&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="164"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_backup_restore_desc` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_backup_restore_desc&quot;>支援 Qwen3-ASR、X-ASR 與 PP-OCRv6 離線模型。載入模型包 (.zip) 將智慧辨識內容並自動解壓復原所含模型，免去逐一下載。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="165"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_backup_pick_package` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_backup_pick_package&quot;>選擇模型包匯入&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="166"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_backup_load_internal` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_backup_load_internal&quot;>快速載入內部模型包&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="167"
+            column="13"/>
+    </issue>
+
+    <issue
         id="UselessParent"
         message="This `FrameLayout` layout or its `FrameLayout` parent is possibly unnecessary; transfer the `background` attribute to the other view"
         errorLine1="    &lt;FrameLayout"
@@ -3189,94 +3244,6 @@
 
     <issue
         id="HardcodedText"
-        message="Hardcoded string &quot;詞彙作用方式&quot;, should use `@string` resource"
-        errorLine1="                android:text=&quot;詞彙作用方式&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="43"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;1. Qwen3-ASR 會將自訂詞彙加入熱詞清單以提升辨識率。\n2. 於輸入法中長按選取文字，可直接點選詞彙進行置換。\n3. 或點擊鍵盤「詞彙」按鈕開啟面板快速插入。&quot;, should use `@string` resource"
-        errorLine1="                android:text=&quot;1. Qwen3-ASR 會將自訂詞彙加入熱詞清單以提升辨識率。\n2. 於輸入法中長按選取文字，可直接點選詞彙進行置換。\n3. 或點擊鍵盤「詞彙」按鈕開啟面板快速插入。&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="52"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;使用詞彙作為熱詞&quot;, should use `@string` resource"
-        errorLine1="                android:text=&quot;使用詞彙作為熱詞&quot; />"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="87"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;尚無自定義詞彙&quot;, should use `@string` resource"
-        errorLine1="                android:text=&quot;尚無自定義詞彙&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="122"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;點擊下方按鈕加入專用名詞、自訂詞語或特殊術語&quot;, should use `@string` resource"
-        errorLine1="                android:text=&quot;點擊下方按鈕加入專用名詞、自訂詞語或特殊術語&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="131"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;匯入 CSV&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;匯入 CSV&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="153"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;匯出 CSV&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;匯出 CSV&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="164"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;＋ 新增&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;＋ 新增&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_dict_settings.xml"
-            line="175"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
         message="Hardcoded string &quot;略過&quot;, should use `@string` resource"
         errorLine1="            android:text=&quot;略過&quot;"
         errorLine2="            ~~~~~~~~~~~~~~~~~">
@@ -3713,61 +3680,6 @@
             file="src/main/res/layout/activity_settings_about.xml"
             line="242"
             column="25"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;離線模型一鍵復原&quot;, should use `@string` resource"
-        errorLine1="                        android:text=&quot;離線模型一鍵復原&quot; />"
-        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_settings_backup.xml"
-            line="63"
-            column="25"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;未完全就緒&quot;, should use `@string` resource"
-        errorLine1="                        android:text=&quot;未完全就緒&quot;"
-        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_settings_backup.xml"
-            line="71"
-            column="25"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;支援 Qwen3-ASR、X-ASR 與 PP-OCRv6 離線模型。載入模型包 (.zip) 將智慧辨識內容並自動解壓復原所含模型，免去逐一下載。&quot;, should use `@string` resource"
-        errorLine1="                    android:text=&quot;支援 Qwen3-ASR、X-ASR 與 PP-OCRv6 離線模型。載入模型包 (.zip) 將智慧辨識內容並自動解壓復原所含模型，免去逐一下載。&quot; />"
-        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_settings_backup.xml"
-            line="80"
-            column="21"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;選擇模型包匯入&quot;, should use `@string` resource"
-        errorLine1="                    android:text=&quot;選擇模型包匯入&quot;"
-        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_settings_backup.xml"
-            line="108"
-            column="21"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;快速載入內部模型包&quot;, should use `@string` resource"
-        errorLine1="                    android:text=&quot;快速載入內部模型包&quot;"
-        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_settings_backup.xml"
-            line="118"
-            column="21"/>
     </issue>
 
     <issue
@@ -4663,529 +4575,12 @@
 
     <issue
         id="HardcodedText"
-        message="Hardcoded string &quot;目標詞彙 / 正確文字（必填）&quot;, should use `@string` resource"
-        errorLine1="        android:hint=&quot;目標詞彙 / 正確文字（必填）&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/dialog_add_entry.xml"
-            line="16"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;原辨識字 / 欲替換詞（選填）&quot;, should use `@string` resource"
-        errorLine1="        android:hint=&quot;原辨識字 / 欲替換詞（選填）&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/dialog_add_entry.xml"
-            line="35"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;提示：若填寫「原辨識字」，辨識出該字時將自動替換為「目標詞彙」；若留空，則直接作為專屬詞庫加強語音識別。&quot;, should use `@string` resource"
-        errorLine1="        android:text=&quot;提示：若填寫「原辨識字」，辨識出該字時將自動替換為「目標詞彙」；若留空，則直接作為專屬詞庫加強語音識別。&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/dialog_add_entry.xml"
-            line="54"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;常用語句內容&quot;, should use `@string` resource"
-        errorLine1="        android:hint=&quot;常用語句內容&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/dialog_phrase_entry.xml"
-            line="15"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;提示：點擊抽屜中的常用語即可直接填入焦點輸入框。&quot;, should use `@string` resource"
-        errorLine1="        android:text=&quot;提示：點擊抽屜中的常用語即可直接填入焦點輸入框。&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/dialog_phrase_entry.xml"
-            line="35"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;按住拖曳排序&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;按住拖曳排序&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_bubble_mode_config.xml"
-            line="32"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
         message="Hardcoded string &quot;1&quot;, should use `@string` resource"
         errorLine1="            android:text=&quot;1&quot;"
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/item_bubble_mode_config.xml"
             line="45"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;語音輸入&quot;, should use `@string` resource"
-        errorLine1="                android:text=&quot;語音輸入&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_bubble_mode_config.xml"
-            line="73"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;單擊氣泡或長按選單啟動語音轉文字&quot;, should use `@string` resource"
-        errorLine1="                android:text=&quot;單擊氣泡或長按選單啟動語音轉文字&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_bubble_mode_config.xml"
-            line="83"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;上移&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;上移&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_bubble_mode_config.xml"
-            line="100"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;下移&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;下移&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_bubble_mode_config.xml"
-            line="111"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;刪除詞彙&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;刪除詞彙&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_dict_entry.xml"
-            line="56"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;歷史紀錄&quot;, should use `@string` resource"
-        errorLine1="        android:contentDescription=&quot;歷史紀錄&quot; />"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_quick_history.xml"
-            line="23"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;加入常用語&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;加入常用語&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_quick_history.xml"
-            line="51"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;刪除此紀錄&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;刪除此紀錄&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_quick_history.xml"
-            line="61"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;編輯常用語&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;編輯常用語&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_quick_phrase.xml"
-            line="43"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;刪除常用語&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;刪除常用語&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_quick_phrase.xml"
-            line="53"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;拖曳排序&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;拖曳排序&quot; />"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_quick_phrase.xml"
-            line="65"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;移除懸浮球&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;移除懸浮球&quot; />"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_bubble_delete_zone.xml"
-            line="26"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;關閉&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;關閉&quot; />"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_bubble_x.xml"
-            line="22"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;語音模式&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;語音模式&quot; />"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_capsule_menu.xml"
-            line="45"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;條碼辨識&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;條碼辨識&quot; />"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_capsule_menu.xml"
-            line="70"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;文字辨識&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;文字辨識&quot; />"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_capsule_menu.xml"
-            line="95"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;常用語抽屜&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;常用語抽屜&quot; />"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_capsule_menu.xml"
-            line="120"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;珠璣懸浮球&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;珠璣懸浮球&quot; />"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_bubble.xml"
-            line="27"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;關閉&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;關閉&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_ocr.xml"
-            line="24"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;文字辨識&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;文字辨識&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_ocr.xml"
-            line="34"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;縮放視窗&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;縮放視窗&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_ocr.xml"
-            line="53"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;閃光燈&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;閃光燈&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_ocr.xml"
-            line="64"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;自動換行&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;自動換行&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_ocr.xml"
-            line="121"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;拍攝文字截圖&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;拍攝文字截圖&quot; />"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_ocr.xml"
-            line="135"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;按快門拍字&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;按快門拍字&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_ocr.xml"
-            line="143"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;關閉常用語&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;關閉常用語&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_phrases_drawer.xml"
-            line="24"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;常用語&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;常用語&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_phrases_drawer.xml"
-            line="34"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;新增常用語&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;新增常用語&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_phrases_drawer.xml"
-            line="46"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;辨識中…&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;辨識中…&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_preview.xml"
-            line="32"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;關閉掃描&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;關閉掃描&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_scanner.xml"
-            line="24"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;條碼掃描&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;條碼掃描&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_scanner.xml"
-            line="33"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;縮放視窗&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;縮放視窗&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_scanner.xml"
-            line="52"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;閃光燈&quot;, should use `@string` resource"
-        errorLine1="                android:contentDescription=&quot;閃光燈&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_scanner.xml"
-            line="63"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;自動換行&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;自動換行&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_scanner.xml"
-            line="118"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;對準條碼或 QR Code 自動填入&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;對準條碼或 QR Code 自動填入&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_floating_scanner.xml"
-            line="129"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;關閉&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;關閉&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_ocr_snapshot.xml"
-            line="51"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;正在偵測文字區塊…&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;正在偵測文字區塊…&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_ocr_snapshot.xml"
-            line="62"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;旋轉 180 度&quot;, should use `@string` resource"
-        errorLine1="            android:contentDescription=&quot;旋轉 180 度&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_ocr_snapshot.xml"
-            line="81"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;全選&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;全選&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_ocr_snapshot.xml"
-            line="110"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;清除&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;清除&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_ocr_snapshot.xml"
-            line="126"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="HardcodedText"
-        message="Hardcoded string &quot;辨識並輸入&quot;, should use `@string` resource"
-        errorLine1="            android:text=&quot;辨識並輸入&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/layout_ocr_snapshot.xml"
-            line="145"
             column="13"/>
     </issue>
 
@@ -5462,6 +4857,61 @@
             file="src/main/res/layout/layout_onboarding_slide_voice.xml"
             line="206"
             column="21"/>
+    </issue>
+
+    <issue
+        id="RelativeOverlap"
+        message="`@id/tv_ocr_window_title` can overlap `LinearLayout-5` if @string/common_text_recognition grows due to localized text expansion"
+        errorLine1="        &lt;TextView"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="src/main/res/layout/layout_floating_ocr.xml"
+            line="29"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="RelativeOverlap"
+        message="`@id/tv_ocr_hint` can overlap `@id/btn_ocr_auto_enter` if @string/floating_ocr_shutter_hint grows due to localized text expansion"
+        errorLine1="        &lt;TextView"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="src/main/res/layout/layout_floating_ocr.xml"
+            line="137"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="RelativeOverlap"
+        message="`@id/tv_ocr_hint` can overlap `@id/btn_ocr_shutter` if @string/floating_ocr_shutter_hint grows due to localized text expansion"
+        errorLine1="        &lt;TextView"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="src/main/res/layout/layout_floating_ocr.xml"
+            line="137"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="RelativeOverlap"
+        message="`@id/tv_phrases_title` can overlap `@id/btn_add_phrase` if @string/common_quick_phrases grows due to localized text expansion"
+        errorLine1="        &lt;TextView"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="src/main/res/layout/layout_floating_phrases_drawer.xml"
+            line="29"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="RelativeOverlap"
+        message="`TextView-3` can overlap `LinearLayout-5` if @string/floating_scanner_title grows due to localized text expansion"
+        errorLine1="        &lt;TextView"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="src/main/res/layout/layout_floating_scanner.xml"
+            line="29"
+            column="10"/>
     </issue>
 
     <issue

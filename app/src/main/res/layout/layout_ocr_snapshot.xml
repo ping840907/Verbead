@@ -48,7 +48,7 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@drawable/bg_scanner_btn_circle"
-            android:contentDescription="關閉"
+            android:contentDescription="@string/common_close"
             android:padding="8dp"
             android:src="@drawable/ic_close"
             app:tint="#FFFFFFFF" />
@@ -59,7 +59,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:text="正在偵測文字區塊…"
+            android:text="@string/ocr_snapshot_detecting"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -78,7 +78,7 @@
             android:layout_height="36dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_scanner_btn_circle"
-            android:contentDescription="旋轉 180 度"
+            android:contentDescription="@string/ocr_snapshot_rotate_desc"
             android:padding="8dp"
             android:src="@drawable/ic_rotate"
             app:tint="#FFFFFFFF" />
@@ -107,7 +107,7 @@
             android:gravity="center"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-            android:text="全選"
+            android:text="@string/ocr_snapshot_select_all"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -123,7 +123,7 @@
             android:gravity="center"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:text="清除"
+            android:text="@string/ocr_snapshot_clear"
             android:textColor="#B0BEC5"
             android:textSize="13sp" />
 
@@ -142,7 +142,7 @@
             android:gravity="center"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
-            android:text="辨識並輸入"
+            android:text="@string/ocr_snapshot_recognize_and_input"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold" />

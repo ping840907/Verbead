@@ -21,7 +21,7 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_scanner_btn_circle"
-            android:contentDescription="關閉"
+            android:contentDescription="@string/common_close"
             android:padding="6dp"
             android:src="@drawable/ic_close"
             app:tint="#FFFFFFFF" />
@@ -31,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="文字辨識"
+            android:text="@string/common_text_recognition"
             android:textColor="#EEFFFFFF"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -50,7 +50,7 @@
                 android:layout_height="32dp"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_scanner_btn_circle"
-                android:contentDescription="縮放視窗"
+                android:contentDescription="@string/floating_resize_window_desc"
                 android:padding="6dp"
                 android:src="@drawable/ic_fullscreen"
                 app:tint="#FFFFFFFF" />
@@ -61,7 +61,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="@drawable/bg_scanner_btn_circle"
-                android:contentDescription="閃光燈"
+                android:contentDescription="@string/floating_flash_desc"
                 android:padding="6dp"
                 android:src="@drawable/ic_flash_off"
                 app:tint="#FFFFFFFF" />
@@ -118,7 +118,7 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_scanner_btn_circle"
-            android:contentDescription="自動換行"
+            android:contentDescription="@string/floating_wrap_desc"
             android:padding="6dp"
             android:src="@drawable/ic_auto_enter_on"
             app:tint="#FFFFFFFF" />
@@ -132,7 +132,7 @@
             android:background="@drawable/bg_shutter_btn"
             android:clickable="true"
             android:focusable="true"
-            android:contentDescription="拍攝文字截圖" />
+            android:contentDescription="@string/floating_ocr_capture_desc" />
 
         <TextView
             android:id="@+id/tv_ocr_hint"
@@ -140,7 +140,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:text="按快門拍字"
+            android:text="@string/floating_ocr_shutter_hint"
             android:textColor="#B0FFFFFF"
             android:textSize="11sp" />
     </RelativeLayout>

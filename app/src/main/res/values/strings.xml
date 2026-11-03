@@ -135,4 +135,60 @@
     <string name="settings_language_follow_system">跟隨系統</string>
     <string name="settings_language_zh_tw" translatable="false">繁體中文</string>
     <string name="settings_language_en" translatable="false">English</string>
+
+    <!-- P1-1: small layouts -->
+    <string name="dict_settings_how_title">詞彙作用方式</string>
+    <string name="dict_settings_how_body">1. Qwen3-ASR 會將自訂詞彙加入熱詞清單以提升辨識率。\n2. 於輸入法中長按選取文字，可直接點選詞彙進行置換。\n3. 或點擊鍵盤「詞彙」按鈕開啟面板快速插入。</string>
+    <string name="dict_settings_use_as_hotwords">使用詞彙作為熱詞</string>
+    <string name="dict_settings_empty_title">尚無自定義詞彙</string>
+    <string name="dict_settings_empty_hint">點擊下方按鈕加入專用名詞、自訂詞語或特殊術語</string>
+    <string name="dict_settings_import_csv">匯入 CSV</string>
+    <string name="dict_settings_export_csv">匯出 CSV</string>
+    <string name="dict_settings_add">＋ 新增</string>
+    <string name="common_close">關閉</string>
+    <string name="common_text_recognition">文字辨識</string>
+    <string name="floating_resize_window_desc">縮放視窗</string>
+    <string name="floating_flash_desc">閃光燈</string>
+    <string name="floating_wrap_desc">自動換行</string>
+    <string name="floating_ocr_capture_desc">拍攝文字截圖</string>
+    <string name="floating_ocr_shutter_hint">按快門拍字</string>
+    <string name="floating_scanner_close_desc">關閉掃描</string>
+    <string name="floating_scanner_title">條碼掃描</string>
+    <string name="floating_scanner_hint">對準條碼或 QR Code 自動填入</string>
+    <string name="ocr_snapshot_detecting">正在偵測文字區塊…</string>
+    <string name="ocr_snapshot_rotate_desc">旋轉 180 度</string>
+    <string name="ocr_snapshot_select_all">全選</string>
+    <string name="ocr_snapshot_clear">清除</string>
+    <string name="ocr_snapshot_recognize_and_input">辨識並輸入</string>
+    <string name="settings_backup_restore_title">離線模型一鍵復原</string>
+    <string name="settings_backup_status_not_ready">未完全就緒</string>
+    <string name="settings_backup_restore_desc">支援 Qwen3-ASR、X-ASR 與 PP-OCRv6 離線模型。載入模型包 (.zip) 將智慧辨識內容並自動解壓復原所含模型，免去逐一下載。</string>
+    <string name="settings_backup_pick_package">選擇模型包匯入</string>
+    <string name="settings_backup_load_internal">快速載入內部模型包</string>
+    <string name="bubble_mode_drag_handle_desc">按住拖曳排序</string>
+    <string name="bubble_mode_voice_title">語音輸入</string>
+    <string name="bubble_mode_voice_desc">單擊氣泡或長按選單啟動語音轉文字</string>
+    <string name="bubble_mode_move_up_desc">上移</string>
+    <string name="bubble_mode_move_down_desc">下移</string>
+    <string name="capsule_voice_mode_desc">語音模式</string>
+    <string name="capsule_barcode_desc">條碼辨識</string>
+    <string name="capsule_phrases_drawer_desc">常用語抽屜</string>
+    <string name="dialog_add_entry_target_hint">目標詞彙 / 正確文字（必填）</string>
+    <string name="dialog_add_entry_source_hint">原辨識字 / 欲替換詞（選填）</string>
+    <string name="dialog_add_entry_tip">提示：若填寫「原辨識字」，辨識出該字時將自動替換為「目標詞彙」；若留空，則直接作為專屬詞庫加強語音識別。</string>
+    <string name="quick_history_desc">歷史紀錄</string>
+    <string name="quick_history_add_phrase_desc">加入常用語</string>
+    <string name="quick_history_delete_desc">刪除此紀錄</string>
+    <string name="quick_phrase_edit_desc">編輯常用語</string>
+    <string name="quick_phrase_delete_desc">刪除常用語</string>
+    <string name="quick_phrase_drag_desc">拖曳排序</string>
+    <string name="phrases_drawer_close_desc">關閉常用語</string>
+    <string name="common_quick_phrases">常用語</string>
+    <string name="phrases_drawer_add_desc">新增常用語</string>
+    <string name="dialog_phrase_entry_hint">常用語句內容</string>
+    <string name="dialog_phrase_entry_tip">提示：點擊抽屜中的常用語即可直接填入焦點輸入框。</string>
+    <string name="dict_entry_delete_desc">刪除詞彙</string>
+    <string name="bubble_delete_zone_desc">移除懸浮球</string>
+    <string name="floating_bubble_desc">珠璣懸浮球</string>
+    <string name="floating_preview_recognizing">辨識中…</string>
 </resources>

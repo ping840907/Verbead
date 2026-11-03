@@ -29,7 +29,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:text="辨識中…"
+            android:text="@string/floating_preview_recognizing"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:lineSpacingExtra="2dp" />

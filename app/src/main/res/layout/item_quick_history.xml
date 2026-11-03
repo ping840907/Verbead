@@ -20,7 +20,7 @@
         android:layout_marginStart="10dp"
         android:src="@drawable/ic_history"
         app:tint="#80FFFFFF"
-        android:contentDescription="歷史紀錄" />
+        android:contentDescription="@string/quick_history_desc" />
 
     <TextView
         android:id="@+id/tv_history_text"
@@ -48,7 +48,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="加入常用語"
+            android:contentDescription="@string/quick_history_add_phrase_desc"
             android:padding="7dp"
             android:src="@drawable/ic_add"
             app:tint="#80FFFFFF" />
@@ -58,7 +58,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="刪除此紀錄"
+            android:contentDescription="@string/quick_history_delete_desc"
             android:padding="7dp"
             android:src="@drawable/ic_delete"
             app:tint="#80FFFFFF" />

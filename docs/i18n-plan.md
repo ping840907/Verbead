@@ -196,7 +196,7 @@ Kotlin（由多到少）：`ImeSettingsActivity` 44、`engine/ModelConfig` 34、
 
 - [x] P0-B 語言切換與資源骨架（程式已寫好，但開發環境沒有 Android SDK／AAR，尚未編譯與實機驗證；`values-en` 留到 P2 一併建立）
 - [x] P0-C 防倒退（lint `HardcodedText`=error 與 `NoHardcodedCjkTest`、`tools/i18n-allowlist.txt` 已加；已編譯、測試通過；`app/lint-baseline.xml` 已產生（HardcodedText 207）；allowlist 以 `node tools/i18n-allowlist-gen.js` 更新）
-- [ ] P1-1 小型版面（60）
+- [x] P1-1 小型版面（60；盤點 450→390，lint baseline HardcodedText 207→147；已安裝到手機，尚未逐頁截圖比對）
 - [ ] P1-2 大型設定版面（113）
 - [ ] P1-3 設定頁 Kotlin（128）
 - [ ] P1-4 導覽頁（54）

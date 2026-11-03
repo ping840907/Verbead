@@ -23,6 +23,6 @@
             android:layout_height="26dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_close"
-            android:contentDescription="移除懸浮球" />
+            android:contentDescription="@string/bubble_delete_zone_desc" />
     </FrameLayout>
 </FrameLayout>
