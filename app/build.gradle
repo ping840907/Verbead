@@ -45,7 +45,7 @@ android {
 
     lint {
         // 防倒退：新增寫死的介面文字會讓 lint 失敗；現有違規記在 baseline，只許減少
-        error 'HardcodedText'
+        error 'HardcodedText', 'MissingTranslation', 'ExtraTranslation'
         baseline = file('lint-baseline.xml')
     }
 
