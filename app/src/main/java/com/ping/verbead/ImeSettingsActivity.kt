@@ -26,6 +26,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelZipInstaller
 import com.ping.verbead.settings.AboutSettingsActivity
+import com.ping.verbead.settings.WatchSettingsActivity
 import com.ping.verbead.settings.BubbleSettingsActivity
 import com.ping.verbead.settings.OcrSettingsActivity
 import com.ping.verbead.settings.SlmSettingsActivity
@@ -105,6 +106,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var btnQuickImportDownload: MaterialButton
 
     private lateinit var cardCatAbout: MaterialCardView
+    private lateinit var cardCatWatch: MaterialCardView
     private lateinit var tvCatAboutSummary: TextView
 
     private val micPermissionLauncher = registerForActivityResult(
@@ -236,6 +238,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         btnQuickImportDownload = findViewById(R.id.btn_quick_import_download)
 
         cardCatAbout = findViewById(R.id.card_cat_about)
+        cardCatWatch = findViewById(R.id.card_cat_watch)
         tvCatAboutSummary = findViewById(R.id.tv_cat_about_summary)
     }
 
@@ -344,6 +347,11 @@ class ImeSettingsActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "未在 Download 目錄中找到預設模型 ZIP 包", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        cardCatWatch.setOnClickListener {
+            HapticUtil.click(this)
+            startActivity(Intent(this, WatchSettingsActivity::class.java))
         }
 
         cardCatAbout.setOnClickListener {

@@ -56,6 +56,11 @@
 
 ---
 
+## Pebble 手錶語音輸入
+
+用 Pebble Time 2 的麥克風說話，聲音即時串流到手機，由珠璣在本機離線辨識後直接填入手機焦點文字框
+（全程不經雲端）。手錶 App 原始碼在 [`pebble/`](pebble/README.md)，手機端在「設定 → 手錶輸入 (Pebble)」。
+
 ## 操作說明
 
 ### 桌面懸浮球 (Floating Bubble)

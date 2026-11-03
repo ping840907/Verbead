@@ -104,6 +104,10 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (android.provider.Settings.canDrawOverlays(this)) {
             FloatingBubbleService.start(this)
         }
+        // 無障礙服務會在開機後由系統自動重啟，藉此恢復使用者先前啟用的手錶輸入橋接
+        if (com.ping.verbead.watch.WatchBridgePrefs.isEnabled(this)) {
+            com.ping.verbead.watch.WatchBridgeService.start(this)
+        }
         if (BuildConfig.DEBUG) {
             val filter = IntentFilter("com.ping.verbead.TEST_INPUT")
             androidx.core.content.ContextCompat.registerReceiver(

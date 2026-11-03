@@ -172,6 +172,18 @@
 
 ---
 
+### 模組 6：Pebble 手錶語音輸入橋接 (`WatchBridgeService`)
+
+1. **用途**：以 Pebble Time 2 等新 Pebble 的麥克風作為語音來源，手機端即時辨識並填入焦點文字框。
+2. **通道**：Core Devices 手機 App 把手錶麥克風解碼成 16 kHz PCM16，交給 Pebble App 的 PKJS（`pebble/src/pkjs`），
+   PKJS 經 `ws://127.0.0.1:47831` 把 PCM 轉送給珠璣內的 `LocalWebSocketServer`。伺服器只綁定 loopback，
+   WebSocket 升級需帶配對 token（128 位元隨機，常數時間比對）。
+3. **辨識**：`WatchDictationSession` 依既有設定選用 X-ASR 串流／Qwen3-ASR 離線／雙引擎，邊收邊回傳即時預覽；
+   `SilenceDetector` 以與錄音相同的 RMS 門檻偵測說完，通知手錶停止收音。
+4. **後處理與填入**：共用 `TranscriptPostProcessor`（繁體轉換、詞庫、標點過濾）與 `VoiceAccessibilityService.inputText`，
+   失敗退回剪貼簿，並顯示懸浮球的 ✕ 撤銷鍵。引擎按需載入、閒置 90 秒釋放。
+5. **配對**：設定頁按「開始配對」後 2 分鐘內，`/pair` 才會提供一次含 token 的設定頁，供 Core Devices App 的設定流程取回。
+
 ## 四、 核心功能架構對照表
 
 | 功能模組 | 核心技術 / 元件 | 支援功能與特性 |
@@ -188,4 +200,5 @@
 | **文字注入** | `VoiceAccessibilityService` | 無障礙直接填入 (最高隱私) / 剪貼簿貼上 (Google Docs 高相容)、提示字元過濾、反白覆蓋 |
 | **模型部署** | `ModelZipInstaller` / 下載服務 | 內部儲存 ZIP 一鍵免網解壓、HuggingFace 前景通知欄斷點續傳下載 |
 | **互動引導** | `OnboardingActivity` | 5 大功能動態情境引導、操作示範 |
+| **手錶橋接** | `WatchBridgeService` / `LocalWebSocketServer` / `WatchDictationSession` | Pebble 麥克風 PCM 經 loopback WebSocket 轉送、即時預覽、說完自動結束、與懸浮球相同的後處理與填入 |
 | **觸覺反饋** | `HapticUtil` | 涵蓋全應用所有可操作按鈕、切換開關、滑桿、清單項與方框選取的階層化震動反饋 |

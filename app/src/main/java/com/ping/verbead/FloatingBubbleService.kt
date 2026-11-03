@@ -3152,24 +3152,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun buildHotwords(): String =
         UserDictionary.load(this).values.distinct().sorted().joinToString("\n")
 
-    private fun postProcess(raw: String): String {
-        val converted = if (ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive()) {
-            ModelConfig.normalizeTaiwanVariants(raw)
-        } else {
-            ModelConfig.toTaiwanTraditional(raw)
-        }
-        val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
-        val postReplaced = if (userReplaced == converted) {
-            converted
-        } else {
-            ModelConfig.applyPostRegexReplacements(userReplaced)
-        }
-        return if (ModelConfig.isFilterPunctuationEnabled(this)) {
-            ModelConfig.filterChinesePunctuation(postReplaced)
-        } else {
-            postReplaced
-        }
-    }
+    private fun postProcess(raw: String): String =
+        com.ping.verbead.engine.TranscriptPostProcessor.process(this, raw)
 
     private fun dpToPx(dp: Float): Float = dp * resources.displayMetrics.density
 

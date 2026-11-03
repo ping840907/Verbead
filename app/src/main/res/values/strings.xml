@@ -153,4 +153,31 @@
 
     <string name="settings_cat_about_title">關於與授權致謝</string>
     <string name="settings_cat_about_desc">版本資訊、開源核心技術致謝與 GitHub 專案</string>
+    <!-- 手錶輸入（Pebble） -->
+    <string name="settings_cat_watch_title">手錶輸入 (Pebble)</string>
+    <string name="settings_cat_watch_desc">用 Pebble Time 2 的麥克風即時語音輸入，文字自動填入手機焦點欄位</string>
+    <string name="watch_enable_title">啟用手錶輸入</string>
+    <string name="watch_enable_desc">在本機 127.0.0.1 接收手錶語音，不會對區網或網際網路開放</string>
+    <string name="watch_pair_title">配對手錶</string>
+    <string name="watch_pair_steps">1. 在手錶安裝「珠璣語音」並在 Core Devices App 允許「手錶麥克風」與「區域網路」權限\n2. 按下下方「開始配對」\n3. 在 Core Devices App 開啟「珠璣語音」的設定，按「完成配對」</string>
+    <string name="watch_pair_button">開始配對（2 分鐘內有效）</string>
+    <string name="watch_pair_opened">配對已開啟，請在 2 分鐘內於 Core Devices App 開啟「珠璣語音」設定</string>
+    <string name="watch_reset_button">重設配對碼</string>
+    <string name="watch_reset_confirm_title">重設配對碼？</string>
+    <string name="watch_reset_confirm_message">重設後，已配對的手錶需要重新配對才能繼續使用。</string>
+    <string name="watch_reset_confirm_ok">重設</string>
+    <string name="watch_reset_done">已重設，請重新配對手錶</string>
+    <string name="watch_autostop_title">說完自動結束</string>
+    <string name="watch_autostop_desc">偵測到停頓後自動結束收音並填入，手錶端不必再按鍵（停頓秒數沿用語音設定）</string>
+    <string name="watch_status_off">狀態：未啟用</string>
+    <string name="watch_status_starting">狀態：啟動中…</string>
+    <string name="watch_status_listening">狀態：已啟用，監聽 127.0.0.1:%1$d</string>
+    <string name="watch_status_port_busy">狀態：無法使用連接埠 %1$d（可能被其他程式佔用）</string>
+    <string name="watch_status_pairing_open">配對視窗已開啟</string>
+    <string name="watch_status_no_accessibility">⚠ 無障礙服務未啟用，文字只會複製到剪貼簿，不會直接填入</string>
+    <string name="watch_status_no_model">⚠ 尚未安裝語音模型，請先下載 X-ASR 或 Qwen3-ASR</string>
+    <string name="watch_notif_channel">手錶輸入服務</string>
+    <string name="watch_notif_title">手錶輸入已啟用</string>
+    <string name="watch_notif_text">等待 Pebble 手錶的語音</string>
+    <string name="watch_notif_action_stop">關閉</string>
 </resources>

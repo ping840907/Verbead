@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -85,6 +86,12 @@
             android:parentActivityName=".ImeSettingsActivity" />
 
         <activity
+            android:name=".settings.WatchSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_watch_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
             android:name=".settings.AboutSettingsActivity"
             android:exported="false"
             android:label="@string/settings_cat_about_title"
@@ -103,6 +110,17 @@
             android:name=".FloatingBubbleService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- Pebble watch bridge: loopback WebSocket receiving watch-microphone PCM from the
+             Core Devices app's PKJS. It never touches the phone microphone. -->
+        <service
+            android:name=".watch.WatchBridgeService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Loopback-only local WebSocket server that receives Pebble smartwatch microphone audio from the companion app and transcribes it on-device" />
+        </service>
 
         <!-- Accessibility Service for floating bubble text injection -->
         <service

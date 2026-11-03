@@ -1,0 +1,37 @@
+{
+  "name": "verbead-voice",
+  "author": "Verbead",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "license": "MIT",
+  "pebble": {
+    "displayName": "Verbead",
+    "uuid": "9f2cbea5-3310-4740-9b7a-ce217cc6ae10",
+    "sdkVersion": "3",
+    "manifestVersion": 2,
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "emery",
+      "flint",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "capabilities": ["microphone", "configurable"],
+    "usesPermissions": [
+      "WatchMicrophone",
+      "LocalNetwork"
+    ],
+    "messageKeys": [
+      "STATUS",
+      "TEXT",
+      "STOP",
+      "CMD"
+    ],
+    "resources": {
+      "media": []
+    }
+  }
+}
