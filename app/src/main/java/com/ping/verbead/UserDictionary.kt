@@ -89,7 +89,7 @@ object UserDictionary {
      */
     fun exportToCsv(entries: Map<String, String>, outputStream: OutputStream) {
         val writer = OutputStreamWriter(outputStream, Charsets.UTF_8).buffered()
-        writer.write("原詞,替換詞\r\n")
+        writer.write("from,to\r\n")
         entries.toSortedMap().forEach { (from, to) ->
             writer.write("${escapeCsvField(from)},${escapeCsvField(to)}\r\n")
         }

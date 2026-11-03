@@ -462,4 +462,34 @@
     <string name="model_progress_downloading_files">下載中 (%1$d/%2$d)…</string>
     <string name="model_progress_extracting">解壓縮中：%1$s</string>
     <string name="common_size_unknown">大小未知</string>
+
+    <!-- P1-6: remaining UI strings -->
+    <string name="ocr_overlay_selected_count">已選取 %1$d 個區塊 (按序號組合)，點「辨識並輸入」</string>
+    <string name="ocr_overlay_confirm_with_count">辨識並輸入 (%1$d)</string>
+    <string name="ocr_overlay_hint_select">滑動拉框圈選或點選欲輸入之文字區塊</string>
+    <string name="ocr_overlay_model_check_files">請確認模型檔案完整</string>
+    <string name="ocr_overlay_model_load_failed">PP-OCR 模型載入失敗: %1$s</string>
+    <string name="ocr_overlay_no_text_found">未偵測到清晰文字，可嘗試翻轉 180° 或重試</string>
+    <string name="ocr_overlay_hint_select_count">滑動拉框圈選或點選文字區塊 (共 %1$d 處)</string>
+    <string name="ocr_overlay_process_error">OCR 處理發生錯誤 (%1$s): %2$s</string>
+    <string name="common_unknown_error">未知錯誤</string>
+    <string name="ocr_overlay_rotated_redetecting">已翻轉 180°，正在重新偵測文字…</string>
+    <string name="ocr_overlay_recognizing_one">正在辨識選取文字…</string>
+    <string name="ocr_overlay_recognizing_many">正在辨識選取的 %1$d 個區塊…</string>
+    <string name="ocr_overlay_recognize_failed_retry">未能成功辨識，請重試或選取其他文字</string>
+    <string name="ocr_overlay_recognize_error">辨識失敗 (%1$s): %2$s</string>
+    <string name="bubble_toast_one_mode_only">目前僅開啟 1 種模式，無法複製懸浮球\n請至設定開啟更多功能模式</string>
+    <string name="bubble_toast_limit_reached">已達目前開啟模式數量上限（最多 %1$d 顆）</string>
+    <string name="bubble_toast_duplicated">已複製「%1$s」懸浮球（共 %2$d 顆，已開啟多球並存）</string>
+    <string name="floating_ocr_desc">懸浮文字辨識</string>
+    <string name="floating_barcode_desc">懸浮條碼掃描</string>
+    <string name="floating_voice_desc">懸浮語音輸入</string>
+    <string name="quick_phrase_default_1">好的，收到！</string>
+    <string name="quick_phrase_default_2">稍等我一下，馬上處理。</string>
+    <string name="quick_phrase_default_3">非常感謝！辛苦了！</string>
+    <string name="quick_phrase_default_4">已發送，請查收。</string>
+    <string name="quick_phrase_default_5">請稍候，我稍後回覆您。</string>
+    <string name="quick_phrase_default_6">沒問題，我來處理。</string>
+    <string name="notif_download_preparing">準備下載 %1$s 模型…</string>
+    <string name="notif_download_channel_name">模型下載</string>
 </resources>

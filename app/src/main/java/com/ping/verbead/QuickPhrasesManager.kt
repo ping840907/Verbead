@@ -18,23 +18,27 @@ object QuickPhrasesManager {
 
     const val MAX_HISTORY_SIZE = 6
 
-    val DEFAULT_PHRASES = listOf(
-        "好的，收到！",
-        "稍等我一下，馬上處理。",
-        "非常感謝！辛苦了！",
-        "已發送，請查收。",
-        "請稍候，我稍後回覆您。",
-        "沒問題，我來處理。"
+    /** 預設常用語的字串資源 ID；首次啟動時依當下語言解析並存入偏好 */
+    val DEFAULT_PHRASE_RES = listOf(
+        R.string.quick_phrase_default_1,
+        R.string.quick_phrase_default_2,
+        R.string.quick_phrase_default_3,
+        R.string.quick_phrase_default_4,
+        R.string.quick_phrase_default_5,
+        R.string.quick_phrase_default_6
     )
+
+    fun defaultPhrases(context: Context): List<String> = DEFAULT_PHRASE_RES.map { context.getString(it) }
 
     // ─── Custom Quick Phrases ───
 
     fun load(context: Context): List<String> {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         if (!prefs.getBoolean(KEY_INITIALIZED, false)) {
-            save(context, DEFAULT_PHRASES)
+            val defaults = defaultPhrases(context)
+            save(context, defaults)
             prefs.edit().putBoolean(KEY_INITIALIZED, true).apply()
-            return DEFAULT_PHRASES
+            return defaults
         }
 
         val json = prefs.getString(KEY_PHRASES, null) ?: return emptyList()

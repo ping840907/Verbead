@@ -150,7 +150,7 @@ class PpOcrEngine(private val context: Context) {
 
             if (ocrPaths == null) {
                 val searched = ModelConfig.ocrDir(context)
-                lastLoadError = "找不到模型檔案 (已搜尋: $searched)"
+                lastLoadError = "Model files not found (searched: $searched)"
                 Log.w(TAG, lastLoadError!!)
                 return@withContext false
             }
@@ -180,17 +180,17 @@ class PpOcrEngine(private val context: Context) {
             } catch (t: Throwable) {
                 val cause = t.cause
                 val msg = if (cause != null) {
-                    "${t.javaClass.simpleName}: ${t.message} [原因: ${cause.javaClass.simpleName}: ${cause.message}]"
+                    "${t.javaClass.simpleName}: ${t.message} [cause: ${cause.javaClass.simpleName}: ${cause.message}]"
                 } else {
                     "${t.javaClass.simpleName}: ${t.message}"
                 }
-                lastLoadError = "OrtEnvironment 初始化失敗 ($msg)"
+                lastLoadError = "OrtEnvironment init failed ($msg)"
                 Log.e(TAG, lastLoadError!!, t)
                 return@withContext false
             }
 
             if (env == null) {
-                lastLoadError = "OrtEnvironment 初始化失敗 (env 為 null)"
+                lastLoadError = "OrtEnvironment init failed (env is null)"
                 Log.e(TAG, lastLoadError!!)
                 return@withContext false
             }
@@ -223,8 +223,8 @@ class PpOcrEngine(private val context: Context) {
             Log.i(TAG, "PP-OCR engine loaded successfully! Dictionary size=${charDict.size}")
             true
         } catch (e: Throwable) {
-            val causeMsg = e.cause?.let { " [原因: ${it.javaClass.simpleName}: ${it.message}]" } ?: ""
-            lastLoadError = "${e.javaClass.simpleName}: ${e.message ?: e.localizedMessage ?: "未知錯誤"}$causeMsg"
+            val causeMsg = e.cause?.let { " [cause: ${it.javaClass.simpleName}: ${it.message}]" } ?: ""
+            lastLoadError = "${e.javaClass.simpleName}: ${e.message ?: e.localizedMessage ?: "unknown error"}$causeMsg"
             Log.e(TAG, "Failed to load PP-OCR engine: $lastLoadError", e)
             release()
             false

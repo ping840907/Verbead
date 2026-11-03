@@ -201,7 +201,7 @@ Kotlin（由多到少）：`ImeSettingsActivity` 44、`engine/ModelConfig` 34、
 - [x] P1-3 設定頁 Kotlin（128；盤點 277→149；主設定頁已實機確認，其餘四個子設定頁的對話框與 Toast 尚未逐一觸發）
 - [x] P1-4 導覽頁（54；盤點 149→95，lint baseline HardcodedText 34→6；已編譯安裝，導覽頁排版尚未實機確認）
 - [x] P1-5 資料層解耦（實際減少 30；盤點 95→65。`ModelConfig` 內 22 行台灣用詞規則屬輸入語言規則，留到 P3，不在此包處理；已編譯、單元測試與 lint 通過並安裝，匯入模型包與下載進度的畫面尚未實機確認）
-- [ ] P1-6 其餘與 Manifest（45）
+- [x] P1-6 其餘與 Manifest（實際減少 36；盤點 65→29；Manifest 的 label 已在 P0-B 處理。剩下 29 行全是語言規則，留到 P3 判斷：`ModelConfig` 台灣用詞規則 22、`UserDictionary` 的簡繁關鍵字與匯入表頭相容 3、`TextStitcher` 清單序號標點 2、`TextInsertion` 復原/重做多語關鍵字 2；已編譯、測試與 lint 通過並安裝，懸浮球與 OCR 視窗的畫面尚未實機確認）
 - [ ] P2 翻譯（英、日、韓）
 - [ ] P3 `LanguageProfile`
 - [ ] P4 辨識整合

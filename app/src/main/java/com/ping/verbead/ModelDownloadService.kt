@@ -73,7 +73,7 @@ class ModelDownloadService : Service() {
             engine == ModelConfig.OCR_MODEL_SMALL -> "PP-OCRv6 Small"
             else -> "Qwen3-ASR"
         }
-        startForeground(NOTIF_ID, buildNotification("準備下載 $engineLabel 模型…", -1))
+        startForeground(NOTIF_ID, buildNotification(getString(R.string.notif_download_preparing, engineLabel), -1))
         acquireWakeLock()
 
         job = scope.launch {
@@ -142,7 +142,7 @@ class ModelDownloadService : Service() {
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(CHANNEL_ID, "模型下載", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(CHANNEL_ID, getString(R.string.notif_download_channel_name), NotificationManager.IMPORTANCE_LOW)
         notificationManager.createNotificationChannel(channel)
     }
 

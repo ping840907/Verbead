@@ -1489,9 +1489,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (bubbleItems.size >= maxAllowed) {
             HapticUtil.tick(this)
             if (maxAllowed <= 1) {
-                Toast.makeText(this, "目前僅開啟 1 種模式，無法複製懸浮球\n請至設定開啟更多功能模式", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.bubble_toast_one_mode_only), Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this, "已達目前開啟模式數量上限（最多 ${maxAllowed} 顆）", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.bubble_toast_limit_reached, maxAllowed), Toast.LENGTH_SHORT).show()
             }
             return false
         }
@@ -1661,7 +1661,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         // Toast 等手指放開再顯示。設定頁的多球開關由設定值變更的監聽自行同步，不必在這裡通知
         val meta = ModelConfig.getBubbleModeMeta(newMode)
-        pendingShakeToast = "已複製「${getString(meta.titleRes)}」懸浮球（共 ${newCount} 顆，已開啟多球並存）"
+        pendingShakeToast = getString(R.string.bubble_toast_duplicated, getString(meta.titleRes), newCount)
 
         Log.d(
             TAG,
@@ -2521,7 +2521,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         } catch (e: Throwable) {
             Log.e(TAG, "startRecording failed: ${e.message}", e)
             setState(State.IDLE)
-            showPreviewText(getString(R.string.preview_voice_start_failed, e.localizedMessage ?: "未知錯誤"), autoHide = true)
+            showPreviewText(getString(R.string.preview_voice_start_failed, e.localizedMessage ?: getString(R.string.common_unknown_error)), autoHide = true)
         }
     }
 
@@ -2954,10 +2954,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun getIconAndDescForMode(mode: Int): Pair<Int, String> {
         return when (mode) {
-            MODE_OCR -> R.drawable.ic_ocr to "懸浮文字辨識"
-            MODE_BARCODE -> R.drawable.ic_barcode to "懸浮條碼掃描"
-            MODE_PHRASES -> R.drawable.ic_quick_phrases to "常用語抽屜"
-            else -> R.drawable.ic_mic to "懸浮語音輸入"
+            MODE_OCR -> R.drawable.ic_ocr to getString(R.string.floating_ocr_desc)
+            MODE_BARCODE -> R.drawable.ic_barcode to getString(R.string.floating_barcode_desc)
+            MODE_PHRASES -> R.drawable.ic_quick_phrases to getString(R.string.capsule_phrases_drawer_desc)
+            else -> R.drawable.ic_mic to getString(R.string.floating_voice_desc)
         }
     }
 

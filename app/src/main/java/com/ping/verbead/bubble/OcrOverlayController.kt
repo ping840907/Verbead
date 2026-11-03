@@ -467,7 +467,7 @@ class OcrOverlayController(
         ivSnapshot.setImageBitmap(bitmap)
         boxesOverlay.clearBoxes()
         bottomBar.visibility = View.GONE
-        tvStatus.text = "正在偵測文字區塊…"
+        tvStatus.text = context.getString(R.string.ocr_snapshot_detecting)
         progress.visibility = View.VISIBLE
 
         btnCloseOcr.setOnClickListener {
@@ -488,8 +488,8 @@ class OcrOverlayController(
                         .setDuration(160)
                         .start()
                 }
-                tvStatus.text = "已選取 $count 個區塊 (按序號組合)，點「辨識並輸入」"
-                btnConfirm.text = if (count == 1) "辨識並輸入" else "辨識並輸入 ($count)"
+                tvStatus.text = context.getString(R.string.ocr_overlay_selected_count, count)
+                btnConfirm.text = if (count == 1) context.getString(R.string.ocr_snapshot_recognize_and_input) else context.getString(R.string.ocr_overlay_confirm_with_count, count)
             } else {
                 if (bottomBar.visibility == View.VISIBLE) {
                     bottomBar.animate()
@@ -499,7 +499,7 @@ class OcrOverlayController(
                         .withEndAction { bottomBar.visibility = View.GONE }
                         .start()
                 }
-                tvStatus.text = "滑動拉框圈選或點選欲輸入之文字區塊"
+                tvStatus.text = context.getString(R.string.ocr_overlay_hint_select)
             }
         }
 
@@ -529,7 +529,7 @@ class OcrOverlayController(
         }
 
         var detectJob: Job? = null
-        fun startDetection(targetBitmap: Bitmap, statusPrefix: String = "正在偵測文字區塊…") {
+        fun startDetection(targetBitmap: Bitmap, statusPrefix: String = context.getString(R.string.ocr_snapshot_detecting)) {
             detectJob?.cancel()
             boxesOverlay.clearBoxes()
             bottomBar.visibility = View.GONE
@@ -542,8 +542,8 @@ class OcrOverlayController(
                         val loaded = ppOcrEngine.load()
                         if (!loaded) {
                             progress.visibility = View.GONE
-                            val reason = ppOcrEngine.lastLoadError ?: "請確認模型檔案完整"
-                            tvStatus.text = "PP-OCR 模型載入失敗: $reason"
+                            val reason = ppOcrEngine.lastLoadError ?: context.getString(R.string.ocr_overlay_model_check_files)
+                            tvStatus.text = context.getString(R.string.ocr_overlay_model_load_failed, reason)
                             return@launch
                         }
                     }
@@ -554,15 +554,15 @@ class OcrOverlayController(
 
                     progress.visibility = View.GONE
                     if (detectedRects.isEmpty()) {
-                        tvStatus.text = "未偵測到清晰文字，可嘗試翻轉 180° 或重試"
+                        tvStatus.text = context.getString(R.string.ocr_overlay_no_text_found)
                     } else {
-                        tvStatus.text = "滑動拉框圈選或點選文字區塊 (共 ${detectedRects.size} 處)"
+                        tvStatus.text = context.getString(R.string.ocr_overlay_hint_select_count, detectedRects.size)
                         boxesOverlay.setDetectedBoxes(detectedRects, targetBitmap.width, targetBitmap.height)
                     }
                 } catch (e: Throwable) {
                     Log.e(TAG, "OCR detection error: ${e.message}", e)
                     progress.visibility = View.GONE
-                    tvStatus.text = "OCR 處理發生錯誤 (${e.javaClass.simpleName}): ${e.localizedMessage ?: e.message ?: "未知錯誤"}"
+                    tvStatus.text = context.getString(R.string.ocr_overlay_process_error, e.javaClass.simpleName, e.localizedMessage ?: e.message ?: context.getString(R.string.common_unknown_error))
                 }
             }
         }
@@ -580,7 +580,7 @@ class OcrOverlayController(
             }
 
             ivSnapshot.setImageBitmap(rotated)
-            startDetection(rotated, "已翻轉 180°，正在重新偵測文字…")
+            startDetection(rotated, context.getString(R.string.ocr_overlay_rotated_redetecting))
         }
 
         frameContainer.alpha = 0f
@@ -614,7 +614,7 @@ class OcrOverlayController(
     ) {
         if (boxes.isEmpty()) return
 
-        tvStatus.text = if (boxes.size == 1) "正在辨識選取文字…" else "正在辨識選取的 ${boxes.size} 個區塊…"
+        tvStatus.text = if (boxes.size == 1) context.getString(R.string.ocr_overlay_recognizing_one) else context.getString(R.string.ocr_overlay_recognizing_many, boxes.size)
         progress.visibility = View.VISIBLE
 
         scope.launch {
@@ -653,12 +653,12 @@ class OcrOverlayController(
                     HapticUtil.heavyClick(context)
                     listener.onOcrTextConfirmed(processed)
                 } else {
-                    tvStatus.text = "未能成功辨識，請重試或選取其他文字"
+                    tvStatus.text = context.getString(R.string.ocr_overlay_recognize_failed_retry)
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "OCR recognition error: ${e.message}", e)
                 progress.visibility = View.GONE
-                tvStatus.text = "辨識失敗 (${e.javaClass.simpleName}): ${e.localizedMessage ?: e.message ?: "未知錯誤"}"
+                tvStatus.text = context.getString(R.string.ocr_overlay_recognize_error, e.javaClass.simpleName, e.localizedMessage ?: e.message ?: context.getString(R.string.common_unknown_error))
             }
         }
     }
