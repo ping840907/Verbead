@@ -1,6 +1,8 @@
 package com.ping.verbead.engine
 
 import android.content.Context
+import androidx.annotation.StringRes
+import com.ping.verbead.R
 import com.github.houbb.opencc4j.util.ZhConverterUtil
 import java.io.File
 import java.nio.charset.Charset
@@ -831,35 +833,35 @@ object ModelConfig {
 
     data class BubbleModeMeta(
         val mode: Int,
-        val title: String,
-        val shortName: String,
-        val description: String
+        @StringRes val titleRes: Int,
+        @StringRes val shortNameRes: Int,
+        @StringRes val descriptionRes: Int
     )
 
     val BUBBLE_MODE_METADATA = mapOf(
         BUBBLE_MODE_VOICE to BubbleModeMeta(
             mode = BUBBLE_MODE_VOICE,
-            title = "語音輸入",
-            shortName = "語音",
-            description = "點擊啟動離線語音辨識，說話結束自動填入焦點文字框"
+            titleRes = R.string.bubble_mode_voice_title,
+            shortNameRes = R.string.bubble_mode_meta_voice_short,
+            descriptionRes = R.string.bubble_mode_meta_voice_desc
         ),
         BUBBLE_MODE_BARCODE to BubbleModeMeta(
             mode = BUBBLE_MODE_BARCODE,
-            title = "條碼掃描",
-            shortName = "條碼",
-            description = "懸浮相機即時掃描一維條碼與 QR Code 並自動輸入"
+            titleRes = R.string.floating_scanner_title,
+            shortNameRes = R.string.bubble_mode_meta_barcode_short,
+            descriptionRes = R.string.bubble_mode_meta_barcode_desc
         ),
         BUBBLE_MODE_OCR to BubbleModeMeta(
             mode = BUBBLE_MODE_OCR,
-            title = "文字辨識 (OCR)",
-            shortName = "辨識",
-            description = "懸浮相機擷取畫面文字，支援直排中文與多區塊順序拼接"
+            titleRes = R.string.bubble_mode_meta_ocr_title,
+            shortNameRes = R.string.bubble_mode_meta_ocr_short,
+            descriptionRes = R.string.bubble_mode_meta_ocr_desc
         ),
         BUBBLE_MODE_PHRASES to BubbleModeMeta(
             mode = BUBBLE_MODE_PHRASES,
-            title = "常用語抽屜",
-            shortName = "常用語",
-            description = "快速點選自訂常用片語與近期辨識歷史紀錄"
+            titleRes = R.string.capsule_phrases_drawer_desc,
+            shortNameRes = R.string.common_quick_phrases,
+            descriptionRes = R.string.bubble_mode_meta_phrases_desc
         )
     )
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import com.ping.verbead.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
@@ -25,16 +26,22 @@ object ModelZipInstaller {
     private const val TAG = "Verbead_Zip"
     const val DEFAULT_ZIP_FILENAME = "verbead_models.zip"
 
+    /** 解壓完成時回報的檔名（空字串），由介面層顯示「復原完成」 */
+    const val PROGRESS_COMPLETE = ""
+
+    enum class Status { SUCCESS, NO_MODELS_IN_ARCHIVE, STREAM_UNREADABLE, FILE_NOT_FOUND, EXTRACT_FAILED, INVALID_SOURCE }
+
     data class InstallResult(
         val isSuccess: Boolean,
         val xAsrReady: Boolean,
         val qwen3Ready: Boolean,
         val ocrReady: Boolean,
-        val restoredModels: List<String> = emptyList(),
+        val restoredModels: List<Int> = emptyList(), // 字串資源 ID
         val restoredModelShortNames: List<String> = emptyList(),
         val fileCount: Int,
         val totalBytes: Long,
-        val message: String
+        val status: Status,
+        val detail: String = ""
     )
 
     data class ExtractionReport(
@@ -98,7 +105,7 @@ object ModelZipInstaller {
                 ocrReady = false,
                 fileCount = 0,
                 totalBytes = 0,
-                message = "無法讀取選取的檔案 (InputStream 為空)"
+                status = Status.STREAM_UNREADABLE
             )
 
         installFromInputStream(context, inputStream, totalSize, onProgress)
@@ -120,7 +127,8 @@ object ModelZipInstaller {
                 ocrReady = false,
                 fileCount = 0,
                 totalBytes = 0,
-                message = "找不到模型壓縮包或無讀取權限: ${file.absolutePath}"
+                status = Status.FILE_NOT_FOUND,
+                detail = file.absolutePath
             )
         }
         val totalSize = file.length()
@@ -197,23 +205,23 @@ object ModelZipInstaller {
             File(ocrDir, "pp_ocrv6_tiny_rec.onnx").exists() &&
             File(ocrDir, "pp_ocrv6_tiny_dict.txt").exists()
 
-        val detailedLabels = mutableListOf<String>()
+        val detailedLabels = mutableListOf<Int>()
         val shortLabels = mutableListOf<String>()
 
         if (qwen3Restored) {
-            detailedLabels.add("Qwen3-ASR 高精度離線語音")
+            detailedLabels.add(R.string.model_label_qwen3_detail)
             shortLabels.add("Qwen3-ASR")
         }
         if (xAsrRestored) {
-            detailedLabels.add("X-ASR 極速即時串流語音")
+            detailedLabels.add(R.string.model_label_xasr_detail)
             shortLabels.add("X-ASR")
         }
         if (ocrSmallRestored) {
-            detailedLabels.add("PP-OCRv6 (Small 高精版) 文字辨識")
+            detailedLabels.add(R.string.model_label_ocr_small_detail)
             shortLabels.add("PP-OCRv6 Small")
         }
         if (ocrTinyRestored) {
-            detailedLabels.add("PP-OCRv6 (Tiny 輕量版) 文字辨識")
+            detailedLabels.add(R.string.model_label_ocr_tiny_detail)
             shortLabels.add("PP-OCRv6 Tiny")
         }
 
@@ -232,7 +240,7 @@ object ModelZipInstaller {
         val xAsrRestored: Boolean,
         val ocrSmallRestored: Boolean,
         val ocrTinyRestored: Boolean,
-        val detailedLabels: List<String>,
+        val detailedLabels: List<Int>, // 字串資源 ID
         val shortLabels: List<String>
     )
 
@@ -259,11 +267,12 @@ object ModelZipInstaller {
                 ocrReady = false,
                 fileCount = 0,
                 totalBytes = 0,
-                message = "解壓縮失敗: ${e.message}"
+                status = Status.EXTRACT_FAILED,
+                detail = e.message ?: ""
             )
         }
 
-        onProgress("復原完成", 100)
+        onProgress(PROGRESS_COMPLETE, 100)
 
         val analysis = analyzeRestoredPackage(report.extractedEntries, targetDir)
 
@@ -297,7 +306,7 @@ object ModelZipInstaller {
             }
         }
 
-        val readySummary = readyShortNames.joinToString("、").ifEmpty { "無完整模型組合" }
+
 
         return InstallResult(
             isSuccess = report.fileCount > 0,
@@ -308,7 +317,7 @@ object ModelZipInstaller {
             restoredModelShortNames = readyShortNames,
             fileCount = report.fileCount,
             totalBytes = report.totalBytes,
-            message = if (report.fileCount > 0) "模型包復原成功！還原模型：$readySummary" else "壓縮包中未包含有效模型檔案"
+            status = if (report.fileCount > 0) Status.SUCCESS else Status.NO_MODELS_IN_ARCHIVE
         )
     }
 
@@ -357,7 +366,7 @@ object ModelZipInstaller {
                 val canonicalDest = outFile.canonicalPath
                 val canonicalTarget = targetDir.canonicalPath
                 if (!canonicalDest.startsWith(canonicalTarget + File.separator) && canonicalDest != canonicalTarget) {
-                    throw SecurityException("偵測到不合法的壓縮檔案路徑 (Zip Slip): $entryName")
+                    throw SecurityException("Illegal zip entry path (Zip Slip): $entryName")
                 }
 
                 if (entry.isDirectory) {

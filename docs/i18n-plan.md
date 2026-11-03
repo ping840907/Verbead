@@ -200,7 +200,7 @@ Kotlin（由多到少）：`ImeSettingsActivity` 44、`engine/ModelConfig` 34、
 - [x] P1-2 大型設定版面（113；盤點 390→277，lint baseline HardcodedText 147→34；主設定頁已實機確認，其餘子頁尚未逐頁截圖）
 - [x] P1-3 設定頁 Kotlin（128；盤點 277→149；主設定頁已實機確認，其餘四個子設定頁的對話框與 Toast 尚未逐一觸發）
 - [x] P1-4 導覽頁（54；盤點 149→95，lint baseline HardcodedText 34→6；已編譯安裝，導覽頁排版尚未實機確認）
-- [ ] P1-5 資料層解耦（52）
+- [x] P1-5 資料層解耦（實際減少 30；盤點 95→65。`ModelConfig` 內 22 行台灣用詞規則屬輸入語言規則，留到 P3，不在此包處理；已編譯、單元測試與 lint 通過並安裝，匯入模型包與下載進度的畫面尚未實機確認）
 - [ ] P1-6 其餘與 Manifest（45）
 - [ ] P2 翻譯（英、日、韓）
 - [ ] P3 `LanguageProfile`

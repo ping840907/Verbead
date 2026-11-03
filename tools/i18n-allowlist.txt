@@ -5,9 +5,7 @@ java/com/ping/verbead/ModelDownloadService.kt 2
 java/com/ping/verbead/QuickPhrasesManager.kt 6
 java/com/ping/verbead/UserDictionary.kt 4
 java/com/ping/verbead/bubble/OcrOverlayController.kt 14
-java/com/ping/verbead/engine/ModelConfig.kt 34
-java/com/ping/verbead/engine/ModelDownloader.kt 7
-java/com/ping/verbead/engine/ModelZipInstaller.kt 11
+java/com/ping/verbead/engine/ModelConfig.kt 22
 java/com/ping/verbead/ocr/PpOcrEngine.kt 5
 java/com/ping/verbead/ocr/TextStitcher.kt 2
 java/com/ping/verbead/util/TextInsertion.kt 2

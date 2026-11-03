@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
+import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +79,7 @@ class ModelDownloadService : Service() {
         job = scope.launch {
             val result = downloader.download(target) { progress ->
                 ModelDownloadState.update(engine, progress)
-                notificationManager.notify(NOTIF_ID, buildNotification("$engineLabel：${progress.label}", progress.percent))
+                notificationManager.notify(NOTIF_ID, buildNotification("$engineLabel：${progress.label(this@ModelDownloadService)}", progress.percent))
             }
             ModelDownloadState.clear()
             ModelDownloadState.results.tryEmit(engine to result)

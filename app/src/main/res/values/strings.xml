@@ -436,4 +436,30 @@
     <string name="onboarding_voice_mock_question">請問今天下午的會議幾點開始？</string>
     <string name="onboarding_voice_mock_hint">點擊懸浮球開始輸入...</string>
     <string name="onboarding_voice_listening">正在聆聽…</string>
+
+    <!-- P1-5: data layer decoupling -->
+    <string name="bubble_mode_meta_voice_short">語音</string>
+    <string name="bubble_mode_meta_voice_desc">點擊啟動離線語音辨識，說話結束自動填入焦點文字框</string>
+    <string name="bubble_mode_meta_barcode_short">條碼</string>
+    <string name="bubble_mode_meta_barcode_desc">懸浮相機即時掃描一維條碼與 QR Code 並自動輸入</string>
+    <string name="bubble_mode_meta_ocr_title">文字辨識 (OCR)</string>
+    <string name="bubble_mode_meta_ocr_short">辨識</string>
+    <string name="bubble_mode_meta_ocr_desc">懸浮相機擷取畫面文字，支援直排中文與多區塊順序拼接</string>
+    <string name="bubble_mode_meta_phrases_desc">快速點選自訂常用片語與近期辨識歷史紀錄</string>
+    <string name="model_label_qwen3_detail">Qwen3-ASR 高精度離線語音</string>
+    <string name="model_label_xasr_detail">X-ASR 極速即時串流語音</string>
+    <string name="model_label_ocr_small_detail">PP-OCRv6 (Small 高精版) 文字辨識</string>
+    <string name="model_label_ocr_tiny_detail">PP-OCRv6 (Tiny 輕量版) 文字辨識</string>
+    <string name="settings_import_success_status">模型包復原成功！還原模型：%1$s</string>
+    <string name="settings_import_no_models">壓縮包中未包含有效模型檔案</string>
+    <string name="settings_import_stream_unreadable">無法讀取選取的檔案 (InputStream 為空)</string>
+    <string name="settings_import_file_not_found">找不到模型壓縮包或無讀取權限: %1$s</string>
+    <string name="settings_import_extract_failed">解壓縮失敗: %1$s</string>
+    <string name="settings_import_no_combo">無完整模型組合</string>
+    <string name="settings_import_finishing">復原完成</string>
+    <string name="common_list_separator">、</string>
+    <string name="model_progress_downloading">下載中…</string>
+    <string name="model_progress_downloading_files">下載中 (%1$d/%2$d)…</string>
+    <string name="model_progress_extracting">解壓縮中：%1$s</string>
+    <string name="common_size_unknown">大小未知</string>
 </resources>

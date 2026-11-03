@@ -23,7 +23,16 @@ import kotlin.coroutines.coroutineContext
  */
 class ModelDownloader(private val context: Context? = null) {
 
-    data class Progress(val label: String, val percent: Int) // percent < 0 = indeterminate
+    enum class Stage { DOWNLOADING, DOWNLOADING_FILE, EXTRACTING }
+
+    /** percent < 0 = indeterminate；顯示文字由介面層依 [stage] 組出（見 util/ModelProgressText.kt） */
+    data class Progress(
+        val stage: Stage,
+        val percent: Int,
+        val current: Int = 0,
+        val total: Int = 0,
+        val detail: String = ""
+    )
 
     /** Sum of Content-Length across all remote files, or -1 if unknown. */
     suspend fun estimateTotalBytes(target: ModelDownloadSpec.DownloadTarget): Long =
@@ -58,10 +67,10 @@ class ModelDownloader(private val context: Context? = null) {
                 val archiveFile = File(ctx.cacheDir, "model_download.tar.bz2")
                 downloadFile(target.archiveUrl, archiveFile, target.archiveSha256) { done, total ->
                     val pct = if (total > 0) ((done * 90) / total).toInt() else -1
-                    onProgress(Progress("下載中…", pct))
+                    onProgress(Progress(Stage.DOWNLOADING, pct))
                 }
                 extractTarBz2(archiveFile, stagingDir) { fraction, currentFile ->
-                    onProgress(Progress("解壓縮中：$currentFile", (fraction * 100).toInt().coerceIn(0, 100)))
+                    onProgress(Progress(Stage.EXTRACTING, (fraction * 100).toInt().coerceIn(0, 100), detail = currentFile))
                 }
                 archiveFile.delete()
                 if (target.engine == ModelConfig.ENGINE_QWEN3) verifyQwen3Files(stagingDir)
@@ -73,7 +82,7 @@ class ModelDownloader(private val context: Context? = null) {
                 target.files.forEachIndexed { i, f ->
                     downloadFile(f.url, File(dir, f.relativePath), f.sha256) { done, total ->
                         val filePct = if (total > 0) (done * 100 / total).toInt() else 0
-                        onProgress(Progress("下載中 (${i + 1}/$n)…", (i * 100 + filePct) / n))
+                        onProgress(Progress(Stage.DOWNLOADING_FILE, (i * 100 + filePct) / n, current = i + 1, total = n))
                     }
                 }
             }
@@ -107,7 +116,7 @@ class ModelDownloader(private val context: Context? = null) {
         val tokenizerDir = File(dir, ModelConfig.QWEN3_ASR_TOKENIZER_DIR)
         if (broken.isNotEmpty() || !tokenizerDir.isDirectory || tokenizerDir.listFiles().isNullOrEmpty()) {
             throw IOException(
-                "模型檔案不完整或已損毀（${broken.joinToString { it.name }.ifEmpty { "tokenizer/" }}），請重新下載"
+                "Model files incomplete or corrupt (${broken.joinToString { it.name }.ifEmpty { "tokenizer/" }}); re-download required"
             )
         }
     }
@@ -204,7 +213,7 @@ class ModelDownloader(private val context: Context? = null) {
                 if (!actualSha256.equals(expectedSha256, ignoreCase = true)) {
                     tmp.delete()
                     Log.e(TAG, "SHA-256 mismatch for ${dest.name}: expected $expectedSha256, got $actualSha256")
-                    throw IOException("檔案校驗失敗（${dest.name} SHA-256 不符），已自動刪除損毀檔案，請重新下載")
+                    throw IOException("Checksum verification failed (${dest.name} SHA-256 mismatch); corrupt file deleted, re-download required")
                 }
             }
 
@@ -263,7 +272,7 @@ class ModelDownloader(private val context: Context? = null) {
                                 }
                                 if (copied != entry.size) {
                                     throw IOException(
-                                        "解壓縮失敗：${relPath} 大小不符（預期 ${entry.size}，實際 $copied），封存檔可能已損毀"
+                                        "Extraction failed: size mismatch for $relPath (expected ${entry.size}, actual $copied); archive may be corrupt"
                                     )
                                 }
                             }
@@ -360,7 +369,7 @@ class ModelDownloader(private val context: Context? = null) {
         }
 
         fun formatBytes(bytes: Long): String = when {
-            bytes < 0             -> "大小未知"
+            bytes < 0             -> "unknown"
             bytes < 1024 * 1024   -> "%.0f KB".format(bytes / 1024.0)
             else                  -> "%.0f MB".format(bytes / (1024.0 * 1024.0))
         }

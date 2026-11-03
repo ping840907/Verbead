@@ -139,7 +139,7 @@ class ModelDownloaderTest {
             downloader.downloadFile("http://127.0.0.1:$serverPort/corrupt", dest, wrongSha) { _, _ -> }
             fail("Should have thrown IOException on SHA-256 mismatch")
         } catch (e: IOException) {
-            assertTrue("Exception message should indicate verification failure", e.message?.contains("檔案校驗失敗") == true)
+            assertTrue("Exception message should indicate verification failure", e.message?.contains("Checksum verification failed") == true)
         }
 
         assertFalse("Destination file must not exist on failure", dest.exists())

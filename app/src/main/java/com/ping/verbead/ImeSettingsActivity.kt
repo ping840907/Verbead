@@ -394,14 +394,14 @@ class ImeSettingsActivity : AppCompatActivity() {
                 ModelZipInstaller.installFromFile(this@ImeSettingsActivity, file) { currentFile, pct ->
                     runOnUiThread {
                         progressImportModels.progress = pct
-                        tvImportModelsStatus.text = getString(R.string.settings_import_extracting, currentFile, pct)
+                        tvImportModelsStatus.text = importProgressText(currentFile, pct)
                     }
                 }
             } else if (uri != null) {
                 ModelZipInstaller.installFromUri(this@ImeSettingsActivity, uri) { currentFile, pct ->
                     runOnUiThread {
                         progressImportModels.progress = pct
-                        tvImportModelsStatus.text = getString(R.string.settings_import_extracting, currentFile, pct)
+                        tvImportModelsStatus.text = importProgressText(currentFile, pct)
                     }
                 }
             } else {
@@ -412,7 +412,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                     ocrReady = false,
                     fileCount = 0,
                     totalBytes = 0,
-                    message = getString(R.string.settings_import_invalid_source)
+                    status = ModelZipInstaller.Status.INVALID_SOURCE
                 )
             }
 
@@ -421,11 +421,11 @@ class ImeSettingsActivity : AppCompatActivity() {
             progressImportModels.visibility = View.GONE
 
             if (result.isSuccess) {
-                tvImportModelsStatus.text = result.message
+                tvImportModelsStatus.text = importResultMessage(result)
                 updateAllStatus()
                 updateCategorySummaries()
                 val restoredListText = if (result.restoredModels.isNotEmpty()) {
-                    result.restoredModels.joinToString("\n") { "• $it" }
+                    result.restoredModels.joinToString("\n") { "• ${getString(it)}" }
                 } else {
                     getString(R.string.settings_import_core_files_item)
                 }
@@ -437,14 +437,35 @@ class ImeSettingsActivity : AppCompatActivity() {
                     .setPositiveButton(R.string.settings_import_success_ok, null)
                     .show()
             } else {
-                tvImportModelsStatus.text = getString(R.string.toast_dict_import_failed, result.message)
+                tvImportModelsStatus.text = getString(R.string.toast_dict_import_failed, importResultMessage(result))
                 AlertDialog.Builder(this@ImeSettingsActivity)
                     .setTitle(R.string.settings_import_failed_title)
-                    .setMessage(getString(R.string.settings_import_failed_message, result.message))
+                    .setMessage(getString(R.string.settings_import_failed_message, importResultMessage(result)))
                     .setPositiveButton(R.string.common_got_it, null)
                     .show()
             }
         }
+    }
+
+    private fun importProgressText(currentFile: String, pct: Int): String =
+        if (currentFile.isEmpty()) {
+            getString(R.string.settings_import_finishing)
+        } else {
+            getString(R.string.settings_import_extracting, currentFile, pct)
+        }
+
+    private fun importResultMessage(result: ModelZipInstaller.InstallResult): String = when (result.status) {
+        ModelZipInstaller.Status.SUCCESS -> {
+            val summary = result.restoredModelShortNames
+                .joinToString(getString(R.string.common_list_separator))
+                .ifEmpty { getString(R.string.settings_import_no_combo) }
+            getString(R.string.settings_import_success_status, summary)
+        }
+        ModelZipInstaller.Status.NO_MODELS_IN_ARCHIVE -> getString(R.string.settings_import_no_models)
+        ModelZipInstaller.Status.STREAM_UNREADABLE -> getString(R.string.settings_import_stream_unreadable)
+        ModelZipInstaller.Status.FILE_NOT_FOUND -> getString(R.string.settings_import_file_not_found, result.detail)
+        ModelZipInstaller.Status.EXTRACT_FAILED -> getString(R.string.settings_import_extract_failed, result.detail)
+        ModelZipInstaller.Status.INVALID_SOURCE -> getString(R.string.settings_import_invalid_source)
     }
 
     private fun updateAllStatus() {

@@ -19,6 +19,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloader
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
@@ -157,7 +158,7 @@ class OcrSettingsActivity : AppCompatActivity() {
 
                 AlertDialog.Builder(this@OcrSettingsActivity)
                     .setTitle(getString(R.string.settings_speech_download_title, modelName))
-                    .setMessage(getString(R.string.settings_ocr_download_message, ModelDownloader.formatBytes(bytes)))
+                    .setMessage(getString(R.string.settings_ocr_download_message, if (bytes < 0) getString(R.string.common_size_unknown) else ModelDownloader.formatBytes(bytes)))
                     .setPositiveButton(R.string.settings_ocr_download_start) { _, _ ->
                         HapticUtil.click(this@OcrSettingsActivity)
                         isDownloading = true
@@ -284,7 +285,7 @@ class OcrSettingsActivity : AppCompatActivity() {
                     tvOcrProgress.visibility = View.VISIBLE
                     progressOcr.isIndeterminate = active.progress.percent < 0
                     if (active.progress.percent >= 0) progressOcr.progress = active.progress.percent
-                    tvOcrProgress.text = "${active.progress.label} (${active.progress.percent}%)"
+                    tvOcrProgress.text = "${active.progress.label(this@OcrSettingsActivity)} (${active.progress.percent}%)"
                 } else {
                     if (ModelDownloadState.active.value == null) {
                         hideDownloadProgress()

@@ -1661,7 +1661,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         // Toast 等手指放開再顯示。設定頁的多球開關由設定值變更的監聽自行同步，不必在這裡通知
         val meta = ModelConfig.getBubbleModeMeta(newMode)
-        pendingShakeToast = "已複製「${meta.title}」懸浮球（共 ${newCount} 顆，已開啟多球並存）"
+        pendingShakeToast = "已複製「${getString(meta.titleRes)}」懸浮球（共 ${newCount} 顆，已開啟多球並存）"
 
         Log.d(
             TAG,

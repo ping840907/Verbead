@@ -71,8 +71,8 @@ class BubbleModeConfigAdapter(
         val meta = ModelConfig.getBubbleModeMeta(mode)
         val isEnabled = ModelConfig.isBubbleModeEnabled(context, mode)
 
-        holder.tvTitle.text = meta.title
-        holder.tvDesc.text = meta.description
+        holder.tvTitle.text = context.getString(meta.titleRes)
+        holder.tvDesc.text = context.getString(meta.descriptionRes)
         holder.ivIcon.setImageResource(getIconResForMode(mode))
 
         // Compute 1-based order rank among enabled modes

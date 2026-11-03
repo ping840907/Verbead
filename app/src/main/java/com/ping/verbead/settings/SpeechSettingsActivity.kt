@@ -25,6 +25,7 @@ import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
 import com.ping.verbead.UserDictionary
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.ModelDownloader
@@ -448,7 +449,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
                     tv.visibility = View.VISIBLE
                     prog.isIndeterminate = active.progress.percent < 0
                     if (active.progress.percent >= 0) prog.progress = active.progress.percent
-                    tv.text = "${active.progress.label} (${active.progress.percent}%)"
+                    tv.text = "${active.progress.label(this@SpeechSettingsActivity)} (${active.progress.percent}%)"
                 } else {
                     if (ModelDownloadState.active.value == null) {
                         hideDownloadProgress(ModelConfig.ENGINE_X_ASR)
