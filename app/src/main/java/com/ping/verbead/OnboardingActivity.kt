@@ -123,9 +123,9 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Next button text
         if (position == 4) {
-            btnNext.text = "前往設定開始使用"
+            btnNext.text = getString(R.string.onboarding_finish)
         } else {
-            btnNext.text = "下一步"
+            btnNext.text = getString(R.string.onboarding_next)
         }
 
         // Indicator dots
@@ -182,7 +182,7 @@ class OnboardingActivity : AppCompatActivity() {
         val wave3 = view.findViewById<View>(R.id.mock_wave_3)
 
         currentAnimJob = activityScope.launch {
-            val sampleText = "今天下午兩點在三樓會議室開會。"
+            val sampleText = getString(R.string.onboarding_voice_sample)
             while (isActive) {
                 // Initial IDLE state: blue bubble
                 tvMockInput.text = ""
@@ -273,32 +273,32 @@ class OnboardingActivity : AppCompatActivity() {
         fun updateModeContent(mode: Int) {
             when (mode) {
                 0 -> {
-                    tvModeTitle?.text = "語音即時輸入"
-                    tvModeDesc?.text = "高精準度離線語音辨識，輕觸即開始聽寫並直接貼上"
+                    tvModeTitle?.text = getString(R.string.onboarding_mode_voice_title)
+                    tvModeDesc?.text = getString(R.string.onboarding_mode_voice_desc)
                     ivModeIcon?.setImageResource(R.drawable.ic_mic)
-                    tvModeBadge?.text = "模式 1/4"
-                    tvFeatureTags?.text = "• 雙引擎「即時預覽 + 離線高精度轉譯」\n• 支援自動標點與自訂專屬詞彙替換\n• 耳機外接音訊與麥克風倍率增益"
+                    tvModeBadge?.text = getString(R.string.onboarding_mode_badge, 1, 4)
+                    tvFeatureTags?.text = getString(R.string.onboarding_mode_voice_tags)
                 }
                 1 -> {
-                    tvModeTitle?.text = "條碼與 QR 掃描"
-                    tvModeDesc?.text = "極速本機條碼讀取，瞄準即辨識並自動填入"
+                    tvModeTitle?.text = getString(R.string.onboarding_mode_barcode_title)
+                    tvModeDesc?.text = getString(R.string.onboarding_mode_barcode_desc)
                     ivModeIcon?.setImageResource(R.drawable.ic_barcode)
-                    tvModeBadge?.text = "模式 2/4"
-                    tvFeatureTags?.text = "• 支援 QR Code 及各類一維條碼\n• 支援相機雙指縮放與閃光燈補光\n• 掃描完成後可設定自動換行"
+                    tvModeBadge?.text = getString(R.string.onboarding_mode_badge, 2, 4)
+                    tvFeatureTags?.text = getString(R.string.onboarding_mode_barcode_tags)
                 }
                 2 -> {
-                    tvModeTitle?.text = "文字辨識 (PP-OCRv6)"
-                    tvModeDesc?.text = "凍結畫面框選或多選文字區塊，離線高精度擷取"
+                    tvModeTitle?.text = getString(R.string.onboarding_mode_ocr_title)
+                    tvModeDesc?.text = getString(R.string.onboarding_mode_ocr_desc)
                     ivModeIcon?.setImageResource(R.drawable.ic_ocr)
-                    tvModeBadge?.text = "模式 3/4"
-                    tvFeatureTags?.text = "• PP-OCRv6 離線模型，支援直排中文正立辨識\n• 點擊區塊依序多選組合與智慧段落折行拼接\n• 可自訂換行或空格分隔符，雙指縮放對焦"
+                    tvModeBadge?.text = getString(R.string.onboarding_mode_badge, 3, 4)
+                    tvFeatureTags?.text = getString(R.string.onboarding_mode_ocr_tags)
                 }
                 3 -> {
-                    tvModeTitle?.text = "常用語與歷史紀錄"
-                    tvModeDesc?.text = "自訂片語隨點即貼，自動回溯最近輸入內容"
+                    tvModeTitle?.text = getString(R.string.onboarding_mode_phrases_title)
+                    tvModeDesc?.text = getString(R.string.onboarding_mode_phrases_desc)
                     ivModeIcon?.setImageResource(R.drawable.ic_quick_phrases)
-                    tvModeBadge?.text = "模式 4/4"
-                    tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯\n• 隨點即貼，免重複打字"
+                    tvModeBadge?.text = getString(R.string.onboarding_mode_badge, 4, 4)
+                    tvFeatureTags?.text = getString(R.string.onboarding_mode_phrases_tags)
                 }
             }
         }
@@ -377,7 +377,7 @@ class OnboardingActivity : AppCompatActivity() {
         val tvToast = view.findViewById<TextView>(R.id.tv_mock_undo_toast)
         val finger = view.findViewById<View>(R.id.view_mock_undo_finger)
 
-        val fullText = "今天開會時間是兩點整。"
+        val fullText = getString(R.string.onboarding_undo_sample)
 
         currentAnimJob = activityScope.launch {
             while (isActive) {
@@ -445,8 +445,8 @@ class OnboardingActivity : AppCompatActivity() {
         currentAnimJob = activityScope.launch {
             while (isActive) {
                 // Phase 1: Edge Tuck (70% outside, 30% visible)
-                tvTitle?.text = "1. 邊緣收納：超出邊界 70%"
-                tvDesc?.text = "自動藏入螢幕邊緣，僅露 30% 圓弧，輕點即可拉出"
+                tvTitle?.text = getString(R.string.onboarding_gesture_edge_title)
+                tvDesc?.text = getString(R.string.onboarding_gesture_edge_desc)
 
                 cloneBubble?.alpha = 0f
                 cloneBubble?.translationX = 0f
@@ -464,8 +464,8 @@ class OnboardingActivity : AppCompatActivity() {
                 if (!isActive) break
 
                 // Phase 2: Keyboard Linkage (Bubble fades in above keyboard)
-                tvTitle?.text = "2. 鍵盤聯動：僅打字時現身"
-                tvDesc?.text = "主設定開啟「僅軟體鍵盤出現時顯示」，伴隨鍵盤升起淡入出現"
+                tvTitle?.text = getString(R.string.onboarding_gesture_keyboard_title)
+                tvDesc?.text = getString(R.string.onboarding_gesture_keyboard_desc)
 
                 // Untuck and prepare above keyboard
                 bubble.translationX = 0f
@@ -496,8 +496,8 @@ class OnboardingActivity : AppCompatActivity() {
                 if (!isActive) break
 
                 // Phase 3: Shake to Duplicate Multi-Bubble
-                tvTitle?.text = "3. 搖晃分身：多顆懸浮球並行"
-                tvDesc?.text = "拖曳懸浮球時快速左右搖晃即可分裂新球（最多 5 顆），各自獨立記憶模式"
+                tvTitle?.text = getString(R.string.onboarding_gesture_shake_title)
+                tvDesc?.text = getString(R.string.onboarding_gesture_shake_desc)
 
                 bubble.animate()
                     .translationX(-shakeOffsetPx)

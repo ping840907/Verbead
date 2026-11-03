@@ -43,7 +43,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="任何應用程式 · 即刻輸入"
+                    android:text="@string/onboarding_voice_title"
                     android:textColor="@color/text_tertiary" />
 
                 <View
@@ -68,7 +68,7 @@
                     style="@style/Verbead.Text.Body"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="請問今天下午的會議幾點開始？"
+                    android:text="@string/onboarding_voice_mock_question"
                     android:textSize="13sp" />
             </LinearLayout>
 
@@ -92,7 +92,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="點擊懸浮球開始輸入..."
+                    android:hint="@string/onboarding_voice_mock_hint"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp" />
 
@@ -203,7 +203,7 @@
                     style="@style/Verbead.Text.Caption"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="正在聆聽…"
+                    android:text="@string/onboarding_voice_listening"
                     android:textColor="@color/md_theme_light_primary"
                     android:textStyle="bold" />
             </LinearLayout>

@@ -45,7 +45,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="收納 · 聯動 · 搖晃分裂多球"
+                    android:text="@string/onboarding_gestures_title"
                     android:textColor="@color/text_tertiary" />
 
                 <View
@@ -77,7 +77,7 @@
                         style="@style/Verbead.Text.Title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1. 邊緣收納：超出邊界 70%"
+                        android:text="@string/onboarding_gesture_edge_title"
                         android:textColor="@color/md_theme_light_primary"
                         android:textSize="13sp" />
 
@@ -87,7 +87,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="自動藏入螢幕邊緣，僅露 30% 圓弧，輕點即可拉出"
+                        android:text="@string/onboarding_gesture_edge_desc"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -152,7 +152,7 @@
                 style="@style/Verbead.Text.Caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="系統軟體鍵盤 (Gboard / 注音)"
+                android:text="@string/onboarding_gestures_mock_keyboard"
                 android:textColor="@color/text_tertiary"
                 android:textSize="10sp" />
         </LinearLayout>

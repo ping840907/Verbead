@@ -44,7 +44,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="隱私安全 · 100% 離線端側運算"
+                    android:text="@string/onboarding_privacy_title"
                     android:textColor="@color/text_tertiary" />
 
                 <View
@@ -99,7 +99,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="純本機推論 · 零雲端傳輸"
+                android:text="@string/onboarding_privacy_subtitle"
                 android:textColor="@color/md_theme_light_primary"
                 android:textSize="14sp" />
 
@@ -119,7 +119,7 @@
                     android:background="@drawable/bg_status_badge_success"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="雙引擎離線語音"
+                    android:text="@string/onboarding_privacy_chip_dual"
                     android:textColor="@color/status_success_text"
                     android:textSize="11sp" />
 
@@ -130,7 +130,7 @@
                     android:background="@drawable/bg_status_badge_success"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="PP-OCRv6 辨識"
+                    android:text="@string/onboarding_privacy_chip_ocr"
                     android:textColor="@color/status_success_text"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -150,7 +150,7 @@
                     android:background="@drawable/bg_status_badge_recommend"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="Qwen3-ASR 離線辨識"
+                    android:text="@string/onboarding_privacy_chip_qwen"
                     android:textColor="@color/md_theme_light_primary"
                     android:textSize="11sp" />
 
@@ -161,7 +161,7 @@
                     android:background="@drawable/bg_status_badge_recommend"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="零上傳 · 全程本機"
+                    android:text="@string/onboarding_privacy_chip_zero_upload"
                     android:textColor="@color/md_theme_light_primary"
                     android:textSize="11sp" />
             </LinearLayout>

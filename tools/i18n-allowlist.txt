@@ -2,7 +2,6 @@
 # 每個工作包完成後請重跑 node tools/i18n-allowlist-gen.js 調降。SpokenNumberConverter 為語言規則檔，永久例外。
 java/com/ping/verbead/FloatingBubbleService.kt 8
 java/com/ping/verbead/ModelDownloadService.kt 2
-java/com/ping/verbead/OnboardingActivity.kt 26
 java/com/ping/verbead/QuickPhrasesManager.kt 6
 java/com/ping/verbead/UserDictionary.kt 4
 java/com/ping/verbead/bubble/OcrOverlayController.kt 14
@@ -12,9 +11,3 @@ java/com/ping/verbead/engine/ModelZipInstaller.kt 11
 java/com/ping/verbead/ocr/PpOcrEngine.kt 5
 java/com/ping/verbead/ocr/TextStitcher.kt 2
 java/com/ping/verbead/util/TextInsertion.kt 2
-res/layout/activity_onboarding.xml 3
-res/layout/layout_onboarding_slide_capsule.xml 6
-res/layout/layout_onboarding_slide_gestures.xml 4
-res/layout/layout_onboarding_slide_privacy.xml 6
-res/layout/layout_onboarding_slide_undo.xml 5
-res/layout/layout_onboarding_slide_voice.xml 4

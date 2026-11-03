@@ -43,7 +43,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="即時復原 · 點擊上方 ✕ 鍵撤回"
+                    android:text="@string/onboarding_undo_title"
                     android:textColor="@color/text_tertiary" />
 
                 <View
@@ -68,7 +68,7 @@
                     style="@style/Verbead.Text.Body"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="請問簡報檔案在哪裡？"
+                    android:text="@string/onboarding_undo_mock_question"
                     android:textSize="13sp" />
             </LinearLayout>
 
@@ -92,8 +92,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="點擊懸浮球輸入..."
-                    android:text="今天開會時間是兩點整。"
+                    android:hint="@string/onboarding_undo_mock_hint"
+                    android:text="@string/onboarding_undo_sample"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp" />
 
@@ -128,7 +128,7 @@
                 android:paddingTop="4dp"
                 android:paddingEnd="10dp"
                 android:paddingBottom="4dp"
-                android:text="已復原輸入內容"
+                android:text="@string/onboarding_undo_done"
                 android:textColor="@color/md_theme_light_primary"
                 android:textStyle="bold" />
 
