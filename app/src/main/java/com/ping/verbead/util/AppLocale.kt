@@ -18,7 +18,7 @@ import java.util.Locale
 object AppLocale {
 
     /** 支援的介面語言（語言標籤）。空字串代表跟隨系統。要與 res/xml/locales_config.xml 一致。 */
-    val SUPPORTED_TAGS = listOf("zh-TW", "en")
+    val SUPPORTED_TAGS = listOf("zh-TW", "en", "ja")
 
     private const val PREFS = "app_locale"
     private const val KEY_TAG = "tag"

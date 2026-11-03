@@ -269,7 +269,7 @@
     <string name="settings_restore_desc_long">匯入離線模型包 (.zip) 將自動辨識並解壓復原模型檔案，免去手動逐一下載。</string>
     <string name="settings_restore_pick_zip">選擇模型包匯入 (.zip)</string>
     <string name="settings_restore_load_internal">快速載入內部儲存模型包</string>
-    <string name="settings_footer_title">珠璣 (Verbead)</string>
+    <string name="settings_footer_title">珠璣</string>
     <string name="settings_footer_tagline">落辭成玉，字字珠璣</string>
     <string name="settings_ocr_header_title">PP-OCRv6 端側文字辨識</string>
     <string name="settings_ocr_header_desc">於懸浮掃描器中點選相機畫面文字即可定格辨識並自動填入</string>
@@ -285,7 +285,7 @@
     <string name="settings_ocr_join_space">空格</string>
     <string name="settings_ocr_join_none">無間隔</string>
     <string name="settings_about_credits_title">開源專案與致謝</string>
-    <string name="settings_about_credits_intro">珠璣 (Verbead) 衷心感謝開源社群與模型作者的卓越貢獻（點擊開啟專案）：</string>
+    <string name="settings_about_credits_intro">珠璣 衷心感謝開源社群與模型作者的卓越貢獻（點擊開啟專案）：</string>
     <string name="settings_about_paddleocr_credit">"  作者：PaddlePaddle 團隊 (百度飛槳) · 離線文字辨識"</string>
     <string name="settings_about_zxing_title">• zxing-cpp 條碼辨識庫 ↗</string>
     <string name="settings_about_zxing_credit">"  作者：zxing-cpp 團隊 / Axel Waggershauser · C++ 條碼掃描"</string>

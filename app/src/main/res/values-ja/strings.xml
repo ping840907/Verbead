@@ -1,0 +1,493 @@
+<resources>
+    <string name="app_name">Verbead</string>
+    <string name="accessibility_service_desc">Verbead のフローティングバブルが、認識したテキストを現在のキーボードを切り替えることなく、あらゆるアプリの入力欄に直接入力できるようにします。</string>
+    <string name="bubble_notification_channel">フローティング入力サービス</string>
+
+    <!-- Notifications -->
+    <string name="notif_bubble_title">Verbead フローティング入力アシスタント</string>
+    <string name="notif_bubble_text">フローティングバブルをタップすると、フォーカス中の入力欄に文字入力やバーコードスキャンができます</string>
+    <string name="notif_bubble_action_close">バブルを閉じる</string>
+    <string name="notif_channel_bubble_desc">フローティングバブルによる音声入力を提供します</string>
+    <string name="notif_download_title">音声認識モデルをダウンロード中</string>
+
+    <!-- DictSettings Toasts -->
+    <string name="toast_dict_import_success">%1$d 件の語彙をインポートしました</string>
+    <string name="toast_dict_import_cannot_read">選択したファイルを読み込めません</string>
+    <string name="toast_dict_import_failed">インポートに失敗しました：%1$s</string>
+    <string name="toast_dict_export_success">%1$d 件の語彙をエクスポートしました</string>
+    <string name="toast_dict_export_cannot_write">保存先のファイルに書き込めません</string>
+    <string name="toast_dict_export_failed">エクスポートに失敗しました：%1$s</string>
+    <string name="toast_dict_file_picker_error">ファイル選択画面を開けません：%1$s</string>
+    <string name="toast_dict_save_dialog_error">保存ダイアログを開けません：%1$s</string>
+    <string name="toast_dict_target_word_empty">変換後の語を入力してください</string>
+
+    <!-- VoiceAccessibility Toasts -->
+    <string name="toast_password_not_supported">パスワード欄は自動入力に対応していません</string>
+    <string name="toast_fallback_clipboard">直接入力できなかったため、クリップボードにコピーしました</string>
+
+    <!-- Onboarding Tour -->
+    <string name="onboarding_tour_title">操作ガイド</string>
+    <string name="onboarding_page1_title">どこでも浮かぶ · タップして話すだけ</string>
+    <string name="onboarding_page1_desc">普段お使いのキーボードを変更する必要はありません。どのアプリの入力欄でも、フローティングバブルをタップすると録音を開始します。デュアルエンジン（リアルタイムプレビュー + 高精度オフライン文字起こし）に対応し、認識したテキストがバブルの横にリアルタイムで表示され、自動で入力されます。</string>
+    <string name="onboarding_page1_tip">ヒント：バブルをタップして赤くなると録音中です。もう一度タップするか無音になると、文字起こしと入力が自動で完了します。</string>
+    <string name="onboarding_page2_title">縦型カプセル · 5つのモードを自在に切り替え</string>
+    <string name="onboarding_page2_desc">バブルを長押しすると縦型の機能カプセルが開きます。上下にスライドして、「音声入力」「バーコードスキャン」「文字認識（PP-OCRv6）」「定型文と履歴」の4つのモードを切り替えられます。</string>
+    <string name="onboarding_page2_tip">ヒント：使いたいモードまでスライドして指を離すと、切り替わってすぐに使えます。</string>
+    <string name="onboarding_page3_title">フローティング ✕ キー · ワンタップで取り消し・復元</string>
+    <string name="onboarding_page3_desc">音声入力や OCR の結果が期待どおりでなくても、一文字ずつ直す必要はありません。入力後 10 秒以内にバブルの上にある小さな ✕ キーをタップすると、元のテキストをそのまま復元できます。</string>
+    <string name="onboarding_page3_tip">ヒント：入力が完了するとバブルの上に ✕ キーが現れます。タップすると元に戻す操作を実行できます。</string>
+    <string name="onboarding_page4_title">端に収納 · キーボード連動 · シェイクで複製</string>
+    <string name="onboarding_page4_desc" formatted="false">画面の端までドラッグすると 70% が隠れて収納されます。「ソフトウェアキーボード表示時のみ表示」をオンにすることもできます。また、ドラッグ中にバブルを左右に素早く振ると「分身を追加」できます（最大 5 個）。音声、OCR、AI 書き換えのバブルを同時に待機させられます。</string>
+    <string name="onboarding_page4_tip">ヒント：分身はそれぞれ別のモードを記憶します。不要な分身は画面上部の削除ゾーンにドラッグすると削除できます。</string>
+    <string name="onboarding_page5_title" formatted="false">100% オフライン · オールインワン設定</string>
+    <string name="onboarding_page5_desc">デュアルエンジンの音声認識から PP-OCRv6 の文字認識まで、すべて端末内で処理します。クラウドへの送信はなく、プライバシーが漏れる心配もありません。権限、モデル管理、オフラインモデルパッケージのインポートもすべてメイン設定にまとまっています。</string>
+    <string name="onboarding_page5_tip">プライバシー保護：端末内処理による高速性と高いセキュリティ。下のボタンからメイン設定を開いて始めましょう。</string>
+
+    <!-- Onboarding Toasts -->
+    <string name="toast_file_picker_error">ファイル選択画面を開けません：%1$s</string>
+    <string name="toast_model_download_done">%1$s モデルのダウンロードが完了しました</string>
+    <string name="toast_model_download_failed">%1$s のダウンロードに失敗しました：%2$s</string>
+
+    <!-- ImeSettings Toasts -->
+    <string name="toast_url_open_error">リンクを開けません：%1$s</string>
+    <string name="toast_model_not_downloaded">このモデルはまだダウンロードされていません。先に下のボタンからダウンロードしてください</string>
+    <string name="toast_switched_to_qwen3_dual">Qwen3-ASR に切り替え、デュアルエンジンモードを有効にしました</string>
+
+    <!-- FloatingBubbleService Toasts -->
+    <string name="toast_mic_permission_voice">音声入力を使うには、先にマイクの権限を許可してください</string>
+    <string name="toast_offline_model_error_applied_streaming">オフライン文字起こしに失敗したため、リアルタイム認識の結果を使用しました</string>
+    <string name="toast_transcribe_failed_retry">文字起こしに失敗しました。もう一度録音してください</string>
+    <string name="toast_camera_permission_scan">スキャン機能を使うには、先にカメラの権限を許可してください</string>
+    <string name="toast_camera_permission_ocr">文字認識を使うには、先にカメラの権限を許可してください</string>
+    <string name="toast_auto_enter_enabled">自動改行をオンにしました</string>
+    <string name="toast_auto_enter_disabled">自動改行をオフにしました</string>
+    <string name="toast_ocr_model_not_downloaded">PP-OCR モデルがまだダウンロードされていません。先に設定画面でダウンロードしてください</string>
+    <string name="toast_camera_capture_failed">現在のカメラ画像を取得できません</string>
+
+    <!-- FloatingBubbleService Previews -->
+    <string name="preview_restored">元に戻しました</string>
+    <string name="preview_voice_start_failed">音声入力を開始できません：%1$s</string>
+    <string name="preview_loading_dual_models">2つのモデルを読み込み中…</string>
+    <string name="preview_loading_models">モデルを読み込み中…</string>
+    <string name="preview_model_load_failed">モデルの読み込みに失敗しました。設定を確認してください</string>
+    <string name="preview_cannot_create_stream">認識ストリームを作成できません</string>
+    <string name="preview_listening">聞き取り中…</string>
+    <string name="preview_no_speech_detected">音声が検出されませんでした</string>
+    <string name="preview_transcribe_failed">文字起こしに失敗しました。もう一度録音してください</string>
+    <string name="preview_no_text_detected">文字が検出されませんでした</string>
+    <string name="preview_copied">コピーしました</string>
+    <string name="preview_mode_voice">音声モード</string>
+    <string name="preview_mode_ocr">文字認識</string>
+    <string name="preview_mode_barcode">バーコードスキャン</string>
+    <string name="preview_mode_phrases">定型文</string>
+    <string name="preview_inserted_phrase">定型文を入力しました</string>
+    <string name="preview_copied_barcode">バーコードをコピーしました</string>
+    <string name="preview_copied_with_text">コピーしました：%1$s</string>
+
+    <!-- Quick Phrases Drawer Strings -->
+    <string name="dialog_phrase_add_title">定型文を追加</string>
+    <string name="dialog_phrase_edit_title">定型文を編集</string>
+    <string name="dialog_phrase_delete_title">定型文を削除</string>
+    <string name="dialog_phrase_delete_confirm">この定型文を削除しますか？\n「%1$s」</string>
+    <string name="btn_save">保存</string>
+    <string name="btn_cancel">キャンセル</string>
+    <string name="btn_delete">削除</string>
+    <string name="toast_phrase_added">定型文を追加しました</string>
+    <string name="toast_phrase_updated">定型文を更新しました</string>
+    <string name="toast_phrase_deleted">定型文を削除しました</string>
+    <string name="toast_history_cleared">最近の履歴を消去しました</string>
+    <string name="toast_phrase_saved_from_history">履歴を定型文に追加しました</string>
+    <string name="header_recent_history">最近の履歴（最大 %1$d 件）</string>
+    <string name="header_quick_phrases">定型文（長押しで並べ替え）</string>
+    <string name="action_clear_history">消去</string>
+    <string name="empty_quick_phrases">定型文も履歴もまだありません\n右上の「+」をタップして追加できます</string>
+
+    <string name="toast_asr_model_not_ready">音声認識モデル（%1$s）がまだダウンロードされていません。設定でダウンロードしてください</string>
+    <string name="ocr_pangu_spacing_title">和欧文間のスペース</string>
+    <string name="ocr_pangu_spacing_desc">認識した中国語の文字と英数字・記号の間に半角スペースを自動で挿入し、読みやすく整えます</string>
+    <string name="ocr_to_traditional_title">認識結果を繁体字中国語に変換</string>
+    <string name="ocr_to_traditional_desc">認識した簡体字を台湾標準の繁体字中国語に自動変換します（OpenCC）</string>
+
+    <!-- Settings Category Titles -->
+    <string name="settings_cat_bubble_title">フローティングバブルと操作モード</string>
+    <string name="settings_cat_bubble_desc">複数バブル、モードの切り替えと並べ替え、端への収納、キーボード連動</string>
+
+    <string name="settings_cat_speech_title">音声認識とモデル</string>
+    <string name="settings_cat_speech_desc">デュアルエンジン、X-ASR ストリーミング、Qwen3 オフライン高精度、ホットワード</string>
+
+    <string name="settings_cat_ocr_title">スマート文字認識（OCR）</string>
+    <string name="settings_cat_ocr_desc">PP-OCR オフラインモデル、文字間隔、バーコードスキャン</string>
+
+
+    <string name="settings_cat_backup_title">オフラインモデルのバックアップとインポート</string>
+    <string name="settings_cat_backup_desc">ZIP からオフラインモデルをスマートに検証して復元</string>
+
+    <string name="settings_cat_about_title">アプリについてとクレジット</string>
+    <string name="settings_cat_about_desc">バージョン情報、オープンソースへの謝辞、GitHub プロジェクト</string>
+
+    <!-- Manifest labels -->
+    <string name="onboarding_title">初期設定</string>
+    <string name="dict_settings_title">カスタム語彙</string>
+
+    <!-- Interface language -->
+    <string name="settings_language_title">表示言語</string>
+    <string name="settings_language_dialog_title">表示言語を選択</string>
+    <string name="settings_language_follow_system">システムに従う</string>
+
+    <!-- P1-1: small layouts -->
+    <string name="dict_settings_how_title">語彙の働き方</string>
+    <string name="dict_settings_how_body">1. Qwen3-ASR はカスタム語彙をホットワードリストに加えて認識率を高めます。\n2. キーボードでテキストを長押しして選択し、語彙をタップすると置き換えられます。\n3. またはキーボードの「語彙」ボタンでパネルを開き、すばやく挿入できます。</string>
+    <string name="dict_settings_use_as_hotwords">語彙をホットワードとして使う</string>
+    <string name="dict_settings_empty_title">カスタム語彙はまだありません</string>
+    <string name="dict_settings_empty_hint">下のボタンから、固有名詞やオリジナルの語、専門用語を追加できます</string>
+    <string name="dict_settings_import_csv">CSV をインポート</string>
+    <string name="dict_settings_export_csv">CSV をエクスポート</string>
+    <string name="dict_settings_add">＋ 追加</string>
+    <string name="common_close">閉じる</string>
+    <string name="common_text_recognition">文字認識</string>
+    <string name="floating_resize_window_desc">ウィンドウのサイズ変更</string>
+    <string name="floating_flash_desc">フラッシュ</string>
+    <string name="floating_wrap_desc">自動改行</string>
+    <string name="floating_ocr_capture_desc">文字のスナップショットを撮影</string>
+    <string name="floating_ocr_shutter_hint">シャッターで文字を撮影</string>
+    <string name="floating_scanner_close_desc">スキャンを閉じる</string>
+    <string name="floating_scanner_title">バーコードスキャン</string>
+    <string name="floating_scanner_hint">バーコードや QR コードに向けると自動で入力します</string>
+    <string name="ocr_snapshot_detecting">文字ブロックを検出中…</string>
+    <string name="ocr_snapshot_rotate_desc">180 度回転</string>
+    <string name="ocr_snapshot_select_all">すべて選択</string>
+    <string name="ocr_snapshot_clear">クリア</string>
+    <string name="ocr_snapshot_recognize_and_input">認識して入力</string>
+    <string name="settings_backup_restore_title">オフラインモデルのワンタップ復元</string>
+    <string name="settings_backup_status_not_ready">準備が不完全です</string>
+    <string name="settings_backup_restore_desc">Qwen3-ASR、X-ASR、PP-OCRv6 のオフラインモデルに対応しています。モデルパッケージ（.zip）を読み込むと内容を判別し、含まれるモデルを自動で展開・復元するので、一つずつダウンロードする必要はありません。</string>
+    <string name="settings_backup_pick_package">インポートするモデルパッケージを選択</string>
+    <string name="settings_backup_load_internal">内部のモデルパッケージをすばやく読み込む</string>
+    <string name="bubble_mode_drag_handle_desc">長押ししてドラッグで並べ替え</string>
+    <string name="bubble_mode_voice_title">音声入力</string>
+    <string name="bubble_mode_voice_desc">バブルのタップまたはメニューの長押しで音声文字入力を開始します</string>
+    <string name="bubble_mode_move_up_desc">上へ移動</string>
+    <string name="bubble_mode_move_down_desc">下へ移動</string>
+    <string name="capsule_voice_mode_desc">音声モード</string>
+    <string name="capsule_barcode_desc">バーコード認識</string>
+    <string name="capsule_phrases_drawer_desc">定型文</string>
+    <string name="dialog_add_entry_target_hint">変換後の語 / 正しい文字（必須）</string>
+    <string name="dialog_add_entry_source_hint">認識された文字 / 置き換えたい語（任意）</string>
+    <string name="dialog_add_entry_tip">ヒント：「認識された文字」を入力すると、その文字が認識されたときに自動で「変換後の語」に置き換わります。空欄の場合は、変換後の語が語彙として追加され、音声認識の精度向上に使われます。</string>
+    <string name="quick_history_desc">履歴</string>
+    <string name="quick_history_add_phrase_desc">定型文に追加</string>
+    <string name="quick_history_delete_desc">この履歴を削除</string>
+    <string name="quick_phrase_edit_desc">定型文を編集</string>
+    <string name="quick_phrase_delete_desc">定型文を削除</string>
+    <string name="quick_phrase_drag_desc">ドラッグで並べ替え</string>
+    <string name="phrases_drawer_close_desc">定型文を閉じる</string>
+    <string name="common_quick_phrases">定型文</string>
+    <string name="phrases_drawer_add_desc">定型文を追加</string>
+    <string name="dialog_phrase_entry_hint">定型文の内容</string>
+    <string name="dialog_phrase_entry_tip">ヒント：ドロワーの定型文をタップすると、フォーカス中の入力欄にそのまま入力されます。</string>
+    <string name="dict_entry_delete_desc">語彙を削除</string>
+    <string name="bubble_delete_zone_desc">バブルを削除</string>
+    <string name="floating_bubble_desc">Verbead フローティングバブル</string>
+    <string name="floating_preview_recognizing">認識中…</string>
+
+    <!-- P1-2: large settings layouts -->
+    <string name="settings_speech_dual_title">デュアルエンジンモード</string>
+    <string name="settings_speech_dual_desc">話している間はテキストをリアルタイムで表示し、終了後に自動で正確に仕上げて入力します</string>
+    <string name="settings_speech_xasr_title">X-ASR 高速ストリーミングエンジン</string>
+    <string name="settings_speech_xasr_desc">話すそばから文字が表示される低遅延のリアルタイム認識、繁体字中国語ネイティブの辞書</string>
+    <string name="common_checking">確認中…</string>
+    <string name="common_select_engine">エンジンを選択</string>
+    <string name="common_download_model">モデルをダウンロード</string>
+    <string name="settings_speech_qwen_title">Qwen3-ASR 高精度オフラインエンジン</string>
+    <string name="settings_speech_qwen_desc">句読点が完全で文意が自然、正確なバッチ文字起こし向けに作られています</string>
+    <string name="settings_speech_prefs_title">音声入力の設定</string>
+    <string name="settings_speech_prefs_desc">すべての音声認識モードとエンジンに適用されます</string>
+    <string name="settings_speech_external_audio_title">外部オーディオを優先</string>
+    <string name="settings_speech_external_audio_desc">Bluetooth ヘッドセットや外付けマイクが接続されているときはそちらを優先します。オフの場合は常に本体のマイクを使います</string>
+    <string name="settings_speech_gain_title">外部オーディオのゲイン</string>
+    <string name="settings_speech_gain_desc">ヘッドセットや外付けマイクの集音レベルを調整し、遠くで音が小さくなる問題を解消します</string>
+    <string name="settings_speech_gain_value_default">ゲイン 2.5x</string>
+    <string name="settings_speech_vad_title">無音の区切り時間（VAD）</string>
+    <string name="settings_speech_vad_desc">この秒数だけ話が止まると、自動で録音を終了して認識を開始します</string>
+    <string name="settings_speech_vad_value_default">1.0 秒</string>
+    <string name="settings_speech_vocab_title">カスタム語彙の管理</string>
+    <string name="settings_speech_vocab_desc">よく使う人名や固有名詞、修正したい語を追加します</string>
+    <string name="settings_speech_vocab_button">語彙を管理</string>
+    <string name="settings_speech_qwen_prefs_title">Qwen3 認識の設定</string>
+    <string name="settings_speech_qwen_prefs_desc">Qwen3-ASR およびデュアルエンジンの最終仕上げ段階に適用されます</string>
+    <string name="settings_speech_to_traditional_title">繁体字中国語に変換</string>
+    <string name="settings_speech_to_traditional_desc">簡体字を繁体字に変換します。日本語・韓国語の部分は変換されません。オフにすると認識結果をそのまま保持します</string>
+    <string name="settings_speech_spoken_numbers_title">話し言葉の数字を算用数字に変換</string>
+    <string name="settings_speech_spoken_numbers_desc">中国語の「一百二十三」を 123 に変換し、四則演算、パーセント、分数、負数、平方根、時刻にも対応します。日常表現の 1 桁の数字は変換されません</string>
+    <string name="settings_speech_filter_punct_title">中国語の句読点を除去</string>
+    <string name="settings_speech_filter_punct_desc">全角のコンマ、句点、疑問符などの記号を自動で取り除きます</string>
+    <string name="settings_bubble_header_title">フローティング音声バブル</string>
+    <string name="settings_bubble_header_desc">端に常駐し、ワンタップで音声・バーコード・文字認識を使えます</string>
+    <string name="settings_bubble_status_not_ready">未準備</string>
+    <string name="settings_bubble_overlay_title">他のアプリの上に重ねて表示</string>
+    <string name="settings_bubble_overlay_desc">他のアプリの上に表示することを許可します</string>
+    <string name="settings_bubble_overlay_help">「他のアプリの上に重ねて表示」をオンにできませんか？制限付き設定の解除手順を見る</string>
+    <string name="settings_bubble_overlay_action">許可する</string>
+    <string name="settings_bubble_autofill_title">自動入力（ユーザー補助）</string>
+    <string name="settings_bubble_autofill_desc">認識したテキストをフォーカス中の入力欄に直接入力します</string>
+    <string name="settings_bubble_autofill_help">自動入力をオンにできませんか？制限付き設定の解除手順を見る</string>
+    <string name="settings_bubble_autofill_action">オンにする</string>
+    <string name="settings_bubble_restricted_title">制限付き設定を許可</string>
+    <string name="settings_bubble_restricted_desc">「他のアプリの上に重ねて表示」または「自動入力」のスイッチがシステムによりグレーアウトされている場合は、ここからアプリ情報画面を開き、右上の「︙」（3 点メニュー）で「制限付き設定を許可」を選ぶと解除できます</string>
+    <string name="settings_bubble_restricted_action">開く</string>
+    <string name="settings_bubble_keyboard_only_title">キーボード表示時のみ表示</string>
+    <string name="settings_bubble_keyboard_only_desc">オンにすると、入力キーボードが表示されたときだけバブルを表示します。オフの場合は端に常駐します</string>
+    <string name="settings_bubble_multi_title">複数バブルの併用</string>
+    <string name="settings_bubble_multi_desc">複数の機能バブルを同時に表示します。衝突を自動で避け、端でも重なりません</string>
+    <string name="settings_bubble_count_title">バブルの数</string>
+    <string name="settings_bubble_count_desc">同時に表示するバブルの数（2～4 個：音声、認識、バーコード、定型文）</string>
+    <string name="settings_bubble_count_value_default">4 個</string>
+    <string name="settings_bubble_modes_title">バブルの機能モードと並び順</string>
+    <string name="settings_bubble_modes_desc">ハンドルを長押ししてドラッグするか矢印をタップして、カプセルメニューと複製バブルの順序を調整します。個別のモードのオン・オフも可能です</string>
+    <string name="settings_bubble_modes_reset">初期設定に戻す</string>
+    <string name="settings_bubble_paste_title">クリップボード貼り付けモードを使う</string>
+    <string name="settings_bubble_paste_desc">オンにするとクリップボードの貼り付け（Paste）でテキストを入力します。オフの場合はユーザー補助で直接入力します（SetText）</string>
+    <string name="settings_bubble_history_title">定型文ドロワーの入力履歴</string>
+    <string name="settings_bubble_history_desc">オンにすると、他のモード（音声 / 認識 / バーコード）の入力内容を定型文ドロワーに自動で保存します</string>
+    <string name="settings_bubble_history_count_title">保持する履歴の件数</string>
+    <string name="settings_bubble_history_count_desc">定型文ドロワーの上部に保持する履歴の最大件数（1～12 件）</string>
+    <string name="settings_bubble_history_count_value_default">6 件</string>
+    <string name="settings_status_title">機能の設定状況</string>
+    <string name="settings_status_desc">未完了の項目をタップすると設定に移動します</string>
+    <string name="settings_status_checking">確認中</string>
+    <string name="settings_perm_mic_title">マイクの録音権限</string>
+    <string name="settings_perm_denied_action">未許可 ➜</string>
+    <string name="settings_perm_camera_title">カメラの権限（文字認識とバーコードスキャン）</string>
+    <string name="settings_perm_overlay_title">他のアプリの上に重ねて表示</string>
+    <string name="settings_perm_accessibility_title">ユーザー補助による自動入力</string>
+    <string name="settings_perm_disabled_action">未有効 ➜</string>
+    <string name="settings_perm_model_title">音声認識モデル</string>
+    <string name="settings_perm_not_downloaded_action">未ダウンロード ➜</string>
+    <string name="settings_tour_button">操作デモと機能ガイド</string>
+    <string name="settings_categories_title">機能設定</string>
+    <string name="settings_restore_desc_short">X-ASR、Qwen3、PP-OCR のモデルパッケージ ZIP から自動復元</string>
+    <string name="settings_restore_desc_long">オフラインモデルパッケージ（.zip）をインポートすると、モデルファイルを自動で判別して展開・復元するので、一つずつダウンロードする必要はありません。</string>
+    <string name="settings_restore_pick_zip">モデルパッケージ（.zip）を選択</string>
+    <string name="settings_restore_load_internal">内部ストレージのモデルパッケージをすばやく読み込む</string>
+    <string name="settings_footer_title">Verbead</string>
+    <string name="settings_footer_tagline">言葉は玉となり、一字一字が珠玉に</string>
+    <string name="settings_ocr_header_title">PP-OCRv6 オンデバイス文字認識</string>
+    <string name="settings_ocr_header_desc">フローティングスキャナーでカメラ画面の文字をタップすると、静止して認識し自動で入力します</string>
+    <string name="settings_ocr_tip_vertical">縦書き文字の自動展開：書籍、メニュー、春聯などの縦書き中国語を自動で正立させ、逆さまにならず正確に認識します。</string>
+    <string name="settings_ocr_tip_multiselect">複数ブロックを順に結合：文字ブロックをタップすると ①②③ の番号が表示され、好きな順序で結合できます。ブロックをダブルタップすると、すぐに確定して貼り付けます。</string>
+    <string name="settings_ocr_auto_enter_title">認識・スキャン後に自動改行</string>
+    <string name="settings_ocr_auto_enter_desc">バーコードや選択した文字を入力した後、Enter キーを自動で送信します</string>
+    <string name="settings_ocr_smart_join_title">スマート段落結合</string>
+    <string name="settings_ocr_smart_join_desc">隣り合う文字ボックスが自然な折り返しかどうかを判定し、改行を取り除くかスペースを補います。オフの場合は下の固定間隔を使います</string>
+    <string name="settings_ocr_join_spacing_title">複数ブロック結合の区切り</string>
+    <string name="settings_ocr_join_spacing_desc">複数の文字ボックスを同時に選択したときの、結合時の区切り方です</string>
+    <string name="settings_ocr_join_newline">改行</string>
+    <string name="settings_ocr_join_space">スペース</string>
+    <string name="settings_ocr_join_none">区切りなし</string>
+    <string name="settings_about_credits_title">オープンソースと謝辞</string>
+    <string name="settings_about_credits_intro">Verbead は、オープンソースコミュニティとモデル作者の皆様の素晴らしい貢献に心より感謝します（タップでプロジェクトを開きます）：</string>
+    <string name="settings_about_paddleocr_credit">"  作者：PaddlePaddle チーム（百度）· オフライン文字認識"</string>
+    <string name="settings_about_zxing_title">• zxing-cpp バーコード認識ライブラリ ↗</string>
+    <string name="settings_about_zxing_credit">"  作者：zxing-cpp チーム / Axel Waggershauser · C++ バーコードスキャン"</string>
+    <string name="settings_about_sherpa_credit">"  作者：Next-gen Kaldi (k2-fsa) · オンデバイス音声認識ランタイム"</string>
+    <string name="settings_about_xasr_title">• X-ASR 繁体字中国語ストリーミングモデル ↗</string>
+    <string name="settings_about_xasr_credit">"  作者：Luigi · 台湾華語および華語・英語混在向けに最適化されたモデル"</string>
+    <string name="settings_about_qwen_title">• Qwen3-ASR 音声モデル ↗</string>
+    <string name="settings_about_qwen_credit">"  作者：Alibaba Qwen Team · 高精度オープンソース音声モデル"</string>
+    <string name="settings_about_onnx_credit">"  作者：Microsoft · クロスプラットフォーム高性能ニューラルネットワーク推論エンジン"</string>
+
+    <!-- P1-3: settings activities -->
+    <string name="common_add">追加</string>
+    <string name="common_download">ダウンロード</string>
+    <string name="common_redownload">再ダウンロード</string>
+    <string name="common_ready">準備完了</string>
+    <string name="common_not_downloaded">未ダウンロード</string>
+    <string name="common_cancel_download">ダウンロードをキャンセル</string>
+    <string name="common_connecting">接続中…</string>
+    <string name="common_got_it">OK</string>
+    <string name="ocr_model_name_small">PP-OCRv6 標準版</string>
+    <string name="ocr_model_name_tiny">PP-OCRv6 軽量版</string>
+    <string name="settings_toast_camera_permission">システム設定でカメラの権限をオンにしてください</string>
+    <string name="settings_toast_quick_zip_not_found">Download フォルダにデフォルトのモデル ZIP パッケージが見つかりません</string>
+    <string name="settings_import_preparing">モデルパッケージの展開を準備中…</string>
+    <string name="settings_import_extracting">展開中：%1$s (%2$d%%)</string>
+    <string name="settings_import_invalid_source">無効なファイルの取得元です</string>
+    <string name="settings_import_core_files_item">• オフラインモデルのコアファイル</string>
+    <string name="settings_import_success_title">オフラインモデルを復元しました</string>
+    <string name="settings_import_success_message">パッケージの内容を判別し、モデルファイルを復元しました。復元したモデルファイル数：%1$d\n\n今回復元した項目：\n%2$s\n\n関連する機能はすべて自動で有効になり、すぐに使えます。</string>
+    <string name="settings_import_success_ok">OK</string>
+    <string name="settings_import_failed_title">インポートに失敗しました</string>
+    <string name="settings_import_failed_message">このモデルパッケージを展開またはインストールできませんでした：\n%1$s</string>
+    <string name="settings_status_ready_check">準備完了 ✓</string>
+    <string name="settings_status_off_action">オフ ➜</string>
+    <string name="settings_overall_all_ready">すべて準備完了</string>
+    <string name="settings_overall_pending">要設定：%1$d 件</string>
+    <string name="settings_summary_bubble_running">常駐中</string>
+    <string name="settings_summary_bubble_not_running">停止中</string>
+    <string name="settings_summary_bubble_multi">%1$d バブルモード</string>
+    <string name="settings_summary_bubble_single">単一バブルモード</string>
+    <string name="settings_summary_bubble">%1$s · %2$s · 有効なモード：%3$d</string>
+    <string name="settings_summary_engine_dual">デュアルエンジン (X-ASR + Qwen3)</string>
+    <string name="settings_summary_engine_qwen">Qwen3 オフライン高精度認識</string>
+    <string name="settings_summary_engine_xasr">X-ASR 繁体字中国語ストリーミング認識</string>
+    <string name="settings_summary_ocr_pangu">和欧文間スペース</string>
+    <string name="settings_summary_ocr_compact">詰め組み</string>
+    <string name="settings_summary_ocr_trad">繁体字</string>
+    <string name="settings_summary_ocr_original">原文のまま</string>
+    <string name="settings_summary_backup">ダウンロード済みオフラインモデル：%1$d/%2$d · ZIP インポート対応</string>
+    <string name="settings_all_models_ready">すべてのモデルが準備完了</string>
+    <string name="settings_restore_load_internal_size">内部ストレージのモデルパッケージをすばやく読み込む (%1$dMB)</string>
+    <string name="settings_summary_about">バージョン %1$s · 謝辞とライセンス</string>
+    <string name="dict_dialog_delete_title">語彙を削除</string>
+    <string name="dict_dialog_delete_message">「%1$s」を削除しますか？</string>
+    <string name="dict_dialog_add_title">語彙 / 置換ルールを追加</string>
+    <string name="dict_dialog_edit_title">語彙 / 置換ルールを編集</string>
+    <string name="dict_entry_mapping">自動置換：%1$s → %2$s</string>
+    <string name="settings_bubble_count_value">%1$d 個</string>
+    <string name="settings_bubble_history_count_value">%1$d 件</string>
+    <string name="settings_bubble_toast_min_one_mode">有効なバブルのモードを少なくとも 1 つ残す必要があります</string>
+    <string name="settings_bubble_overlay_granted">他のアプリの上に重ねて表示する権限を取得済み</string>
+    <string name="settings_bubble_button_granted">許可済み</string>
+    <string name="settings_bubble_overlay_not_granted">他のアプリの上に重ねて表示する権限が未許可です</string>
+    <string name="settings_bubble_accessibility_running">ユーザー補助サービスが動作中です。自動入力に対応しています</string>
+    <string name="settings_bubble_button_enabled">オン</string>
+    <string name="settings_bubble_accessibility_not_enabled">ユーザー補助サービスが有効になっていません</string>
+    <string name="settings_bubble_modes_summary_multi">複数バブルをオン · 有効なモード：%1$d。複数のバブルが同時に画面に表示されます</string>
+    <string name="settings_bubble_modes_summary_single">複数バブルをオフ · 単一バブルモード。バブルを長押しして縦型カプセルメニューから機能を切り替えられます</string>
+    <string name="settings_bubble_paste_desc_on">認識が完了すると、テキストをフォーカス中の入力欄に直接入力します</string>
+    <string name="settings_bubble_paste_desc_off">認識が完了しても入力せず、テキストをクリップボードにコピーするだけです。好きなタイミングで貼り付けられます</string>
+    <string name="settings_bubble_history_desc_on">定型文ドロワーの上部に、最近の文字起こし履歴を表示します</string>
+    <string name="settings_bubble_history_desc_off">履歴はオフです。定型文ドロワーには固定の定型文のみ表示されます</string>
+    <string name="settings_bubble_restricted_dialog_title">Android 13 以降で制限付き設定を許可する方法</string>
+    <string name="settings_bubble_restricted_dialog_message">Android 13 以降では、外部からインストールしたアプリは、既定で「ユーザー補助サービス」と「他のアプリの上に重ねて表示」をオンにできないよう制限されています。\n\n次の手順で制限を解除してください：\n1. 下の「アプリ情報を開く」をタップ\n2. アプリ情報画面で、右上の「︙」（3 点メニュー）をタップ\n3. 「制限付き設定を許可」をタップ\n4. 指紋またはロック解除で認証し、この画面に戻って権限をオンにしてください。</string>
+    <string name="settings_bubble_restricted_dialog_action">アプリ情報を開く</string>
+    <string name="settings_bubble_restricted_dialog_dismiss">OK</string>
+    <string name="settings_speech_toast_bluetooth_denied">Bluetooth の権限が許可されていないため、Bluetooth ヘッドセットへの自動切り替えができない場合があります</string>
+    <string name="settings_speech_gain_original">1.0x（そのまま）</string>
+    <string name="settings_speech_gain_format">ゲイン %1$.1fx</string>
+    <string name="settings_speech_vad_format">%1$.1f 秒</string>
+    <string name="settings_speech_engine_switch">このエンジンに切り替え</string>
+    <string name="settings_speech_engine_in_use">使用中</string>
+    <string name="settings_speech_vocab_desc_count">カスタム語彙 %1$d 件 · タップして管理</string>
+    <string name="settings_speech_engine_xasr_name">X-ASR ストリーミングエンジン</string>
+    <string name="settings_speech_engine_qwen_name">Qwen3-ASR オフラインエンジン</string>
+    <string name="settings_speech_toast_engine_switched">メイン認識エンジンを %1$s に切り替えました</string>
+    <string name="settings_speech_toast_dual_on">デュアルエンジンモードを有効にしました</string>
+    <string name="settings_speech_toast_dual_off">デュアルエンジンモードを無効にしました</string>
+    <string name="settings_speech_missing_both">X-ASR と Qwen3-ASR</string>
+    <string name="settings_speech_dual_needs_model_title">デュアルエンジンにはモデルのダウンロードが必要です</string>
+    <string name="settings_speech_dual_needs_model_message">デュアルエンジンモードは、X-ASR の低遅延リアルタイムプレビューと、Qwen3-ASR の高精度オフライン文字起こしを組み合わせます。\n\n未ダウンロード：%1$s。\n先に「モデルをダウンロード」をタップしてインストールしてから、オンにしてください。</string>
+    <string name="settings_speech_model_label_xasr">X-ASR 繁体字中国語ストリーミングモデル</string>
+    <string name="settings_speech_model_label_qwen">Qwen3-ASR 音声モデル</string>
+    <string name="settings_speech_download_title">%1$s をダウンロード</string>
+    <string name="settings_speech_redownload_title">%1$s を再ダウンロード</string>
+    <string name="settings_speech_download_message">推定サイズ：約 %1$d MB。\nダウンロード中はバックグラウンドでフォアグラウンドサービスが動作し、完了後はオフラインで使えます。</string>
+    <string name="settings_speech_toast_download_done">モデルのダウンロードが完了しました！</string>
+    <string name="settings_ocr_checking_size">ファイルサイズを確認中…</string>
+    <string name="settings_ocr_download_message">約 %1$s のオフライン繁体字中国語認識モデルをダウンロードします。完了後、文字認識はすべて端末内で実行されます。\n\n続行しますか？</string>
+    <string name="settings_ocr_download_start">ダウンロード開始</string>
+    <string name="settings_ocr_toast_download_done">PP-OCR モデルのダウンロードが完了しました！</string>
+
+    <!-- P1-4: onboarding -->
+    <string name="onboarding_skip">スキップ</string>
+    <string name="onboarding_prev">戻る</string>
+    <string name="onboarding_next">次へ</string>
+    <string name="onboarding_finish">設定へ進む</string>
+    <string name="onboarding_mode_badge">モード %1$d/%2$d</string>
+    <string name="onboarding_capsule_title">縦型カプセル · スライドで切り替え</string>
+    <string name="onboarding_mode_voice_title">リアルタイム音声入力</string>
+    <string name="onboarding_capsule_badge_default">モード 1/5</string>
+    <string name="onboarding_mode_voice_desc">高精度オフライン音声認識。タップするだけで聞き取りを開始し、そのまま貼り付けます</string>
+    <string name="onboarding_capsule_tags_default">• オフライン ASR デュアルモデルでリアルタイム文字起こし\n• 自動句読点とカスタム語彙に対応\n• ヘッドセット・外付けマイクのゲイン調整</string>
+    <string name="onboarding_capsule_hint">バブルを長押ししてカプセルを開き、上下にスライドしてモードを切り替えます</string>
+    <string name="onboarding_mode_voice_tags">• デュアルエンジン：リアルタイムプレビュー + 高精度オフライン文字起こし\n• 自動句読点とカスタム語彙の置換に対応\n• ヘッドセット・外付けマイクのゲイン調整</string>
+    <string name="onboarding_mode_barcode_title">バーコード・QR スキャン</string>
+    <string name="onboarding_mode_barcode_desc">端末内で高速にバーコードを読み取り、向けるだけで認識して自動入力します</string>
+    <string name="onboarding_mode_barcode_tags">• QR コードと各種 1 次元バーコードに対応\n• ピンチでカメラをズーム、フラッシュで補光\n• スキャン完了後に自動改行を設定可能</string>
+    <string name="onboarding_mode_ocr_title">文字認識（PP-OCRv6）</string>
+    <string name="onboarding_mode_ocr_desc">画面を静止して文字ブロックを選択（複数可）し、オフラインで高精度に抽出します</string>
+    <string name="onboarding_mode_ocr_tags">• PP-OCRv6 オフラインモデル、縦書き中国語を正立して認識\n• ブロックをタップして順に結合、スマート段落結合に対応\n• 改行またはスペースの区切りを選択可能、ピンチでズーム・ピント合わせ</string>
+    <string name="onboarding_mode_phrases_title">定型文と履歴</string>
+    <string name="onboarding_mode_phrases_desc">オリジナルの定型文をタップして貼り付け、最近の入力も自動で呼び出せます</string>
+    <string name="onboarding_mode_phrases_tags">• 長押しドラッグで定型文をなめらかに並べ替え\n• 各モードの最近の入力を先頭に固定（1～12 件）\n• タップで貼り付け、打ち直し不要</string>
+    <string name="onboarding_voice_sample">今日の午後 2 時に 3 階の会議室で会議があります。</string>
+    <string name="onboarding_undo_sample">今日の会議は 2 時ちょうどに始まります。</string>
+    <string name="onboarding_gesture_edge_title" formatted="false">1. 端に収納：端から 70% はみ出す</string>
+    <string name="onboarding_gesture_edge_desc" formatted="false">画面の端に隠れ、円弧が 30% だけ見えます。タップすると引き出せます</string>
+    <string name="onboarding_gesture_keyboard_title">2. キーボード連動：入力時だけ表示</string>
+    <string name="onboarding_gesture_keyboard_desc">設定で「キーボード表示時のみ表示」をオンにすると、キーボードの表示に合わせてバブルがフェードインします</string>
+    <string name="onboarding_gesture_shake_title">3. シェイクで複製：複数のバブルを並行利用</string>
+    <string name="onboarding_gesture_shake_desc">ドラッグ中にバブルを左右に素早く振ると新しいバブルを追加できます（最大 5 個）。それぞれ独立してモードを記憶します</string>
+    <string name="onboarding_gestures_title">収納 · 連動 · シェイクで複製</string>
+    <string name="onboarding_gestures_mock_keyboard">システムキーボード（Gboard）</string>
+    <string name="onboarding_privacy_title" formatted="false">プライバシー重視 · 100% オンデバイス処理</string>
+    <string name="onboarding_privacy_subtitle">端末内推論のみ · クラウド送信ゼロ</string>
+    <string name="onboarding_privacy_chip_dual">デュアルエンジン オフライン音声</string>
+    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 認識</string>
+    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR オフライン認識</string>
+    <string name="onboarding_privacy_chip_zero_upload">アップロードなし · すべて端末内</string>
+    <string name="onboarding_undo_title">すぐに元に戻す · 上の ✕ キーをタップして取り消し</string>
+    <string name="onboarding_undo_mock_question">プレゼンのファイルはどこにありますか？</string>
+    <string name="onboarding_undo_mock_hint">バブルをタップして入力...</string>
+    <string name="onboarding_undo_done">入力を元に戻しました</string>
+    <string name="onboarding_voice_title">どのアプリでも · すぐ入力</string>
+    <string name="onboarding_voice_mock_question">今日の午後の会議は何時に始まりますか？</string>
+    <string name="onboarding_voice_mock_hint">バブルをタップして入力を開始...</string>
+    <string name="onboarding_voice_listening">聞き取り中…</string>
+
+    <!-- P1-5: data layer decoupling -->
+    <string name="bubble_mode_meta_voice_short">音声</string>
+    <string name="bubble_mode_meta_voice_desc">タップでオフライン音声認識を開始し、話し終えるとフォーカス中の入力欄に自動入力します</string>
+    <string name="bubble_mode_meta_barcode_short">バーコード</string>
+    <string name="bubble_mode_meta_barcode_desc">フローティングカメラで 1 次元バーコードと QR コードをリアルタイムにスキャンし、自動入力します</string>
+    <string name="bubble_mode_meta_ocr_title">文字認識（OCR）</string>
+    <string name="bubble_mode_meta_ocr_short">OCR</string>
+    <string name="bubble_mode_meta_ocr_desc">フローティングカメラで画面の文字を取得します。縦書き中国語と複数ブロックの順次結合に対応</string>
+    <string name="bubble_mode_meta_phrases_desc">オリジナルの定型文と最近の認識履歴をすばやく選択できます</string>
+    <string name="model_label_qwen3_detail">Qwen3-ASR 高精度オフライン音声</string>
+    <string name="model_label_xasr_detail">X-ASR 高速リアルタイムストリーミング音声</string>
+    <string name="model_label_ocr_small_detail">PP-OCRv6（Small・高精度版）文字認識</string>
+    <string name="model_label_ocr_tiny_detail">PP-OCRv6（Tiny・軽量版）文字認識</string>
+    <string name="settings_import_success_status">モデルパッケージを復元しました。モデル：%1$s</string>
+    <string name="settings_import_no_models">アーカイブに有効なモデルファイルが含まれていません</string>
+    <string name="settings_import_stream_unreadable">選択したファイルを読み込めません（InputStream が空です）</string>
+    <string name="settings_import_file_not_found">モデルパッケージが見つからないか、読み取り権限がありません：%1$s</string>
+    <string name="settings_import_extract_failed">展開に失敗しました：%1$s</string>
+    <string name="settings_import_no_combo">完全なモデルの組み合わせがありません</string>
+    <string name="settings_import_finishing">復元が完了しました</string>
+    <string name="common_list_separator">、</string>
+    <string name="model_progress_downloading">ダウンロード中…</string>
+    <string name="model_progress_downloading_files">ダウンロード中 (%1$d/%2$d)…</string>
+    <string name="model_progress_extracting">展開中：%1$s</string>
+    <string name="common_size_unknown">サイズ不明</string>
+
+    <!-- P1-6: remaining UI strings -->
+    <string name="ocr_overlay_selected_count">%1$d 個のブロックを選択中（番号順に結合）。「認識して入力」をタップしてください</string>
+    <string name="ocr_overlay_confirm_with_count">認識して入力 (%1$d)</string>
+    <string name="ocr_overlay_hint_select">ドラッグで囲むか、入力したい文字ブロックをタップして選択してください</string>
+    <string name="ocr_overlay_model_check_files">モデルファイルが揃っているか確認してください</string>
+    <string name="ocr_overlay_model_load_failed">PP-OCR モデルの読み込みに失敗しました：%1$s</string>
+    <string name="ocr_overlay_no_text_found">はっきりした文字が検出されませんでした。180° 回転するか、もう一度お試しください</string>
+    <string name="ocr_overlay_hint_select_count">ドラッグで囲むか、文字ブロックをタップして選択してください（%1$d 件検出）</string>
+    <string name="ocr_overlay_process_error">OCR 処理でエラーが発生しました (%1$s): %2$s</string>
+    <string name="common_unknown_error">不明なエラー</string>
+    <string name="ocr_overlay_rotated_redetecting">180° 回転しました。文字を再検出中…</string>
+    <string name="ocr_overlay_recognizing_one">選択した文字を認識中…</string>
+    <string name="ocr_overlay_recognizing_many">選択した %1$d 個のブロックを認識中…</string>
+    <string name="ocr_overlay_recognize_failed_retry">認識に失敗しました。もう一度試すか、別の文字を選択してください</string>
+    <string name="ocr_overlay_recognize_error">認識に失敗しました (%1$s): %2$s</string>
+    <string name="bubble_toast_one_mode_only">有効なモードが 1 つだけのため、バブルを複製できません\n設定で機能モードをさらに有効にしてください</string>
+    <string name="bubble_toast_limit_reached">有効なモード数の上限に達しました（最大 %1$d 個）</string>
+    <string name="bubble_toast_duplicated">「%1$s」バブルを複製しました（合計 %2$d 個、複数バブルをオンにしました）</string>
+    <string name="floating_ocr_desc">フローティング文字認識</string>
+    <string name="floating_barcode_desc">フローティングバーコードスキャン</string>
+    <string name="floating_voice_desc">フローティング音声入力</string>
+    <string name="quick_phrase_default_1">了解しました！</string>
+    <string name="quick_phrase_default_2">少々お待ちください。すぐ対応します。</string>
+    <string name="quick_phrase_default_3">ありがとうございます！お疲れさまでした！</string>
+    <string name="quick_phrase_default_4">送信しました。ご確認ください。</string>
+    <string name="quick_phrase_default_5">少々お待ちください。のちほどご連絡します。</string>
+    <string name="quick_phrase_default_6">問題ありません。私が対応します。</string>
+    <string name="notif_download_preparing">%1$s モデルのダウンロードを準備中…</string>
+    <string name="notif_download_channel_name">モデルのダウンロード</string>
+</resources>
