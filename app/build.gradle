@@ -43,6 +43,12 @@ android {
         pickFirst 'lib/*/libc++_shared.so'
     }
 
+    lint {
+        // 防倒退：新增寫死的介面文字會讓 lint 失敗；現有違規記在 baseline，只許減少
+        error 'HardcodedText'
+        baseline = file('lint-baseline.xml')
+    }
+
     testOptions {
         unitTests.returnDefaultValues = true
     }
