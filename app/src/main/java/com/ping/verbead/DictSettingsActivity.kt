@@ -87,14 +87,14 @@ class DictSettingsActivity : AppCompatActivity() {
             onDelete = { from, to ->
                 val displayLabel = if (from != to) "$from → $to" else to
                 AlertDialog.Builder(this)
-                    .setTitle("刪除專屬詞彙")
-                    .setMessage("確定要刪除「$displayLabel」嗎？")
-                    .setPositiveButton("刪除") { _, _ ->
+                    .setTitle(R.string.dict_dialog_delete_title)
+                    .setMessage(getString(R.string.dict_dialog_delete_message, displayLabel))
+                    .setPositiveButton(R.string.btn_delete) { _, _ ->
                         UserDictionary.remove(this, from)
                         refreshList()
                         HapticUtil.click(this)
                     }
-                    .setNegativeButton("取消", null)
+                    .setNegativeButton(R.string.btn_cancel, null)
                     .show()
             },
             onEdit = { from, to ->
@@ -152,9 +152,9 @@ class DictSettingsActivity : AppCompatActivity() {
         val etFrom = view.findViewById<EditText>(R.id.et_from)
 
         AlertDialog.Builder(this)
-            .setTitle("新增專屬詞彙 / 替換規則")
+            .setTitle(R.string.dict_dialog_add_title)
             .setView(view)
-            .setPositiveButton("新增") { _, _ ->
+            .setPositiveButton(R.string.common_add) { _, _ ->
                 val to = etTo.text.toString().trim()
                 val fromRaw = etFrom.text.toString().trim()
                 if (to.isBlank()) {
@@ -166,7 +166,7 @@ class DictSettingsActivity : AppCompatActivity() {
                 refreshList()
                 HapticUtil.click(this)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.btn_cancel, null)
             .show()
     }
 
@@ -181,9 +181,9 @@ class DictSettingsActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("編輯專屬詞彙 / 替換規則")
+            .setTitle(R.string.dict_dialog_edit_title)
             .setView(view)
-            .setPositiveButton("儲存") { _, _ ->
+            .setPositiveButton(R.string.btn_save) { _, _ ->
                 val to = etTo.text.toString().trim()
                 val fromRaw = etFrom.text.toString().trim()
                 if (to.isBlank()) {
@@ -198,7 +198,7 @@ class DictSettingsActivity : AppCompatActivity() {
                 refreshList()
                 HapticUtil.click(this)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.btn_cancel, null)
             .show()
     }
 
@@ -229,7 +229,7 @@ class DictSettingsActivity : AppCompatActivity() {
             holder.tvTo.text = to
             if (from != to) {
                 holder.tvMapping.visibility = View.VISIBLE
-                holder.tvMapping.text = "自動替換：$from → $to"
+                holder.tvMapping.text = holder.itemView.context.getString(R.string.dict_entry_mapping, from, to)
             } else {
                 holder.tvMapping.visibility = View.GONE
             }

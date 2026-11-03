@@ -96,7 +96,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (!granted) {
-            Toast.makeText(this, "未授予藍牙連線權限，可能無法自動切換至藍牙耳機", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.settings_speech_toast_bluetooth_denied), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -271,8 +271,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
         btnOpenDict.setOnClickListener { openDictAction() }
     }
 
-    private fun audioGainLabel(gain: Float) = if (gain == 1.0f) "1.0x (原音)" else "%.1fx 增益".format(gain)
-    private fun vadLabel(sec: Float) = "%.1f 秒".format(sec)
+    private fun audioGainLabel(gain: Float) = if (gain == 1.0f) getString(R.string.settings_speech_gain_original) else getString(R.string.settings_speech_gain_format, gain)
+    private fun vadLabel(sec: Float) = getString(R.string.settings_speech_vad_format, sec)
 
     private fun updateAllStatus() {
         val xReady = ModelConfig.isXAsrReady(this)
@@ -284,20 +284,20 @@ class SpeechSettingsActivity : AppCompatActivity() {
         switchDualEngine.isChecked = isDual
 
         // X-ASR
-        tvStatusBadgeXasr.text = if (xReady) "已就緒" else "未下載"
-        btnDownloadXasr.text = if (xReady) "重新下載" else "下載模型"
+        tvStatusBadgeXasr.text = getString(if (xReady) R.string.common_ready else R.string.common_not_downloaded)
+        btnDownloadXasr.text = getString(if (xReady) R.string.common_redownload else R.string.common_download_model)
         val isXSelected = !isDual && selected == ModelConfig.ENGINE_X_ASR
         btnSelectXasr.isEnabled = xReady && !isXSelected
-        btnSelectXasr.text = if (isXSelected) "使用中" else "切換為此引擎"
+        btnSelectXasr.text = getString(if (isXSelected) R.string.settings_speech_engine_in_use else R.string.settings_speech_engine_switch)
         ChoiceButtonUtil.applyChoiceState(btnSelectXasr, isXSelected)
         updateModelCardSelection(cardXAsr, isXSelected)
 
         // Qwen3-ASR
-        tvStatusBadgeQwen3.text = if (qReady) "已就緒" else "未下載"
-        btnDownloadQwen3.text = if (qReady) "重新下載" else "下載模型"
+        tvStatusBadgeQwen3.text = getString(if (qReady) R.string.common_ready else R.string.common_not_downloaded)
+        btnDownloadQwen3.text = getString(if (qReady) R.string.common_redownload else R.string.common_download_model)
         val isQSelected = !isDual && selected == ModelConfig.ENGINE_QWEN3
         btnSelectQwen3.isEnabled = qReady && !isQSelected
-        btnSelectQwen3.text = if (isQSelected) "使用中" else "切換為此引擎"
+        btnSelectQwen3.text = getString(if (isQSelected) R.string.settings_speech_engine_in_use else R.string.settings_speech_engine_switch)
         ChoiceButtonUtil.applyChoiceState(btnSelectQwen3, isQSelected)
         updateModelCardSelection(cardQwen3, isQSelected)
 
@@ -306,9 +306,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
             UserDictionary.load(this).size
         } catch (_: Exception) { 0 }
         tvVocabDesc.text = if (dictCount > 0) {
-            "已收錄 $dictCount 筆自訂詞彙 · 點擊管理專屬詞庫"
+            getString(R.string.settings_speech_vocab_desc_count, dictCount)
         } else {
-            "加入常用人名、專有名詞或修正字"
+            getString(R.string.settings_speech_vocab_desc)
         }
 
         updateAudioGainVisibility(switchPreferExternalAudio.isChecked)
@@ -346,8 +346,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setSelectedEngine(this, targetEngine)
             ModelConfig.setDualEngineEnabled(this, false)
             updateAllStatus()
-            val name = if (targetEngine == ModelConfig.ENGINE_X_ASR) "X-ASR 串流引擎" else "Qwen3-ASR 離線引擎"
-            Toast.makeText(this, "已切換主辨識引擎為 $name", Toast.LENGTH_SHORT).show()
+            val name = getString(if (targetEngine == ModelConfig.ENGINE_X_ASR) R.string.settings_speech_engine_xasr_name else R.string.settings_speech_engine_qwen_name)
+            Toast.makeText(this, getString(R.string.settings_speech_toast_engine_switched, name), Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, R.string.toast_model_not_downloaded, Toast.LENGTH_SHORT).show()
         }
@@ -362,15 +362,15 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setSelectedEngine(this, ModelConfig.ENGINE_QWEN3)
             HapticUtil.click(this)
             updateAllStatus()
-            val msg = if (next) "已啟用雙引擎辨識模式" else "已停用雙引擎模式"
+            val msg = getString(if (next) R.string.settings_speech_toast_dual_on else R.string.settings_speech_toast_dual_off)
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         } else {
             switchDualEngine.isChecked = false
-            val missing = if (!xReady && !qReady) "X-ASR 與 Qwen3-ASR" else if (!xReady) "X-ASR" else "Qwen3-ASR"
+            val missing = if (!xReady && !qReady) getString(R.string.settings_speech_missing_both) else if (!xReady) "X-ASR" else "Qwen3-ASR"
             AlertDialog.Builder(this)
-                .setTitle("需要下載模型以啟用雙引擎")
-                .setMessage("雙引擎模式結合了 X-ASR 的低延遲即時預覽與 Qwen3-ASR 的高精離線轉譯。\n\n目前尚未下載：$missing。\n請先點選「下載模型」完成安裝後再開啟。")
-                .setPositiveButton("我知道了", null)
+                .setTitle(R.string.settings_speech_dual_needs_model_title)
+                .setMessage(getString(R.string.settings_speech_dual_needs_model_message, missing))
+                .setPositiveButton(R.string.common_got_it, null)
                 .show()
         }
     }
@@ -382,21 +382,21 @@ class SpeechSettingsActivity : AppCompatActivity() {
             return
         }
         val target = ModelDownloadSpec.forEngine(engine)
-        val label = if (engine == ModelConfig.ENGINE_X_ASR) "X-ASR 繁中串流模型" else "Qwen3-ASR 語音模型"
+        val label = getString(if (engine == ModelConfig.ENGINE_X_ASR) R.string.settings_speech_model_label_xasr else R.string.settings_speech_model_label_qwen)
         lifecycleScope.launch {
             val totalBytes = withContext(Dispatchers.IO) { downloader.estimateTotalBytes(target) }
             val totalMb = totalBytes / 1024 / 1024
             val ready = if (engine == ModelConfig.ENGINE_X_ASR) ModelConfig.isXAsrReady(this@SpeechSettingsActivity) else ModelConfig.isQwen3Ready(this@SpeechSettingsActivity)
-            val action = if (ready) "重新下載" else "下載"
+            val action = if (ready) R.string.common_redownload else R.string.common_download
 
             AlertDialog.Builder(this@SpeechSettingsActivity)
-                .setTitle("$action $label")
-                .setMessage("預估大小：約 $totalMb MB。\n下載過程中將在背景維持前景服務，下載完成後即可離線運作。")
+                .setTitle(getString(if (ready) R.string.settings_speech_redownload_title else R.string.settings_speech_download_title, label))
+                .setMessage(getString(R.string.settings_speech_download_message, totalMb))
                 .setPositiveButton(action) { _, _ ->
                     HapticUtil.click(this@SpeechSettingsActivity)
                     requestNotifAndStartDownload(engine)
                 }
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.btn_cancel, null)
                 .show()
         }
     }
@@ -415,11 +415,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private fun beginDownload(engine: String) {
         ModelDownloadService.start(this, engine)
         val (btn, prog, tv) = getDownloadViews(engine)
-        btn.text = "取消下載"
+        btn.text = getString(R.string.common_cancel_download)
         prog.visibility = View.VISIBLE
         prog.isIndeterminate = true
         tv.visibility = View.VISIBLE
-        tv.text = "連線中…"
+        tv.text = getString(R.string.common_connecting)
     }
 
     private fun getDownloadViews(engine: String): Triple<MaterialButton, LinearProgressIndicator, TextView> {
@@ -435,7 +435,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         prog.visibility = View.GONE
         tv.visibility = View.GONE
         val ready = if (engine == ModelConfig.ENGINE_X_ASR) ModelConfig.isXAsrReady(this) else ModelConfig.isQwen3Ready(this)
-        btn.text = if (ready) "重新下載" else "下載模型"
+        btn.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
     }
 
     private fun observeDownloadState() {
@@ -443,7 +443,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelDownloadState.active.collect { active ->
                 if (active != null && (active.engine == ModelConfig.ENGINE_X_ASR || active.engine == ModelConfig.ENGINE_QWEN3)) {
                     val (btn, prog, tv) = getDownloadViews(active.engine)
-                    btn.text = "取消下載"
+                    btn.text = getString(R.string.common_cancel_download)
                     prog.visibility = View.VISIBLE
                     tv.visibility = View.VISIBLE
                     prog.isIndeterminate = active.progress.percent < 0
@@ -464,7 +464,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
                     hideDownloadProgress(engine)
                     updateAllStatus()
                     if (result.isSuccess) {
-                        Toast.makeText(this@SpeechSettingsActivity, "模型下載完成！", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@SpeechSettingsActivity, getString(R.string.settings_speech_toast_download_done), Toast.LENGTH_SHORT).show()
                     }
                 }
             }

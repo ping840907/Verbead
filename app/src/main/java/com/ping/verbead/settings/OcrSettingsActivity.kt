@@ -145,20 +145,20 @@ class OcrSettingsActivity : AppCompatActivity() {
             }
 
             val target = ModelDownloadSpec.forEngine(selectedModel)
-            val modelName = if (selectedModel == ModelConfig.ENGINE_PP_OCR_SMALL) "PP-OCRv6 標準版" else "PP-OCRv6 輕量版"
+            val modelName = getString(if (selectedModel == ModelConfig.ENGINE_PP_OCR_SMALL) R.string.ocr_model_name_small else R.string.ocr_model_name_tiny)
             btnDownloadOcr.isEnabled = false
-            btnDownloadOcr.text = "檢查檔案大小…"
+            btnDownloadOcr.text = getString(R.string.settings_ocr_checking_size)
 
             lifecycleScope.launch {
                 val bytes = withContext(Dispatchers.IO) { downloader.estimateTotalBytes(target) }
                 btnDownloadOcr.isEnabled = true
                 val ready = isSelectedModelReady()
-                btnDownloadOcr.text = if (ready) "重新下載" else "下載模型"
+                btnDownloadOcr.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
 
                 AlertDialog.Builder(this@OcrSettingsActivity)
-                    .setTitle("下載 $modelName")
-                    .setMessage("即將下載約 ${ModelDownloader.formatBytes(bytes)} 的離線繁中辨識模型，下載完成後文字辨識全程在本機執行。\n\n是否繼續？")
-                    .setPositiveButton("開始下載") { _, _ ->
+                    .setTitle(getString(R.string.settings_speech_download_title, modelName))
+                    .setMessage(getString(R.string.settings_ocr_download_message, ModelDownloader.formatBytes(bytes)))
+                    .setPositiveButton(R.string.settings_ocr_download_start) { _, _ ->
                         HapticUtil.click(this@OcrSettingsActivity)
                         isDownloading = true
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -168,7 +168,7 @@ class OcrSettingsActivity : AppCompatActivity() {
                             beginDownload()
                         }
                     }
-                    .setNegativeButton("取消", null)
+                    .setNegativeButton(R.string.btn_cancel, null)
                     .show()
             }
         }
@@ -235,18 +235,18 @@ class OcrSettingsActivity : AppCompatActivity() {
     private fun beginDownload() {
         val selectedModel = ModelConfig.selectedOcrModel(this)
         ModelDownloadService.start(this, selectedModel)
-        btnDownloadOcr.text = "取消下載"
+        btnDownloadOcr.text = getString(R.string.common_cancel_download)
         progressOcr.visibility = View.VISIBLE
         progressOcr.isIndeterminate = true
         tvOcrProgress.visibility = View.VISIBLE
-        tvOcrProgress.text = "連線中…"
+        tvOcrProgress.text = getString(R.string.common_connecting)
     }
 
     private fun hideDownloadProgress() {
         progressOcr.visibility = View.GONE
         tvOcrProgress.visibility = View.GONE
         val ready = isSelectedModelReady()
-        btnDownloadOcr.text = if (ready) "重新下載" else "下載模型"
+        btnDownloadOcr.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
     }
 
     private fun updateAllStatus() {
@@ -255,8 +255,8 @@ class OcrSettingsActivity : AppCompatActivity() {
         ChoiceButtonUtil.applyChoiceState(btnSelectOcrSmall, selected == ModelConfig.ENGINE_PP_OCR_SMALL)
 
         val ready = isSelectedModelReady()
-        tvOcrStatusBadge.text = if (ready) "已就緒" else "未下載"
-        btnDownloadOcr.text = if (ready) "重新下載" else "下載模型"
+        tvOcrStatusBadge.text = getString(if (ready) R.string.common_ready else R.string.common_not_downloaded)
+        btnDownloadOcr.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
         updateSepButtons()
 
         updateSmartStitchUI(switchOcrSmartStitch.isChecked)
@@ -279,7 +279,7 @@ class OcrSettingsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             ModelDownloadState.active.collect { active ->
                 if (active != null && (active.engine == ModelConfig.ENGINE_PP_OCR_TINY || active.engine == ModelConfig.ENGINE_PP_OCR_SMALL)) {
-                    btnDownloadOcr.text = "取消下載"
+                    btnDownloadOcr.text = getString(R.string.common_cancel_download)
                     progressOcr.visibility = View.VISIBLE
                     tvOcrProgress.visibility = View.VISIBLE
                     progressOcr.isIndeterminate = active.progress.percent < 0
@@ -299,7 +299,7 @@ class OcrSettingsActivity : AppCompatActivity() {
                     hideDownloadProgress()
                     updateAllStatus()
                     if (result.isSuccess) {
-                        Toast.makeText(this@OcrSettingsActivity, "PP-OCR 模型下載完成！", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@OcrSettingsActivity, getString(R.string.settings_ocr_toast_download_done), Toast.LENGTH_SHORT).show()
                     }
                 }
             }

@@ -1,8 +1,6 @@
 # 寫死中日韓文字的現有違規：「相對路徑 數量」。只許減少、不許增加（NoHardcodedCjkTest 會檢查）。
 # 每個工作包完成後請重跑 node tools/i18n-allowlist-gen.js 調降。SpokenNumberConverter 為語言規則檔，永久例外。
-java/com/ping/verbead/DictSettingsActivity.kt 11
 java/com/ping/verbead/FloatingBubbleService.kt 8
-java/com/ping/verbead/ImeSettingsActivity.kt 44
 java/com/ping/verbead/ModelDownloadService.kt 2
 java/com/ping/verbead/OnboardingActivity.kt 26
 java/com/ping/verbead/QuickPhrasesManager.kt 6
@@ -13,9 +11,6 @@ java/com/ping/verbead/engine/ModelDownloader.kt 7
 java/com/ping/verbead/engine/ModelZipInstaller.kt 11
 java/com/ping/verbead/ocr/PpOcrEngine.kt 5
 java/com/ping/verbead/ocr/TextStitcher.kt 2
-java/com/ping/verbead/settings/BubbleSettingsActivity.kt 32
-java/com/ping/verbead/settings/OcrSettingsActivity.kt 14
-java/com/ping/verbead/settings/SpeechSettingsActivity.kt 27
 java/com/ping/verbead/util/TextInsertion.kt 2
 res/layout/activity_onboarding.xml 3
 res/layout/layout_onboarding_slide_capsule.xml 6

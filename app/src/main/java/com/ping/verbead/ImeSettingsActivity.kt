@@ -124,7 +124,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         updateCategorySummaries()
         // 系統不再跳出授權視窗（曾選「不再詢問」）時，只能請使用者到系統設定開啟
         if (!granted && !ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
-            Toast.makeText(this, "請在系統設定中開啟相機權限", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.settings_toast_camera_permission), Toast.LENGTH_LONG).show()
             try {
                 startActivity(
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
@@ -371,7 +371,7 @@ class ImeSettingsActivity : AppCompatActivity() {
             if (quickFile != null) {
                 runModelPackageImport(file = quickFile)
             } else {
-                Toast.makeText(this, "未在 Download 目錄中找到預設模型 ZIP 包", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.settings_toast_quick_zip_not_found), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -387,21 +387,21 @@ class ImeSettingsActivity : AppCompatActivity() {
         progressImportModels.visibility = View.VISIBLE
         progressImportModels.progress = 0
         tvImportModelsStatus.visibility = View.VISIBLE
-        tvImportModelsStatus.text = "正在準備解壓模型包…"
+        tvImportModelsStatus.text = getString(R.string.settings_import_preparing)
 
         lifecycleScope.launch {
             val result = if (file != null) {
                 ModelZipInstaller.installFromFile(this@ImeSettingsActivity, file) { currentFile, pct ->
                     runOnUiThread {
                         progressImportModels.progress = pct
-                        tvImportModelsStatus.text = "解壓中：$currentFile ($pct%)"
+                        tvImportModelsStatus.text = getString(R.string.settings_import_extracting, currentFile, pct)
                     }
                 }
             } else if (uri != null) {
                 ModelZipInstaller.installFromUri(this@ImeSettingsActivity, uri) { currentFile, pct ->
                     runOnUiThread {
                         progressImportModels.progress = pct
-                        tvImportModelsStatus.text = "解壓中：$currentFile ($pct%)"
+                        tvImportModelsStatus.text = getString(R.string.settings_import_extracting, currentFile, pct)
                     }
                 }
             } else {
@@ -412,7 +412,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                     ocrReady = false,
                     fileCount = 0,
                     totalBytes = 0,
-                    message = "無效的檔案來源"
+                    message = getString(R.string.settings_import_invalid_source)
                 )
             }
 
@@ -427,23 +427,21 @@ class ImeSettingsActivity : AppCompatActivity() {
                 val restoredListText = if (result.restoredModels.isNotEmpty()) {
                     result.restoredModels.joinToString("\n") { "• $it" }
                 } else {
-                    "• 離線模型核心檔案"
+                    getString(R.string.settings_import_core_files_item)
                 }
                 AlertDialog.Builder(this@ImeSettingsActivity)
-                    .setTitle("離線模型一鍵復原成功")
+                    .setTitle(R.string.settings_import_success_title)
                     .setMessage(
-                        "已根據導入包內容智慧辨識並復原共 ${result.fileCount} 個模型核心檔案！\n\n" +
-                                "本次復原就緒項目：\n$restoredListText\n\n" +
-                                "所有對應功能均已自動啟用，可立即使用。"
+                        getString(R.string.settings_import_success_message, result.fileCount, restoredListText)
                     )
-                    .setPositiveButton("太棒了", null)
+                    .setPositiveButton(R.string.settings_import_success_ok, null)
                     .show()
             } else {
-                tvImportModelsStatus.text = "匯入失敗：${result.message}"
+                tvImportModelsStatus.text = getString(R.string.toast_dict_import_failed, result.message)
                 AlertDialog.Builder(this@ImeSettingsActivity)
-                    .setTitle("導入失敗")
-                    .setMessage("無法順利解壓或安裝此模型包：\n${result.message}")
-                    .setPositiveButton("我知道了", null)
+                    .setTitle(R.string.settings_import_failed_title)
+                    .setMessage(getString(R.string.settings_import_failed_message, result.message))
+                    .setPositiveButton(R.string.common_got_it, null)
                     .show()
             }
         }
@@ -475,12 +473,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (micGranted) {
             ivStatusDotMic.setImageResource(R.drawable.ic_check_circle)
             ivStatusDotMic.setColorFilter(successColor)
-            tvStatusValMic.text = "已就緒 ✓"
+            tvStatusValMic.text = getString(R.string.settings_status_ready_check)
             tvStatusValMic.setTextColor(successColor)
         } else {
             ivStatusDotMic.setImageResource(R.drawable.bg_icon_circle)
             ivStatusDotMic.setColorFilter(warningColor)
-            tvStatusValMic.text = "未授權 ➜"
+            tvStatusValMic.text = getString(R.string.settings_perm_denied_action)
             tvStatusValMic.setTextColor(warningColor)
             pendingCount++
         }
@@ -489,12 +487,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (cameraGranted) {
             ivStatusDotCamera.setImageResource(R.drawable.ic_check_circle)
             ivStatusDotCamera.setColorFilter(successColor)
-            tvStatusValCamera.text = "已就緒 ✓"
+            tvStatusValCamera.text = getString(R.string.settings_status_ready_check)
             tvStatusValCamera.setTextColor(successColor)
         } else {
             ivStatusDotCamera.setImageResource(R.drawable.bg_icon_circle)
             ivStatusDotCamera.setColorFilter(warningColor)
-            tvStatusValCamera.text = "未授權 ➜"
+            tvStatusValCamera.text = getString(R.string.settings_perm_denied_action)
             tvStatusValCamera.setTextColor(warningColor)
             pendingCount++
         }
@@ -503,12 +501,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (overlayGranted) {
             ivStatusDotOverlay.setImageResource(R.drawable.ic_check_circle)
             ivStatusDotOverlay.setColorFilter(successColor)
-            tvStatusValOverlay.text = "已就緒 ✓"
+            tvStatusValOverlay.text = getString(R.string.settings_status_ready_check)
             tvStatusValOverlay.setTextColor(successColor)
         } else {
             ivStatusDotOverlay.setImageResource(R.drawable.bg_icon_circle)
             ivStatusDotOverlay.setColorFilter(warningColor)
-            tvStatusValOverlay.text = "未開啟 ➜"
+            tvStatusValOverlay.text = getString(R.string.settings_status_off_action)
             tvStatusValOverlay.setTextColor(warningColor)
             pendingCount++
         }
@@ -517,12 +515,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (accessibilityEnabled) {
             ivStatusDotAccessibility.setImageResource(R.drawable.ic_check_circle)
             ivStatusDotAccessibility.setColorFilter(successColor)
-            tvStatusValAccessibility.text = "已就緒 ✓"
+            tvStatusValAccessibility.text = getString(R.string.settings_status_ready_check)
             tvStatusValAccessibility.setTextColor(successColor)
         } else {
             ivStatusDotAccessibility.setImageResource(R.drawable.bg_icon_circle)
             ivStatusDotAccessibility.setColorFilter(warningColor)
-            tvStatusValAccessibility.text = "未開啟 ➜"
+            tvStatusValAccessibility.text = getString(R.string.settings_status_off_action)
             tvStatusValAccessibility.setTextColor(warningColor)
             pendingCount++
         }
@@ -531,23 +529,23 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (anyModelReady) {
             ivStatusDotModel.setImageResource(R.drawable.ic_check_circle)
             ivStatusDotModel.setColorFilter(successColor)
-            tvStatusValModel.text = "已就緒 ✓"
+            tvStatusValModel.text = getString(R.string.settings_status_ready_check)
             tvStatusValModel.setTextColor(successColor)
         } else {
             ivStatusDotModel.setImageResource(R.drawable.bg_icon_circle)
             ivStatusDotModel.setColorFilter(warningColor)
-            tvStatusValModel.text = "未下載 ➜"
+            tvStatusValModel.text = getString(R.string.settings_perm_not_downloaded_action)
             tvStatusValModel.setTextColor(warningColor)
             pendingCount++
         }
 
         // Overall Badge
         if (pendingCount == 0) {
-            tvOverallBadge.text = "全部就緒"
+            tvOverallBadge.text = getString(R.string.settings_overall_all_ready)
             tvOverallBadge.setTextColor(successColor)
             tvOverallBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
         } else {
-            tvOverallBadge.text = "待配置 ${pendingCount} 項"
+            tvOverallBadge.text = getString(R.string.settings_overall_pending, pendingCount)
             tvOverallBadge.setTextColor(warningColor)
             tvOverallBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
         }
@@ -556,24 +554,24 @@ class ImeSettingsActivity : AppCompatActivity() {
     private fun updateCategorySummaries() {
         // 1. Bubble
         val isRunning = FloatingBubbleService.isRunning
-        val runningStatus = if (isRunning) "常駐運作中" else "未運行"
+        val runningStatus = getString(if (isRunning) R.string.settings_summary_bubble_running else R.string.settings_summary_bubble_not_running)
         val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
         val bubbleModeStr = if (isMultiBubble) {
             val count = ModelConfig.getMultiBubbleCount(this)
-            "${count} 球模式"
+            getString(R.string.settings_summary_bubble_multi, count)
         } else {
-            "單球模式"
+            getString(R.string.settings_summary_bubble_single)
         }
         val enabledModesCount = ModelConfig.getEnabledBubbleModes(this).size
-        tvCatBubbleSummary.text = "$runningStatus · $bubbleModeStr · 啟用 $enabledModesCount 個模式"
+        tvCatBubbleSummary.text = getString(R.string.settings_summary_bubble, runningStatus, bubbleModeStr, enabledModesCount)
 
         // 2. Speech
         val dual = ModelConfig.isDualEngineEnabled(this)
         val vad = (ModelConfig.vadSilenceSeconds(this) * 1000).toInt()
         val speechEngineStr = when {
-            dual -> "雙引擎切換 (X-ASR + Qwen3)"
-            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_QWEN3 -> "Qwen3 離線高精辨識"
-            else -> "X-ASR 繁中串流辨識"
+            dual -> getString(R.string.settings_summary_engine_dual)
+            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_QWEN3 -> getString(R.string.settings_summary_engine_qwen)
+            else -> getString(R.string.settings_summary_engine_xasr)
         }
         tvCatSpeechSummary.text = "$speechEngineStr · VAD ${vad}ms"
 
@@ -584,10 +582,10 @@ class ImeSettingsActivity : AppCompatActivity() {
         } else {
             ModelConfig.isOcrTinyReady(this)
         }
-        val ocrName = if (ocrEngine == ModelConfig.ENGINE_PP_OCR_SMALL) "PP-OCRv6 標準版" else "PP-OCRv6 輕量版"
-        val ocrStatusStr = if (ocrReady) "已就緒" else "未下載"
-        val pangu = if (ModelConfig.isOcrPanguSpacingEnabled(this)) "盤古空格" else "緊湊排版"
-        val trad = if (ModelConfig.isOcrToTraditionalEnabled(this)) "繁中" else "原字"
+        val ocrName = getString(if (ocrEngine == ModelConfig.ENGINE_PP_OCR_SMALL) R.string.ocr_model_name_small else R.string.ocr_model_name_tiny)
+        val ocrStatusStr = getString(if (ocrReady) R.string.common_ready else R.string.common_not_downloaded)
+        val pangu = getString(if (ModelConfig.isOcrPanguSpacingEnabled(this)) R.string.settings_summary_ocr_pangu else R.string.settings_summary_ocr_compact)
+        val trad = getString(if (ModelConfig.isOcrToTraditionalEnabled(this)) R.string.settings_summary_ocr_trad else R.string.settings_summary_ocr_original)
         tvCatOcrSummary.text = "$ocrName ($ocrStatusStr) · $trad · $pangu"
 
         // 4. Offline Model Package Import (Main page inline)
@@ -597,15 +595,15 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (ModelConfig.isQwen3Ready(this)) downloadedCount++
         if (ModelConfig.isOcrTinyReady(this)) downloadedCount++
         if (ModelConfig.isOcrSmallReady(this)) downloadedCount++
-        tvCatBackupSummary.text = "已下載 $downloadedCount/$totalCount 個離線模型 · 支援 ZIP 導入"
+        tvCatBackupSummary.text = getString(R.string.settings_summary_backup, downloadedCount, totalCount)
 
         val allReady = ModelConfig.areAllModelsReady(this)
         if (allReady) {
-            tvAllModelsBadge.text = "全部模型已就緒"
+            tvAllModelsBadge.text = getString(R.string.settings_all_models_ready)
             tvAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
             tvAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
         } else {
-            tvAllModelsBadge.text = "未完全就緒"
+            tvAllModelsBadge.text = getString(R.string.settings_backup_status_not_ready)
             tvAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
             tvAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
         }
@@ -614,13 +612,13 @@ class ImeSettingsActivity : AppCompatActivity() {
         if (quickZip != null) {
             btnQuickImportDownload.visibility = View.VISIBLE
             val sizeMb = quickZip.length() / (1024 * 1024)
-            btnQuickImportDownload.text = "快速載入內部儲存模型包 (${sizeMb}MB)"
+            btnQuickImportDownload.text = getString(R.string.settings_restore_load_internal_size, sizeMb)
         } else {
             btnQuickImportDownload.visibility = View.GONE
         }
 
         // 6. About
-        tvCatAboutSummary.text = "版本 ${BuildConfig.VERSION_NAME} · 開源技術致謝與授權"
+        tvCatAboutSummary.text = getString(R.string.settings_summary_about, BuildConfig.VERSION_NAME)
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {

@@ -224,13 +224,13 @@ class BubbleSettingsActivity : AppCompatActivity() {
         // Multi bubble count slider (2..4 -> progress 0..2)
         val curCount = ModelConfig.getMultiBubbleCount(this)
         sbMultiBubbleCount.progress = (curCount - 2).coerceIn(0, 2)
-        tvMultiBubbleCountValue.text = "${curCount} 個"
+        tvMultiBubbleCountValue.text = getString(R.string.settings_bubble_count_value, curCount)
         sbMultiBubbleCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     val count = progress + 2
                     ModelConfig.setMultiBubbleCount(this@BubbleSettingsActivity, count)
-                    tvMultiBubbleCountValue.text = "${count} 個"
+                    tvMultiBubbleCountValue.text = getString(R.string.settings_bubble_count_value, count)
                     HapticUtil.tick(this@BubbleSettingsActivity)
                     FloatingBubbleService.instance?.updateMultiBubbleMode()
                 }
@@ -267,13 +267,13 @@ class BubbleSettingsActivity : AppCompatActivity() {
         // History limit slider (1..12 -> progress 0..11)
         val curLimit = ModelConfig.getHistoryLimit(this)
         sbHistoryLimit.progress = (curLimit - 1).coerceIn(0, 11)
-        tvHistoryLimitValue.text = "${curLimit} 筆"
+        tvHistoryLimitValue.text = getString(R.string.settings_bubble_history_count_value, curLimit)
         sbHistoryLimit.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     val limit = progress + 1
                     ModelConfig.setHistoryLimit(this@BubbleSettingsActivity, limit)
-                    tvHistoryLimitValue.text = "${limit} 筆"
+                    tvHistoryLimitValue.text = getString(R.string.settings_bubble_history_count_value, limit)
                     HapticUtil.tick(this@BubbleSettingsActivity)
                 }
             }
@@ -297,7 +297,7 @@ class BubbleSettingsActivity : AppCompatActivity() {
             },
             onLastModeProtected = {
                 HapticUtil.tick(this)
-                Toast.makeText(this, "至少需保留 1 個啟用的懸浮球功能模式", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.settings_bubble_toast_min_one_mode), Toast.LENGTH_SHORT).show()
             }
         )
         bubbleModeConfigAdapter = adapter
@@ -349,33 +349,33 @@ class BubbleSettingsActivity : AppCompatActivity() {
     private fun updatePermissions() {
         val overlayGranted = Settings.canDrawOverlays(this)
         if (overlayGranted) {
-            tvOverlayStatus.text = "已取得顯示在上層權限"
-            btnGrantOverlay.text = "已授權"
+            tvOverlayStatus.text = getString(R.string.settings_bubble_overlay_granted)
+            btnGrantOverlay.text = getString(R.string.settings_bubble_button_granted)
             btnGrantOverlay.isEnabled = false
             tvOverlayRestrictedHelp.visibility = View.GONE
         } else {
-            tvOverlayStatus.text = "尚未授予顯示在上層權限"
-            btnGrantOverlay.text = "前往授權"
+            tvOverlayStatus.text = getString(R.string.settings_bubble_overlay_not_granted)
+            btnGrantOverlay.text = getString(R.string.settings_bubble_overlay_action)
             btnGrantOverlay.isEnabled = true
             tvOverlayRestrictedHelp.visibility = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) View.VISIBLE else View.GONE
         }
 
         val accessibilityEnabled = isAccessibilityServiceEnabled()
         if (accessibilityEnabled) {
-            tvAccessibilityStatus.text = "無障礙服務執行中，支援自動填入"
-            btnGrantAccessibility.text = "已開啟"
+            tvAccessibilityStatus.text = getString(R.string.settings_bubble_accessibility_running)
+            btnGrantAccessibility.text = getString(R.string.settings_bubble_button_enabled)
             btnGrantAccessibility.isEnabled = false
             tvRestrictedSettingsHelp.visibility = View.GONE
         } else {
-            tvAccessibilityStatus.text = "尚未啟用無障礙服務"
-            btnGrantAccessibility.text = "前往開啟"
+            tvAccessibilityStatus.text = getString(R.string.settings_bubble_accessibility_not_enabled)
+            btnGrantAccessibility.text = getString(R.string.settings_bubble_autofill_action)
             btnGrantAccessibility.isEnabled = true
             tvRestrictedSettingsHelp.visibility = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) View.VISIBLE else View.GONE
         }
 
         val allReady = overlayGranted && accessibilityEnabled
         if (allReady) {
-            tvBubbleBadge.text = "已就緒"
+            tvBubbleBadge.text = getString(R.string.common_ready)
             tvBubbleBadge.setTextColor(ContextCompat.getColor(this, R.color.status_success_text))
             tvBubbleBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
             layoutAppInfoRow.visibility = View.GONE
@@ -383,7 +383,7 @@ class BubbleSettingsActivity : AppCompatActivity() {
             tvOverlayRestrictedHelp.visibility = View.GONE
             tvRestrictedSettingsHelp.visibility = View.GONE
         } else {
-            tvBubbleBadge.text = "未就緒"
+            tvBubbleBadge.text = getString(R.string.settings_bubble_status_not_ready)
             tvBubbleBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
             tvBubbleBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
             layoutAppInfoRow.visibility = View.VISIBLE
@@ -401,21 +401,21 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
         val count = ModelConfig.getMultiBubbleCount(this)
         sbMultiBubbleCount.progress = (count - 2).coerceIn(0, 2)
-        tvMultiBubbleCountValue.text = "${count} 個"
+        tvMultiBubbleCountValue.text = getString(R.string.settings_bubble_count_value, count)
 
         tvBubbleModesSummary.text = if (enabled) {
-            "已開啟多球：已啟用 ${enabledModes.size} 個功能模式，畫面將同時呈現多顆懸浮球"
+            getString(R.string.settings_bubble_modes_summary_multi, enabledModes.size)
         } else {
-            "已關閉多球：單顆懸浮球模式，長按懸浮球可叫出垂直膠囊選單切換功能"
+            getString(R.string.settings_bubble_modes_summary_single)
         }
         bubbleModeConfigAdapter?.notifyDataSetChanged()
     }
 
     private fun updatePasteModeDesc(isPaste: Boolean) {
         tvPasteModeDesc.text = if (isPaste) {
-            "辨識完成後自動將文字直接填入目前焦點所在的文字框"
+            getString(R.string.settings_bubble_paste_desc_on)
         } else {
-            "辨識完成後不直接填入，僅將文字複製至系統剪貼簿供您隨時手動貼上"
+            getString(R.string.settings_bubble_paste_desc_off)
         }
     }
 
@@ -426,12 +426,12 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
         val limit = ModelConfig.getHistoryLimit(this)
         sbHistoryLimit.progress = (limit - 1).coerceIn(0, 11)
-        tvHistoryLimitValue.text = "${limit} 筆"
+        tvHistoryLimitValue.text = getString(R.string.settings_bubble_history_count_value, limit)
 
         tvHistoryDesc.text = if (enabled) {
-            "在快速常用語抽屜上方即時顯示近期的轉譯歷史紀錄"
+            getString(R.string.settings_bubble_history_desc_on)
         } else {
-            "已關閉歷史紀錄，常用語抽屜將僅顯示固定常用語"
+            getString(R.string.settings_bubble_history_desc_off)
         }
     }
 
@@ -446,22 +446,17 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
     private fun showRestrictedSettingsDialog() {
         AlertDialog.Builder(this)
-            .setTitle("如何解除 Android 13+ 受限制的設定")
+            .setTitle(R.string.settings_bubble_restricted_dialog_title)
             .setMessage(
-                "在 Android 13 及以上版本中，自外部安裝的應用程式，系統會預設限制「無障礙服務」與「懸浮窗權限」的開啟。\n\n" +
-                        "請依照以下步驟解除限制：\n" +
-                        "1. 點擊下方「前往應用程式資訊」\n" +
-                        "2. 在應用程式詳細資訊頁面中，點擊右上角的「︙」（三點選單）\n" +
-                        "3. 點選「解除受限制的設定」\n" +
-                        "4. 通過指紋或鎖定密碼驗證後返回本頁，即可順利開啟權限！"
+                getString(R.string.settings_bubble_restricted_dialog_message)
             )
-            .setPositiveButton("前往應用程式資訊") { _, _ ->
+            .setPositiveButton(R.string.settings_bubble_restricted_dialog_action) { _, _ ->
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:$packageName")
                 }
                 startActivity(intent)
             }
-            .setNegativeButton("知道了", null)
+            .setNegativeButton(R.string.settings_bubble_restricted_dialog_dismiss, null)
             .show()
     }
 }
