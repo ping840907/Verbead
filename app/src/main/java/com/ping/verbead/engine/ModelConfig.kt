@@ -156,8 +156,38 @@ object ModelConfig {
 
     private val CHINESE_PUNCTUATION_REGEX = Regex("[，。！？、…：；「」『』—～（）《》〈〉【】〔〕]")
 
+    /**
+     * 文字是否主要是日文或韓文：假名／諺文占「漢字＋假名＋諺文」的 20% 以上。
+     *
+     * 後處理（簡轉繁、台灣用詞規則、中文標點過濾）只適用於中文。對日文會把漢字改成繁體字形
+     * （国→國）並刪掉「、。」，對韓文的漢字詞也會誤改，所以偵測到日韓文時必須整段跳過。
+     * 只含漢字的短句（如「東京」）無從分辨，一律視為中文。
+     */
+    fun isJapaneseOrKorean(text: String): Boolean {
+        var han = 0
+        var kanaHangul = 0
+        for (ch in text) {
+            when {
+                ch in 'ｦ'..'ﾟ' -> kanaHangul++ // 半形片假名
+                else -> when (Character.UnicodeBlock.of(ch)) {
+                    Character.UnicodeBlock.HIRAGANA,
+                    Character.UnicodeBlock.KATAKANA,
+                    Character.UnicodeBlock.KATAKANA_PHONETIC_EXTENSIONS,
+                    Character.UnicodeBlock.HANGUL_SYLLABLES,
+                    Character.UnicodeBlock.HANGUL_JAMO,
+                    Character.UnicodeBlock.HANGUL_COMPATIBILITY_JAMO -> kanaHangul++
+                    Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS,
+                    Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A,
+                    Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS -> han++
+                    else -> Unit
+                }
+            }
+        }
+        return kanaHangul > 0 && kanaHangul * 5 >= han + kanaHangul
+    }
+
     fun filterChinesePunctuation(text: String): String =
-        text.replace(CHINESE_PUNCTUATION_REGEX, "")
+        if (isJapaneseOrKorean(text)) text else text.replace(CHINESE_PUNCTUATION_REGEX, "")
 
     // ── Traditional Chinese (Taiwan MOE Standard & Pure Character Conversion) ──
     /**
@@ -166,6 +196,7 @@ object ModelConfig {
      * Then applies point-to-point correction for archaic, rare, and non-standard variants.
      */
     fun toTaiwanTraditional(raw: String): String {
+        if (isJapaneseOrKorean(raw)) return raw
         val converted = try {
             ZhConverterUtil.toTraditional(raw)
         } catch (_: Exception) {
@@ -297,7 +328,7 @@ object ModelConfig {
     }
 
     fun applyPostRegexReplacements(text: String): String {
-        if (text.isEmpty()) return text
+        if (text.isEmpty() || isJapaneseOrKorean(text)) return text
         // 詞彙規則先執行
         val vocabApplied = applyVocabularyRules(text)
         // 單字正則替換
@@ -305,7 +336,7 @@ object ModelConfig {
     }
 
     fun normalizeTaiwanVariants(text: String): String {
-        if (text.isEmpty()) return text
+        if (text.isEmpty() || isJapaneseOrKorean(text)) return text
         // 1. 詞彙規則先執行
         val vocabApplied = applyVocabularyRules(text)
         // 2. 單字異體字替換
