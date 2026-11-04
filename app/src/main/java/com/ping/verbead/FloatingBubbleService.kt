@@ -56,11 +56,13 @@ import com.ping.verbead.bubble.BubblePosition
 import com.ping.verbead.bubble.BubbleDeleteZoneController
 import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
+import com.ping.verbead.engine.AsrEngineHub
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
+import com.ping.verbead.watch.WatchBridgeService
 import com.ping.verbead.slm.SlmChatAdapter
 import com.ping.verbead.slm.SlmChatMessage
 import com.ping.verbead.slm.SlmInferenceEngine
@@ -162,8 +164,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private val themedCtx by lazy { ContextThemeWrapper(this, R.style.Theme_Verbead) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val qwen3Asr by lazy { Qwen3AsrEngine(this) }
-    private val xAsr by lazy { XAsrEngine(this) }
+    // 與手錶橋接共用同一份已載入的模型
+    private val qwen3Asr by lazy { AsrEngineHub.qwen3(this) }
+    private val xAsr by lazy { AsrEngineHub.xAsr(this) }
     private val recorder = AudioRecorder(this)
     private val routingManager by lazy { AudioRoutingManager.getInstance(this) }
 
@@ -279,6 +282,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var activeStream: OnlineStream? = null
     private var recordingJob: Job? = null
     private var isRecording = false
+    /** 正由 Pebble 手錶收音（手機麥克風未使用）；只在主執行緒讀寫。 */
+    private var isWatchListening = false
     private var isAborted = false
     private var lastStreamingText = ""
     private var autoHidePreviewJob: Job? = null
@@ -325,6 +330,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         instance = this
         isRunning = true
+        AsrEngineHub.bubbleAlive = true
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
@@ -1769,6 +1775,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun onBubbleClickForMode(item: FloatingBubbleItem) {
         activeAnchorBubble = item
+        if (isWatchListening) {
+            WatchBridgeService.requestStopActiveSession()
+            return
+        }
         if (state == State.PASTED) {
             hideXButton()
             setState(State.IDLE)
@@ -2345,7 +2355,65 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun onAudioRmsUpdate(rms: Float) {
         if (!::bubblePulseController.isInitialized) return
-        bubblePulseController.onAudioRmsUpdate(rms, isRecording)
+        bubblePulseController.onAudioRmsUpdate(rms, isRecording || isWatchListening)
+    }
+
+    /**
+     * 手機自己正在錄音、辨識或掃描（不含手錶收音）。手錶與懸浮球共用同一份辨識器，
+     * 兩邊不得同時解碼，這時手錶的新工作階段要被拒絕。
+     */
+    val isVoiceBusyForWatch: Boolean
+        get() = stateMachine.isBusy && !isWatchListening
+
+    /**
+     * 手錶開始收音：懸浮球轉成紅色錄音中狀態並提示使用手錶聆聽。可由任何執行緒呼叫。
+     * 手機自己正在錄音、辨識或掃描時不搶用懸浮球。
+     */
+    internal fun onWatchListeningStarted() {
+        mainHandler.post {
+            if (isWatchListening) return@post
+            if (stateMachine.isBusy) return@post
+            isWatchListening = true
+            xButtonAutoHideJob?.cancel()
+            hideXButton()
+            val anchor = activeAnchorBubble ?: currentAnchorBubble
+            if (anchor?.isTucked == true) {
+                untuckBubble(anchor, animate = false)
+            } else if (isTucked) {
+                untuckBubble(animate = false)
+            }
+            // 「只在鍵盤開啟時顯示」設定下懸浮球可能是隱藏的，收音期間必須看得到
+            setBubbleVisible(true, animate = false)
+            setState(State.RECORDING)
+            showPreviewText(getString(R.string.preview_watch_listening), autoHide = false)
+        }
+    }
+
+    /** 手錶已停止收音，正在辨識。 */
+    internal fun onWatchProcessing() {
+        mainHandler.post {
+            if (!isWatchListening) return@post
+            hidePreviewText()
+            setState(State.TRANSCRIBING)
+        }
+    }
+
+    /** 手錶輸入結束（完成、失敗或取消）。已填入成功時狀態會是 PASTED，不動它。 */
+    internal fun onWatchListeningEnded() {
+        mainHandler.post {
+            if (!isWatchListening) return@post
+            isWatchListening = false
+            hidePreviewText()
+            if (state == State.RECORDING || state == State.TRANSCRIBING) {
+                setState(State.IDLE)
+                checkAndHideBubbleIfKeyboardClosed(animate = true)
+            }
+        }
+    }
+
+    /** 手錶收音時的即時音量，驅動懸浮球的脈動動畫。 */
+    internal fun onWatchAudioLevel(rms: Float) {
+        mainHandler.post { if (isWatchListening) onAudioRmsUpdate(rms) }
     }
 
     private fun updatePreviewPosition() {
@@ -2395,6 +2463,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         if (isTucked || bubble0?.isTucked == true) {
             untuckBubble(animate = true)
+            return
+        }
+        if (isWatchListening) {
+            // 手錶收音中：點懸浮球等同在手錶上按完成
+            WatchBridgeService.requestStopActiveSession()
             return
         }
         if (state == State.PASTED) {
@@ -3648,8 +3721,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             safely("recorder") { recorder.stopEarly() }
             safely("stream") { activeStream?.release() }
             activeStream = null
-            safely("qwen3") { if (qwen3Asr.isLoaded()) qwen3Asr.release() }
-            safely("xAsr") { if (xAsr.isLoaded()) xAsr.release() }
+            AsrEngineHub.bubbleAlive = false
+            // 手錶正在使用共用模型時不能釋放；它結束後會依閒置規則自行釋放
+            if (AsrEngineHub.watchSessions.get() == 0) {
+                safely("asrEngines") { AsrEngineHub.releaseAll() }
+            }
 
             for (item in bubbleItems) {
                 if (item.id != 0 && item.view.isAttachedToWindow) {

@@ -40,7 +40,8 @@ var ERROR_TEXT = {
   load_failed: 'Speech model failed to load',
   no_speech: 'No speech heard',
   no_text: 'Nothing was recognised',
-  bad_format: 'Unsupported audio format'
+  bad_format: 'Unsupported audio format',
+  busy: 'Phone is busy listening'
 };
 
 var ws = null;
@@ -166,6 +167,7 @@ function connect() {
     connecting = false;
     wsOpen = true;
     log('connected');
+    sendJson({ type: 'hello' });
     flush();
   };
   socket.onmessage = function (ev) {
@@ -320,7 +322,9 @@ Pebble.addEventListener('ready', function () {
   if (!getToken()) {
     status(STATUS.NEEDS_PAIRING, 'Pair in settings');
   } else {
-    connect(); // 先連好，按下說話時就不必等
+    // 先連好，按下說話時就不必等；已連線時再打一次招呼，讓珠璣在此刻預先載入模型
+    if (wsOpen) sendJson({ type: 'hello' });
+    else connect();
   }
 });
 

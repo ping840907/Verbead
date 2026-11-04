@@ -1,6 +1,7 @@
 package com.ping.verbead.watch
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.TranscriptPostProcessor
@@ -38,6 +39,8 @@ class WatchDictationSession(
     /** 將定稿文字填入焦點欄位；回傳是否成功直接填入（false 表示退而求其次複製到剪貼簿）。 */
     private val deliver: suspend (String) -> Boolean,
     private val onFinished: () -> Unit,
+    /** 每包音訊的 RMS，供懸浮球脈動動畫使用。 */
+    private val onAudioLevel: ((Float) -> Unit)? = null,
 ) {
     private val chunks = Channel<FloatArray>(Channel.UNLIMITED)
     @Volatile private var accepting = true
@@ -62,6 +65,14 @@ class WatchDictationSession(
         chunks.close()
     }
 
+    /** 使用者在手機端（懸浮球）按下完成：請手錶停止收音，並處理已收到的音訊後定稿。 */
+    fun stopFromPhone() {
+        if (!accepting) return
+        accepting = false
+        send("autostop") { put("reason", "phone") }
+        chunks.close()
+    }
+
     /** 丟棄一切，不填入任何文字。 */
     fun cancel() {
         accepting = false
@@ -82,21 +93,29 @@ class WatchDictationSession(
             sendError("models_missing", "尚未安裝所需的語音模型，請先在珠璣設定中下載。")
             return
         }
-        send("loading")
+        // 模型已在記憶體時不必叫手錶顯示「載入中」
+        if (!engines.isLoaded(mode)) send("loading")
+        val loadStart = SystemClock.elapsedRealtime()
         val loadError = engines.acquire(mode)
         if (loadError != null) {
             sendError("load_failed", loadError)
             return
         }
+        val loadSeconds = (SystemClock.elapsedRealtime() - loadStart) / 1000f
         try {
-            process(mode)
+            process(mode, loadSeconds)
         } finally {
             // 被 cancel() 時此協程已取消，必須用 NonCancellable，否則計數不會歸還
             withContext(NonCancellable) { engines.release() }
         }
     }
 
-    private suspend fun process(mode: WatchEngines.Mode) {
+    /**
+     * @param loadSeconds 載入模型花的時間。手錶在這段期間仍持續送音訊（多半是靜音），
+     *   載入完成後會一次餵進來，必須把這段時間加進「等待開口」的時限，否則慢速載入後
+     *   會被誤判成沒有說話。
+     */
+    private suspend fun process(mode: WatchEngines.Mode, loadSeconds: Float) {
         val xAsr = engines.xAsr
         val stream = if (mode != WatchEngines.Mode.OFFLINE) xAsr.createStream() else null
         if (mode != WatchEngines.Mode.OFFLINE && stream == null) {
@@ -117,7 +136,7 @@ class WatchDictationSession(
                 speechThreshold = ModelConfig.VAD_SPEECH_THRESHOLD,
                 silenceThreshold = ModelConfig.VAD_SILENCE_THRESHOLD,
                 trailingSilenceSeconds = ModelConfig.vadSilenceSeconds(context),
-                initialTimeoutSeconds = ModelConfig.VAD_INITIAL_TIMEOUT_SECONDS,
+                initialTimeoutSeconds = ModelConfig.VAD_INITIAL_TIMEOUT_SECONDS + loadSeconds,
                 minSeconds = ModelConfig.MIN_RECORD_SECONDS,
             )
         } else null
@@ -127,6 +146,7 @@ class WatchDictationSession(
         try {
             for (chunk in chunks) {
                 totalSamples += chunk.size
+                onAudioLevel?.invoke(PcmUtil.rms(chunk))
 
                 if (stream != null) {
                     xAsr.acceptWaveform(stream, chunk)
@@ -190,6 +210,11 @@ class WatchDictationSession(
                 WatchEngines.Mode.STREAMING -> streamingText
                 WatchEngines.Mode.OFFLINE, WatchEngines.Mode.DUAL -> {
                     val samples = concat(audio, audioSamples)
+                    // 模型若在錄音期間被釋放，transcribe 只會回傳空字串；先確認並補載
+                    if (!engines.isLoaded(mode)) {
+                        Log.w(TAG, "models not in memory before transcribe; reloading")
+                        engines.ensureLoaded(mode)?.let { Log.e(TAG, "reload failed: $it") }
+                    }
                     val qwenText = if (samples.isEmpty()) "" else try {
                         engines.qwen3.transcribe(samples)
                     } catch (e: Exception) {
@@ -204,7 +229,11 @@ class WatchDictationSession(
 
             val text = if (raw.isBlank()) "" else TranscriptPostProcessor.process(context, raw).trim()
             if (text.isEmpty()) {
-                sendError("no_text", "沒有辨識到文字")
+                if (!engines.isLoaded(mode)) {
+                    sendError("load_failed", "語音模型未載入，請重試")
+                } else {
+                    sendError("no_text", "沒有辨識到文字")
+                }
                 return
             }
             val injected = deliver(text)

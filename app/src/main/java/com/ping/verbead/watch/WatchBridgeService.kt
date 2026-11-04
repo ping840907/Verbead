@@ -67,6 +67,14 @@ class WatchBridgeService : Service() {
         fun stop(context: Context) {
             context.stopService(Intent(context, WatchBridgeService::class.java))
         }
+
+        @Volatile
+        private var instance: WatchBridgeService? = null
+
+        /** 懸浮球被點擊：請手錶停止收音，處理已收到的音訊並填入。 */
+        fun requestStopActiveSession() {
+            instance?.let { service -> synchronized(service.lock) { service.session?.stopFromPhone() } }
+        }
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -82,6 +90,7 @@ class WatchBridgeService : Service() {
     override fun onCreate() {
         super.onCreate()
         isRunning = true
+        instance = this
         engines = WatchEngines(this, scope)
         createChannel()
         startForegroundWithNotification()
@@ -107,6 +116,7 @@ class WatchBridgeService : Service() {
     override fun onDestroy() {
         isRunning = false
         isListening = false
+        if (instance === this) instance = null
         synchronized(lock) {
             session?.cancel()
             session = null
@@ -146,6 +156,7 @@ class WatchBridgeService : Service() {
 
         override fun onOpen(connection: LocalWebSocketServer.Connection) {
             Log.i(TAG, "watch connected")
+            preloadEngines()
         }
 
         override fun onText(connection: LocalWebSocketServer.Connection, text: String) {
@@ -155,6 +166,7 @@ class WatchBridgeService : Service() {
                 return
             }
             when (msg.optString("type")) {
+                "hello" -> preloadEngines() // 手錶 App 開啟：先把模型載入記憶體
                 "start" -> startSession(connection, msg)
                 "end" -> synchronized(lock) { if (sessionConnection === connection) session?.end() }
                 "cancel" -> synchronized(lock) {
@@ -184,6 +196,17 @@ class WatchBridgeService : Service() {
         }
     }
 
+    private fun preloadEngines() {
+        scope.launch {
+            try {
+                engines.preload()
+            } catch (e: Exception) {
+                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                Log.w(TAG, "preload failed: ${e.message}")
+            }
+        }
+    }
+
     private fun startSession(connection: LocalWebSocketServer.Connection, msg: JSONObject) {
         val rate = msg.optInt("sampleRate", 16_000)
         val format = msg.optString("format", "pcm16le")
@@ -191,6 +214,14 @@ class WatchBridgeService : Service() {
             connection.sendText(
                 JSONObject().put("type", "error").put("code", "bad_format")
                     .put("message", "只支援 16kHz PCM16 單聲道").toString()
+            )
+            return
+        }
+        // 與懸浮球共用辨識器：手機自己正在錄音／辨識時，不能同時解碼
+        if (FloatingBubbleService.instance?.isVoiceBusyForWatch == true) {
+            connection.sendText(
+                JSONObject().put("type", "error").put("code", "busy")
+                    .put("message", "手機正在使用語音輸入").toString()
             )
             return
         }
@@ -202,20 +233,30 @@ class WatchBridgeService : Service() {
                 engines = engines,
                 scope = scope,
                 autoStop = WatchBridgePrefs.isAutoStop(this),
-                emit = { json -> connection.sendText(json.toString()) },
+                emit = { json ->
+                    connection.sendText(json.toString())
+                    if (json.optString("type") == "processing") {
+                        FloatingBubbleService.instance?.onWatchProcessing()
+                    }
+                },
                 deliver = { text -> withContext(Dispatchers.Main) { injectText(text) } },
                 onFinished = {
-                    synchronized(lock) {
+                    val noSessionLeft = synchronized(lock) {
                         if (session === created) {
                             session = null
                             sessionConnection = null
                         }
+                        session == null
                     }
+                    // 被新 session 取代時，舊 session 的結束不得把懸浮球重設
+                    if (noSessionLeft) FloatingBubbleService.instance?.onWatchListeningEnded()
                 },
+                onAudioLevel = { rms -> FloatingBubbleService.instance?.onWatchAudioLevel(rms) },
             )
             session = created
             sessionConnection = connection
         }
+        FloatingBubbleService.instance?.onWatchListeningStarted()
     }
 
     // ── 填入文字 ──────────────────────────────────────────────────────

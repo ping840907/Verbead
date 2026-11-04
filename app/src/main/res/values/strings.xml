@@ -72,6 +72,7 @@
     <string name="preview_model_load_failed">模型載入失敗，請檢查設定</string>
     <string name="preview_cannot_create_stream">無法建立辨識串流</string>
     <string name="preview_listening">聆聽中…</string>
+    <string name="preview_watch_listening">使用手錶聆聽中…</string>
     <string name="preview_no_speech_detected">未偵測到語音</string>
     <string name="preview_transcribe_failed">轉譯失敗，請重新錄音</string>
     <string name="preview_no_text_detected">未偵測到文字</string>
