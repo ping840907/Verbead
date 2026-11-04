@@ -67,6 +67,7 @@ class AboutSettingsActivity : AppCompatActivity() {
         "zh-TW" -> getString(R.string.settings_language_zh_tw)
         "en" -> getString(R.string.settings_language_en)
         "ja" -> getString(R.string.settings_language_ja)
+        "ko" -> getString(R.string.settings_language_ko)
         else -> getString(R.string.settings_language_follow_system)
     }
 

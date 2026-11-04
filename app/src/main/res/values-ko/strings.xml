@@ -1,0 +1,493 @@
+<resources>
+    <string name="app_name">Verbead</string>
+    <string name="accessibility_service_desc">Verbead 플로팅 버블이 인식한 텍스트를 현재 사용 중인 키보드를 바꾸지 않고도 모든 앱의 입력란에 바로 입력할 수 있게 해 줍니다.</string>
+    <string name="bubble_notification_channel">플로팅 입력 서비스</string>
+
+    <!-- Notifications -->
+    <string name="notif_bubble_title">Verbead 플로팅 입력 도우미</string>
+    <string name="notif_bubble_text">플로팅 버블을 탭하면 현재 포커스된 입력란에 텍스트를 입력하거나 바코드를 스캔할 수 있습니다</string>
+    <string name="notif_bubble_action_close">버블 닫기</string>
+    <string name="notif_channel_bubble_desc">플로팅 버블을 통한 음성 입력 서비스를 제공합니다</string>
+    <string name="notif_download_title">음성 인식 모델 다운로드 중</string>
+
+    <!-- DictSettings Toasts -->
+    <string name="toast_dict_import_success">단어 %1$d개를 가져왔습니다</string>
+    <string name="toast_dict_import_cannot_read">선택한 파일을 읽을 수 없습니다</string>
+    <string name="toast_dict_import_failed">가져오기 실패: %1$s</string>
+    <string name="toast_dict_export_success">단어 %1$d개를 내보냈습니다</string>
+    <string name="toast_dict_export_cannot_write">대상 파일에 쓸 수 없습니다</string>
+    <string name="toast_dict_export_failed">내보내기 실패: %1$s</string>
+    <string name="toast_dict_file_picker_error">파일 선택기를 열 수 없습니다: %1$s</string>
+    <string name="toast_dict_save_dialog_error">저장 대화상자를 열 수 없습니다: %1$s</string>
+    <string name="toast_dict_target_word_empty">변환할 단어를 입력해 주세요</string>
+
+    <!-- VoiceAccessibility Toasts -->
+    <string name="toast_password_not_supported">비밀번호 입력란은 자동 입력을 지원하지 않습니다</string>
+    <string name="toast_fallback_clipboard">바로 입력할 수 없어 클립보드에 복사했습니다</string>
+
+    <!-- Onboarding Tour -->
+    <string name="onboarding_tour_title">사용 안내</string>
+    <string name="onboarding_page1_title">어디서나 플로팅 · 탭하면 바로 말하기</string>
+    <string name="onboarding_page1_desc">평소 쓰던 키보드를 바꿀 필요가 없습니다. 어떤 앱의 입력란에서든 플로팅 버블을 탭하면 녹음이 시작됩니다. 듀얼 엔진(실시간 미리보기 + 고정밀 오프라인 변환)을 지원하며, 인식된 텍스트가 버블 옆에 실시간으로 표시되고 자동으로 입력됩니다!</string>
+    <string name="onboarding_page1_tip">팁: 버블이 빨간색으로 바뀌면 녹음 중입니다. 다시 탭하거나 말을 멈추면 변환과 입력이 자동으로 완료됩니다.</string>
+    <string name="onboarding_page2_title">세로 캡슐 · 다섯 가지 모드를 마음대로 전환</string>
+    <string name="onboarding_page2_desc">버블을 길게 누르면 세로 기능 캡슐이 펼쳐집니다. 위아래로 밀어 \"음성 실시간 입력\", \"바코드 스캔\", \"문자 인식(PP-OCRv6)\", \"자주 쓰는 문구 및 기록\" 네 가지 모드를 전환할 수 있습니다.</string>
+    <string name="onboarding_page2_tip">팁: 원하는 모드까지 밀고 손가락을 떼면 바로 전환되어 사용할 수 있습니다.</string>
+    <string name="onboarding_page3_title">플로팅 ✕ 키 · 한 번에 취소 및 복원</string>
+    <string name="onboarding_page3_desc">음성 입력이나 OCR 결과가 마음에 들지 않아도 글자를 하나하나 고칠 필요가 없습니다. 입력 후 10초 이내에 버블 위의 작은 ✕ 키를 탭하면 원래 텍스트를 즉시 그대로 복원합니다.</string>
+    <string name="onboarding_page3_tip">팁: 입력이 끝나면 버블 위에 ✕ 키가 나타납니다. 탭하면 손실 없이 실행 취소할 수 있습니다.</string>
+    <string name="onboarding_page4_title">가장자리 수납 · 키보드 연동 · 흔들어 복제</string>
+    <string name="onboarding_page4_desc" formatted="false">화면 가장자리로 끌면 70%가 가려지며 수납됩니다. \"소프트웨어 키보드가 나타날 때만 표시\"를 켤 수도 있습니다. 또한 버블을 끌면서 좌우로 빠르게 흔들면 \"분신을 추가\"할 수 있어(최대 5개), 음성, OCR, AI 다시 쓰기 버블을 한 화면에 함께 둘 수 있습니다!</string>
+    <string name="onboarding_page4_tip">팁: 분신 버블은 각자 다른 모드를 기억합니다. 불필요한 분신은 화면 위쪽 삭제 영역으로 끌어 제거하세요.</string>
+    <string name="onboarding_page5_title" formatted="false">100% 온디바이스 · 올인원 기본 설정</string>
+    <string name="onboarding_page5_desc">듀얼 엔진 음성 인식부터 PP-OCRv6 문자 인식까지 모든 처리가 휴대폰 안에서 이루어집니다. 클라우드 업로드도, 개인정보 유출도 없습니다. 권한, 모델 관리, 오프라인 모델 패키지 가져오기가 모두 기본 설정 화면에 모여 있습니다!</string>
+    <string name="onboarding_page5_tip">개인정보 보호: 온디바이스 처리로 빠르고 보안 수준도 최고입니다. 아래 버튼으로 기본 설정에 들어가 시작해 보세요.</string>
+
+    <!-- Onboarding Toasts -->
+    <string name="toast_file_picker_error">파일 선택기를 열 수 없습니다: %1$s</string>
+    <string name="toast_model_download_done">%1$s 모델 다운로드를 완료했습니다</string>
+    <string name="toast_model_download_failed">%1$s 다운로드 실패: %2$s</string>
+
+    <!-- ImeSettings Toasts -->
+    <string name="toast_url_open_error">링크를 열 수 없습니다: %1$s</string>
+    <string name="toast_model_not_downloaded">이 모델이 아직 다운로드되지 않았습니다. 아래에서 먼저 다운로드해 주세요</string>
+    <string name="toast_switched_to_qwen3_dual">Qwen3-ASR로 전환하고 듀얼 엔진 모드를 켰습니다</string>
+
+    <!-- FloatingBubbleService Toasts -->
+    <string name="toast_mic_permission_voice">음성 입력을 사용하려면 먼저 마이크 권한을 허용해 주세요</string>
+    <string name="toast_offline_model_error_applied_streaming">오프라인 변환에 문제가 생겨 실시간 인식 결과를 적용했습니다</string>
+    <string name="toast_transcribe_failed_retry">변환에 실패했습니다. 다시 녹음해 주세요</string>
+    <string name="toast_camera_permission_scan">스캔 기능을 사용하려면 먼저 카메라 권한을 허용해 주세요</string>
+    <string name="toast_camera_permission_ocr">문자 인식을 사용하려면 먼저 카메라 권한을 허용해 주세요</string>
+    <string name="toast_auto_enter_enabled">자동 줄바꿈을 켰습니다</string>
+    <string name="toast_auto_enter_disabled">자동 줄바꿈을 껐습니다</string>
+    <string name="toast_ocr_model_not_downloaded">PP-OCR 모델이 아직 다운로드되지 않았습니다. 먼저 설정 화면에서 다운로드해 주세요</string>
+    <string name="toast_camera_capture_failed">현재 카메라 화면을 캡처할 수 없습니다</string>
+
+    <!-- FloatingBubbleService Previews -->
+    <string name="preview_restored">실행 취소됨</string>
+    <string name="preview_voice_start_failed">음성 입력을 시작하지 못했습니다: %1$s</string>
+    <string name="preview_loading_dual_models">모델 두 개를 불러오는 중…</string>
+    <string name="preview_loading_models">모델을 불러오는 중…</string>
+    <string name="preview_model_load_failed">모델을 불러오지 못했습니다. 설정을 확인해 주세요</string>
+    <string name="preview_cannot_create_stream">인식 스트림을 만들 수 없습니다</string>
+    <string name="preview_listening">듣는 중…</string>
+    <string name="preview_no_speech_detected">음성이 감지되지 않았습니다</string>
+    <string name="preview_transcribe_failed">변환에 실패했습니다. 다시 녹음해 주세요</string>
+    <string name="preview_no_text_detected">텍스트가 감지되지 않았습니다</string>
+    <string name="preview_copied">복사됨</string>
+    <string name="preview_mode_voice">음성 모드</string>
+    <string name="preview_mode_ocr">문자 인식</string>
+    <string name="preview_mode_barcode">바코드 스캔</string>
+    <string name="preview_mode_phrases">자주 쓰는 문구</string>
+    <string name="preview_inserted_phrase">문구를 입력했습니다</string>
+    <string name="preview_copied_barcode">바코드를 복사했습니다</string>
+    <string name="preview_copied_with_text">복사됨: %1$s</string>
+
+    <!-- Quick Phrases Drawer Strings -->
+    <string name="dialog_phrase_add_title">자주 쓰는 문구 추가</string>
+    <string name="dialog_phrase_edit_title">자주 쓰는 문구 편집</string>
+    <string name="dialog_phrase_delete_title">자주 쓰는 문구 삭제</string>
+    <string name="dialog_phrase_delete_confirm">이 문구를 삭제할까요?\n\"%1$s\"</string>
+    <string name="btn_save">저장</string>
+    <string name="btn_cancel">취소</string>
+    <string name="btn_delete">삭제</string>
+    <string name="toast_phrase_added">문구를 추가했습니다</string>
+    <string name="toast_phrase_updated">문구를 수정했습니다</string>
+    <string name="toast_phrase_deleted">문구를 삭제했습니다</string>
+    <string name="toast_history_cleared">최근 기록을 지웠습니다</string>
+    <string name="toast_phrase_saved_from_history">기록을 자주 쓰는 문구에 추가했습니다</string>
+    <string name="header_recent_history">최근 기록 (최대 %1$d개)</string>
+    <string name="header_quick_phrases">자주 쓰는 문구 (길게 눌러 순서 변경)</string>
+    <string name="action_clear_history">지우기</string>
+    <string name="empty_quick_phrases">자주 쓰는 문구나 기록이 아직 없습니다\n오른쪽 위의 \"+\"를 탭해 추가하세요</string>
+
+    <string name="toast_asr_model_not_ready">음성 인식 모델(%1$s)이 아직 다운로드되지 않았습니다. 설정에서 다운로드해 주세요</string>
+    <string name="ocr_pangu_spacing_title">한중영 사이 띄어쓰기</string>
+    <string name="ocr_pangu_spacing_desc">인식된 중국어 글자와 영문·숫자·기호 사이에 반각 공백을 자동으로 넣어 가독성을 높입니다</string>
+    <string name="ocr_to_traditional_title">인식 결과를 번체 중국어로 변환</string>
+    <string name="ocr_to_traditional_desc">인식된 간체자를 대만 표준 번체 중국어로 자동 변환합니다 (OpenCC)</string>
+
+    <!-- Settings Category Titles -->
+    <string name="settings_cat_bubble_title">플로팅 버블 및 동작 모드</string>
+    <string name="settings_cat_bubble_desc">다중 버블, 모드 켜기/끄기 및 순서, 가장자리 수납, 키보드 연동</string>
+
+    <string name="settings_cat_speech_title">음성 인식 및 모델</string>
+    <string name="settings_cat_speech_desc">듀얼 엔진, X-ASR 스트리밍, Qwen3 오프라인 고정밀, 핫워드</string>
+
+    <string name="settings_cat_ocr_title">스마트 문자 인식 (OCR)</string>
+    <string name="settings_cat_ocr_desc">PP-OCR 오프라인 모델, 글자 간격, 바코드 스캔</string>
+
+
+    <string name="settings_cat_backup_title">오프라인 모델 백업 및 가져오기</string>
+    <string name="settings_cat_backup_desc">ZIP에서 오프라인 모델을 스마트하게 검증하고 복원합니다</string>
+
+    <string name="settings_cat_about_title">정보 및 오픈소스 감사</string>
+    <string name="settings_cat_about_desc">버전 정보, 오픈소스 감사의 글, GitHub 프로젝트</string>
+
+    <!-- Manifest labels -->
+    <string name="onboarding_title">시작 설정</string>
+    <string name="dict_settings_title">사용자 단어</string>
+
+    <!-- Interface language -->
+    <string name="settings_language_title">표시 언어</string>
+    <string name="settings_language_dialog_title">표시 언어 선택</string>
+    <string name="settings_language_follow_system">시스템 설정 따르기</string>
+
+    <!-- P1-1: small layouts -->
+    <string name="dict_settings_how_title">단어가 작동하는 방식</string>
+    <string name="dict_settings_how_body">1. Qwen3-ASR이 사용자 단어를 핫워드 목록에 추가해 인식률을 높입니다.\n2. 키보드에서 텍스트를 길게 눌러 선택한 뒤 단어를 탭하면 바로 바꿀 수 있습니다.\n3. 또는 키보드의 \"단어\" 버튼을 눌러 패널을 열고 빠르게 삽입할 수 있습니다.</string>
+    <string name="dict_settings_use_as_hotwords">단어를 핫워드로 사용</string>
+    <string name="dict_settings_empty_title">사용자 단어가 아직 없습니다</string>
+    <string name="dict_settings_empty_hint">아래 버튼을 눌러 고유명사, 나만의 단어, 전문 용어를 추가하세요</string>
+    <string name="dict_settings_import_csv">CSV 가져오기</string>
+    <string name="dict_settings_export_csv">CSV 내보내기</string>
+    <string name="dict_settings_add">+ 추가</string>
+    <string name="common_close">닫기</string>
+    <string name="common_text_recognition">문자 인식</string>
+    <string name="floating_resize_window_desc">창 크기 조절</string>
+    <string name="floating_flash_desc">플래시</string>
+    <string name="floating_wrap_desc">자동 줄바꿈</string>
+    <string name="floating_ocr_capture_desc">텍스트 스냅샷 촬영</string>
+    <string name="floating_ocr_shutter_hint">셔터를 눌러 텍스트 촬영</string>
+    <string name="floating_scanner_close_desc">스캔 닫기</string>
+    <string name="floating_scanner_title">바코드 스캔</string>
+    <string name="floating_scanner_hint">바코드나 QR 코드에 맞추면 자동으로 입력됩니다</string>
+    <string name="ocr_snapshot_detecting">텍스트 블록 감지 중…</string>
+    <string name="ocr_snapshot_rotate_desc">180도 회전</string>
+    <string name="ocr_snapshot_select_all">모두 선택</string>
+    <string name="ocr_snapshot_clear">지우기</string>
+    <string name="ocr_snapshot_recognize_and_input">인식 후 입력</string>
+    <string name="settings_backup_restore_title">오프라인 모델 한 번에 복원</string>
+    <string name="settings_backup_status_not_ready">완전히 준비되지 않음</string>
+    <string name="settings_backup_restore_desc">Qwen3-ASR, X-ASR, PP-OCRv6 오프라인 모델을 지원합니다. 모델 패키지(.zip)를 불러오면 내용을 자동으로 판별해 포함된 모델을 압축 해제하고 복원하므로 하나씩 다운로드할 필요가 없습니다.</string>
+    <string name="settings_backup_pick_package">가져올 모델 패키지 선택</string>
+    <string name="settings_backup_load_internal">내부 모델 패키지 빠르게 불러오기</string>
+    <string name="bubble_mode_drag_handle_desc">길게 눌러 끌어서 순서 변경</string>
+    <string name="bubble_mode_voice_title">음성 입력</string>
+    <string name="bubble_mode_voice_desc">버블을 탭하거나 메뉴를 길게 눌러 음성 텍스트 변환을 시작합니다</string>
+    <string name="bubble_mode_move_up_desc">위로 이동</string>
+    <string name="bubble_mode_move_down_desc">아래로 이동</string>
+    <string name="capsule_voice_mode_desc">음성 모드</string>
+    <string name="capsule_barcode_desc">바코드 인식</string>
+    <string name="capsule_phrases_drawer_desc">자주 쓰는 문구</string>
+    <string name="dialog_add_entry_target_hint">변환할 단어 / 올바른 텍스트 (필수)</string>
+    <string name="dialog_add_entry_source_hint">인식된 텍스트 / 바꿀 단어 (선택)</string>
+    <string name="dialog_add_entry_tip">팁: \"인식된 텍스트\"를 입력하면 해당 텍스트가 인식될 때 자동으로 \"변환할 단어\"로 바뀝니다. 비워 두면 변환할 단어가 단어장에 추가되어 음성 인식 정확도를 높입니다.</string>
+    <string name="quick_history_desc">기록</string>
+    <string name="quick_history_add_phrase_desc">자주 쓰는 문구에 추가</string>
+    <string name="quick_history_delete_desc">이 기록 삭제</string>
+    <string name="quick_phrase_edit_desc">문구 편집</string>
+    <string name="quick_phrase_delete_desc">문구 삭제</string>
+    <string name="quick_phrase_drag_desc">끌어서 순서 변경</string>
+    <string name="phrases_drawer_close_desc">자주 쓰는 문구 닫기</string>
+    <string name="common_quick_phrases">자주 쓰는 문구</string>
+    <string name="phrases_drawer_add_desc">문구 추가</string>
+    <string name="dialog_phrase_entry_hint">문구 내용</string>
+    <string name="dialog_phrase_entry_tip">팁: 서랍의 문구를 탭하면 포커스된 입력란에 바로 입력됩니다.</string>
+    <string name="dict_entry_delete_desc">단어 삭제</string>
+    <string name="bubble_delete_zone_desc">버블 제거</string>
+    <string name="floating_bubble_desc">Verbead 플로팅 버블</string>
+    <string name="floating_preview_recognizing">인식 중…</string>
+
+    <!-- P1-2: large settings layouts -->
+    <string name="settings_speech_dual_title">듀얼 엔진 모드</string>
+    <string name="settings_speech_dual_desc">말하는 동안 텍스트를 실시간으로 미리 보여 주고, 끝나면 자동으로 정밀하게 다듬어 입력합니다</string>
+    <string name="settings_speech_xasr_title">X-ASR 초고속 스트리밍 엔진</string>
+    <string name="settings_speech_xasr_desc">말하는 대로 바로 글자가 나타나는 저지연 실시간 인식, 번체 중국어 기본 사전 탑재</string>
+    <string name="common_checking">확인 중…</string>
+    <string name="common_select_engine">엔진 선택</string>
+    <string name="common_download_model">모델 다운로드</string>
+    <string name="settings_speech_qwen_title">Qwen3-ASR 고정밀 오프라인 엔진</string>
+    <string name="settings_speech_qwen_desc">구두점이 완전하고 문맥이 자연스러우며, 정확한 일괄 변환을 위해 만들어졌습니다</string>
+    <string name="settings_speech_prefs_title">음성 입력 환경설정</string>
+    <string name="settings_speech_prefs_desc">모든 음성 인식 모드와 엔진에 적용됩니다</string>
+    <string name="settings_speech_external_audio_title">외부 오디오 우선 사용</string>
+    <string name="settings_speech_external_audio_desc">블루투스 이어폰이나 외장 마이크가 연결되어 있으면 우선 사용합니다. 끄면 항상 휴대폰 마이크를 사용합니다</string>
+    <string name="settings_speech_gain_title">외부 오디오 게인</string>
+    <string name="settings_speech_gain_desc">이어폰이나 외장 마이크의 입력 음량 배율을 조절해, 멀리서 소리가 작게 들리는 문제를 해결합니다</string>
+    <string name="settings_speech_gain_value_default">게인 2.5x</string>
+    <string name="settings_speech_vad_title">말 멈춤 대기 시간 (VAD)</string>
+    <string name="settings_speech_vad_desc">말을 멈추고 이 시간이 지나면 자동으로 녹음을 끝내고 인식을 시작합니다</string>
+    <string name="settings_speech_vad_value_default">1.0초</string>
+    <string name="settings_speech_vocab_title">사용자 단어 관리</string>
+    <string name="settings_speech_vocab_desc">자주 쓰는 이름, 고유명사, 교정할 단어를 추가하세요</string>
+    <string name="settings_speech_vocab_button">단어 관리</string>
+    <string name="settings_speech_qwen_prefs_title">Qwen3 인식 환경설정</string>
+    <string name="settings_speech_qwen_prefs_desc">Qwen3-ASR과 듀얼 엔진의 최종 다듬기 단계에 적용됩니다</string>
+    <string name="settings_speech_to_traditional_title">번체 중국어로 변환</string>
+    <string name="settings_speech_to_traditional_desc">간체를 번체로 변환합니다. 일본어와 한국어 구간은 변환되지 않습니다. 끄면 인식 원문을 그대로 유지합니다</string>
+    <string name="settings_speech_spoken_numbers_title">구어체 숫자를 아라비아 숫자로 변환</string>
+    <string name="settings_speech_spoken_numbers_desc">중국어 \"一百二十三\"을 123으로 바꾸고, 사칙연산, 백분율, 분수, 음수, 제곱근, 시각도 처리합니다. 일상 표현 속의 한 자릿수는 변환되지 않습니다</string>
+    <string name="settings_speech_filter_punct_title">중국어 문장부호 제거</string>
+    <string name="settings_speech_filter_punct_desc">전각 쉼표, 마침표, 물음표 등의 기호를 자동으로 없앱니다</string>
+    <string name="settings_bubble_header_title">플로팅 음성 버블</string>
+    <string name="settings_bubble_header_desc">가장자리에 상주하며, 한 번에 음성·바코드·문자 인식을 사용합니다</string>
+    <string name="settings_bubble_status_not_ready">준비 안 됨</string>
+    <string name="settings_bubble_overlay_title">다른 앱 위에 표시</string>
+    <string name="settings_bubble_overlay_desc">다른 앱 위에 표시하도록 허용합니다</string>
+    <string name="settings_bubble_overlay_help">\"다른 앱 위에 표시\"를 켤 수 없나요? 제한된 설정 해제 방법 보기</string>
+    <string name="settings_bubble_overlay_action">허용하기</string>
+    <string name="settings_bubble_autofill_title">자동 입력 (접근성)</string>
+    <string name="settings_bubble_autofill_desc">인식된 텍스트를 포커스된 입력란에 바로 입력합니다</string>
+    <string name="settings_bubble_autofill_help">자동 입력을 켤 수 없나요? 제한된 설정 해제 방법 보기</string>
+    <string name="settings_bubble_autofill_action">켜기</string>
+    <string name="settings_bubble_restricted_title">제한된 설정 허용</string>
+    <string name="settings_bubble_restricted_desc">\"다른 앱 위에 표시\" 또는 \"자동 입력\" 스위치가 시스템에서 회색으로 잠겨 있다면, 여기를 눌러 앱 정보 화면으로 이동한 뒤 오른쪽 위의 \"⋮\"(점 3개 메뉴)에서 \"제한된 설정 허용\"을 선택해 잠금을 해제하세요</string>
+    <string name="settings_bubble_restricted_action">열기</string>
+    <string name="settings_bubble_keyboard_only_title">키보드가 나타날 때만 표시</string>
+    <string name="settings_bubble_keyboard_only_desc">켜면 입력 키보드가 올라올 때만 버블이 표시되고, 끄면 가장자리에 계속 표시됩니다</string>
+    <string name="settings_bubble_multi_title">다중 버블 동시 사용</string>
+    <string name="settings_bubble_multi_desc">여러 기능 버블을 동시에 표시하며, 스마트 충돌 회피로 가장자리에서도 겹치지 않습니다</string>
+    <string name="settings_bubble_count_title">버블 개수</string>
+    <string name="settings_bubble_count_desc">동시에 표시할 버블 개수 (2~4개: 음성, 인식, 바코드, 자주 쓰는 문구)</string>
+    <string name="settings_bubble_count_value_default">4개</string>
+    <string name="settings_bubble_modes_title">버블 기능 모드 및 순서</string>
+    <string name="settings_bubble_modes_desc">핸들을 길게 눌러 끌거나 화살표를 탭해 캡슐 메뉴와 복제 버블의 순서를 조정하세요. 모드별로 켜고 끌 수도 있습니다</string>
+    <string name="settings_bubble_modes_reset">기본값으로 재설정</string>
+    <string name="settings_bubble_paste_title">클립보드 붙여넣기 모드 사용</string>
+    <string name="settings_bubble_paste_desc">켜면 클립보드 붙여넣기(Paste)로 텍스트를 입력하고, 끄면 접근성으로 바로 입력합니다(SetText)</string>
+    <string name="settings_bubble_history_title">자주 쓰는 문구 서랍 입력 기록</string>
+    <string name="settings_bubble_history_desc">켜면 다른 모드(음성 / 인식 / 바코드)의 입력 내용을 자주 쓰는 문구 서랍에 자동으로 임시 저장합니다</string>
+    <string name="settings_bubble_history_count_title">보관할 기록 수</string>
+    <string name="settings_bubble_history_count_desc">자주 쓰는 문구 서랍 위쪽에 보관할 최대 기록 수 (1~12개)</string>
+    <string name="settings_bubble_history_count_value_default">6개</string>
+    <string name="settings_status_title">기능 설정 상태</string>
+    <string name="settings_status_desc">완료되지 않은 항목을 탭하면 해당 설정으로 이동합니다</string>
+    <string name="settings_status_checking">확인 중</string>
+    <string name="settings_perm_mic_title">마이크 녹음 권한</string>
+    <string name="settings_perm_denied_action">허용 안 됨 ➜</string>
+    <string name="settings_perm_camera_title">카메라 권한 (문자 인식 및 바코드 스캔)</string>
+    <string name="settings_perm_overlay_title">다른 앱 위에 표시</string>
+    <string name="settings_perm_accessibility_title">접근성 자동 입력</string>
+    <string name="settings_perm_disabled_action">꺼짐 ➜</string>
+    <string name="settings_perm_model_title">음성 인식 모델</string>
+    <string name="settings_perm_not_downloaded_action">다운로드 안 됨 ➜</string>
+    <string name="settings_tour_button">사용 시연 및 기능 안내</string>
+    <string name="settings_categories_title">기능 설정</string>
+    <string name="settings_restore_desc_short">X-ASR, Qwen3, PP-OCR 모델 패키지 ZIP으로 자동 복원</string>
+    <string name="settings_restore_desc_long">오프라인 모델 패키지(.zip)를 가져오면 모델 파일을 자동으로 판별해 압축을 풀고 복원하므로, 하나씩 다운로드할 필요가 없습니다.</string>
+    <string name="settings_restore_pick_zip">모델 패키지(.zip) 선택</string>
+    <string name="settings_restore_load_internal">내부 저장소의 모델 패키지 빠르게 불러오기</string>
+    <string name="settings_footer_title">Verbead</string>
+    <string name="settings_footer_tagline">말이 옥이 되어, 글자마다 구슬처럼</string>
+    <string name="settings_ocr_header_title">PP-OCRv6 온디바이스 문자 인식</string>
+    <string name="settings_ocr_header_desc">플로팅 스캐너에서 카메라 화면의 글자를 탭하면 화면을 고정해 인식하고 자동으로 입력합니다</string>
+    <string name="settings_ocr_tip_vertical">세로쓰기 자동 펼침: 책, 메뉴판, 춘련 등의 세로쓰기 중국어를 자동으로 바로 세워 뒤집히지 않고 정확하게 인식합니다.</string>
+    <string name="settings_ocr_tip_multiselect">여러 블록 순서대로 결합: 텍스트 블록을 탭하면 ①②③ 번호가 표시되며, 원하는 순서로 이어 붙일 수 있습니다. 블록을 두 번 탭하면 바로 확정해 붙여 넣습니다.</string>
+    <string name="settings_ocr_auto_enter_title">인식·스캔 후 자동 줄바꿈</string>
+    <string name="settings_ocr_auto_enter_desc">바코드나 선택한 텍스트를 입력한 뒤 Enter 키를 자동으로 보냅니다</string>
+    <string name="settings_ocr_smart_join_title">스마트 문단 줄바꿈 결합</string>
+    <string name="settings_ocr_smart_join_desc">인접한 텍스트 상자가 자연스러운 줄바꿈인지 판단해 줄바꿈을 없애거나 공백을 넣습니다. 끄면 아래의 고정 간격을 사용합니다</string>
+    <string name="settings_ocr_join_spacing_title">여러 블록 결합 간격</string>
+    <string name="settings_ocr_join_spacing_desc">여러 텍스트 상자를 동시에 선택했을 때 이어 붙이는 간격 방식입니다</string>
+    <string name="settings_ocr_join_newline">줄바꿈</string>
+    <string name="settings_ocr_join_space">공백</string>
+    <string name="settings_ocr_join_none">간격 없음</string>
+    <string name="settings_about_credits_title">오픈소스 및 감사의 글</string>
+    <string name="settings_about_credits_intro">Verbead는 오픈소스 커뮤니티와 모델 제작자 여러분의 뛰어난 기여에 진심으로 감사드립니다 (탭하면 프로젝트를 엽니다):</string>
+    <string name="settings_about_paddleocr_credit">"  제작: PaddlePaddle 팀 (바이두) · 오프라인 문자 인식"</string>
+    <string name="settings_about_zxing_title">• zxing-cpp 바코드 인식 라이브러리 ↗</string>
+    <string name="settings_about_zxing_credit">"  제작: zxing-cpp 팀 / Axel Waggershauser · C++ 바코드 스캔"</string>
+    <string name="settings_about_sherpa_credit">"  제작: Next-gen Kaldi (k2-fsa) · 온디바이스 음성 인식 런타임"</string>
+    <string name="settings_about_xasr_title">• X-ASR 번체 중국어 스트리밍 모델 ↗</string>
+    <string name="settings_about_xasr_credit">"  제작: Luigi · 대만 중국어 및 중국어·영어 혼용에 최적화된 모델"</string>
+    <string name="settings_about_qwen_title">• Qwen3-ASR 음성 모델 ↗</string>
+    <string name="settings_about_qwen_credit">"  제작: Alibaba Qwen Team · 고정밀 오픈소스 음성 모델"</string>
+    <string name="settings_about_onnx_credit">"  제작: Microsoft · 크로스 플랫폼 고성능 신경망 추론 엔진"</string>
+
+    <!-- P1-3: settings activities -->
+    <string name="common_add">추가</string>
+    <string name="common_download">다운로드</string>
+    <string name="common_redownload">다시 다운로드</string>
+    <string name="common_ready">준비됨</string>
+    <string name="common_not_downloaded">다운로드 안 됨</string>
+    <string name="common_cancel_download">다운로드 취소</string>
+    <string name="common_connecting">연결 중…</string>
+    <string name="common_got_it">확인</string>
+    <string name="ocr_model_name_small">PP-OCRv6 표준</string>
+    <string name="ocr_model_name_tiny">PP-OCRv6 경량</string>
+    <string name="settings_toast_camera_permission">시스템 설정에서 카메라 권한을 켜 주세요</string>
+    <string name="settings_toast_quick_zip_not_found">Download 폴더에서 기본 모델 ZIP 패키지를 찾을 수 없습니다</string>
+    <string name="settings_import_preparing">모델 패키지 압축 해제를 준비하는 중…</string>
+    <string name="settings_import_extracting">압축 해제 중: %1$s (%2$d%%)</string>
+    <string name="settings_import_invalid_source">잘못된 파일 출처입니다</string>
+    <string name="settings_import_core_files_item">• 오프라인 모델 핵심 파일</string>
+    <string name="settings_import_success_title">오프라인 모델 복원 완료</string>
+    <string name="settings_import_success_message">패키지 내용을 판별해 모델 파일을 복원했습니다. 복원된 모델 파일 수: %1$d\n\n이번에 복원된 항목:\n%2$s\n\n관련 기능이 모두 자동으로 켜져 바로 사용할 수 있습니다.</string>
+    <string name="settings_import_success_ok">좋아요</string>
+    <string name="settings_import_failed_title">가져오기 실패</string>
+    <string name="settings_import_failed_message">이 모델 패키지를 압축 해제하거나 설치하지 못했습니다:\n%1$s</string>
+    <string name="settings_status_ready_check">준비됨 ✓</string>
+    <string name="settings_status_off_action">꺼짐 ➜</string>
+    <string name="settings_overall_all_ready">모두 준비됨</string>
+    <string name="settings_overall_pending">설정 필요: %1$d개</string>
+    <string name="settings_summary_bubble_running">상주 중</string>
+    <string name="settings_summary_bubble_not_running">실행 안 됨</string>
+    <string name="settings_summary_bubble_multi">버블 %1$d개 모드</string>
+    <string name="settings_summary_bubble_single">단일 버블 모드</string>
+    <string name="settings_summary_bubble">%1$s · %2$s · 켜진 모드: %3$d개</string>
+    <string name="settings_summary_engine_dual">듀얼 엔진 (X-ASR + Qwen3)</string>
+    <string name="settings_summary_engine_qwen">Qwen3 오프라인 고정밀 인식</string>
+    <string name="settings_summary_engine_xasr">X-ASR 번체 중국어 스트리밍 인식</string>
+    <string name="settings_summary_ocr_pangu">한중영 띄어쓰기</string>
+    <string name="settings_summary_ocr_compact">붙여쓰기</string>
+    <string name="settings_summary_ocr_trad">번체</string>
+    <string name="settings_summary_ocr_original">원문 그대로</string>
+    <string name="settings_summary_backup">다운로드된 오프라인 모델: %1$d/%2$d개 · ZIP 가져오기 지원</string>
+    <string name="settings_all_models_ready">모든 모델 준비됨</string>
+    <string name="settings_restore_load_internal_size">내부 저장소의 모델 패키지 빠르게 불러오기 (%1$dMB)</string>
+    <string name="settings_summary_about">버전 %1$s · 감사의 글 및 라이선스</string>
+    <string name="dict_dialog_delete_title">단어 삭제</string>
+    <string name="dict_dialog_delete_message">\"%1$s\"을(를) 삭제할까요?</string>
+    <string name="dict_dialog_add_title">단어 / 바꾸기 규칙 추가</string>
+    <string name="dict_dialog_edit_title">단어 / 바꾸기 규칙 편집</string>
+    <string name="dict_entry_mapping">자동 바꾸기: %1$s → %2$s</string>
+    <string name="settings_bubble_count_value">%1$d개</string>
+    <string name="settings_bubble_history_count_value">%1$d개</string>
+    <string name="settings_bubble_toast_min_one_mode">버블 모드를 최소 1개는 켜 두어야 합니다</string>
+    <string name="settings_bubble_overlay_granted">다른 앱 위에 표시 권한을 받았습니다</string>
+    <string name="settings_bubble_button_granted">허용됨</string>
+    <string name="settings_bubble_overlay_not_granted">다른 앱 위에 표시 권한이 허용되지 않았습니다</string>
+    <string name="settings_bubble_accessibility_running">접근성 서비스가 실행 중입니다. 자동 입력을 지원합니다</string>
+    <string name="settings_bubble_button_enabled">켜짐</string>
+    <string name="settings_bubble_accessibility_not_enabled">접근성 서비스가 켜져 있지 않습니다</string>
+    <string name="settings_bubble_modes_summary_multi">다중 버블 켜짐 · 켜진 모드: %1$d개. 여러 버블이 화면에 동시에 표시됩니다</string>
+    <string name="settings_bubble_modes_summary_single">다중 버블 꺼짐 · 단일 버블 모드. 버블을 길게 누르면 세로 캡슐 메뉴에서 기능을 전환할 수 있습니다</string>
+    <string name="settings_bubble_paste_desc_on">인식이 끝나면 텍스트를 포커스된 입력란에 바로 입력합니다</string>
+    <string name="settings_bubble_paste_desc_off">인식이 끝나도 바로 입력하지 않고 텍스트를 클립보드에만 복사하므로, 원할 때 직접 붙여 넣을 수 있습니다</string>
+    <string name="settings_bubble_history_desc_on">자주 쓰는 문구 서랍 위쪽에 최근 변환 기록을 바로 표시합니다</string>
+    <string name="settings_bubble_history_desc_off">기록이 꺼져 있습니다. 자주 쓰는 문구 서랍에는 저장된 문구만 표시됩니다</string>
+    <string name="settings_bubble_restricted_dialog_title">Android 13 이상에서 제한된 설정을 허용하는 방법</string>
+    <string name="settings_bubble_restricted_dialog_message">Android 13 이상에서는 외부에서 설치한 앱의 \"접근성 서비스\"와 \"다른 앱 위에 표시\"가 기본적으로 제한됩니다.\n\n다음 순서로 제한을 해제하세요:\n1. 아래의 \"앱 정보 열기\"를 탭합니다\n2. 앱 정보 화면에서 오른쪽 위의 \"⋮\"(점 3개 메뉴)를 탭합니다\n3. \"제한된 설정 허용\"을 탭합니다\n4. 지문이나 잠금 비밀번호로 인증한 뒤 이 화면으로 돌아와 권한을 켜세요!</string>
+    <string name="settings_bubble_restricted_dialog_action">앱 정보 열기</string>
+    <string name="settings_bubble_restricted_dialog_dismiss">확인</string>
+    <string name="settings_speech_toast_bluetooth_denied">블루투스 연결 권한이 허용되지 않아 블루투스 이어폰으로 자동 전환되지 않을 수 있습니다</string>
+    <string name="settings_speech_gain_original">1.0x (원음)</string>
+    <string name="settings_speech_gain_format">게인 %1$.1fx</string>
+    <string name="settings_speech_vad_format">%1$.1f초</string>
+    <string name="settings_speech_engine_switch">이 엔진으로 전환</string>
+    <string name="settings_speech_engine_in_use">사용 중</string>
+    <string name="settings_speech_vocab_desc_count">사용자 단어 %1$d개 · 탭하여 관리</string>
+    <string name="settings_speech_engine_xasr_name">X-ASR 스트리밍 엔진</string>
+    <string name="settings_speech_engine_qwen_name">Qwen3-ASR 오프라인 엔진</string>
+    <string name="settings_speech_toast_engine_switched">주 인식 엔진을 %1$s(으)로 전환했습니다</string>
+    <string name="settings_speech_toast_dual_on">듀얼 엔진 인식 모드를 켰습니다</string>
+    <string name="settings_speech_toast_dual_off">듀얼 엔진 모드를 껐습니다</string>
+    <string name="settings_speech_missing_both">X-ASR과 Qwen3-ASR</string>
+    <string name="settings_speech_dual_needs_model_title">듀얼 엔진을 켜려면 모델 다운로드가 필요합니다</string>
+    <string name="settings_speech_dual_needs_model_message">듀얼 엔진 모드는 X-ASR의 저지연 실시간 미리보기와 Qwen3-ASR의 고정밀 오프라인 변환을 결합합니다.\n\n아직 다운로드되지 않음: %1$s.\n먼저 \"모델 다운로드\"를 눌러 설치한 뒤 켜 주세요.</string>
+    <string name="settings_speech_model_label_xasr">X-ASR 번체 중국어 스트리밍 모델</string>
+    <string name="settings_speech_model_label_qwen">Qwen3-ASR 음성 모델</string>
+    <string name="settings_speech_download_title">%1$s 다운로드</string>
+    <string name="settings_speech_redownload_title">%1$s 다시 다운로드</string>
+    <string name="settings_speech_download_message">예상 크기: 약 %1$d MB.\n다운로드하는 동안 백그라운드에서 포그라운드 서비스가 유지되며, 완료 후에는 오프라인으로 사용할 수 있습니다.</string>
+    <string name="settings_speech_toast_download_done">모델 다운로드를 완료했습니다!</string>
+    <string name="settings_ocr_checking_size">파일 크기 확인 중…</string>
+    <string name="settings_ocr_download_message">약 %1$s 크기의 오프라인 번체 중국어 인식 모델을 다운로드합니다. 완료 후 문자 인식은 모두 기기 안에서 실행됩니다.\n\n계속할까요?</string>
+    <string name="settings_ocr_download_start">다운로드 시작</string>
+    <string name="settings_ocr_toast_download_done">PP-OCR 모델 다운로드를 완료했습니다!</string>
+
+    <!-- P1-4: onboarding -->
+    <string name="onboarding_skip">건너뛰기</string>
+    <string name="onboarding_prev">이전</string>
+    <string name="onboarding_next">다음</string>
+    <string name="onboarding_finish">설정으로 이동</string>
+    <string name="onboarding_mode_badge">모드 %1$d/%2$d</string>
+    <string name="onboarding_capsule_title">세로 캡슐 · 밀어서 전환</string>
+    <string name="onboarding_mode_voice_title">음성 실시간 입력</string>
+    <string name="onboarding_capsule_badge_default">모드 1/5</string>
+    <string name="onboarding_mode_voice_desc">고정밀 오프라인 음성 인식. 탭하면 받아쓰기가 시작되고 바로 붙여 넣습니다</string>
+    <string name="onboarding_capsule_tags_default">• 오프라인 ASR 듀얼 모델 실시간 변환\n• 자동 구두점 및 사용자 단어 지원\n• 이어폰·외장 마이크 게인 조절</string>
+    <string name="onboarding_capsule_hint">버블을 길게 눌러 캡슐을 펼친 뒤, 위아래로 밀어 모드를 전환하세요</string>
+    <string name="onboarding_mode_voice_tags">• 듀얼 엔진: 실시간 미리보기 + 고정밀 오프라인 변환\n• 자동 구두점 및 사용자 단어 바꾸기 지원\n• 이어폰·외장 마이크 게인 조절</string>
+    <string name="onboarding_mode_barcode_title">바코드 및 QR 스캔</string>
+    <string name="onboarding_mode_barcode_desc">기기 안에서 빠르게 바코드를 읽습니다. 겨누기만 하면 인식해 자동으로 입력합니다</string>
+    <string name="onboarding_mode_barcode_tags">• QR 코드와 각종 1차원 바코드 지원\n• 두 손가락 확대/축소와 플래시 보조광 지원\n• 스캔 후 자동 줄바꿈 설정 가능</string>
+    <string name="onboarding_mode_ocr_title">문자 인식 (PP-OCRv6)</string>
+    <string name="onboarding_mode_ocr_desc">화면을 고정하고 텍스트 블록을 하나 또는 여러 개 선택해 오프라인으로 정밀하게 추출합니다</string>
+    <string name="onboarding_mode_ocr_tags">• PP-OCRv6 오프라인 모델, 세로쓰기 중국어를 바로 세워 인식\n• 블록을 탭해 순서대로 결합, 스마트 문단 줄바꿈 결합\n• 줄바꿈 또는 공백 구분자 선택 가능, 두 손가락으로 확대·초점 맞춤</string>
+    <string name="onboarding_mode_phrases_title">자주 쓰는 문구 및 기록</string>
+    <string name="onboarding_mode_phrases_desc">나만의 문구를 탭해서 바로 붙여 넣고, 최근 입력 내용을 자동으로 불러옵니다</string>
+    <string name="onboarding_mode_phrases_tags">• 길게 눌러 끌어서 문구 순서를 부드럽게 변경\n• 각 모드의 최근 입력(1~12개)을 맨 위에 고정\n• 탭해서 바로 붙여 넣기, 다시 입력할 필요 없음</string>
+    <string name="onboarding_voice_sample">오늘 오후 두 시에 3층 회의실에서 회의가 있습니다.</string>
+    <string name="onboarding_undo_sample">오늘 회의는 두 시 정각에 시작합니다.</string>
+    <string name="onboarding_gesture_edge_title" formatted="false">1. 가장자리 수납: 경계 밖으로 70%</string>
+    <string name="onboarding_gesture_edge_desc" formatted="false">화면 가장자리에 숨어 호의 30%만 보입니다. 탭하면 다시 꺼낼 수 있습니다</string>
+    <string name="onboarding_gesture_keyboard_title">2. 키보드 연동: 입력할 때만 표시</string>
+    <string name="onboarding_gesture_keyboard_desc">설정에서 \"키보드가 나타날 때만 표시\"를 켜면 키보드가 올라올 때 버블이 서서히 나타납니다</string>
+    <string name="onboarding_gesture_shake_title">3. 흔들어 복제: 여러 버블 동시 사용</string>
+    <string name="onboarding_gesture_shake_desc">버블을 끌면서 좌우로 빠르게 흔들면 새 버블이 생깁니다(최대 5개). 각각 독립적으로 모드를 기억합니다</string>
+    <string name="onboarding_gestures_title">수납 · 연동 · 흔들어 복제</string>
+    <string name="onboarding_gestures_mock_keyboard">시스템 키보드 (Gboard)</string>
+    <string name="onboarding_privacy_title" formatted="false">개인정보 보호 · 100% 온디바이스 처리</string>
+    <string name="onboarding_privacy_subtitle">기기 안에서만 추론 · 클라우드 전송 없음</string>
+    <string name="onboarding_privacy_chip_dual">듀얼 엔진 오프라인 음성</string>
+    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 인식</string>
+    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 오프라인 인식</string>
+    <string name="onboarding_privacy_chip_zero_upload">업로드 없음 · 전부 기기 안</string>
+    <string name="onboarding_undo_title">즉시 취소 · 위의 ✕ 키를 탭해 되돌리기</string>
+    <string name="onboarding_undo_mock_question">발표 자료 파일이 어디에 있나요?</string>
+    <string name="onboarding_undo_mock_hint">버블을 탭해서 입력...</string>
+    <string name="onboarding_undo_done">입력을 취소했습니다</string>
+    <string name="onboarding_voice_title">어떤 앱에서든 · 바로 입력</string>
+    <string name="onboarding_voice_mock_question">오늘 오후 회의는 몇 시에 시작하나요?</string>
+    <string name="onboarding_voice_mock_hint">버블을 탭해서 입력 시작...</string>
+    <string name="onboarding_voice_listening">듣는 중…</string>
+
+    <!-- P1-5: data layer decoupling -->
+    <string name="bubble_mode_meta_voice_short">음성</string>
+    <string name="bubble_mode_meta_voice_desc">탭하면 오프라인 음성 인식이 시작되고, 말이 끝나면 포커스된 입력란에 자동으로 입력됩니다</string>
+    <string name="bubble_mode_meta_barcode_short">바코드</string>
+    <string name="bubble_mode_meta_barcode_desc">플로팅 카메라로 1차원 바코드와 QR 코드를 실시간으로 스캔해 자동으로 입력합니다</string>
+    <string name="bubble_mode_meta_ocr_title">문자 인식 (OCR)</string>
+    <string name="bubble_mode_meta_ocr_short">OCR</string>
+    <string name="bubble_mode_meta_ocr_desc">플로팅 카메라로 화면의 글자를 가져옵니다. 세로쓰기 중국어와 여러 블록 순차 결합을 지원합니다</string>
+    <string name="bubble_mode_meta_phrases_desc">나만의 문구와 최근 인식 기록을 빠르게 선택합니다</string>
+    <string name="model_label_qwen3_detail">Qwen3-ASR 고정밀 오프라인 음성</string>
+    <string name="model_label_xasr_detail">X-ASR 초고속 실시간 스트리밍 음성</string>
+    <string name="model_label_ocr_small_detail">PP-OCRv6 (Small, 고정밀) 문자 인식</string>
+    <string name="model_label_ocr_tiny_detail">PP-OCRv6 (Tiny, 경량) 문자 인식</string>
+    <string name="settings_import_success_status">모델 패키지를 복원했습니다. 모델: %1$s</string>
+    <string name="settings_import_no_models">압축 파일에 유효한 모델 파일이 없습니다</string>
+    <string name="settings_import_stream_unreadable">선택한 파일을 읽을 수 없습니다 (InputStream이 비어 있음)</string>
+    <string name="settings_import_file_not_found">모델 패키지를 찾을 수 없거나 읽기 권한이 없습니다: %1$s</string>
+    <string name="settings_import_extract_failed">압축 해제 실패: %1$s</string>
+    <string name="settings_import_no_combo">완전한 모델 조합이 없습니다</string>
+    <string name="settings_import_finishing">복원 완료</string>
+    <string name="common_list_separator">, </string>
+    <string name="model_progress_downloading">다운로드 중…</string>
+    <string name="model_progress_downloading_files">다운로드 중 (%1$d/%2$d)…</string>
+    <string name="model_progress_extracting">압축 해제 중: %1$s</string>
+    <string name="common_size_unknown">크기 알 수 없음</string>
+
+    <!-- P1-6: remaining UI strings -->
+    <string name="ocr_overlay_selected_count">선택한 블록: %1$d개 (번호 순서로 결합). \"인식 후 입력\"을 탭하세요</string>
+    <string name="ocr_overlay_confirm_with_count">인식 후 입력 (%1$d)</string>
+    <string name="ocr_overlay_hint_select">끌어서 영역을 선택하거나 입력할 텍스트 블록을 탭하세요</string>
+    <string name="ocr_overlay_model_check_files">모델 파일이 온전한지 확인해 주세요</string>
+    <string name="ocr_overlay_model_load_failed">PP-OCR 모델을 불러오지 못했습니다: %1$s</string>
+    <string name="ocr_overlay_no_text_found">선명한 텍스트를 찾지 못했습니다. 180° 회전하거나 다시 시도해 보세요</string>
+    <string name="ocr_overlay_hint_select_count">끌어서 영역을 선택하거나 텍스트 블록을 탭하세요 (%1$d개 감지됨)</string>
+    <string name="ocr_overlay_process_error">OCR 처리 중 오류가 발생했습니다 (%1$s): %2$s</string>
+    <string name="common_unknown_error">알 수 없는 오류</string>
+    <string name="ocr_overlay_rotated_redetecting">180° 회전했습니다. 텍스트를 다시 감지하는 중…</string>
+    <string name="ocr_overlay_recognizing_one">선택한 텍스트를 인식하는 중…</string>
+    <string name="ocr_overlay_recognizing_many">선택한 블록 %1$d개를 인식하는 중…</string>
+    <string name="ocr_overlay_recognize_failed_retry">인식하지 못했습니다. 다시 시도하거나 다른 텍스트를 선택하세요</string>
+    <string name="ocr_overlay_recognize_error">인식 실패 (%1$s): %2$s</string>
+    <string name="bubble_toast_one_mode_only">켜진 모드가 1개뿐이라 버블을 복제할 수 없습니다\n설정에서 기능 모드를 더 켜 주세요</string>
+    <string name="bubble_toast_limit_reached">켜진 모드 수의 한도에 도달했습니다 (최대 %1$d개)</string>
+    <string name="bubble_toast_duplicated">\"%1$s\" 버블을 복제했습니다 (총 %2$d개, 다중 버블을 켰습니다)</string>
+    <string name="floating_ocr_desc">플로팅 문자 인식</string>
+    <string name="floating_barcode_desc">플로팅 바코드 스캔</string>
+    <string name="floating_voice_desc">플로팅 음성 입력</string>
+    <string name="quick_phrase_default_1">네, 알겠습니다!</string>
+    <string name="quick_phrase_default_2">잠시만요, 바로 처리하겠습니다.</string>
+    <string name="quick_phrase_default_3">정말 감사합니다! 수고하셨어요!</string>
+    <string name="quick_phrase_default_4">보냈습니다. 확인 부탁드립니다.</string>
+    <string name="quick_phrase_default_5">잠시만 기다려 주세요. 곧 답변드리겠습니다.</string>
+    <string name="quick_phrase_default_6">문제없어요, 제가 처리할게요.</string>
+    <string name="notif_download_preparing">%1$s 모델 다운로드를 준비하는 중…</string>
+    <string name="notif_download_channel_name">모델 다운로드</string>
+</resources>
