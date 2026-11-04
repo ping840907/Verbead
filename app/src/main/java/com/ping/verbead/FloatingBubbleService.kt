@@ -58,6 +58,7 @@ import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.SpokenNumberConverter
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
@@ -3170,10 +3171,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         } else {
             ModelConfig.applyPostRegexReplacements(userReplaced)
         }
-        return if (ModelConfig.isFilterPunctuationEnabled(this)) {
-            ModelConfig.filterChinesePunctuation(postReplaced)
+        // 數字轉換要在標點過濾之前：它依標點切小句，且不能被過濾後的文字影響
+        val numbered = if (ModelConfig.isSpokenNumbersEnabled(this)) {
+            SpokenNumberConverter.convert(postReplaced)
         } else {
             postReplaced
+        }
+        return if (ModelConfig.isFilterPunctuationEnabled(this)) {
+            ModelConfig.filterChinesePunctuation(numbered)
+        } else {
+            numbered
         }
     }
 

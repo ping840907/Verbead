@@ -145,6 +145,18 @@ object ModelConfig {
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_HOTWORDS_ENABLED, enabled).apply()
 
+    // ── Spoken numbers switch ─────────────────────────────────────────────────
+    private const val KEY_SPOKEN_NUMBERS = "spoken_numbers_to_digits"
+
+    /** 是否把口語中文數字與加減乘除、百分比、分數、時間等轉成阿拉伯數字。預設關閉，避免改變既有輸出。 */
+    fun isSpokenNumbersEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_SPOKEN_NUMBERS, false)
+
+    fun setSpokenNumbersEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_SPOKEN_NUMBERS, enabled).apply()
+
     // ── Traditional Chinese conversion switch ─────────────────────────────────
     private const val KEY_CONVERT_TRADITIONAL = "convert_to_traditional"
 

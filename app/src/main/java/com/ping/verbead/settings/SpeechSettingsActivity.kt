@@ -66,6 +66,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var tvAudioGainVal: TextView
     private lateinit var seekVadSilence: SeekBar
     private lateinit var tvVadSilenceVal: TextView
+    private lateinit var layoutSpokenNumbersToggle: View
+    private lateinit var switchSpokenNumbers: MaterialSwitch
     private lateinit var layoutConvertTraditionalToggle: View
     private lateinit var switchConvertTraditional: MaterialSwitch
     private lateinit var layoutFilterPunctuationToggle: View
@@ -140,6 +142,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvAudioGainVal = findViewById(R.id.tv_audio_gain_value)
         seekVadSilence = findViewById(R.id.sb_vad_silence)
         tvVadSilenceVal = findViewById(R.id.tv_vad_value)
+        layoutSpokenNumbersToggle = findViewById(R.id.layout_spoken_numbers_toggle)
+        switchSpokenNumbers = findViewById(R.id.switch_spoken_numbers)
         layoutConvertTraditionalToggle = findViewById(R.id.layout_convert_traditional_toggle)
         switchConvertTraditional = findViewById(R.id.switch_convert_traditional)
         layoutFilterPunctuationToggle = findViewById(R.id.layout_filter_punctuation_toggle)
@@ -234,6 +238,16 @@ class SpeechSettingsActivity : AppCompatActivity() {
         switchConvertTraditional.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
             ModelConfig.setConvertToTraditionalEnabled(this, isChecked)
+        }
+
+        // Spoken numbers to digits
+        layoutSpokenNumbersToggle.setOnClickListener {
+            switchSpokenNumbers.toggle()
+        }
+        switchSpokenNumbers.isChecked = ModelConfig.isSpokenNumbersEnabled(this)
+        switchSpokenNumbers.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setSpokenNumbersEnabled(this, isChecked)
         }
 
         // Filter punctuation
