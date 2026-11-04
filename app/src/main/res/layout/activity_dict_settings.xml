@@ -78,13 +78,28 @@
             android:clickable="true"
             android:focusable="true">
 
-            <TextView
-                style="@style/Verbead.Text.Title"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:layout_weight="1"
-                android:text="@string/dict_settings_use_as_hotwords" />
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/Verbead.Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dict_settings_use_as_hotwords" />
+
+                <TextView
+                    android:id="@+id/text_hotwords_unavailable"
+                    style="@style/Verbead.Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/dict_settings_hotwords_unavailable"
+                    android:visibility="gone" />
+            </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switch_hotwords"

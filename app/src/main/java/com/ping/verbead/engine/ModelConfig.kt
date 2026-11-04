@@ -112,10 +112,19 @@ object ModelConfig {
             .edit().putBoolean(KEY_DUAL_ENGINE_TOGGLE, enabled).apply()
 
     fun isDualEngineActive(context: Context): Boolean =
-        isXAsrReady(context) &&
+        isXAsrAvailableForInputLanguage(context) &&
+                isXAsrReady(context) &&
                 isQwen3Ready(context) &&
                 selectedEngine(context) == ENGINE_QWEN3 &&
                 isDualEngineEnabled(context)
+
+    /** 輸入語言是否適合用 X-ASR（只針對中文）。不適合時介面不提供 X-ASR 與雙引擎。 */
+    fun isXAsrAvailableForInputLanguage(context: Context): Boolean =
+        LanguageProfiles.byId(inputLanguage(context)).supportsXAsr
+
+    /** 實際使用的辨識引擎：輸入語言不適合 X-ASR 時一律用 Qwen3-ASR，但不改動使用者原本的選擇。 */
+    fun effectiveEngine(context: Context): String =
+        if (isXAsrAvailableForInputLanguage(context)) selectedEngine(context) else ENGINE_QWEN3
 
     // ── Qwen3 Punctuation Filter ──────────────────────────────────────────────
     private const val PREF_QWEN3_SETTINGS = "qwen3_settings"
@@ -140,6 +149,10 @@ object ModelConfig {
     fun isHotwordsEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
             .getBoolean(KEY_HOTWORDS_ENABLED, true)
+
+    /** 實際要不要送熱詞：使用者開關加上輸入語言是否適用。 */
+    fun isHotwordsEffective(context: Context): Boolean =
+        isHotwordsEnabled(context) && LanguageProfiles.byId(inputLanguage(context)).supportsHotwords
 
     fun setHotwordsEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)

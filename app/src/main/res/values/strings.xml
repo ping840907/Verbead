@@ -500,4 +500,7 @@
     <string name="settings_speech_input_language_title">Input language</string>
     <string name="settings_speech_input_language_desc">The language you speak. It decides how recognized text is post-processed</string>
     <string name="settings_speech_input_language_dialog_title">Choose input language</string>
+
+    <!-- P4: recognition integration -->
+    <string name="dict_settings_hotwords_unavailable">Hotwords are only used when the input language is Chinese</string>
 </resources>

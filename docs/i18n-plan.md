@@ -206,6 +206,7 @@ Kotlin（由多到少）：`ImeSettingsActivity` 44、`engine/ModelConfig` 34、
 - [x] P2 日文翻譯（新增 `values-ja/`，`AppLocale` 與 `locales_config.xml` 加入 `ja`，介面語言選單多「日本語」；機器翻譯初稿，待校對；繁中版已拿掉「珠璣 (Verbead)」的英文括號）
 - [x] P2 韓文翻譯（新增 `values-ko/`，`AppLocale`、`locales_config.xml` 與介面語言選單加入 `ko`；機器翻譯初稿，待校對。P2 的英、日、韓三個介面語言到此完成）
 - [x] P3 `LanguageProfile`（新增 `engine/lang/`：`LanguageProfile` 介面、`ZhTwProfile`、`ZhCnProfile`、`PlainProfile`（英/日/韓），台灣用詞與簡轉繁規則搬到 `ZhTwRules`；`FloatingBubbleService.postProcess` 改依所選 profile 呼叫；語音設定頁新增「輸入語言」；既有 35 個測試的斷言未改動且全數通過；OCR 的簡轉繁仍直接呼叫 `ZhTwRules`，留到 P4 評估；盤點剩 7 行，都是 `UserDictionary` 的匯入表頭相容、`TextStitcher` 清單序號、`TextInsertion` 復原關鍵字等多語規則，視為永久例外）
+- [x] P4 辨識整合（輸入語言決定實際引擎：非中文一律走 Qwen3-ASR，不提供 X-ASR 與雙引擎，且不改動使用者原本的選擇；非中文不送熱詞，詞庫頁的熱詞開關鎖住並說明原因；Qwen3 的熱詞提示詞在 sherpa-onnx 原生函式庫內且沒有語言參數，無法換成對應語言，所以直接關閉。**新增辨識模型（SenseVoice、Moonshine 等）尚未評估**：需要實機與測試語料的評測結果，這次沒有做）
 - [ ] P4 辨識整合
 - [ ] P5 品質與驗收
 

@@ -62,6 +62,19 @@ class LanguageProfileTest {
     }
 
     @Test
+    fun xAsrAndHotwords_areChineseOnly() {
+        for (p in listOf(ZhTwProfile, ZhCnProfile)) {
+            assertTrue(p.id, p.supportsXAsr)
+            assertTrue(p.id, p.supportsHotwords)
+        }
+        for (id in listOf("en", "ja", "ko")) {
+            val p = LanguageProfiles.byId(id)
+            assertFalse(id, p.supportsXAsr)
+            assertFalse(id, p.supportsHotwords)
+        }
+    }
+
+    @Test
     fun registry_hasUniqueIdsAndFallsBackToZhTw() {
         val ids = LanguageProfiles.ALL.map { it.id }
         assertEquals(ids.size, ids.toSet().size)

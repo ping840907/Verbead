@@ -27,6 +27,18 @@ interface LanguageProfile {
     /** 這個語言是否有簡轉繁（決定設定頁要不要顯示「轉換為繁體中文」） */
     val supportsScriptConversion: Boolean get() = false
 
+    /**
+     * X-ASR 串流模型是否適用於這個語言（它只針對中文最佳化）。
+     * 不適用時辨識一律走 Qwen3-ASR，且不能開雙引擎。
+     */
+    val supportsXAsr: Boolean get() = false
+
+    /**
+     * 熱詞是否適用。Qwen3-ASR 的熱詞提示詞寫在原生函式庫裡，是中文的，
+     * 詞庫也以中文為主，用在其他語言可能把語音拉向中文，所以只有中文啟用。
+     */
+    val supportsHotwords: Boolean get() = false
+
     /** 這個語言是否有口語數字規則（決定設定頁要不要顯示「口語數字轉阿拉伯數字」） */
     val supportsSpokenNumbers: Boolean get() = false
 
@@ -50,6 +62,8 @@ object CjkPunctuation {
 /** 繁體中文（台灣）：簡轉繁、台灣用詞、口語數字。既有行為原樣保留。 */
 object ZhTwProfile : LanguageProfile {
     override val id = "zh-TW"
+    override val supportsXAsr = true
+    override val supportsHotwords = true
     override val supportsScriptConversion = true
     override val supportsSpokenNumbers = true
 
@@ -67,6 +81,8 @@ object ZhTwProfile : LanguageProfile {
 /** 簡體中文：不做簡轉繁，口語數字規則同中文。 */
 object ZhCnProfile : LanguageProfile {
     override val id = "zh-CN"
+    override val supportsXAsr = true
+    override val supportsHotwords = true
     override val supportsSpokenNumbers = true
 
     override fun convertSpokenNumbers(text: String): String = SpokenNumberConverter.convert(text)

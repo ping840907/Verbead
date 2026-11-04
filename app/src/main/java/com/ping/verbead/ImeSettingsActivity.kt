@@ -587,11 +587,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvCatBubbleSummary.text = getString(R.string.settings_summary_bubble, runningStatus, bubbleModeStr, enabledModesCount)
 
         // 2. Speech
-        val dual = ModelConfig.isDualEngineEnabled(this)
+        val dual = ModelConfig.isDualEngineEnabled(this) && ModelConfig.isXAsrAvailableForInputLanguage(this)
         val vad = (ModelConfig.vadSilenceSeconds(this) * 1000).toInt()
         val speechEngineStr = when {
             dual -> getString(R.string.settings_summary_engine_dual)
-            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_QWEN3 -> getString(R.string.settings_summary_engine_qwen)
+            ModelConfig.effectiveEngine(this) == ModelConfig.ENGINE_QWEN3 -> getString(R.string.settings_summary_engine_qwen)
             else -> getString(R.string.settings_summary_engine_xasr)
         }
         tvCatSpeechSummary.text = "$speechEngineStr · VAD ${vad}ms"

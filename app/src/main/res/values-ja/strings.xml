@@ -495,4 +495,7 @@
     <string name="settings_speech_input_language_title">入力言語</string>
     <string name="settings_speech_input_language_desc">話す言語です。認識後のテキストの処理方法が決まります</string>
     <string name="settings_speech_input_language_dialog_title">入力言語を選択</string>
+
+    <!-- P4: recognition integration -->
+    <string name="dict_settings_hotwords_unavailable">ホットワードは入力言語が中国語のときのみ使われます</string>
 </resources>

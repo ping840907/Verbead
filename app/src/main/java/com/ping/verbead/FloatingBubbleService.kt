@@ -2505,7 +2505,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 return
             }
 
-            val engine = ModelConfig.selectedEngine(this)
+            val engine = ModelConfig.effectiveEngine(this)
             if (engine == ModelConfig.ENGINE_X_ASR) {
                 if (!xAsr.isLoaded()) {
                     preloadAndStart(engine)
@@ -3001,7 +3001,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         buildHotwords() != qwen3Asr.loadedHotwords
 
     private fun buildHotwords(): String =
-        if (ModelConfig.isHotwordsEnabled(this)) {
+        if (ModelConfig.isHotwordsEffective(this)) {
             UserDictionary.load(this).values.distinct().sorted().joinToString("\n")
         } else {
             ""
@@ -3012,7 +3012,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
         val scriptMode = when {
             !profile.supportsScriptConversion || !ModelConfig.isConvertToTraditionalEnabled(this) -> ScriptMode.OFF
-            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
+            ModelConfig.effectiveEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
             else -> ScriptMode.FULL
         }
         val converted = profile.convertScript(raw, scriptMode)

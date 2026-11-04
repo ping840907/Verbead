@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.lang.LanguageProfiles
 import com.ping.verbead.util.HapticUtil
 
 class DictSettingsActivity : AppCompatActivity() {
@@ -76,6 +77,17 @@ class DictSettingsActivity : AppCompatActivity() {
         switchHotwords.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
             ModelConfig.setHotwordsEnabled(this, isChecked)
+        }
+
+        // 非中文輸入語言不送熱詞（見 LanguageProfile.supportsHotwords），開關鎖住並說明原因
+        if (!LanguageProfiles.byId(ModelConfig.inputLanguage(this)).supportsHotwords) {
+            findViewById<View>(R.id.layout_hotwords_toggle).apply {
+                isEnabled = false
+                isClickable = false
+                alpha = 0.5f
+            }
+            switchHotwords.isEnabled = false
+            findViewById<View>(R.id.text_hotwords_unavailable).visibility = View.VISIBLE
         }
 
         emptyState = findViewById(R.id.ll_empty_state)

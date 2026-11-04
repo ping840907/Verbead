@@ -299,6 +299,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
                     ModelConfig.setInputLanguage(this, ids[which])
                     value.text = inputLanguageLabel(ids[which])
                     applyInputLanguageVisibility()
+                    updateAllStatus()
                     dialog.dismiss()
                 }
                 .setNegativeButton(R.string.btn_cancel, null)
@@ -311,6 +312,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
         val script = profile.supportsScriptConversion
         val numbers = profile.supportsSpokenNumbers
+        val xAsr = profile.supportsXAsr
+        findViewById<View>(R.id.card_dual_engine).visibility = if (xAsr) View.VISIBLE else View.GONE
+        cardXAsr.visibility = if (xAsr) View.VISIBLE else View.GONE
         layoutConvertTraditionalToggle.visibility = if (script) View.VISIBLE else View.GONE
         layoutSpokenNumbersToggle.visibility = if (numbers) View.VISIBLE else View.GONE
         findViewById<View>(R.id.divider_before_spoken_numbers).visibility =
@@ -325,7 +329,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private fun updateAllStatus() {
         val xReady = ModelConfig.isXAsrReady(this)
         val qReady = ModelConfig.isQwen3Ready(this)
-        val selected = ModelConfig.selectedEngine(this)
+        val selected = ModelConfig.effectiveEngine(this)
         val isDual = ModelConfig.isDualEngineActive(this)
 
         // Dual Engine
