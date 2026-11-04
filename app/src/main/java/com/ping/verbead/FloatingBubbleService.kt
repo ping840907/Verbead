@@ -1122,37 +1122,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         if (mag?.isAttracted != true && bubbleItems.size > 1) {
                             val tuckLeftX = getTuckLeftX().toFloat()
                             val tuckRightX = getTuckRightX().toFloat()
-                            val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive
                             val minDistancePx = (60 * density) + (8 * density)
-
-                            // Check if dragged item is actively squeezing an untucked edge bubble into the wall
-                            if (allowTuck) {
-                                val itemCenterX = newX + bubbleWidthPx / 2f
-                                val itemCenterY = newY + bubbleHeightPx / 2f
-                                for (other in bubbleItems) {
-                                    if (other.id != item.id && !other.isTucked) {
-                                        val otherCenterX = other.windowLayoutParams.x + bubbleWidthPx / 2f
-                                        val otherCenterY = other.windowLayoutParams.y + bubbleHeightPx / 2f
-                                        val dxToOther = otherCenterX - itemCenterX
-                                        val dyToOther = otherCenterY - itemCenterY
-                                        val distToOther = hypot(dxToOther, dyToOther)
-                                        if (distToOther < minDistancePx) {
-                                            val nx = if (distToOther > 0.001f) dxToOther / distToOther else 0f
-                                            if (nx > 0.35f && other.windowLayoutParams.x >= normalRightX - 8 * density) {
-                                                // Squeezed into right tuck mode!
-                                                other.isTucked = true
-                                                other.isDockedOnRight = true
-                                                other.windowLayoutParams.x = tuckRightX.toInt()
-                                            } else if (nx < -0.35f && other.windowLayoutParams.x <= normalLeftX + 8 * density) {
-                                                // Squeezed into left tuck mode!
-                                                other.isTucked = true
-                                                other.isDockedOnRight = false
-                                                other.windowLayoutParams.x = tuckLeftX.toInt()
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            // 被擠到牆邊的球可以稍微被擠出畫面這麼多，之後會滑開並回到貼邊位置
+                            val squeezeOvershootPx = 20f * density
 
                             val boundsMap = mutableMapOf<Int, Pair<Float, Float>>()
                             val positions = bubbleItems.map {
@@ -1164,7 +1136,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                 val (bMinX, bMaxX) = if (it.isTucked) {
                                     if (it.isDockedOnRight) (tuckRightX to tuckRightX) else (tuckLeftX to tuckLeftX)
                                 } else {
-                                    (normalLeftX to normalRightX)
+                                    ((normalLeftX - squeezeOvershootPx) to (normalRightX + squeezeOvershootPx))
                                 }
                                 boundsMap[it.id] = bMinX to bMaxX
                                 BubblePosition(it.id, posX, it.windowLayoutParams.y.toFloat(), 30f * density)
@@ -1181,6 +1153,27 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                 gap = 8f * density,
                                 bubbleBounds = boundsMap
                             )
+                            // 已經滑開、回到貼邊位置也不會和被拖的球重疊的球，滑回畫面邊緣；
+                            // 還被擠著的就維持稍微超出畫面的狀態，等它沿著邊滑開
+                            val dragCx = newX + bubbleWidthPx / 2f
+                            val dragCy = newY + bubbleHeightPx / 2f
+                            for (other in bubbleItems) {
+                                if (other.id == item.id || other.isTucked || !other.view.isAttachedToWindow) continue
+                                val ox = other.windowLayoutParams.x
+                                val edgeX = when {
+                                    ox > normalRightX -> normalRightX
+                                    ox < normalLeftX -> normalLeftX
+                                    else -> continue
+                                }
+                                val cxAtEdge = edgeX + bubbleWidthPx / 2f
+                                val cy = other.windowLayoutParams.y + bubbleHeightPx / 2f
+                                if (hypot(cxAtEdge - dragCx, cy - dragCy) >= minDistancePx &&
+                                    other.snapAnimator?.isRunning != true
+                                ) {
+                                    animateBackToEdge(other, edgeX.toInt())
+                                }
+                            }
+
                             if (anyMoved) {
                                 val now = System.currentTimeMillis()
                                 if (now - lastCollisionHapticTime > 140L) {
@@ -1198,7 +1191,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                             val finalX = if (other.isTucked) {
                                                 if (other.isDockedOnRight) tuckRightX.toInt() else tuckLeftX.toInt()
                                             } else {
-                                                px.coerceIn(normalLeftX.toInt(), normalRightX.toInt())
+                                                px.coerceIn(
+                                                    (normalLeftX - squeezeOvershootPx).toInt(),
+                                                    (normalRightX + squeezeOvershootPx).toInt()
+                                                )
                                             }
                                             other.windowLayoutParams.x = finalX
                                             other.windowLayoutParams.y = py
@@ -1930,6 +1926,26 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    /** 被擠出畫面一點的球，擠壓解除後滑回貼邊位置（只動 X，Y 由碰撞的沿邊滑開決定）。 */
+    private fun animateBackToEdge(other: FloatingBubbleItem, targetX: Int) {
+        val startX = other.windowLayoutParams.x
+        if (startX == targetX || !other.view.isAttachedToWindow) return
+        other.snapAnimator?.cancel()
+        other.snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 200L
+            interpolator = DecelerateInterpolator(1.4f)
+            addUpdateListener { va ->
+                if (other.view.isAttachedToWindow) {
+                    val x = (startX + (targetX - startX) * va.animatedFraction).toInt()
+                    other.windowLayoutParams.x = x
+                    if (other.id == 0) windowLayoutParams.x = x
+                    windowManager.updateViewLayout(other.view, other.windowLayoutParams)
+                }
+            }
+            start()
+        }
+    }
+
     private fun snapBubbleToSafeBoundsWithInertia(item: FloatingBubbleItem, vx: Float = 0f, vy: Float = 0f) {
         if (!item.view.isAttachedToWindow) return
         item.snapAnimator?.cancel()
@@ -2001,17 +2017,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (other.id == 0) isDockedOnRight = otherRight
                     val otherNormalX = if (otherRight) normalRightX else normalLeftX
                     val otherTuckX = if (otherRight) tuckRightX else tuckLeftX
-                    val otherShouldTuck = if (allowTuck) {
-                        evaluateTuck(
-                            startX = other.windowLayoutParams.x.toFloat(),
-                            vx = 0f,
-                            isRight = otherRight,
-                            isCurrentlyTucked = other.isTucked,
-                            normalX = otherNormalX,
-                            hiddenWidthPx = hiddenWidthPx,
-                            density = density
-                        )
-                    } else false
+                    // 其他球不會因為別的球的碰撞或放開而被收進隱藏；使用者自己收起來的維持原狀
+                    val otherShouldTuck = allowTuck && other.isTucked
                     other.isTucked = otherShouldTuck
                     if (other.id == 0) isTucked = otherShouldTuck
                     val otherTargetX = if (otherShouldTuck) otherTuckX else otherNormalX
