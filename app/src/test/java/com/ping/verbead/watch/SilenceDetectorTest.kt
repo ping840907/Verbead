@@ -75,6 +75,31 @@ class SilenceDetectorTest {
     }
 
     @Test
+    fun quietSpeechAfterLoudStart_doesNotStopMidSentence() {
+        // 手錶麥克風：底噪小、小聲說話的音量低於固定靜音門檻 0.012
+        val d = detector(trailing = 1.0f, initialTimeout = 2.0f)
+        repeat(10) { d.feed(chunk(100, 0.002f)) }
+        repeat(5) { d.feed(chunk(100, 0.05f)) }
+        assertTrue(d.spoken)
+        repeat(30) { assertEquals(SilenceDetector.Event.NONE, d.feed(chunk(100, 0.008f))) } // 3s 小聲
+        var silenceMs = 0
+        var event = SilenceDetector.Event.NONE
+        while (event == SilenceDetector.Event.NONE && silenceMs < 5000) {
+            event = d.feed(chunk(100, 0.002f)); silenceMs += 100
+        }
+        assertEquals(SilenceDetector.Event.AUTO_STOP, event)
+        assertEquals(1000, silenceMs)
+    }
+
+    @Test
+    fun quietSpeechOnly_isStillDetectedAsSpeech() {
+        val d = detector(initialTimeout = 2.0f)
+        repeat(5) { d.feed(chunk(100, 0.001f)) }
+        d.feed(chunk(100, 0.01f)) // 低於固定開口門檻 0.018 但明顯高於底噪
+        assertTrue(d.spoken)
+    }
+
+    @Test
     fun veryShortClick_isNotTreatedAsSpeech() {
         val d = detector(initialTimeout = 1.0f)
         d.feed(chunk(30, 0.5f)) // < 100ms 的爆音

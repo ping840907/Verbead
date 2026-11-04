@@ -150,6 +150,12 @@ class WatchDictationSession(
 
                 when (detector?.feed(chunk)) {
                     SilenceDetector.Event.AUTO_STOP -> {
+                        Log.i(
+                            TAG,
+                            "auto-stop after ${totalSamples * 1000 / SAMPLE_RATE}ms: " +
+                                "noise=${detector?.currentNoiseFloor} speech=${detector?.currentSpeechLevel} " +
+                                "silenceGate=${detector?.effectiveSilenceThreshold}",
+                        )
                         accepting = false
                         send("autostop") { put("reason", "silence") }
                         break
