@@ -70,7 +70,7 @@ dependencies {
     implementation files('libs/zxingcpp-release.aar')
 
     // Qwen3 ASR via sherpa-onnx AAR (drop sherpa-onnx-<version>.aar into app/libs/)
-    implementation(name: 'sherpa-onnx-1.13.8', ext: 'aar')
+    implementation(name: 'sherpa-onnx-2.0.1', ext: 'aar')
 
     // OpenCC — Simplified → Traditional Chinese
     implementation libs.opencc4j
@@ -100,7 +100,7 @@ configurations.all {
 // so it cleanly links against Microsoft ONNX Runtime 1.28.0 without symbol mismatch.
 tasks.register('alignSherpaAar') {
     doLast {
-        def aarFile = file('libs/sherpa-onnx-1.13.8.aar')
+        def aarFile = file('libs/sherpa-onnx-2.0.1.aar')
         if (!aarFile.exists()) return
 
         boolean needsPatch = false
@@ -123,7 +123,7 @@ tasks.register('alignSherpaAar') {
         }
 
         if (needsPatch) {
-            logger.lifecycle("alignSherpaAar: Aligning sherpa-onnx-1.13.8.aar symbol version to VERS_1.28.0...")
+            logger.lifecycle("alignSherpaAar: Aligning sherpa-onnx-2.0.1.aar symbol version to VERS_1.28.0...")
             def tempOut = file("libs/temp_${aarFile.name}")
             def zf = new java.util.zip.ZipFile(aarFile)
             def zos = new java.util.zip.ZipOutputStream(new BufferedOutputStream(new FileOutputStream(tempOut)))
@@ -168,7 +168,7 @@ tasks.register('alignSherpaAar') {
                 zos.close()
             }
             java.nio.file.Files.move(tempOut.toPath(), aarFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-            logger.lifecycle("alignSherpaAar: Successfully aligned sherpa-onnx-1.13.8.aar to VERS_1.28.0.")
+            logger.lifecycle("alignSherpaAar: Successfully aligned sherpa-onnx-2.0.1.aar to VERS_1.28.0.")
         }
     }
 }
