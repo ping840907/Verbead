@@ -126,6 +126,44 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <!-- Item 1b: Camera Permission (OCR 與條碼掃描) -->
+                    <LinearLayout
+                        android:id="@+id/item_status_camera"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingVertical="6dp">
+
+                        <ImageView
+                            android:id="@+id/iv_status_dot_camera"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginEnd="8dp"
+                            android:src="@drawable/bg_icon_circle"
+                            app:tint="@color/status_warning_text" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Body"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="相機權限（文字辨識與條碼掃描）"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tv_status_val_camera"
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="未授權 ➜"
+                            android:textColor="@color/status_warning_text"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
                     <!-- Item 2: Overlay Permission -->
                     <LinearLayout
                         android:id="@+id/item_status_overlay"

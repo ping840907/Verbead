@@ -18,6 +18,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
@@ -70,6 +71,10 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var ivStatusDotMic: ImageView
     private lateinit var tvStatusValMic: TextView
 
+    private lateinit var itemStatusCamera: LinearLayout
+    private lateinit var ivStatusDotCamera: ImageView
+    private lateinit var tvStatusValCamera: TextView
+
     private lateinit var itemStatusOverlay: LinearLayout
     private lateinit var ivStatusDotOverlay: ImageView
     private lateinit var tvStatusValOverlay: TextView
@@ -110,6 +115,24 @@ class ImeSettingsActivity : AppCompatActivity() {
     ) {
         updateAllStatus()
         updateCategorySummaries()
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        updateAllStatus()
+        updateCategorySummaries()
+        // 系統不再跳出授權視窗（曾選「不再詢問」）時，只能請使用者到系統設定開啟
+        if (!granted && !ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+            Toast.makeText(this, "請在系統設定中開啟相機權限", Toast.LENGTH_LONG).show()
+            try {
+                startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+                )
+            } catch (e: Exception) {
+                // 沒有可處理的設定頁就維持提示文字即可
+            }
+        }
     }
 
     private val pickZipFileLauncher = registerForActivityResult(
@@ -199,6 +222,10 @@ class ImeSettingsActivity : AppCompatActivity() {
         ivStatusDotMic = findViewById(R.id.iv_status_dot_mic)
         tvStatusValMic = findViewById(R.id.tv_status_val_mic)
 
+        itemStatusCamera = findViewById(R.id.item_status_camera)
+        ivStatusDotCamera = findViewById(R.id.iv_status_dot_camera)
+        tvStatusValCamera = findViewById(R.id.tv_status_val_camera)
+
         itemStatusOverlay = findViewById(R.id.item_status_overlay)
         ivStatusDotOverlay = findViewById(R.id.iv_status_dot_overlay)
         tvStatusValOverlay = findViewById(R.id.tv_status_val_overlay)
@@ -250,6 +277,17 @@ class ImeSettingsActivity : AppCompatActivity() {
                 micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             } else {
                 startActivity(Intent(this, SpeechSettingsActivity::class.java))
+            }
+        }
+
+        itemStatusCamera.setOnClickListener {
+            HapticUtil.click(this)
+            val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+            if (!cameraGranted) {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            } else {
+                startActivity(Intent(this, OcrSettingsActivity::class.java))
             }
         }
 
@@ -414,6 +452,8 @@ class ImeSettingsActivity : AppCompatActivity() {
     private fun updateAllStatus() {
         val micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
+        val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
         val overlayGranted = Settings.canDrawOverlays(this)
         val accessibilityEnabled = isAccessibilityServiceEnabled()
 
@@ -442,6 +482,20 @@ class ImeSettingsActivity : AppCompatActivity() {
             ivStatusDotMic.setColorFilter(warningColor)
             tvStatusValMic.text = "未授權 ➜"
             tvStatusValMic.setTextColor(warningColor)
+            pendingCount++
+        }
+
+        // 1b. Camera（文字辨識與條碼掃描）
+        if (cameraGranted) {
+            ivStatusDotCamera.setImageResource(R.drawable.ic_check_circle)
+            ivStatusDotCamera.setColorFilter(successColor)
+            tvStatusValCamera.text = "已就緒 ✓"
+            tvStatusValCamera.setTextColor(successColor)
+        } else {
+            ivStatusDotCamera.setImageResource(R.drawable.bg_icon_circle)
+            ivStatusDotCamera.setColorFilter(warningColor)
+            tvStatusValCamera.text = "未授權 ➜"
+            tvStatusValCamera.setTextColor(warningColor)
             pendingCount++
         }
 
