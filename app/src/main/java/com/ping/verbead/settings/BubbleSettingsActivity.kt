@@ -164,7 +164,6 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
         // Show only on keyboard
         layoutShowOnlyOnKeyboardToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchShowOnlyOnKeyboard.toggle()
         }
         switchShowOnlyOnKeyboard.isChecked = ModelConfig.isShowOnlyOnKeyboard(this)
@@ -176,7 +175,6 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
         // Multi bubble
         layoutMultiBubbleToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchMultiBubble.toggle()
         }
         switchMultiBubble.isChecked = ModelConfig.isMultiBubbleEnabled(this)
@@ -207,7 +205,6 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
         // Paste mode
         layoutPasteModeToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchPasteMode.toggle()
         }
         switchPasteMode.isChecked = ModelConfig.isPasteModeEnabled(this)
@@ -220,7 +217,6 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
         // History enabled
         layoutHistoryEnabledToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchHistoryEnabled.toggle()
         }
         switchHistoryEnabled.isChecked = ModelConfig.isHistoryEnabled(this)

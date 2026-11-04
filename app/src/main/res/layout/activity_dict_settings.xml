@@ -56,6 +56,43 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Hotwords switch -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/surface_card_stroke"
+        app:strokeWidth="1dp"
+        app:cardBackgroundColor="@color/surface_card"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:id="@+id/layout_hotwords_toggle"
+            style="@style/Verbead.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                style="@style/Verbead.Text.Title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:layout_weight="1"
+                android:text="使用詞彙作為熱詞" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switch_hotwords"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Empty State -->
     <FrameLayout
         android:layout_width="match_parent"

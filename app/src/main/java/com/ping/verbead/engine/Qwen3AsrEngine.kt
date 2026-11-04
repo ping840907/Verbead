@@ -110,8 +110,10 @@ class Qwen3AsrEngine(private val context: Context) {
             try {
                 stream.acceptWaveform(samples, ModelConfig.ASR_SAMPLE_RATE)
                 r.decode(stream)
-                val text = r.getResult(stream).text
-                Log.i(TAG, "Transcribed ${samples.size / 16000f}s → ${System.currentTimeMillis()-t0}ms: \"$text\"")
+                val result = r.getResult(stream)
+                val text = result.text
+                // lang 是否有值要靠實機確認：若 Qwen3-ASR 會回報語言，就能用來判斷中日韓
+                Log.i(TAG, "Transcribed ${samples.size / 16000f}s → ${System.currentTimeMillis()-t0}ms: lang=\"${result.lang}\" \"$text\"")
                 text
             } finally {
                 runCatching { stream.release() }

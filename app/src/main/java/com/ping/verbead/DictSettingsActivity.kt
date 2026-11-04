@@ -14,6 +14,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.util.HapticUtil
 
 class DictSettingsActivity : AppCompatActivity() {
@@ -64,6 +66,16 @@ class DictSettingsActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener {
             HapticUtil.click(this)
             finish()
+        }
+
+        val switchHotwords = findViewById<MaterialSwitch>(R.id.switch_hotwords)
+        findViewById<View>(R.id.layout_hotwords_toggle).setOnClickListener {
+            switchHotwords.toggle()
+        }
+        switchHotwords.isChecked = ModelConfig.isHotwordsEnabled(this)
+        switchHotwords.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setHotwordsEnabled(this, isChecked)
         }
 
         emptyState = findViewById(R.id.ll_empty_state)

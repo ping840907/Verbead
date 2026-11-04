@@ -601,6 +601,57 @@
                         </LinearLayout>
                     </LinearLayout>
 
+                    <!-- Traditional Chinese conversion -->
+                    <LinearLayout
+                        android:id="@+id/layout_convert_traditional_toggle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="轉換為繁體中文"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="簡體轉繁體；日文、韓文段落不會被轉換。關閉則完全保留辨識原文" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_convert_traditional"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
+                    <View
+                        style="@style/Verbead.Divider"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
                     <!-- Punctuation filter -->
                     <LinearLayout
                         android:id="@+id/layout_filter_punctuation_toggle"
@@ -612,7 +663,7 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingStart="16dp"
-                        android:paddingTop="4dp"
+                        android:paddingTop="12dp"
                         android:paddingEnd="16dp"
                         android:paddingBottom="16dp">
 

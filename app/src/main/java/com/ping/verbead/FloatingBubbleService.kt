@@ -3150,17 +3150,23 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         buildHotwords() != qwen3Asr.loadedHotwords
 
     private fun buildHotwords(): String =
-        UserDictionary.load(this).values.distinct().sorted().joinToString("\n")
+        if (ModelConfig.isHotwordsEnabled(this)) {
+            UserDictionary.load(this).values.distinct().sorted().joinToString("\n")
+        } else {
+            ""
+        }
 
     private fun postProcess(raw: String): String {
-        val converted = if (ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive()) {
-            ModelConfig.normalizeTaiwanVariants(raw)
-        } else {
-            ModelConfig.toTaiwanTraditional(raw)
+        val convertTraditional = ModelConfig.isConvertToTraditionalEnabled(this)
+        val converted = when {
+            !convertTraditional -> raw
+            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() ->
+                ModelConfig.normalizeTaiwanVariants(raw)
+            else -> ModelConfig.toTaiwanTraditional(raw)
         }
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
-        val postReplaced = if (userReplaced == converted) {
-            converted
+        val postReplaced = if (userReplaced == converted || !convertTraditional) {
+            userReplaced
         } else {
             ModelConfig.applyPostRegexReplacements(userReplaced)
         }

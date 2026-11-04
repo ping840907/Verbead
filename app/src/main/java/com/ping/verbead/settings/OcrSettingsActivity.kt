@@ -185,7 +185,6 @@ class OcrSettingsActivity : AppCompatActivity() {
         btnOcrSepNone.setOnClickListener { updateSep("") }
 
         layoutOcrAutoEnterToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchOcrAutoEnter.toggle()
         }
         switchOcrAutoEnter.isChecked = ModelConfig.isOcrAutoEnterEnabled(this)
@@ -195,7 +194,6 @@ class OcrSettingsActivity : AppCompatActivity() {
         }
 
         layoutOcrSmartStitchToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchOcrSmartStitch.toggle()
         }
         switchOcrSmartStitch.isChecked = ModelConfig.isOcrSmartStitchEnabled(this)
@@ -207,7 +205,6 @@ class OcrSettingsActivity : AppCompatActivity() {
         }
 
         layoutOcrPanguSpacingToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchOcrPanguSpacing.toggle()
         }
         switchOcrPanguSpacing.isChecked = ModelConfig.isOcrPanguSpacingEnabled(this)
@@ -217,7 +214,6 @@ class OcrSettingsActivity : AppCompatActivity() {
         }
 
         layoutOcrToTraditionalToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchOcrToTraditional.toggle()
         }
         switchOcrToTraditional.isChecked = ModelConfig.isOcrToTraditionalEnabled(this)

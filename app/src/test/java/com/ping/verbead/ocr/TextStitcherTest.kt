@@ -256,4 +256,20 @@ class TextStitcherTest {
         val tradPanguResult = TextStitcher.stitch(listOf(mixedBlock), panguSpacing = true, toTraditional = true)
         assertEquals("在 2026 年使用 Android 系統體驗 AI 技術", tradPanguResult)
     }
+
+    @Test
+    fun testOcrJapaneseBlockIsNotConvertedToTraditionalKanji() {
+        // OCR 與語音共用同一套轉換：含假名的日文不得被改成繁體字形（国→國）
+        val ja = OcrBlock("国の学校で会議があります。", 50f, 100f, 400f, 120f)
+        assertEquals("国の学校で会議があります。", TextStitcher.stitch(listOf(ja), toTraditional = true))
+    }
+
+    @Test
+    fun testOcrMixedChineseAndJapaneseConvertsOnlyTheChinese() {
+        val zh = OcrBlock("这个专案要上线。", 50f, 100f, 400f, 120f)
+        val ja = OcrBlock("国の学校です。", 50f, 200f, 400f, 220f)
+        val result = TextStitcher.stitch(listOf(zh, ja), toTraditional = true)
+        assertTrue(result, result.contains("這個專案要上線。"))
+        assertTrue(result, result.contains("国の学校です。"))
+    }
 }

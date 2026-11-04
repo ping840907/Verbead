@@ -66,6 +66,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var tvAudioGainVal: TextView
     private lateinit var seekVadSilence: SeekBar
     private lateinit var tvVadSilenceVal: TextView
+    private lateinit var layoutConvertTraditionalToggle: View
+    private lateinit var switchConvertTraditional: MaterialSwitch
     private lateinit var layoutFilterPunctuationToggle: View
     private lateinit var switchFilterPunctuation: MaterialSwitch
 
@@ -138,6 +140,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvAudioGainVal = findViewById(R.id.tv_audio_gain_value)
         seekVadSilence = findViewById(R.id.sb_vad_silence)
         tvVadSilenceVal = findViewById(R.id.tv_vad_value)
+        layoutConvertTraditionalToggle = findViewById(R.id.layout_convert_traditional_toggle)
+        switchConvertTraditional = findViewById(R.id.switch_convert_traditional)
         layoutFilterPunctuationToggle = findViewById(R.id.layout_filter_punctuation_toggle)
         switchFilterPunctuation = findViewById(R.id.switch_filter_punctuation)
 
@@ -171,7 +175,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
         // External audio toggle
         layoutPreferExternalAudioToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchPreferExternalAudio.toggle()
         }
         switchPreferExternalAudio.isChecked = ModelConfig.isPreferExternalAudio(this)
@@ -223,9 +226,18 @@ class SpeechSettingsActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
 
+        // Convert to Traditional Chinese
+        layoutConvertTraditionalToggle.setOnClickListener {
+            switchConvertTraditional.toggle()
+        }
+        switchConvertTraditional.isChecked = ModelConfig.isConvertToTraditionalEnabled(this)
+        switchConvertTraditional.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setConvertToTraditionalEnabled(this, isChecked)
+        }
+
         // Filter punctuation
         layoutFilterPunctuationToggle.setOnClickListener {
-            HapticUtil.click(this)
             switchFilterPunctuation.toggle()
         }
         switchFilterPunctuation.isChecked = ModelConfig.isFilterPunctuationEnabled(this)
