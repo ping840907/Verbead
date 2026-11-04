@@ -100,6 +100,31 @@ class SilenceDetectorTest {
     }
 
     @Test
+    fun steadyBackgroundNoise_isNotTreatedAsSpeech() {
+        val d = detector(initialTimeout = 2.0f)
+        var event = SilenceDetector.Event.NONE
+        var elapsed = 0
+        while (event == SilenceDetector.Event.NONE && elapsed < 10_000) {
+            event = d.feed(chunk(100, 0.008f)); elapsed += 100
+        }
+        assertEquals(SilenceDetector.Event.NO_SPEECH, event)
+        assertFalse(d.spoken)
+    }
+
+    @Test
+    fun speakingFromTheFirstChunk_stillStopsInNoisyRoom() {
+        // 一開口就說話，雜訊底只能從之後的低點學到；底噪 0.008 不得讓停止永遠不觸發
+        val d = detector(trailing = 1.0f)
+        repeat(5) { d.feed(chunk(100, 0.2f)) }
+        var silenceMs = 0
+        var event = SilenceDetector.Event.NONE
+        while (event == SilenceDetector.Event.NONE && silenceMs < 5000) {
+            event = d.feed(chunk(100, 0.008f)); silenceMs += 100
+        }
+        assertEquals(SilenceDetector.Event.AUTO_STOP, event)
+    }
+
+    @Test
     fun veryShortClick_isNotTreatedAsSpeech() {
         val d = detector(initialTimeout = 1.0f)
         d.feed(chunk(30, 0.5f)) // < 100ms 的爆音

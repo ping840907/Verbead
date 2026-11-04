@@ -66,6 +66,15 @@ class SilenceDetector(
         val rms = PcmUtil.rms(samples)
         totalFrames += n
 
+        // 雜訊底先更新再判斷：一開頭就說話或環境持續有底噪時，也要能學到底噪，
+        // 否則下修後的門檻會把底噪當成說話，之後永遠偵測不到靜音。往下立即跟隨；
+        // 往上只在開口前、且該段不像說話時緩慢爬升。
+        if (noiseFloor < 0f || rms < noiseFloor) {
+            noiseFloor = rms
+        } else if (!hasSpoken && rms < speechGate()) {
+            noiseFloor += (rms - noiseFloor) * NOISE_RISE
+        }
+
         if (!hasSpoken) {
             if (rms >= speechGate()) {
                 consecutiveSpeech += n
@@ -75,10 +84,6 @@ class SilenceDetector(
                     speechLevel = rms
                 }
             } else {
-                noiseFloor = when {
-                    noiseFloor < 0f || rms < noiseFloor -> rms
-                    else -> noiseFloor + (rms - noiseFloor) * NOISE_RISE
-                }
                 consecutiveSpeech = maxOf(0L, consecutiveSpeech - n / 2)
                 initialSilence += n
                 if (initialSilence >= initialTimeoutFrames) return Event.NO_SPEECH
