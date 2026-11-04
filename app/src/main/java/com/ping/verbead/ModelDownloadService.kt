@@ -28,6 +28,11 @@ import kotlinx.coroutines.launch
  */
 class ModelDownloadService : Service() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.ping.verbead.util.AppLocale.wrap(newBase))
+    }
+
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
     private lateinit var downloader: ModelDownloader

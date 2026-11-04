@@ -4,10 +4,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.ping.verbead.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.ping.verbead.util.AppLocale
 import com.ping.verbead.util.HapticUtil
 
 class AboutSettingsActivity : AppCompatActivity() {
@@ -22,6 +25,13 @@ class AboutSettingsActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener {
             HapticUtil.click(this)
             finish()
+        }
+
+        val languageValue = findViewById<TextView>(R.id.text_language_value)
+        languageValue.text = languageLabel(AppLocale.currentTag(this))
+        findViewById<View>(R.id.row_language).setOnClickListener {
+            HapticUtil.click(this)
+            showLanguageDialog()
         }
 
         fun openWebUrl(url: String) {
@@ -51,5 +61,23 @@ class AboutSettingsActivity : AppCompatActivity() {
         findViewById<View?>(R.id.row_credit_onnx)?.setOnClickListener {
             openWebUrl("https://github.com/microsoft/onnxruntime")
         }
+    }
+
+    private fun languageLabel(tag: String): String = when (tag) {
+        "zh-TW" -> getString(R.string.settings_language_zh_tw)
+        "en" -> getString(R.string.settings_language_en)
+        else -> getString(R.string.settings_language_follow_system)
+    }
+
+    private fun showLanguageDialog() {
+        val tags = listOf("") + AppLocale.SUPPORTED_TAGS
+        val current = tags.indexOf(AppLocale.currentTag(this)).coerceAtLeast(0)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.settings_language_dialog_title)
+            .setSingleChoiceItems(tags.map(::languageLabel).toTypedArray(), current) { dialog, which ->
+                dialog.dismiss()
+                if (which != current) AppLocale.setTag(this, tags[which])
+            }
+            .show()
     }
 }

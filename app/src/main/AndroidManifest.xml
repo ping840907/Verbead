@@ -26,6 +26,7 @@
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Verbead">
@@ -45,13 +46,13 @@
         <activity
             android:name=".OnboardingActivity"
             android:exported="false"
-            android:label="新手設置" />
+            android:label="@string/onboarding_title" />
 
         <!-- Dictionary settings -->
         <activity
             android:name=".DictSettingsActivity"
             android:exported="false"
-            android:label="自定義詞彙" />
+            android:label="@string/dict_settings_title" />
 
         <!-- Settings Category Subpages -->
         <activity
@@ -83,6 +84,16 @@
             android:exported="false"
             android:label="@string/settings_cat_about_title"
             android:parentActivityName=".ImeSettingsActivity" />
+
+        <!-- API 26-32: persists the per-app language chosen with AppCompatDelegate.setApplicationLocales -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
 
         <!-- Model download: keeps running across screen-off / app-switch via foreground service -->
         <service

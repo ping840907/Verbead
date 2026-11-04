@@ -114,6 +114,11 @@ import java.util.concurrent.Executors
 
 class FloatingBubbleService : Service(), LifecycleOwner {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.ping.verbead.util.AppLocale.wrap(newBase))
+    }
+
+
     companion object {
         private const val TAG = "FloatingBubbleService"
         private const val NOTIFICATION_ID = 2001

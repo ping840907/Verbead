@@ -29,6 +29,37 @@
             android:paddingHorizontal="16dp"
             android:paddingBottom="32dp">
         <com.google.android.material.card.MaterialCardView
+            style="@style/Verbead.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:id="@+id/row_language"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    style="@style/Verbead.Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="@string/settings_language_title" />
+
+                <TextView
+                    android:id="@+id/text_language_value"
+                    style="@style/Verbead.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_credits"
             style="@style/Verbead.Card"
             android:layout_width="match_parent"

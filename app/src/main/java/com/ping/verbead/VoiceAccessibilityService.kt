@@ -28,6 +28,11 @@ import com.ping.verbead.util.TextInsertion
 
 class VoiceAccessibilityService : AccessibilityService() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.ping.verbead.util.AppLocale.wrap(newBase))
+    }
+
+
     data class KeyboardInfo(
         val isVisible: Boolean,
         val keyboardTop: Int,

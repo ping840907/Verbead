@@ -124,4 +124,15 @@
 
     <string name="settings_cat_about_title">關於與授權致謝</string>
     <string name="settings_cat_about_desc">版本資訊、開源核心技術致謝與 GitHub 專案</string>
+
+    <!-- Manifest labels -->
+    <string name="onboarding_title">新手設置</string>
+    <string name="dict_settings_title">自定義詞彙</string>
+
+    <!-- Interface language -->
+    <string name="settings_language_title">介面語言</string>
+    <string name="settings_language_dialog_title">選擇介面語言</string>
+    <string name="settings_language_follow_system">跟隨系統</string>
+    <string name="settings_language_zh_tw" translatable="false">繁體中文</string>
+    <string name="settings_language_en" translatable="false">English</string>
 </resources>
