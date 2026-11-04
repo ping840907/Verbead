@@ -153,6 +153,26 @@ class SpokenNumberConverterTest {
     }
 
     @Test
+    fun hourChar_isTime() {
+        check("3:30", "三時半")
+        check("3:00", "三時整")
+        check("3:15", "三時十五分")
+        check("3:05", "三時五分")
+        check("下午3:15", "下午三時十五")
+        check("8:35:20", "八時三十五分二十秒")
+        check("3:30", "三时半")
+    }
+
+    @Test
+    fun hourChar_isNeverADecimalPoint() {
+        unchanged("三時五")
+        unchanged("一時衝動")
+        unchanged("一時半刻")
+        unchanged("他同時來了三個人")
+        unchanged("三小時")
+    }
+
+    @Test
     fun point_timeCues() {
         check("下午3:15", "下午三點十五")
         check("下午3:05", "下午三點五")

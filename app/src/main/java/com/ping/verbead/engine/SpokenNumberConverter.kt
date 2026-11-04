@@ -14,12 +14,12 @@ package com.ping.verbead.engine
  *  - 成語與固定用法（三心二意、一天到晚…）整段跳過。
  *  - 含假名或諺文的小句整句跳過。
  *
- * 「點」的規則（H 為點前的整數，M 為點後的數字）：
+ * 「點」與「時」的規則（H 為整數，M 為後面的數字；「時」是書面的「點」，如三時十五分）：
  *  - H點半、H點整、H點鐘、H點一刻／三刻 → 時間（3:30、3:00、3:15、3:45）。
  *  - M 後面接「分」，或 M 含十（十五、二十、三十五）→ 時間，因為小數是逐位唸的。
  *  - H 前面有上午、下午、晚上…等時段詞，且 M 是逐位數字 → 時間（下午三點五 = 3:05）。
- *  - 其餘 M 是逐位數字（五、一四一五九）→ 小數（3.5、3.14159）。
- *  - 點後面不是數字（一點點、一點意見、三點到）→ 不動。
+ *  - 其餘 M 是逐位數字（五、一四一五九）→ 小數（3.5、3.14159）。「時」不會是小數點，所以只做時間判斷。
+ *  - 點後面不是數字（一點點、一點意見、三點到）→ 不動。「一時衝動、一時半刻」同理。
  *  - 只有「H點」（含時段詞，如下午三點）→ 不動，因為只有單獨的一位數。
  */
 object SpokenNumberConverter {
@@ -52,7 +52,7 @@ object SpokenNumberConverter {
             "一頭霧水", "一头雾水", "一針見血", "一针见血", "一目了然", "一路平安", "一成不變", "一成不变",
             "一日三餐", "三十而立", "四十不惑", "五十知天命", "三三兩兩", "三三两两", "三五成群",
             "三心二意", "一心一意", "七上八下", "九死一生", "一石二鳥", "一石二鸟", "十全十美",
-            "百發百中", "百发百中", "千方百計", "千方百计", "萬無一失", "万无一失", "一模一樣", "一模一样",
+            "百發百中", "百发百中", "千方百計", "千方百计", "萬無一失", "万无一失", "一模一樣", "一模一样", "一時半刻", "一时半刻", "一時半會", "一时半会",
             "五花八門", "五花八门", "四面八方", "七嘴八舌", "一五一十", "一清二楚", "一窮二白", "一穷二白",
             "五顏六色", "五颜六色", "三言兩語", "三言两语", "三番兩次", "三番两次", "說一不二", "说一不二",
             "獨一無二", "独一无二", "九牛一毛", "接二連三", "接二连三", "一刀兩斷", "一刀两断",
@@ -208,8 +208,8 @@ object SpokenNumberConverter {
             }
         }
         // 點：小數或時間
-        if (idx < s.length && (s[idx] == '點' || s[idx] == '点')) {
-            matchPoint(s, run, idx)?.let { return it }
+        if (idx < s.length && s[idx] in "點点時时") {
+            matchPoint(s, run, idx, hourChar = s[idx] == '時' || s[idx] == '时')?.let { return it }
         }
         // 趴 = %
         if (s.startsWith("趴", idx)) {
@@ -226,8 +226,8 @@ object SpokenNumberConverter {
         }
     }
 
-    /** H點…：判斷時間或小數。H 是點前的整數。 */
-    private fun matchPoint(s: String, hour: Run, pointIdx: Int): Tok.Num? {
+    /** H點／H時…：判斷時間或小數。H 是點前的整數；[hourChar] 為真表示用的是「時」，不可能是小數。 */
+    private fun matchPoint(s: String, hour: Run, pointIdx: Int, hourChar: Boolean): Tok.Num? {
         if (hour.kind == Kind.INVALID) return null
         val after = pointIdx + 1
         val h = hour.number
@@ -243,7 +243,7 @@ object SpokenNumberConverter {
         if (hourOk) {
             if (s.startsWith("半", after)) return time(after + 1, 30)
             if (s.startsWith("整", after)) return time(after + 1, 0)
-            if (s.startsWith("鐘", after) || s.startsWith("钟", after)) return time(after + 1, 0)
+            if (!hourChar && (s.startsWith("鐘", after) || s.startsWith("钟", after))) return time(after + 1, 0)
         }
 
         val m = readRun(s, after) ?: return null
@@ -270,7 +270,7 @@ object SpokenNumberConverter {
             return time(m.end, minutes)
         }
         // 小數是逐位唸的：點後只能是單個數字或數字串
-        if ((m.kind == Kind.SINGLE && !isTen) || m.kind == Kind.DIGITS) {
+        if (!hourChar && ((m.kind == Kind.SINGLE && !isTen) || m.kind == Kind.DIGITS)) {
             return Tok.Num(start, m.end, hour.value + "." + m.value, s.substring(start, m.end), strong = true, never = false)
         }
         return null
