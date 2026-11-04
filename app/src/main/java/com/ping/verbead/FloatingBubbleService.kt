@@ -16,6 +16,7 @@ import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.PersistableBundle
+import android.os.SystemClock
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -184,6 +185,52 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         get() = ::bubblePulseController.isInitialized && bubblePulseController.isShowing
     private var isRestoringSnapshot = false
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * 預先載入好的懸浮球版面。搖晃複製發生在拖曳手勢當中，若當場才載入版面，
+     * 會和 addView、刪除區視窗、Toast 擠在同一個畫面幀內造成卡頓，所以在主執行緒閒置時先備好一份。
+     */
+    /** 搖晃複製的提示文字，等手指放開再顯示（Toast 在拖曳中顯示會拖慢手勢）。 */
+    private var pendingShakeToast: String? = null
+
+    private fun flushPendingShakeToast() {
+        pendingShakeToast?.let { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() }
+        pendingShakeToast = null
+    }
+
+    /**
+     * 手指剛按下、球還沒開始動時，先把搖晃複製會用到的東西備好：
+     * 新球的版面、刪除區視窗。這時做不會影響正在進行的手勢。
+     */
+    private fun prewarmForShake() {
+        if (ModelConfig.getMaxMultiBubbleCountForEnabledModes(this) <= 1) return
+        scheduleSpareBubbleView()
+        if (!bubbleDeleteZoneController.isShowing) {
+            val density = resources.displayMetrics.density
+            bubbleDeleteZoneController.prewarm(getScreenWidth(), getMinY() + (24 * density).toInt())
+        }
+    }
+
+    /** 搖晃複製後母球回彈動畫進行中，這段時間拖曳不可把縮放強制重設。 */
+    private var shakeRecoilUntilUptime = 0L
+
+    private var spareBubbleView: View? = null
+    private var spareBubbleScheduled = false
+
+    private fun scheduleSpareBubbleView() {
+        if (spareBubbleView != null || spareBubbleScheduled) return
+        if (bubbleItems.size >= ModelConfig.getMaxMultiBubbleCountForEnabledModes(this)) return
+        spareBubbleScheduled = true
+        Looper.myQueue().addIdleHandler {
+            spareBubbleScheduled = false
+            if (spareBubbleView == null) {
+                spareBubbleView = runCatching {
+                    LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+                }.getOrNull()
+            }
+            false
+        }
+    }
 
     // Capsule menu controller & mode
     private lateinit var capsuleMenuController: CapsuleMenuController
@@ -463,8 +510,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             },
             onShakeTriggered = {
                 currentlyDraggedBubble?.let { item ->
-                    item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
-                    handleShakeToDuplicate(item)
+                    if (!handleShakeToDuplicate(item)) {
+                        item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    }
                 }
             }
         )
@@ -960,6 +1008,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 MotionEvent.ACTION_DOWN -> {
                     currentlyDraggedBubble = item
                     shakeDetector?.reset()
+                    Looper.myQueue().addIdleHandler {
+                        if (currentlyDraggedBubble != null) prewarmForShake()
+                        false
+                    }
                     v.parent?.requestDisallowInterceptTouchEvent(true)
                     updateSystemGestureExclusion()
                     for (b in bubbleItems) {
@@ -1059,7 +1111,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         } else {
                             item.windowLayoutParams.x = newX
                             item.windowLayoutParams.y = newY
-                            if (shakeDetector?.isShaking == false) {
+                            if (shakeDetector?.isShaking == false &&
+                                SystemClock.uptimeMillis() >= shakeRecoilUntilUptime
+                            ) {
                                 item.btnBubble.scaleX = 1f
                                 item.btnBubble.scaleY = 1f
                             }
@@ -1177,6 +1231,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 MotionEvent.ACTION_UP -> {
                     recordTouchSample(event.rawX, event.rawY)
                     longPressHandler.removeCallbacks(longPressRunnable)
+                    bubbleDeleteZoneController.discardPrewarm()
+                    flushPendingShakeToast()
                     if (isLongPressTriggered || isCapsuleMenuShowing) {
                         capsuleMenuController.finishDrag(event.rawX, event.rawY)
                         isLongPressTriggered = false
@@ -1219,6 +1275,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     longPressHandler.removeCallbacks(longPressRunnable)
+                    bubbleDeleteZoneController.discardPrewarm()
+                    flushPendingShakeToast()
                     item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
                     currentlyDraggedBubble = null
                     shakeDetector?.reset()
@@ -1422,7 +1480,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
-    private fun handleShakeToDuplicate(parent: FloatingBubbleItem) {
+    /** @return 是否真的複製出新球（達到上限時回傳 false）。 */
+    private fun handleShakeToDuplicate(parent: FloatingBubbleItem): Boolean {
+        val tStart = SystemClock.elapsedRealtime()
         val enabledModes = ModelConfig.getEnabledBubbleModes(this)
         val maxAllowed = ModelConfig.getMaxMultiBubbleCountForEnabledModes(this)
         if (bubbleItems.size >= maxAllowed) {
@@ -1432,7 +1492,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             } else {
                 Toast.makeText(this, "已達目前開啟模式數量上限（最多 ${maxAllowed} 顆）", Toast.LENGTH_SHORT).show()
             }
-            return
+            return false
         }
 
         val newCount = bubbleItems.size + 1
@@ -1449,7 +1509,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val bubbleHeightPx = (60 * density).toInt()
         val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
-        val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+        val usedSpare = spareBubbleView != null
+        val v = spareBubbleView?.also { spareBubbleView = null }
+            ?: LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+        val tInflated = SystemClock.elapsedRealtime()
         val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
         val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
         val prog = v.findViewById<ProgressBar>(R.id.progress_bubble)
@@ -1489,24 +1552,26 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         attachBubbleTouchListener(newItem)
         bubbleItems.add(newItem)
 
-        v.scaleX = 0.25f
-        v.scaleY = 0.25f
-        v.alpha = 0.3f
+        v.scaleX = 0.55f
+        v.scaleY = 0.55f
+        v.alpha = 0.6f
 
+        val tBeforeAdd = SystemClock.elapsedRealtime()
         windowManager.addView(v, lp)
+        val tAdded = SystemClock.elapsedRealtime()
 
         // Haptic feedback pop
         HapticUtil.heavyClick(this)
 
-        // Parent recoil/bounce (squish inward without exceeding 1.0f)
+        // 母球：搖晃時累積的擠壓直接順勢回彈到原大小，不另外再縮一次。
+        // 縮放不超過 1（視窗大小等於球，超出會被裁切）；回彈期間拖曳不能強制重設縮放。
+        shakeRecoilUntilUptime = SystemClock.uptimeMillis() + 260L
         parent.btnBubble.animate().cancel()
         parent.btnBubble.animate()
-            .scaleX(0.88f)
-            .scaleY(0.88f)
-            .setDuration(120L)
-            .withEndAction {
-                parent.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(160L).setInterpolator(DecelerateInterpolator()).start()
-            }
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(220L)
+            .setInterpolator(DecelerateInterpolator(1.5f))
             .start()
 
         // New bubble blooms smoothly to full size (capped at 1.0f so edges are never clipped by the window)
@@ -1515,49 +1580,94 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .scaleX(1f)
             .scaleY(1f)
             .alpha(1f)
-            .setDuration(260L)
+            .setDuration(240L)
             .setInterpolator(DecelerateInterpolator(1.6f))
             .start()
 
-        // Repulsion displacement alongside the parent bubble (staying at current X until finger release)
-        val repulsionDistance = (68 * density).toInt()
-        val safeMin = getMinY()
-        val safeMax = getMaxY()
-        val existingYs = bubbleItems.map { it.windowLayoutParams.y }
-        val candidateDown = (initialY + repulsionDistance).coerceIn(safeMin, safeMax)
-        val candidateUp = (initialY - repulsionDistance).coerceIn(safeMin, safeMax)
-        val distDown = existingYs.minOfOrNull { kotlin.math.abs(it - candidateDown) } ?: Int.MAX_VALUE
-        val distUp = existingYs.minOfOrNull { kotlin.math.abs(it - candidateUp) } ?: Int.MAX_VALUE
-        val targetRepulsionY = if (distDown >= distUp) candidateDown else candidateUp
-
+        // 新球「分裂」出去：繼承搖晃當下的速度，再減速停在斥開位置。
+        // 搖晃是動態的動作，若新球從靜止開始播固定時間的位移，視覺上會突然停頓；
+        // 用 Hermite 曲線讓新球一開始的速度等於手指的速度，結尾速度為 0。
+        val safeMin = getMinY().toFloat()
+        val safeMax = getMaxY().toFloat()
         val screenWidth = getScreenWidth()
-        val targetOnRight = (initialX + bubbleWidthPx / 2f) >= screenWidth / 2f
-        newItem.isDockedOnRight = targetOnRight
+        val maxX = (screenWidth - bubbleWidthPx).toFloat()
+        val travel = 68 * density
+        val durationMs = 260L
+        val durSec = durationMs / 1000f
+        val x0 = initialX.toFloat()
+        val y0 = initialY.toFloat()
+        val (vx0, vy0) = computeScreenVelocity()
+        val speed = hypot(vx0, vy0)
+        val hasMotion = speed >= 400f
+        val dirX = if (hasMotion) vx0 / speed else 0f
+        val dirY = if (hasMotion) vy0 / speed else 0f
 
+        fun targetFor(dx: Float, dy: Float) = Pair(
+            (x0 + dx * travel).coerceIn(0f, maxX),
+            (y0 + dy * travel).coerceIn(safeMin, safeMax)
+        )
+        fun reach(t: Pair<Float, Float>) = hypot(t.first - x0, t.second - y0)
+
+        var target = targetFor(dirX, dirY)
+        var inheritMotion = hasMotion
+        if (!hasMotion || reach(target) < travel * 0.6f) {
+            // 速度太小，或前進方向被邊界擋住：改走反方向；兩邊都不行就用原本的上下斥開
+            val flipped = targetFor(-dirX, -dirY)
+            inheritMotion = false
+            target = if (hasMotion && reach(flipped) >= travel * 0.6f) {
+                flipped
+            } else {
+                val existingYs = bubbleItems.map { it.windowLayoutParams.y }
+                val candidateDown = (y0 + travel).coerceIn(safeMin, safeMax)
+                val candidateUp = (y0 - travel).coerceIn(safeMin, safeMax)
+                val distDown = existingYs.minOfOrNull { kotlin.math.abs(it - candidateDown) } ?: Float.MAX_VALUE
+                val distUp = existingYs.minOfOrNull { kotlin.math.abs(it - candidateUp) } ?: Float.MAX_VALUE
+                Pair(x0, if (distDown >= distUp) candidateDown else candidateUp)
+            }
+        }
+        val x1 = target.first
+        val y1 = target.second
+        // 起始速度不可大到讓曲線衝過終點（減速到 0 所需位移至少是 速度×時間/2）
+        val vEff = if (inheritMotion) minOf(speed, 2f * reach(target) / durSec) else 0f
+        val m0x = dirX * vEff * durSec
+        val m0y = dirY * vEff * durSec
+
+        newItem.isDockedOnRight = (x1 + bubbleWidthPx / 2f) >= screenWidth / 2f
         newItem.snapAnimator?.cancel()
         newItem.snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 200L
-            interpolator = DecelerateInterpolator(1.4f)
+            duration = durationMs
+            interpolator = android.view.animation.LinearInterpolator()
             addUpdateListener { va ->
                 if (v.isAttachedToWindow) {
-                    val f = va.animatedFraction
-                    lp.x = initialX
-                    lp.y = (initialY + (targetRepulsionY - initialY) * f).toInt()
+                    val u = va.animatedFraction
+                    val u2 = u * u
+                    val u3 = u2 * u
+                    val h00 = 2 * u3 - 3 * u2 + 1
+                    val h10 = u3 - 2 * u2 + u
+                    val h01 = -2 * u3 + 3 * u2
+                    lp.x = (h00 * x0 + h10 * m0x + h01 * x1).toInt()
+                    lp.y = (h00 * y0 + h10 * m0y + h01 * y1).toInt()
                     windowManager.updateViewLayout(v, lp)
                 }
             }
             start()
         }
 
-        // Show delete zone if parent is currently being dragged and size > 1
+        // 刪除區視窗已在按下時預先建好，這裡只播進場動畫；沒備好時才會當場建立
         if (bubbleItems.size > 1 && !bubbleDeleteZoneController.isShowing) {
             val deleteZoneTargetY = getMinY() + (24 * density).toInt()
             bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
         }
-
+        // Toast 等手指放開再顯示。設定頁的多球開關由設定值變更的監聽自行同步，不必在這裡通知
         val meta = ModelConfig.getBubbleModeMeta(newMode)
-        Toast.makeText(this, "已複製「${meta.title}」懸浮球（共 ${newCount} 顆，已開啟多球並存）", Toast.LENGTH_SHORT).show()
-        ImeSettingsActivity.instance?.syncMultiBubbleState()
+        pendingShakeToast = "已複製「${meta.title}」懸浮球（共 ${newCount} 顆，已開啟多球並存）"
+
+        Log.d(
+            TAG,
+            "shake duplicate: spare=$usedSpare inflate=${tInflated - tStart}ms " +
+                "addView=${tAdded - tBeforeAdd}ms mainThread=${SystemClock.elapsedRealtime() - tStart}ms"
+        )
+        return true
     }
 
     private fun handleDeleteBubble(bubbleToDelete: FloatingBubbleItem) {
@@ -3279,6 +3389,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        spareBubbleView = null // 主題或螢幕設定改變後，預載的版面可能過期
         if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
             val screenWidth = getScreenWidth()
             val bubbleWidthPx = (60 * resources.displayMetrics.density).toInt()
@@ -3334,6 +3445,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                     
 
 
+            spareBubbleView = null
             safely("jobs") {
                 snapAnimator?.cancel()
                 recordingJob?.cancel()

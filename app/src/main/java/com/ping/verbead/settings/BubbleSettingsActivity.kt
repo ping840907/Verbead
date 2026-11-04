@@ -77,10 +77,45 @@ class BubbleSettingsActivity : AppCompatActivity() {
         setupBubbleModesRecyclerView()
     }
 
+    /** 程式化同步開關時為 true，避免觸發使用者操作的監聽（會重複震動並再次通知懸浮球服務）。 */
+    private var syncingMultiBubbleSwitch = false
+
+    /**
+     * 搖晃複製或拖曳刪除懸浮球時，服務端會直接改寫「多球並存」的設定值，
+     * 這裡的開關與數量要跟著更新，否則設定頁會一直顯示舊狀態。
+     */
+    private val bubblePrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == ModelConfig.KEY_MULTI_BUBBLE_ENABLED || key == ModelConfig.KEY_MULTI_BUBBLE_COUNT) {
+            runOnUiThread { if (!isFinishing && !isDestroyed) syncMultiBubbleFromPrefs() }
+        }
+    }
+
+    private fun syncMultiBubbleFromPrefs() {
+        val enabled = ModelConfig.isMultiBubbleEnabled(this)
+        if (switchMultiBubble.isChecked != enabled) {
+            syncingMultiBubbleSwitch = true
+            switchMultiBubble.isChecked = enabled
+            syncingMultiBubbleSwitch = false
+        }
+        updateMultiBubbleUI()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        getSharedPreferences(ModelConfig.PREF_BUBBLE_SETTINGS, MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(bubblePrefsListener)
+    }
+
+    override fun onStop() {
+        getSharedPreferences(ModelConfig.PREF_BUBBLE_SETTINGS, MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(bubblePrefsListener)
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         updatePermissions()
-        updateMultiBubbleUI()
+        syncMultiBubbleFromPrefs()
     }
 
     private fun bindViews() {
@@ -179,6 +214,7 @@ class BubbleSettingsActivity : AppCompatActivity() {
         }
         switchMultiBubble.isChecked = ModelConfig.isMultiBubbleEnabled(this)
         switchMultiBubble.setOnCheckedChangeListener { _, isChecked ->
+            if (syncingMultiBubbleSwitch) return@setOnCheckedChangeListener
             HapticUtil.click(this)
             ModelConfig.setMultiBubbleEnabled(this, isChecked)
             updateMultiBubbleUI()

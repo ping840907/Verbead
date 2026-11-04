@@ -53,14 +53,11 @@ class BubbleDeleteZoneController(
     private var cachedCenterY: Float = 0f
 
     /**
-     * Shows the delete target container with a scale and fade entrance animation.
+     * 建立刪除區視窗並加進 WindowManager（透明、縮小狀態），回傳視窗；失敗回傳 null。
+     * 視窗不接收觸控：判斷是否放進刪除區靠的是球的座標，不需要觸控事件，
+     * 這樣預先建好的隱形視窗也不會擋住底下 App 的操作。
      */
-    fun show(screenWidth: Int, targetY: Int) {
-        val currentView = rootView
-        if (isShowing && currentView != null && currentView.isAttachedToWindow) {
-            return
-        }
-
+    private fun attachWindow(screenWidth: Int, targetY: Int): View? {
         cleanupView()
 
         val density = context.resources.displayMetrics.density
@@ -84,6 +81,7 @@ class BubbleDeleteZoneController(
             windowSizePx,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
@@ -108,14 +106,69 @@ class BubbleDeleteZoneController(
         view.scaleX = 0.5f
         view.scaleY = 0.5f
 
-        try {
+        return try {
             windowManager.addView(view, lp)
-            isShowing = true
+            view
         } catch (e: Exception) {
             Log.w(TAG, "Failed to add delete zone window", e)
             cleanupView()
+            null
+        }
+    }
+
+    /**
+     * 預先建立刪除區視窗（隱形）。搖晃複製發生在拖曳手勢當中，若當場才載入版面並 addView，
+     * 會讓正在被手指拖著走的球卡一兩幀；所以在手指剛按下、球還沒開始動時先備好。
+     */
+    fun prewarm(screenWidth: Int, targetY: Int) {
+        if (isShowing || rootView != null) return
+        attachWindow(screenWidth, targetY)
+    }
+
+    /** 放開手指後若預先建立的視窗沒用到就移除。 */
+    fun discardPrewarm() {
+        if (!isShowing) cleanupView()
+    }
+
+    /**
+     * Shows the delete target container with a scale and fade entrance animation.
+     * 已預先建立時只需換位置並播動畫，不再載入版面或 addView。
+     */
+    fun show(screenWidth: Int, targetY: Int) {
+        val current = rootView
+        if (isShowing && current != null && current.isAttachedToWindow) {
             return
         }
+
+        val lp = layoutParams
+        val view: View
+        if (current != null && current.isAttachedToWindow && lp != null) {
+            val windowSizePx = (WINDOW_SIZE_DP * context.resources.displayMetrics.density).toInt()
+            val posX = (screenWidth - windowSizePx) / 2
+            if (lp.x != posX || lp.y != targetY) {
+                lp.x = posX
+                lp.y = targetY
+                try {
+                    windowManager.updateViewLayout(current, lp)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to reposition prewarmed delete zone", e)
+                }
+            }
+            cachedCenterX = posX + (windowSizePx / 2f)
+            cachedCenterY = targetY + (windowSizePx / 2f)
+            isAttracted = false
+            isLocked = false
+            containerTarget?.apply {
+                alpha = 1f
+                scaleX = 1f
+                scaleY = 1f
+                setBackgroundResource(R.drawable.bg_bubble_delete_zone)
+            }
+            view = current
+        } else {
+            view = attachWindow(screenWidth, targetY) ?: return
+        }
+        isShowing = true
 
         view.animate().setListener(null).cancel()
         view.animate()

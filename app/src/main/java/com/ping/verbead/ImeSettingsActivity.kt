@@ -43,10 +43,12 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     fun syncMultiBubbleState() {
         runOnUiThread {
-            if (!isFinishing && !isDestroyed) {
-                updateAllStatus()
-                updateCategorySummaries()
-            }
+            if (isFinishing || isDestroyed) return@runOnUiThread
+            // 頁面不在前景時不必重算（狀態檢查會讀檔案與系統設定，在主執行緒做會拖慢懸浮球的手勢）；
+            // 回到前景時 onResume 會整頁更新
+            if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return@runOnUiThread
+            updateAllStatus()
+            updateCategorySummaries()
         }
     }
 
