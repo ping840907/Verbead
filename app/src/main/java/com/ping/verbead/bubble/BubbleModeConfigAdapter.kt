@@ -152,7 +152,6 @@ class BubbleModeConfigAdapter(
             ModelConfig.BUBBLE_MODE_OCR -> R.drawable.ic_ocr
             ModelConfig.BUBBLE_MODE_BARCODE -> R.drawable.ic_barcode
             ModelConfig.BUBBLE_MODE_PHRASES -> R.drawable.ic_quick_phrases
-            ModelConfig.BUBBLE_MODE_SLM -> R.drawable.ic_ai_sparkle
             else -> R.drawable.ic_mic
         }
     }

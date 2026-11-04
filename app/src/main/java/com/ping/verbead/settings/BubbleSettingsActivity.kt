@@ -185,9 +185,9 @@ class BubbleSettingsActivity : AppCompatActivity() {
             FloatingBubbleService.instance?.updateMultiBubbleMode()
         }
 
-        // Multi bubble count slider (2..5 -> progress 0..3)
+        // Multi bubble count slider (2..4 -> progress 0..2)
         val curCount = ModelConfig.getMultiBubbleCount(this)
-        sbMultiBubbleCount.progress = (curCount - 2).coerceIn(0, 3)
+        sbMultiBubbleCount.progress = (curCount - 2).coerceIn(0, 2)
         tvMultiBubbleCountValue.text = "${curCount} 個"
         sbMultiBubbleCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -364,7 +364,7 @@ class BubbleSettingsActivity : AppCompatActivity() {
         sbMultiBubbleCount.isEnabled = enabled
 
         val count = ModelConfig.getMultiBubbleCount(this)
-        sbMultiBubbleCount.progress = (count - 2).coerceIn(0, 3)
+        sbMultiBubbleCount.progress = (count - 2).coerceIn(0, 2)
         tvMultiBubbleCountValue.text = "${count} 個"
 
         tvBubbleModesSummary.text = if (enabled) {

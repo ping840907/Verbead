@@ -28,9 +28,7 @@ import com.ping.verbead.engine.ModelZipInstaller
 import com.ping.verbead.settings.AboutSettingsActivity
 import com.ping.verbead.settings.BubbleSettingsActivity
 import com.ping.verbead.settings.OcrSettingsActivity
-import com.ping.verbead.settings.SlmSettingsActivity
 import com.ping.verbead.settings.SpeechSettingsActivity
-import com.ping.verbead.slm.SlmModelConfig
 import com.ping.verbead.util.HapticUtil
 import kotlinx.coroutines.launch
 import java.io.File
@@ -92,8 +90,6 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var cardCatOcr: MaterialCardView
     private lateinit var tvCatOcrSummary: TextView
 
-    private lateinit var cardCatSlm: MaterialCardView
-    private lateinit var tvCatSlmSummary: TextView
 
     // Inline Offline Model Package Import
     private lateinit var cardImportModels: MaterialCardView
@@ -223,8 +219,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         cardCatOcr = findViewById(R.id.card_cat_ocr)
         tvCatOcrSummary = findViewById(R.id.tv_cat_ocr_summary)
 
-        cardCatSlm = findViewById(R.id.card_cat_slm)
-        tvCatSlmSummary = findViewById(R.id.tv_cat_slm_summary)
 
         // Inline Model Package Import
         cardImportModels = findViewById(R.id.card_import_models)
@@ -313,11 +307,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         cardCatOcr.setOnClickListener {
             HapticUtil.click(this)
             startActivity(Intent(this, OcrSettingsActivity::class.java))
-        }
-
-        cardCatSlm.setOnClickListener {
-            HapticUtil.click(this)
-            startActivity(Intent(this, SlmSettingsActivity::class.java))
         }
 
         // Inline Offline Model Package Import Listeners
@@ -545,25 +534,13 @@ class ImeSettingsActivity : AppCompatActivity() {
         val trad = if (ModelConfig.isOcrToTraditionalEnabled(this)) "繁中" else "原字"
         tvCatOcrSummary.text = "$ocrName ($ocrStatusStr) · $trad · $pangu"
 
-        // 4. SLM
-        val slmModelId = SlmModelConfig.getSelectedModel(this)
-        val slmMeta = SlmModelConfig.AVAILABLE_MODELS.find { it.id == slmModelId }
-        val slmReady = SlmModelConfig.isModelDownloaded(this, slmModelId)
-        val slmName = slmMeta?.displayName ?: "Qwen 2B"
-        val slmStatusStr = if (slmReady) "已就緒" else "未下載"
-        val thinkingStr = if (SlmModelConfig.isThinkingEnabled(this)) "思考模式開" else "思考模式關"
-        tvCatSlmSummary.text = "$slmName ($slmStatusStr) · $thinkingStr · 智慧改寫"
-
-        // 5. Offline Model Package Import (Main page inline)
-        val totalCount = 4 + SlmModelConfig.AVAILABLE_MODELS.size
+        // 4. Offline Model Package Import (Main page inline)
+        val totalCount = 4
         var downloadedCount = 0
         if (ModelConfig.isXAsrReady(this)) downloadedCount++
         if (ModelConfig.isQwen3Ready(this)) downloadedCount++
         if (ModelConfig.isOcrTinyReady(this)) downloadedCount++
         if (ModelConfig.isOcrSmallReady(this)) downloadedCount++
-        SlmModelConfig.AVAILABLE_MODELS.forEach {
-            if (SlmModelConfig.isModelDownloaded(this, it.id)) downloadedCount++
-        }
         tvCatBackupSummary.text = "已下載 $downloadedCount/$totalCount 個離線模型 · 支援 ZIP 導入"
 
         val allReady = ModelConfig.areAllModelsReady(this)

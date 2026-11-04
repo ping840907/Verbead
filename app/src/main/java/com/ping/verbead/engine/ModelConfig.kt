@@ -65,11 +65,11 @@ object ModelConfig {
 
     fun modelsDir(context: Context): String {
         val primary = context.getExternalFilesDir("models")
-        if (primary != null && (File(primary, OCR_DIR).exists() || File(primary, X_ASR_DIR).exists() || File(primary, QWEN3_ASR_DIR).exists() || File(primary, "slm").exists())) {
+        if (primary != null && (File(primary, OCR_DIR).exists() || File(primary, X_ASR_DIR).exists() || File(primary, QWEN3_ASR_DIR).exists())) {
             return primary.absolutePath
         }
         val internal = File(context.filesDir, "models")
-        if (File(internal, OCR_DIR).exists() || File(internal, X_ASR_DIR).exists() || File(internal, QWEN3_ASR_DIR).exists() || File(internal, "slm").exists()) {
+        if (File(internal, OCR_DIR).exists() || File(internal, X_ASR_DIR).exists() || File(internal, QWEN3_ASR_DIR).exists()) {
             return internal.absolutePath
         }
         return primary?.absolutePath ?: internal.absolutePath
@@ -777,7 +777,7 @@ object ModelConfig {
     const val KEY_MULTI_BUBBLE_COUNT = "multi_bubble_count"
     const val DEFAULT_MULTI_BUBBLE_COUNT = 4
     const val MIN_MULTI_BUBBLE_COUNT = 2
-    const val MAX_MULTI_BUBBLE_COUNT = 5
+    const val MAX_MULTI_BUBBLE_COUNT = 4
 
     fun isMultiBubbleEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
@@ -818,7 +818,6 @@ object ModelConfig {
     const val BUBBLE_MODE_OCR = 1
     const val BUBBLE_MODE_BARCODE = 2
     const val BUBBLE_MODE_PHRASES = 3
-    const val BUBBLE_MODE_SLM = 4
 
     const val KEY_BUBBLE_MODE_ORDER = "bubble_mode_order"
     const val KEY_BUBBLE_DISABLED_MODES = "bubble_disabled_modes"
@@ -827,8 +826,7 @@ object ModelConfig {
         BUBBLE_MODE_VOICE,
         BUBBLE_MODE_BARCODE,
         BUBBLE_MODE_OCR,
-        BUBBLE_MODE_PHRASES,
-        BUBBLE_MODE_SLM
+        BUBBLE_MODE_PHRASES
     )
 
     data class BubbleModeMeta(
@@ -862,12 +860,6 @@ object ModelConfig {
             title = "常用語抽屜",
             shortName = "常用語",
             description = "快速點選自訂常用片語與近期辨識歷史紀錄"
-        ),
-        BUBBLE_MODE_SLM to BubbleModeMeta(
-            mode = BUBBLE_MODE_SLM,
-            title = "AI 語音改寫與對話 (SLM)",
-            shortName = "AI 改寫",
-            description = "透過 Qwen3.5 端側模型，用語音指令直接改寫、翻譯或生成文字"
         )
     )
 

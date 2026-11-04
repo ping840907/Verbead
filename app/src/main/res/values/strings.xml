@@ -31,16 +31,16 @@
     <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始收音；支援雙引擎「即時預覽 + 離線高精度轉譯」，懸浮球旁會即時串流顯示辨識文字並自動填入！</string>
     <string name="onboarding_page1_tip">提示：點擊懸浮球轉為紅色即開始收音，再次點擊或靜音即自動完成轉譯與填入。</string>
     <string name="onboarding_page2_title">垂直膠囊 · 五大模式隨心切換</string>
-    <string name="onboarding_page2_desc">長按懸浮球展開垂直功能膠囊，上下滑動對齊即可切換五大模式：「語音即時輸入」、「條碼掃描」、「文字辨識 (PP-OCRv6)」、「常用語與歷史紀錄」，以及全新「AI 語音改寫與生成」！</string>
-    <string name="onboarding_page2_tip">提示：在 AI 模式下點擊懸浮球並說出指令（如「翻成英文」、「改得更禮貌」），即可直接改寫輸入框文字。</string>
+    <string name="onboarding_page2_desc">長按懸浮球展開垂直功能膠囊，上下滑動對齊即可切換四大模式：「語音即時輸入」、「條碼掃描」、「文字辨識 (PP-OCRv6)」與「常用語與歷史紀錄」。</string>
+    <string name="onboarding_page2_tip">提示：滑動到想要的模式後放開手指，即可切換並立即使用。</string>
     <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回與還原</string>
-    <string name="onboarding_page3_desc">無論是語音輸入、OCR 擷取，或是 AI 語音改寫覆寫了原有文字，若結果不如預期，無需手動逐字修改！填入後 10 秒內點擊懸浮球上方的小型 ✕ 鍵，即可瞬間撤回並完整還原原本的文字內容。</string>
-    <string name="onboarding_page3_tip">提示：完成輸入或 AI 改寫後，懸浮球上方會浮現 ✕ 鍵，輕點即可執行 Undo 無損復原。</string>
+    <string name="onboarding_page3_desc">無論是語音輸入或 OCR 擷取，若結果不如預期，無需手動逐字修改！填入後 10 秒內點擊懸浮球上方的小型 ✕ 鍵，即可瞬間撤回並完整還原原本的文字內容。</string>
+    <string name="onboarding_page3_tip">提示：完成輸入後，懸浮球上方會浮現 ✕ 鍵，輕點即可執行 Undo 無損復原。</string>
     <string name="onboarding_page4_title">貼邊收納 · 鍵盤聯動 · 搖晃分身</string>
     <string name="onboarding_page4_desc" formatted="false">拖至螢幕邊緣自動貼邊收納 70%，也可開啟「僅軟體鍵盤出現時顯示」。此外，拖曳懸浮球時快速左右搖晃即可「分裂新增分身」（最多 5 顆），讓語音、OCR 與 AI 改寫多球同屏待命！</string>
     <string name="onboarding_page4_tip">提示：分身懸浮球各自記憶獨立模式；若要移除多餘分身，拖曳至螢幕頂部刪除區即可。</string>
     <string name="onboarding_page5_title" formatted="false">100% 離線端側 · 一站式主設定</string>
-    <string name="onboarding_page5_desc">從雙引擎語音、PP-OCRv6 到 Qwen3.5 端側語言模型（支援 GPU / NPU 硬體加速），全程在手機本機推論，零雲端上傳、零隱私外洩。所有權限、模型管理與離線模型包匯入皆整合於主設定頁面！</string>
+    <string name="onboarding_page5_desc">從雙引擎語音到 PP-OCRv6 文字辨識，全程在手機本機推論，零雲端上傳、零隱私外洩。所有權限、模型管理與離線模型包匯入皆整合於主設定頁面！</string>
     <string name="onboarding_page5_tip">隱私保障：極致端側運算速度與最高資安規格，點擊下方前往主設定開始體驗。</string>
 
     <!-- Onboarding Toasts -->
@@ -102,38 +102,11 @@
     <string name="action_clear_history">清除</string>
     <string name="empty_quick_phrases">尚無常用語與紀錄\n點擊右上角「+」立即新增</string>
 
-    <!-- SLM Floating Chat & AI Voice Input Strings -->
-    <string name="preview_mode_slm">AI 語音改寫/生成</string>
-    <string name="preview_slm_listening_selection">聆聽指令（處理已選取文字）…</string>
-    <string name="preview_slm_listening_context">聆聽指令（處理輸入框文字）…</string>
-    <string name="preview_slm_listening_empty">聆聽中（AI 語音生成/潤飾）…</string>
-    <string name="preview_slm_processing">AI 處理中…</string>
-    <string name="preview_slm_failed">AI 處理失敗：%1$s</string>
-    <string name="toast_slm_copied">已複製答覆至剪貼簿</string>
-    <string name="toast_slm_pasted">已直接貼入當前文字輸入框</string>
-    <string name="toast_slm_pasted_fallback">未偵測到作用中輸入框，已複製至剪貼簿</string>
-    <string name="toast_slm_switched_model">已切換模型為 %1$s</string>
-    <string name="toast_slm_thinking_on">思考開關：已開啟</string>
-    <string name="toast_slm_thinking_off">思考開關：已關閉</string>
-    <string name="toast_slm_download_started">開始在背景下載 %1$s 模型…</string>
-    <string name="toast_slm_download_cancelled">已取消 SLM 模型下載</string>
-    <string name="toast_slm_loaded_memory">已成功載入 %1$s 至記憶體 (硬體加速)</string>
-    <string name="toast_slm_unloaded_memory">已從記憶體釋放 SLM 模型</string>
-    <string name="toast_slm_load_failed">載入模型失敗：%1$s</string>
-    <string name="toast_slm_not_downloaded">所選模型尚未下載，請先下載模型</string>
-    <string name="toast_slm_mode_switched">已切換輸出模式：%1$s</string>
-    <string name="slm_mode_fast">極簡快答</string>
-    <string name="slm_mode_bullet">重點條列</string>
-    <string name="slm_mode_refine">潤飾/翻譯</string>
     <string name="toast_asr_model_not_ready">尚未下載語音辨識模型 (%1$s)，請至設定下載</string>
     <string name="ocr_pangu_spacing_title">盤古之白 (中英數自動空格)</string>
     <string name="ocr_pangu_spacing_desc">在辨識出的中文字與英數、符號之間自動補入半形空格，提升排版質感</string>
     <string name="ocr_to_traditional_title">辨識結果轉為繁體中文</string>
     <string name="ocr_to_traditional_desc">自動將辨識出的簡體字轉換為台灣標準繁體中文 (OpenCC)</string>
-    <string name="btn_delete_model">刪除檔案</string>
-    <string name="dialog_delete_slm_title">刪除模型檔案</string>
-    <string name="dialog_delete_slm_message">確定要刪除「%1$s」模型檔案嗎？\n\n此動作將釋放約 %2$dMB 的儲存空間。日後若需要仍可隨時重新下載。</string>
-    <string name="toast_slm_deleted">已成功刪除模型檔案，已釋放儲存空間</string>
 
     <!-- Settings Category Titles -->
     <string name="settings_cat_bubble_title">懸浮球與操作模式</string>
@@ -145,8 +118,6 @@
     <string name="settings_cat_ocr_title">智慧文字辨識 (OCR)</string>
     <string name="settings_cat_ocr_desc">PP-OCR 繁中離線模型、盤古排版間距、條碼掃描</string>
 
-    <string name="settings_cat_slm_title">端側 AI 大模型 (SLM)</string>
-    <string name="settings_cat_slm_desc">Qwen3.5 模型管理、硬體加速、思考模式與改寫風格</string>
 
     <string name="settings_cat_backup_title">離線模型包備份與導入</string>
     <string name="settings_cat_backup_desc">一鍵匯出離線模型包、智慧校驗與還原 ZIP</string>

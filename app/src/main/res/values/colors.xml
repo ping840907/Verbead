@@ -38,10 +38,6 @@
     <color name="surface_container">#EEF2F7</color>
     <color name="surface_container_high">#E2E8F0</color>
 
-    <!-- SLM Prompt Editor Box -->
-    <color name="prompt_edit_box_bg">#DDE5EE</color>
-    <color name="prompt_edit_box_stroke">#CBD5E1</color>
-
     <!-- Launcher icon gradient (Verbead) -->
     <color name="ic_launcher_bg_start">#38BDF8</color>
     <color name="ic_launcher_bg_end">#0369A1</color>

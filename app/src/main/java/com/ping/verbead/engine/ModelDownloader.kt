@@ -117,9 +117,6 @@ class ModelDownloader(private val context: Context? = null) {
         return when {
             engine == ModelConfig.ENGINE_X_ASR -> File(ModelConfig.xAsrDir(ctx))
             engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> File(ModelConfig.ocrDir(ctx))
-            com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS.any { it.id == engine } -> {
-                File(ModelConfig.getPrimaryModelsDir(ctx), com.ping.verbead.slm.SlmModelConfig.SLM_DIR)
-            }
             else -> File(ModelConfig.qwen3AsrDir(ctx))
         }
     }

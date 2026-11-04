@@ -15,9 +15,8 @@ class BubbleShakeDuplicationLimitTest {
         assertEquals(2, ModelConfig.resolveMaxMultiBubbleCount(2))
         assertEquals(3, ModelConfig.resolveMaxMultiBubbleCount(3))
         assertEquals(4, ModelConfig.resolveMaxMultiBubbleCount(4))
-        assertEquals(5, ModelConfig.resolveMaxMultiBubbleCount(5))
-        assertEquals(5, ModelConfig.resolveMaxMultiBubbleCount(6))
-        assertEquals(5, ModelConfig.resolveMaxMultiBubbleCount(10))
+        assertEquals(4, ModelConfig.resolveMaxMultiBubbleCount(5))
+        assertEquals(4, ModelConfig.resolveMaxMultiBubbleCount(10))
     }
 
     @Test
@@ -60,16 +59,16 @@ class BubbleShakeDuplicationLimitTest {
     }
 
     @Test
-    fun testDuplicationLogicWithAllFiveModesEnabled() {
+    fun testDuplicationLogicWithAllModesEnabled() {
         val enabledModes = ModelConfig.DEFAULT_BUBBLE_MODE_ORDER
         val maxAllowed = ModelConfig.resolveMaxMultiBubbleCount(enabledModes.size)
-        assertEquals(5, maxAllowed)
+        assertEquals(4, maxAllowed)
 
         var currentBubbles = 1
         while (currentBubbles < maxAllowed) {
             currentBubbles++
         }
-        assertEquals(5, currentBubbles)
-        assertFalse("Further shake must be blocked when reaching 5", currentBubbles < maxAllowed)
+        assertEquals(4, currentBubbles)
+        assertFalse("Further shake must be blocked when reaching 4", currentBubbles < maxAllowed)
     }
 }

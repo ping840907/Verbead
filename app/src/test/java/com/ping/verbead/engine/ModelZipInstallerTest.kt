@@ -28,11 +28,6 @@ class ModelZipInstallerTest {
         assertEquals("", ModelZipInstaller.normalizeEntryName("verbead_models/"))
         assertEquals("custom_models/file.bin", ModelZipInstaller.normalizeEntryName("custom_models/file.bin"))
 
-        // Qwen3.5 GGUF normalization (root, nested, case-insensitive)
-        assertEquals("slm/Qwen3.5-0.8B-Q4_K_M.gguf", ModelZipInstaller.normalizeEntryName("Qwen3.5-0.8B-Q4_K_M.gguf"))
-        assertEquals("slm/Qwen3.5-2B-Q4_K_M.gguf", ModelZipInstaller.normalizeEntryName("models/slm/Qwen3.5-2B-Q4_K_M.gguf"))
-        assertEquals("slm/Qwen3.5-4B-Q4_K_M.gguf", ModelZipInstaller.normalizeEntryName("verbead_models/qwen3.5-4b-q4_k_m.gguf"))
-        assertEquals("slm/Qwen3.5-9B-Q4_K_M.gguf", ModelZipInstaller.normalizeEntryName("llm/Qwen3.5-9B-Q4_K_M.gguf"))
 
         // Flat OCR & upstream Qwen3-ASR archive prefix normalization
         assertEquals("ocr/pp_ocrv6_tiny_det.onnx", ModelZipInstaller.normalizeEntryName("pp_ocrv6_tiny_det.onnx"))
@@ -94,14 +89,6 @@ class ModelZipInstallerTest {
                 zos.write("ocr_tiny_dummy".toByteArray())
                 zos.closeEntry()
             }
-            // Root-level and slm/-level Qwen3.5 GGUF models
-            zos.putNextEntry(ZipEntry("Qwen3.5-0.8B-Q4_K_M.gguf"))
-            zos.write("gguf_0_8b_payload".toByteArray())
-            zos.closeEntry()
-
-            zos.putNextEntry(ZipEntry("verbead_models/slm/Qwen3.5-2B-Q4_K_M.gguf"))
-            zos.write("gguf_2b_payload".toByteArray())
-            zos.closeEntry()
         }
 
         val zipBytes = baos.toByteArray()
@@ -111,9 +98,7 @@ class ModelZipInstallerTest {
             targetDir = outDir
         )
 
-        assertEquals(9, report.fileCount)
-        assertTrue(File(outDir, "slm/Qwen3.5-0.8B-Q4_K_M.gguf").exists())
-        assertTrue(File(outDir, "slm/Qwen3.5-2B-Q4_K_M.gguf").exists())
+        assertEquals(7, report.fileCount)
         assertTrue(File(outDir, "ocr/pp_ocrv6_tiny_det.onnx").exists())
 
         val analysis = ModelZipInstaller.analyzeRestoredPackage(report.extractedEntries, outDir)
@@ -123,14 +108,7 @@ class ModelZipInstallerTest {
         assertFalse(analysis.ocrSmallRestored)
         assertTrue(analysis.ocrTinyRestored)
         assertEquals(
-            listOf(
-                com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_0_8B,
-                com.ping.verbead.slm.SlmModelConfig.MODEL_QWEN_2B
-            ),
-            analysis.restoredSlmIds
-        )
-        assertEquals(
-            listOf("X-ASR", "PP-OCRv6 Tiny", "Qwen3.5-0.8B", "Qwen3.5-2B"),
+            listOf("X-ASR", "PP-OCRv6 Tiny"),
             analysis.shortLabels
         )
     }

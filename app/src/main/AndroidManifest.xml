@@ -73,12 +73,6 @@
             android:parentActivityName=".ImeSettingsActivity" />
 
         <activity
-            android:name=".settings.SlmSettingsActivity"
-            android:exported="false"
-            android:label="@string/settings_cat_slm_title"
-            android:parentActivityName=".ImeSettingsActivity" />
-
-        <activity
             android:name=".settings.BackupSettingsActivity"
             android:exported="false"
             android:label="@string/settings_cat_backup_title"

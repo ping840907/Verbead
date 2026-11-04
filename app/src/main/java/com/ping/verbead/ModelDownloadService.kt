@@ -61,9 +61,7 @@ class ModelDownloadService : Service() {
 
     private fun startDownload(engine: String) {
         val target = ModelDownloadSpec.forEngine(engine)
-        val slmMeta = com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS.find { it.id == engine }
         val engineLabel = when {
-            slmMeta != null -> slmMeta.displayName
             engine == ModelConfig.ENGINE_X_ASR -> "X-ASR"
             engine == ModelConfig.OCR_MODEL_TINY -> "PP-OCRv6 Tiny"
             engine == ModelConfig.OCR_MODEL_SMALL -> "PP-OCRv6 Small"

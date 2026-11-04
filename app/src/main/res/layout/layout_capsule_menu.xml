@@ -120,30 +120,5 @@
                 android:contentDescription="常用語抽屜" />
         </FrameLayout>
 
-        <!-- Item 4: SLM Chat (端側 AI 對話) -->
-        <FrameLayout
-            android:id="@+id/item_capsule_slm"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:clickable="true"
-            android:focusable="true">
-
-            <View
-                android:id="@+id/indicator_capsule_slm"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_gravity="center"
-                android:background="@drawable/bg_capsule_indicator"
-                android:alpha="0" />
-
-            <ImageView
-                android:id="@+id/iv_capsule_slm"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_ai_sparkle"
-                android:contentDescription="端側 AI 對話" />
-        </FrameLayout>
-
     </LinearLayout>
 </FrameLayout>

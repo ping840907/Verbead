@@ -28,10 +28,6 @@
     <color name="surface_container">#1E293B</color>
     <color name="surface_container_high">#334155</color>
 
-    <!-- SLM Prompt Editor Box -->
-    <color name="prompt_edit_box_bg">#111827</color>
-    <color name="prompt_edit_box_stroke">#334155</color>
-
     <color name="status_success">#34D399</color>
     <color name="status_success_container">#064E3B</color>
     <color name="status_success_text">#6EE7B7</color>

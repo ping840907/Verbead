@@ -170,7 +170,7 @@
             <LinearLayout
                 android:id="@+id/layout_mock_capsule_pill"
                 android:layout_width="56dp"
-                android:layout_height="280dp"
+                android:layout_height="224dp"
                 android:layout_gravity="center_horizontal|top"
                 android:layout_marginTop="172dp"
                 android:background="@drawable/bg_capsule_menu"
@@ -249,23 +249,6 @@
                         app:tint="@android:color/white" />
                 </FrameLayout>
 
-                <!-- AI Voice Rewrite & Generation Mode (Item 4) -->
-                <FrameLayout
-                    android:id="@+id/mock_item_slm"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <ImageView
-                        android:id="@+id/mock_icon_slm"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_ai_sparkle"
-                        app:tint="@android:color/white" />
-                </FrameLayout>
             </LinearLayout>
 
             <!-- Fixed Selection Anchor Ring (Centered where finger holds) -->

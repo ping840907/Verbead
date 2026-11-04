@@ -263,11 +263,10 @@ class OnboardingActivity : AppCompatActivity() {
         val itemBarcode = view.findViewById<View>(R.id.mock_item_barcode)
         val itemOcr = view.findViewById<View>(R.id.mock_item_ocr)
         val itemPhrases = view.findViewById<View>(R.id.mock_item_phrases)
-        val itemSlm = view.findViewById<View>(R.id.mock_item_slm)
 
         val density = resources.displayMetrics.density
         val itemPitchPx = 56f * density
-        val totalModes = 5
+        val totalModes = 4
 
         var currentModeIndex = 0
 
@@ -277,36 +276,29 @@ class OnboardingActivity : AppCompatActivity() {
                     tvModeTitle?.text = "語音即時輸入"
                     tvModeDesc?.text = "高精準度離線語音辨識，輕觸即開始聽寫並直接貼上"
                     ivModeIcon?.setImageResource(R.drawable.ic_mic)
-                    tvModeBadge?.text = "模式 1/5"
+                    tvModeBadge?.text = "模式 1/4"
                     tvFeatureTags?.text = "• 雙引擎「即時預覽 + 離線高精度轉譯」\n• 支援自動標點與自訂專屬詞彙替換\n• 耳機外接音訊與麥克風倍率增益"
                 }
                 1 -> {
                     tvModeTitle?.text = "條碼與 QR 掃描"
                     tvModeDesc?.text = "極速本機條碼讀取，瞄準即辨識並自動填入"
                     ivModeIcon?.setImageResource(R.drawable.ic_barcode)
-                    tvModeBadge?.text = "模式 2/5"
+                    tvModeBadge?.text = "模式 2/4"
                     tvFeatureTags?.text = "• 支援 QR Code 及各類一維條碼\n• 支援相機雙指縮放與閃光燈補光\n• 掃描完成後可設定自動換行"
                 }
                 2 -> {
                     tvModeTitle?.text = "文字辨識 (PP-OCRv6)"
                     tvModeDesc?.text = "凍結畫面框選或多選文字區塊，離線高精度擷取"
                     ivModeIcon?.setImageResource(R.drawable.ic_ocr)
-                    tvModeBadge?.text = "模式 3/5"
+                    tvModeBadge?.text = "模式 3/4"
                     tvFeatureTags?.text = "• PP-OCRv6 離線模型，支援直排中文正立辨識\n• 點擊區塊依序多選組合與智慧段落折行拼接\n• 可自訂換行或空格分隔符，雙指縮放對焦"
                 }
                 3 -> {
                     tvModeTitle?.text = "常用語與歷史紀錄"
                     tvModeDesc?.text = "自訂片語隨點即貼，自動回溯最近輸入內容"
                     ivModeIcon?.setImageResource(R.drawable.ic_quick_phrases)
-                    tvModeBadge?.text = "模式 4/5"
+                    tvModeBadge?.text = "模式 4/4"
                     tvFeatureTags?.text = "• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯\n• 隨點即貼，免重複打字"
-                }
-                4 -> {
-                    tvModeTitle?.text = "AI 語音改寫與生成"
-                    tvModeDesc?.text = "讀取當前輸入框文字，開口說出指令即刻改寫填入"
-                    ivModeIcon?.setImageResource(R.drawable.ic_ai_sparkle)
-                    tvModeBadge?.text = "模式 5/5"
-                    tvFeatureTags?.text = "• 自動讀取輸入框或反白文字，語音下達改寫指令\n• 支援翻譯、潤飾、擴寫，無原文時直接語音生成\n• 懸浮球旁即時串流預覽輸出 Token 並自動覆寫"
                 }
             }
         }
@@ -365,7 +357,6 @@ class OnboardingActivity : AppCompatActivity() {
         itemBarcode?.setOnClickListener { onModeSelectedByUser(1) }
         itemOcr?.setOnClickListener { onModeSelectedByUser(2) }
         itemPhrases?.setOnClickListener { onModeSelectedByUser(3) }
-        itemSlm?.setOnClickListener { onModeSelectedByUser(4) }
 
         val advanceToNext = {
             val next = (currentModeIndex + 1) % totalModes

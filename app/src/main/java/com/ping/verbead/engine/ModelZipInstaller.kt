@@ -30,10 +30,8 @@ object ModelZipInstaller {
         val xAsrReady: Boolean,
         val qwen3Ready: Boolean,
         val ocrReady: Boolean,
-        val slmReady: Boolean = false,
         val restoredModels: List<String> = emptyList(),
         val restoredModelShortNames: List<String> = emptyList(),
-        val restoredSlmModels: List<String> = emptyList(),
         val fileCount: Int,
         val totalBytes: Long,
         val message: String
@@ -98,7 +96,6 @@ object ModelZipInstaller {
                 xAsrReady = false,
                 qwen3Ready = false,
                 ocrReady = false,
-                slmReady = false,
                 fileCount = 0,
                 totalBytes = 0,
                 message = "無法讀取選取的檔案 (InputStream 為空)"
@@ -121,7 +118,6 @@ object ModelZipInstaller {
                 xAsrReady = false,
                 qwen3Ready = false,
                 ocrReady = false,
-                slmReady = false,
                 fileCount = 0,
                 totalBytes = 0,
                 message = "找不到模型壓縮包或無讀取權限: ${file.absolutePath}"
@@ -147,17 +143,6 @@ object ModelZipInstaller {
         }
 
         val fileName = entryName.substringAfterLast('/')
-        // Smartly map known Qwen3.5 GGUF models (or root .gguf files) into slm/ directory
-        val matchedSlm = com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS.firstOrNull {
-            it.fileName.equals(fileName, ignoreCase = true)
-        }
-        if (matchedSlm != null) {
-            return "${com.ping.verbead.slm.SlmModelConfig.SLM_DIR}/${matchedSlm.fileName}"
-        }
-        if (fileName.endsWith(".gguf", ignoreCase = true) && !entryName.contains('/')) {
-            return "${com.ping.verbead.slm.SlmModelConfig.SLM_DIR}/$fileName"
-        }
-
         // Smartly map flat PP-OCRv6 files into ocr/ directory
         if (!entryName.contains('/') && fileName.startsWith("pp_ocrv6_", ignoreCase = true)) {
             return "ocr/$fileName"
@@ -212,17 +197,6 @@ object ModelZipInstaller {
             File(ocrDir, "pp_ocrv6_tiny_rec.onnx").exists() &&
             File(ocrDir, "pp_ocrv6_tiny_dict.txt").exists()
 
-        val slmDir = File(targetDir, com.ping.verbead.slm.SlmModelConfig.SLM_DIR)
-        val restoredSlmIds = mutableListOf<String>()
-        for (meta in com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS) {
-            val expectedEntry = "${com.ping.verbead.slm.SlmModelConfig.SLM_DIR}/${meta.fileName}"
-            val inZip = extractedEntries.any { it.equals(expectedEntry, ignoreCase = true) }
-            val fileOnDisk = File(slmDir, meta.fileName)
-            if (inZip && fileOnDisk.exists() && fileOnDisk.length() > 0L) {
-                restoredSlmIds.add(meta.id)
-            }
-        }
-
         val detailedLabels = mutableListOf<String>()
         val shortLabels = mutableListOf<String>()
 
@@ -242,18 +216,12 @@ object ModelZipInstaller {
             detailedLabels.add("PP-OCRv6 (Tiny 輕量版) 文字辨識")
             shortLabels.add("PP-OCRv6 Tiny")
         }
-        for (slmId in restoredSlmIds) {
-            val meta = com.ping.verbead.slm.SlmModelConfig.getModelMetadata(slmId)
-            detailedLabels.add("${meta.displayName} (${meta.chipLabel}) 端側語言模型")
-            shortLabels.add(meta.displayName)
-        }
 
         return RestoredPackageAnalysis(
             qwen3Restored = qwen3Restored,
             xAsrRestored = xAsrRestored,
             ocrSmallRestored = ocrSmallRestored,
             ocrTinyRestored = ocrTinyRestored,
-            restoredSlmIds = restoredSlmIds,
             detailedLabels = detailedLabels,
             shortLabels = shortLabels
         )
@@ -264,7 +232,6 @@ object ModelZipInstaller {
         val xAsrRestored: Boolean,
         val ocrSmallRestored: Boolean,
         val ocrTinyRestored: Boolean,
-        val restoredSlmIds: List<String>,
         val detailedLabels: List<String>,
         val shortLabels: List<String>
     )
@@ -290,7 +257,6 @@ object ModelZipInstaller {
                 xAsrReady = false,
                 qwen3Ready = false,
                 ocrReady = false,
-                slmReady = false,
                 fileCount = 0,
                 totalBytes = 0,
                 message = "解壓縮失敗: ${e.message}"
@@ -314,23 +280,12 @@ object ModelZipInstaller {
             ModelConfig.setSelectedOcrModel(context, ModelConfig.ENGINE_PP_OCR_TINY)
         }
 
-        if (analysis.restoredSlmIds.isNotEmpty()) {
-            val currentSlm = com.ping.verbead.slm.SlmModelConfig.getSelectedModel(context)
-            val chosenSlm = if (currentSlm in analysis.restoredSlmIds) {
-                currentSlm
-            } else {
-                analysis.restoredSlmIds.first()
-            }
-            com.ping.verbead.slm.SlmModelConfig.setSelectedModel(context, chosenSlm)
-        }
-
         // Overall readiness across disk
         val xAsrReady = ModelConfig.isXAsrReady(context)
         val qwen3Ready = ModelConfig.isQwen3Ready(context)
         val ocrSmallReady = ModelConfig.isOcrSmallReady(context)
         val ocrTinyReady = ModelConfig.isOcrTinyReady(context)
         val ocrReady = ocrSmallReady || ocrTinyReady
-        val slmReady = com.ping.verbead.slm.SlmModelConfig.resolveAvailableModelId(context) != null
 
         val readyShortNames = if (analysis.shortLabels.isNotEmpty()) {
             analysis.shortLabels
@@ -339,11 +294,6 @@ object ModelZipInstaller {
                 if (qwen3Ready) add("Qwen3-ASR")
                 if (xAsrReady) add("X-ASR")
                 if (ocrReady) add("PP-OCRv6")
-                com.ping.verbead.slm.SlmModelConfig.AVAILABLE_MODELS.forEach { meta ->
-                    if (com.ping.verbead.slm.SlmModelConfig.isModelDownloaded(context, meta.id)) {
-                        add(meta.displayName)
-                    }
-                }
             }
         }
 
@@ -354,10 +304,8 @@ object ModelZipInstaller {
             xAsrReady = xAsrReady,
             qwen3Ready = qwen3Ready,
             ocrReady = ocrReady,
-            slmReady = slmReady,
             restoredModels = analysis.detailedLabels,
             restoredModelShortNames = readyShortNames,
-            restoredSlmModels = analysis.restoredSlmIds,
             fileCount = report.fileCount,
             totalBytes = report.totalBytes,
             message = if (report.fileCount > 0) "模型包復原成功！還原模型：$readySummary" else "壓縮包中未包含有效模型檔案"

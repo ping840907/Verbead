@@ -150,7 +150,7 @@
                     android:background="@drawable/bg_status_badge_recommend"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="Qwen3.5 端側 AI"
+                    android:text="Qwen3-ASR 離線辨識"
                     android:textColor="@color/md_theme_light_primary"
                     android:textSize="11sp" />
 
@@ -161,7 +161,7 @@
                     android:background="@drawable/bg_status_badge_recommend"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
-                    android:text="零上傳 · GPU/NPU 加速"
+                    android:text="零上傳 · 全程本機"
                     android:textColor="@color/md_theme_light_primary"
                     android:textSize="11sp" />
             </LinearLayout>

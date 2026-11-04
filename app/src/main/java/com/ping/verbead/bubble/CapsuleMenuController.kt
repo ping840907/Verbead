@@ -39,16 +39,15 @@ class CapsuleMenuController(
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
-        const val MODE_SLM = 4
 
-        const val ITEM_COUNT = 5
+        const val ITEM_COUNT = 4
         const val ITEM_HEIGHT_DP = 56
-        const val CAPSULE_MENU_HEIGHT_DP = ITEM_COUNT * ITEM_HEIGHT_DP // 280dp
-        const val CAPSULE_WINDOW_HEIGHT_DP = 304 // 280dp + 12dp top + 12dp bottom padding
+        const val CAPSULE_MENU_HEIGHT_DP = ITEM_COUNT * ITEM_HEIGHT_DP // 224dp
+        const val CAPSULE_WINDOW_HEIGHT_DP = 248 // 224dp + 12dp top + 12dp bottom padding
         // 懸浮球中心至膠囊視窗頂/底之最大外推距離：
-        // 視窗邊界 304dp，氣泡中心 30dp。SLM 模式下項目中心在 264dp，往上延伸至視窗頂為 264dp - 30dp = 234dp；
-        // Voice 模式下項目中心在 40dp，往下延伸至視窗底為 (304dp - 40dp) - 30dp = 234dp。
-        const val CAPSULE_MENU_MAX_EXTENT_DP = 234
+        // 視窗邊界 248dp，氣泡中心 30dp。最後一個項目中心在 208dp，往上延伸至視窗頂為 208dp - 30dp = 178dp；
+        // Voice 模式下項目中心在 40dp，往下延伸至視窗底為 (248dp - 40dp) - 30dp = 178dp。
+        const val CAPSULE_MENU_MAX_EXTENT_DP = 178
 
         fun computeCapsuleMenuHeightDp(itemCount: Int): Int =
             itemCount.coerceIn(1, ITEM_COUNT) * ITEM_HEIGHT_DP
@@ -123,34 +122,29 @@ class CapsuleMenuController(
             val itemBarcode = inflated.findViewById<FrameLayout>(R.id.item_capsule_barcode)
             val itemOcr = inflated.findViewById<FrameLayout>(R.id.item_capsule_ocr)
             val itemPhrases = inflated.findViewById<FrameLayout>(R.id.item_capsule_phrases)
-            val itemSlm = inflated.findViewById<FrameLayout>(R.id.item_capsule_slm)
 
             itemVoice?.setOnClickListener { selectMode(MODE_VOICE) }
             itemBarcode?.setOnClickListener { selectMode(MODE_BARCODE) }
             itemOcr?.setOnClickListener { selectMode(MODE_OCR) }
             itemPhrases?.setOnClickListener { selectMode(MODE_PHRASES) }
-            itemSlm?.setOnClickListener { selectMode(MODE_SLM) }
 
             modeItemViews = buildMap {
                 itemVoice?.let { put(MODE_VOICE, it) }
                 itemBarcode?.let { put(MODE_BARCODE, it) }
                 itemOcr?.let { put(MODE_OCR, it) }
                 itemPhrases?.let { put(MODE_PHRASES, it) }
-                itemSlm?.let { put(MODE_SLM, it) }
             }
             modeIndicatorViews = buildMap {
                 inflated.findViewById<View>(R.id.indicator_capsule_voice)?.let { put(MODE_VOICE, it) }
                 inflated.findViewById<View>(R.id.indicator_capsule_barcode)?.let { put(MODE_BARCODE, it) }
                 inflated.findViewById<View>(R.id.indicator_capsule_ocr)?.let { put(MODE_OCR, it) }
                 inflated.findViewById<View>(R.id.indicator_capsule_phrases)?.let { put(MODE_PHRASES, it) }
-                inflated.findViewById<View>(R.id.indicator_capsule_slm)?.let { put(MODE_SLM, it) }
             }
             modeIconViews = buildMap {
                 inflated.findViewById<ImageView>(R.id.iv_capsule_voice)?.let { put(MODE_VOICE, it) }
                 inflated.findViewById<ImageView>(R.id.iv_capsule_barcode)?.let { put(MODE_BARCODE, it) }
                 inflated.findViewById<ImageView>(R.id.iv_capsule_ocr)?.let { put(MODE_OCR, it) }
                 inflated.findViewById<ImageView>(R.id.iv_capsule_phrases)?.let { put(MODE_PHRASES, it) }
-                inflated.findViewById<ImageView>(R.id.iv_capsule_slm)?.let { put(MODE_SLM, it) }
             }
         }
         val menu = capsuleMenuView ?: return

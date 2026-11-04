@@ -440,65 +440,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 4. 端側 AI 大模型 (SLM) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_cat_slm"
-            style="@style/Verbead.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="16dp">
-
-                <ImageView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/bg_icon_circle"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_ai_sparkle"
-                    app:tint="@color/md_theme_light_primary" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        style="@style/Verbead.Text.Title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_cat_slm_title" />
-
-                    <TextView
-                        android:id="@+id/tv_cat_slm_summary"
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:ellipsize="end"
-                        android:maxLines="2"
-                        android:text="@string/settings_cat_slm_desc" />
-                </LinearLayout>
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_chevron_right"
-                    app:tint="@color/text_tertiary" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- 5. 離線模型包匯入與復原（主頁直接實作） -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_import_models"
@@ -547,7 +488,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="支援 X-ASR、Qwen3、PP-OCR 與 SLM 模型包 ZIP 自動復原" />
+                            android:text="支援 X-ASR、Qwen3 與 PP-OCR 模型包 ZIP 自動復原" />
                     </LinearLayout>
 
                     <TextView
