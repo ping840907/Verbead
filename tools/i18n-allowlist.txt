@@ -1,6 +1,5 @@
 # 寫死中日韓文字的現有違規：「相對路徑 數量」。只許減少、不許增加（NoHardcodedCjkTest 會檢查）。
 # 每個工作包完成後請重跑 node tools/i18n-allowlist-gen.js 調降。SpokenNumberConverter 為語言規則檔，永久例外。
 java/com/ping/verbead/UserDictionary.kt 3
-java/com/ping/verbead/engine/ModelConfig.kt 22
 java/com/ping/verbead/ocr/TextStitcher.kt 2
 java/com/ping/verbead/util/TextInsertion.kt 2

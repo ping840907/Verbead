@@ -9,7 +9,7 @@ const path = require('path');
 
 const MAIN = path.join(__dirname, '..', 'app', 'src', 'main');
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
-const RULE_FILES = new Set(['java/com/ping/verbead/engine/SpokenNumberConverter.kt']);
+const RULE_FILES = new Set(['java/com/ping/verbead/engine/SpokenNumberConverter.kt', 'java/com/ping/verbead/engine/lang/ZhTwRules.kt']);
 const out = [];
 
 (function walk(d) {

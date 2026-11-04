@@ -15,7 +15,10 @@ class NoHardcodedCjkTest {
     private val stringLiteral = Regex("\"(?:[^\"\\\\]|\\\\.)*\"")
     private val layoutAttr = Regex("android:(text|hint|contentDescription|title|label)=\"[^\"@][^\"]*\"")
 
-    private val ruleFiles = setOf("java/com/ping/verbead/engine/SpokenNumberConverter.kt")
+    private val ruleFiles = setOf(
+        "java/com/ping/verbead/engine/SpokenNumberConverter.kt",
+        "java/com/ping/verbead/engine/lang/ZhTwRules.kt"
+    )
 
     private fun projectRoot(): File {
         var dir: File? = File("").absoluteFile

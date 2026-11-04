@@ -35,6 +35,7 @@ import com.google.android.material.card.MaterialCardView
 import com.ping.verbead.ImeSettingsActivity
 import com.ping.verbead.R
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.lang.ZhTwRules
 import com.ping.verbead.ocr.OcrBlock
 import com.ping.verbead.ocr.OcrBoxesOverlayView
 import com.ping.verbead.ocr.PpOcrEngine
@@ -648,7 +649,7 @@ class OcrOverlayController(
                         processed = TextStitcher.applyPanguSpacing(processed)
                     }
                     if (toTrad) {
-                        processed = ModelConfig.toTaiwanTraditional(processed)
+                        processed = ZhTwRules.toTaiwanTraditional(processed)
                     }
                     HapticUtil.heavyClick(context)
                     listener.onOcrTextConfirmed(processed)

@@ -25,6 +25,7 @@ import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
 import com.ping.verbead.UserDictionary
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.lang.LanguageProfiles
 import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
@@ -232,6 +233,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
         })
 
         // Convert to Traditional Chinese
+        setupInputLanguage()
+
         layoutConvertTraditionalToggle.setOnClickListener {
             switchConvertTraditional.toggle()
         }
@@ -270,6 +273,50 @@ class SpeechSettingsActivity : AppCompatActivity() {
         cardCustomDict.setOnClickListener { openDictAction() }
         layoutDictToggle.setOnClickListener { openDictAction() }
         btnOpenDict.setOnClickListener { openDictAction() }
+    }
+
+    private fun inputLanguageLabel(id: String): String = getString(
+        when (id) {
+            "zh-CN" -> R.string.settings_language_zh_cn
+            "en" -> R.string.settings_language_en
+            "ja" -> R.string.settings_language_ja
+            "ko" -> R.string.settings_language_ko
+            else -> R.string.settings_language_zh_tw
+        }
+    )
+
+    private fun setupInputLanguage() {
+        val value = findViewById<TextView>(R.id.text_input_language_value)
+        value.text = inputLanguageLabel(ModelConfig.inputLanguage(this))
+        applyInputLanguageVisibility()
+        findViewById<View>(R.id.layout_input_language).setOnClickListener {
+            HapticUtil.click(this)
+            val ids = LanguageProfiles.ALL.map { it.id }
+            val current = ids.indexOf(ModelConfig.inputLanguage(this)).coerceAtLeast(0)
+            AlertDialog.Builder(this)
+                .setTitle(R.string.settings_speech_input_language_dialog_title)
+                .setSingleChoiceItems(ids.map(::inputLanguageLabel).toTypedArray(), current) { dialog, which ->
+                    ModelConfig.setInputLanguage(this, ids[which])
+                    value.text = inputLanguageLabel(ids[which])
+                    applyInputLanguageVisibility()
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show()
+        }
+    }
+
+    /** 簡轉繁與口語數字只有部分輸入語言有規則；沒有的就把整列藏起來。 */
+    private fun applyInputLanguageVisibility() {
+        val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
+        val script = profile.supportsScriptConversion
+        val numbers = profile.supportsSpokenNumbers
+        layoutConvertTraditionalToggle.visibility = if (script) View.VISIBLE else View.GONE
+        layoutSpokenNumbersToggle.visibility = if (numbers) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.divider_before_spoken_numbers).visibility =
+            if (script && numbers) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.divider_before_filter_punctuation).visibility =
+            if (script || numbers) View.VISIBLE else View.GONE
     }
 
     private fun audioGainLabel(gain: Float) = if (gain == 1.0f) getString(R.string.settings_speech_gain_original) else getString(R.string.settings_speech_gain_format, gain)

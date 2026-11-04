@@ -58,7 +58,8 @@ import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
-import com.ping.verbead.engine.SpokenNumberConverter
+import com.ping.verbead.engine.lang.LanguageProfiles
+import com.ping.verbead.engine.lang.ScriptMode
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
@@ -3006,28 +3007,29 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             ""
         }
 
+    /** 辨識後處理：依輸入語言的 [com.ping.verbead.engine.lang.LanguageProfile] 依序套用，本身不含任何語言規則。 */
     private fun postProcess(raw: String): String {
-        val convertTraditional = ModelConfig.isConvertToTraditionalEnabled(this)
-        val converted = when {
-            !convertTraditional -> raw
-            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() ->
-                ModelConfig.normalizeTaiwanVariants(raw)
-            else -> ModelConfig.toTaiwanTraditional(raw)
+        val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
+        val scriptMode = when {
+            !profile.supportsScriptConversion || !ModelConfig.isConvertToTraditionalEnabled(this) -> ScriptMode.OFF
+            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
+            else -> ScriptMode.FULL
         }
+        val converted = profile.convertScript(raw, scriptMode)
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
-        val postReplaced = if (userReplaced == converted || !convertTraditional) {
+        val postReplaced = if (userReplaced == converted || scriptMode == ScriptMode.OFF) {
             userReplaced
         } else {
-            ModelConfig.applyPostRegexReplacements(userReplaced)
+            profile.applyVariantRules(userReplaced)
         }
         // 數字轉換要在標點過濾之前：它依標點切小句，且不能被過濾後的文字影響
-        val numbered = if (ModelConfig.isSpokenNumbersEnabled(this)) {
-            SpokenNumberConverter.convert(postReplaced)
+        val numbered = if (profile.supportsSpokenNumbers && ModelConfig.isSpokenNumbersEnabled(this)) {
+            profile.convertSpokenNumbers(postReplaced)
         } else {
             postReplaced
         }
         return if (ModelConfig.isFilterPunctuationEnabled(this)) {
-            ModelConfig.filterChinesePunctuation(numbered)
+            profile.filterPunctuation(numbered)
         } else {
             numbered
         }

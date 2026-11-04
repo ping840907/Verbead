@@ -490,4 +490,9 @@
     <string name="quick_phrase_default_6">沒問題，我來處理。</string>
     <string name="notif_download_preparing">準備下載 %1$s 模型…</string>
     <string name="notif_download_channel_name">模型下載</string>
+
+    <!-- P3: input language -->
+    <string name="settings_speech_input_language_title">輸入語言</string>
+    <string name="settings_speech_input_language_desc">你說話的語言，決定辨識後文字的處理方式</string>
+    <string name="settings_speech_input_language_dialog_title">選擇輸入語言</string>
 </resources>

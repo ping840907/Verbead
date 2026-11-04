@@ -3,6 +3,7 @@ package com.ping.verbead.ocr
 import android.graphics.PointF
 import android.graphics.RectF
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.lang.ZhTwRules
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -129,7 +130,7 @@ object TextStitcher {
             val result = sb.toString()
             if (panguSpacing) applyPanguSpacing(result) else result
         }
-        return if (toTraditional) ModelConfig.toTaiwanTraditional(initial) else initial
+        return if (toTraditional) ZhTwRules.toTaiwanTraditional(initial) else initial
     }
 
     /**

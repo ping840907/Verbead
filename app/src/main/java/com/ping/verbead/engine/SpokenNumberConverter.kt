@@ -1,4 +1,5 @@
 package com.ping.verbead.engine
+import com.ping.verbead.engine.lang.ZhTwRules
 
 /**
  * 把 ASR 輸出的中文數字與口語化運算符號轉成阿拉伯數字（逆向文字正規化）。
@@ -27,7 +28,7 @@ object SpokenNumberConverter {
     fun convert(text: String): String {
         if (text.isEmpty()) return text
         return text.split(CLAUSE_BOUNDARY).joinToString("") { clause ->
-            if (clause.isEmpty() || ModelConfig.isJapaneseOrKorean(clause)) clause else convertClause(clause)
+            if (clause.isEmpty() || ZhTwRules.isJapaneseOrKorean(clause)) clause else convertClause(clause)
         }
     }
 

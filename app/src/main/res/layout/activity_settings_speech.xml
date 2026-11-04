@@ -313,6 +313,51 @@
                         </LinearLayout>
                     </LinearLayout>
 
+                    <!-- Input language -->
+                    <LinearLayout
+                        android:id="@+id/layout_input_language"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:paddingStart="16dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_speech_input_language_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_speech_input_language_desc" />
+
+                        <TextView
+                            android:id="@+id/text_input_language_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <View
+                        style="@style/Verbead.Divider"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
                     <!-- Prefer external audio -->
                     <LinearLayout
                         android:id="@+id/layout_prefer_external_audio_toggle"
@@ -646,6 +691,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/divider_before_spoken_numbers"
                         style="@style/Verbead.Divider"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
@@ -697,6 +743,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/divider_before_filter_punctuation"
                         style="@style/Verbead.Divider"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"

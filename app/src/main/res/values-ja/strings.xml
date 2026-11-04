@@ -490,4 +490,9 @@
     <string name="quick_phrase_default_6">問題ありません。私が対応します。</string>
     <string name="notif_download_preparing">%1$s モデルのダウンロードを準備中…</string>
     <string name="notif_download_channel_name">モデルのダウンロード</string>
+
+    <!-- P3: input language -->
+    <string name="settings_speech_input_language_title">入力言語</string>
+    <string name="settings_speech_input_language_desc">話す言語です。認識後のテキストの処理方法が決まります</string>
+    <string name="settings_speech_input_language_dialog_title">入力言語を選択</string>
 </resources>

@@ -490,4 +490,9 @@
     <string name="quick_phrase_default_6">문제없어요, 제가 처리할게요.</string>
     <string name="notif_download_preparing">%1$s 모델 다운로드를 준비하는 중…</string>
     <string name="notif_download_channel_name">모델 다운로드</string>
+
+    <!-- P3: input language -->
+    <string name="settings_speech_input_language_title">입력 언어</string>
+    <string name="settings_speech_input_language_desc">말하는 언어입니다. 인식된 텍스트의 후처리 방식이 정해집니다</string>
+    <string name="settings_speech_input_language_dialog_title">입력 언어 선택</string>
 </resources>

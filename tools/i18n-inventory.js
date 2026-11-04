@@ -18,7 +18,7 @@ const ROOT = path.join(__dirname, '..', 'app', 'src', 'main');
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 
 // 這些檔案的中日韓字是語言處理規則本身，不是要翻譯的介面文字
-const RULE_FILES = new Set(['engine/SpokenNumberConverter.kt']);
+const RULE_FILES = new Set(['engine/SpokenNumberConverter.kt', 'engine/lang/ZhTwRules.kt']);
 
 function walk(dir, ext, out = []) {
   if (!fs.existsSync(dir)) return out;
