@@ -213,8 +213,8 @@
     <string name="settings_speech_vocab_title">カスタム語彙の管理</string>
     <string name="settings_speech_vocab_desc">よく使う人名や固有名詞、修正したい語を追加します</string>
     <string name="settings_speech_vocab_button">語彙を管理</string>
-    <string name="settings_speech_qwen_prefs_title">Qwen3 認識の設定</string>
-    <string name="settings_speech_qwen_prefs_desc">Qwen3-ASR およびデュアルエンジンの最終仕上げ段階に適用されます</string>
+    <string name="settings_speech_qwen_prefs_title">テキスト後処理</string>
+    <string name="settings_speech_qwen_prefs_desc">認識後のテキストに適用される処理です（すべてのエンジン共通）</string>
     <string name="settings_speech_to_traditional_title">繁体字中国語に変換</string>
     <string name="settings_speech_to_traditional_desc">簡体字を繁体字に変換します。日本語・韓国語の部分は変換されません。オフにすると認識結果をそのまま保持します</string>
     <string name="settings_speech_spoken_numbers_title">話し言葉の数字を算用数字に変換</string>

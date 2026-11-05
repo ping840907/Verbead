@@ -218,8 +218,8 @@
     <string name="settings_speech_vocab_title">Custom vocabulary</string>
     <string name="settings_speech_vocab_desc">Add common names, proper nouns or correction words</string>
     <string name="settings_speech_vocab_button">Manage vocabulary</string>
-    <string name="settings_speech_qwen_prefs_title">Qwen3 recognition preferences</string>
-    <string name="settings_speech_qwen_prefs_desc">Applies to Qwen3-ASR and the final polish stage of dual-engine mode</string>
+    <string name="settings_speech_qwen_prefs_title">Text post-processing</string>
+    <string name="settings_speech_qwen_prefs_desc">Applied to the recognized text after recognition, for every engine</string>
     <string name="settings_speech_to_traditional_title">Convert to Traditional Chinese</string>
     <string name="settings_speech_to_traditional_desc">Converts Simplified to Traditional Chinese; Japanese and Korean passages are left unchanged. When off, the recognized text is kept exactly as is</string>
     <string name="settings_speech_spoken_numbers_title">Convert spoken numbers to digits</string>

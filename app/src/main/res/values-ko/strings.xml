@@ -213,8 +213,8 @@
     <string name="settings_speech_vocab_title">사용자 단어 관리</string>
     <string name="settings_speech_vocab_desc">자주 쓰는 이름, 고유명사, 교정할 단어를 추가하세요</string>
     <string name="settings_speech_vocab_button">단어 관리</string>
-    <string name="settings_speech_qwen_prefs_title">Qwen3 인식 환경설정</string>
-    <string name="settings_speech_qwen_prefs_desc">Qwen3-ASR과 듀얼 엔진의 최종 다듬기 단계에 적용됩니다</string>
+    <string name="settings_speech_qwen_prefs_title">텍스트 후처리</string>
+    <string name="settings_speech_qwen_prefs_desc">인식 후 텍스트에 적용되는 처리입니다(모든 엔진 공통)</string>
     <string name="settings_speech_to_traditional_title">번체 중국어로 변환</string>
     <string name="settings_speech_to_traditional_desc">간체를 번체로 변환합니다. 일본어와 한국어 구간은 변환되지 않습니다. 끄면 인식 원문을 그대로 유지합니다</string>
     <string name="settings_speech_spoken_numbers_title">구어체 숫자를 아라비아 숫자로 변환</string>

@@ -213,8 +213,8 @@
     <string name="settings_speech_vocab_title">自訂管理詞彙</string>
     <string name="settings_speech_vocab_desc">加入常用人名、專有名詞或修正字</string>
     <string name="settings_speech_vocab_button">管理詞彙</string>
-    <string name="settings_speech_qwen_prefs_title">Qwen3 辨識偏好</string>
-    <string name="settings_speech_qwen_prefs_desc">套用於 Qwen3-ASR 及雙引擎最終潤飾階段</string>
+    <string name="settings_speech_qwen_prefs_title">文字後處理</string>
+    <string name="settings_speech_qwen_prefs_desc">辨識完成後對輸出文字做的處理，所有引擎皆適用</string>
     <string name="settings_speech_to_traditional_title">轉換為繁體中文</string>
     <string name="settings_speech_to_traditional_desc">簡體轉繁體；日文、韓文段落不會被轉換。關閉則完全保留辨識原文</string>
     <string name="settings_speech_spoken_numbers_title">口語數字轉阿拉伯數字</string>
