@@ -1,6 +1,7 @@
 package com.ping.verbead.bubble
 
 import android.content.Context
+import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
 import android.util.Log
 import android.view.ContextThemeWrapper
@@ -118,6 +119,7 @@ class BubbleXButtonController(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
+            allowDisplayCutout()
             gravity = Gravity.TOP or Gravity.LEFT
             x = clampedX
             y = targetY

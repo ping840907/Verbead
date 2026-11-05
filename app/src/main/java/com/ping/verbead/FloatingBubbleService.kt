@@ -1,6 +1,7 @@
 package com.ping.verbead
 
 import android.animation.ValueAnimator
+import com.ping.verbead.util.allowDisplayCutout
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -627,6 +628,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
+            allowDisplayCutout()
             gravity = Gravity.TOP or Gravity.LEFT
             x = rightX
             y = initialY
@@ -766,7 +768,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val insets = windowManager.currentWindowMetrics.windowInsets
                 .getInsetsIgnoringVisibility(android.view.WindowInsets.Type.navigationBars())
-            if (insets.bottom > 0) return insets.bottom
+            // 橫屏且導覽列在側邊（三鍵導覽）時底部本來就是 0；不能再退回直向的導覽列高度資源值
+            return insets.bottom
         }
         val resId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
         return if (resId > 0) resources.getDimensionPixelSize(resId) else (16 * resources.displayMetrics.density).toInt()
@@ -1434,6 +1437,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                     PixelFormat.TRANSLUCENT
                 ).apply {
+                    allowDisplayCutout()
                     gravity = Gravity.TOP or Gravity.LEFT
                     x = initialX
                     y = initialY
@@ -1535,6 +1539,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
+            allowDisplayCutout()
             gravity = Gravity.TOP or Gravity.LEFT
             x = initialX
             y = initialY

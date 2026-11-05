@@ -1,6 +1,7 @@
 package com.ping.verbead.bubble
 
 import android.content.Context
+import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
 import android.view.ContextThemeWrapper
 import android.view.Gravity
@@ -50,6 +51,7 @@ class BubblePreviewController(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
+            allowDisplayCutout()
             gravity = Gravity.TOP or Gravity.RIGHT
             x = bubbleWidthPx + (8 * density).toInt()
             y = initialY + (12 * density).toInt()

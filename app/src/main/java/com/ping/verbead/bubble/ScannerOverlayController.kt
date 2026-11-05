@@ -1,6 +1,7 @@
 package com.ping.verbead.bubble
 
 import android.annotation.SuppressLint
+import com.ping.verbead.util.allowDisplayCutout
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.PixelFormat
@@ -133,6 +134,7 @@ class ScannerOverlayController(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
+            allowDisplayCutout()
             gravity = if (isDockedOnRight) Gravity.TOP or Gravity.RIGHT else Gravity.TOP or Gravity.LEFT
             x = bubbleWidthPx + gap
             y = targetY
