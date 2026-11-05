@@ -158,7 +158,7 @@
     <string name="ocr_snapshot_select_all">すべて選択</string>
     <string name="ocr_snapshot_clear">クリア</string>
     <string name="ocr_snapshot_recognize_and_input">認識して入力</string>
-    <string name="settings_backup_restore_title">オフラインモデルのワンタップ復元</string>
+    <string name="settings_backup_restore_title">オフラインモデルの一括復元</string>
     <string name="settings_backup_status_not_ready">準備が不完全です</string>
     <string name="settings_backup_restore_desc">Qwen3-ASR、X-ASR、PP-OCRv6 のオフラインモデルに対応しています。モデルパッケージ（.zip）を読み込むと内容を判別し、含まれるモデルを自動で展開・復元するので、一つずつダウンロードする必要はありません。</string>
     <string name="settings_backup_pick_package">インポートするモデルパッケージを選択</string>
@@ -257,7 +257,7 @@
     <string name="settings_status_checking">確認中</string>
     <string name="settings_perm_mic_title">マイクの録音権限</string>
     <string name="settings_perm_denied_action">未許可 ➜</string>
-    <string name="settings_perm_camera_title">カメラの権限（文字認識とバーコードスキャン）</string>
+    <string name="settings_perm_camera_title">カメラの権限（文字認識・バーコード）</string>
     <string name="settings_perm_overlay_title">他のアプリの上に重ねて表示</string>
     <string name="settings_perm_accessibility_title">ユーザー補助による自動入力</string>
     <string name="settings_perm_disabled_action">未有効 ➜</string>
@@ -334,8 +334,8 @@
     <string name="settings_summary_ocr_compact">詰め組み</string>
     <string name="settings_summary_ocr_trad">繁体字</string>
     <string name="settings_summary_ocr_original">原文のまま</string>
-    <string name="settings_summary_backup">ダウンロード済みオフラインモデル：%1$d/%2$d · ZIP インポート対応</string>
-    <string name="settings_all_models_ready">すべてのモデルが準備完了</string>
+    <string name="settings_summary_backup">取得済みモデル：%1$d/%2$d · ZIP インポート対応</string>
+    <string name="settings_all_models_ready">すべて準備完了</string>
     <string name="settings_restore_load_internal_size">内部ストレージのモデルパッケージをすばやく読み込む (%1$dMB)</string>
     <string name="settings_summary_about">バージョン %1$s · 謝辞とライセンス</string>
     <string name="dict_dialog_delete_title">語彙を削除</string>
@@ -437,13 +437,13 @@
 
     <!-- P1-5: data layer decoupling -->
     <string name="bubble_mode_meta_voice_short">音声</string>
-    <string name="bubble_mode_meta_voice_desc">タップでオフライン音声認識を開始し、話し終えるとフォーカス中の入力欄に自動入力します</string>
+    <string name="bubble_mode_meta_voice_desc">タップで音声認識を開始し、話し終えると自動入力</string>
     <string name="bubble_mode_meta_barcode_short">バーコード</string>
-    <string name="bubble_mode_meta_barcode_desc">フローティングカメラで 1 次元バーコードと QR コードをリアルタイムにスキャンし、自動入力します</string>
+    <string name="bubble_mode_meta_barcode_desc">1次元バーコードと QR コードをスキャンして入力</string>
     <string name="bubble_mode_meta_ocr_title">文字認識（OCR）</string>
     <string name="bubble_mode_meta_ocr_short">OCR</string>
-    <string name="bubble_mode_meta_ocr_desc">フローティングカメラで画面の文字を取得します。縦書き中国語と複数ブロックの順次結合に対応</string>
-    <string name="bubble_mode_meta_phrases_desc">オリジナルの定型文と最近の認識履歴をすばやく選択できます</string>
+    <string name="bubble_mode_meta_ocr_desc">画面の文字を取得。縦書き中国語に対応</string>
+    <string name="bubble_mode_meta_phrases_desc">定型文と最近の認識履歴をすばやく選択</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 高精度オフライン音声</string>
     <string name="model_label_xasr_detail">X-ASR 高速リアルタイムストリーミング音声</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6（Small・高精度版）文字認識</string>

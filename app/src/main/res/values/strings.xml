@@ -163,7 +163,7 @@
     <string name="ocr_snapshot_select_all">Select all</string>
     <string name="ocr_snapshot_clear">Clear</string>
     <string name="ocr_snapshot_recognize_and_input">Recognize &amp; insert</string>
-    <string name="settings_backup_restore_title">One-tap offline model restore</string>
+    <string name="settings_backup_restore_title">Restore offline models</string>
     <string name="settings_backup_status_not_ready">Not fully ready</string>
     <string name="settings_backup_restore_desc">Supports Qwen3-ASR, X-ASR and PP-OCRv6 offline models. Loading a model package (.zip) detects its contents and restores the included models automatically, so you don\'t have to download them one by one.</string>
     <string name="settings_backup_pick_package">Choose a model package to import</string>
@@ -262,7 +262,7 @@
     <string name="settings_status_checking">Checking</string>
     <string name="settings_perm_mic_title">Microphone permission</string>
     <string name="settings_perm_denied_action">Not granted ➜</string>
-    <string name="settings_perm_camera_title">Camera permission (text recognition &amp; barcode scanning)</string>
+    <string name="settings_perm_camera_title">Camera permission (OCR &amp; barcode)</string>
     <string name="settings_perm_overlay_title">Display over other apps</string>
     <string name="settings_perm_accessibility_title">Accessibility auto-fill</string>
     <string name="settings_perm_disabled_action">Not enabled ➜</string>
@@ -339,7 +339,7 @@
     <string name="settings_summary_ocr_compact">Compact</string>
     <string name="settings_summary_ocr_trad">Traditional</string>
     <string name="settings_summary_ocr_original">Original</string>
-    <string name="settings_summary_backup">Offline models downloaded: %1$d/%2$d · ZIP import supported</string>
+    <string name="settings_summary_backup">Downloaded: %1$d/%2$d · ZIP import supported</string>
     <string name="settings_all_models_ready">All models ready</string>
     <string name="settings_restore_load_internal_size">Quick-load internal storage model package (%1$dMB)</string>
     <string name="settings_summary_about">Version %1$s · Credits and licenses</string>
@@ -442,13 +442,13 @@
 
     <!-- P1-5: data layer decoupling -->
     <string name="bubble_mode_meta_voice_short">Voice</string>
-    <string name="bubble_mode_meta_voice_desc">Tap to start offline speech recognition; text is filled into the focused field when you stop speaking</string>
+    <string name="bubble_mode_meta_voice_desc">Tap to dictate; text is filled in when you stop</string>
     <string name="bubble_mode_meta_barcode_short">Barcode</string>
-    <string name="bubble_mode_meta_barcode_desc">The floating camera scans 1D barcodes and QR codes live and enters them automatically</string>
+    <string name="bubble_mode_meta_barcode_desc">Scan 1D barcodes and QR codes and fill them in</string>
     <string name="bubble_mode_meta_ocr_title">Text recognition (OCR)</string>
     <string name="bubble_mode_meta_ocr_short">OCR</string>
-    <string name="bubble_mode_meta_ocr_desc">The floating camera captures on-screen text, with vertical Chinese support and multi-block joining in order</string>
-    <string name="bubble_mode_meta_phrases_desc">Quickly tap custom phrases and recent recognition history</string>
+    <string name="bubble_mode_meta_ocr_desc">Capture on-screen text, including vertical Chinese</string>
+    <string name="bubble_mode_meta_phrases_desc">Tap custom phrases and recent history</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR high-accuracy offline speech</string>
     <string name="model_label_xasr_detail">X-ASR fast live streaming speech</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small, high accuracy) text recognition</string>

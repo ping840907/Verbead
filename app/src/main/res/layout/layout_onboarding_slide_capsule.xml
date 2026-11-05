@@ -151,7 +151,8 @@
                 style="@style/Verbead.Text.Caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
+                android:layout_gravity="start"
+                android:maxWidth="250dp"
                 android:layout_marginBottom="12dp"
                 android:text="@string/onboarding_capsule_hint"
                 android:textColor="@color/text_tertiary" />

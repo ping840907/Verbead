@@ -26,6 +26,7 @@ android {
         debug {
             applicationIdSuffix ".debug"
             debuggable true
+            pseudoLocalesEnabled true
         }
     }
 
