@@ -496,9 +496,6 @@
     <string name="settings_speech_input_language_desc">你说话的语言，决定识别后文字的处理方式</string>
     <string name="settings_speech_input_language_dialog_title">选择输入语言</string>
 
-    <!-- P4: recognition integration -->
-    <string name="dict_settings_hotwords_unavailable">热词只在输入语言为中文时使用</string>
-
     <!-- language sections -->
     <string name="language_section_chinese_title">中文设置</string>
     <string name="language_section_hint_chinese">输入语言非中文时默认关闭，仍可自行开启</string>

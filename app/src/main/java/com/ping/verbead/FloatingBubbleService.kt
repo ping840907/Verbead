@@ -3007,7 +3007,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         buildHotwords() != qwen3Asr.loadedHotwords
 
     private fun buildHotwords(): String =
-        if (ModelConfig.isHotwordsEffective(this)) {
+        if (ModelConfig.isHotwordsEnabled(this)) {
             UserDictionary.load(this).values.distinct().sorted().joinToString("\n")
         } else {
             ""

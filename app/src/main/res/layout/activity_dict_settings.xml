@@ -91,14 +91,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/dict_settings_use_as_hotwords" />
 
-                <TextView
-                    android:id="@+id/text_hotwords_unavailable"
-                    style="@style/Verbead.Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/dict_settings_hotwords_unavailable"
-                    android:visibility="gone" />
+
             </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch

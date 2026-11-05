@@ -33,11 +33,7 @@ interface LanguageProfile {
      */
     val supportsXAsr: Boolean get() = false
 
-    /**
-     * 熱詞是否適用。Qwen3-ASR 的熱詞提示詞寫在原生函式庫裡，是中文的，
-     * 詞庫也以中文為主，用在其他語言可能把語音拉向中文，所以只有中文啟用。
-     */
-    val supportsHotwords: Boolean get() = false
+
 
     /** 這個語言是否有口語數字規則（決定設定頁要不要顯示「口語數字轉阿拉伯數字」） */
     val supportsSpokenNumbers: Boolean get() = false
@@ -63,7 +59,6 @@ object CjkPunctuation {
 object ZhTwProfile : LanguageProfile {
     override val id = "zh-TW"
     override val supportsXAsr = true
-    override val supportsHotwords = true
     override val supportsScriptConversion = true
     override val supportsSpokenNumbers = true
 
@@ -82,7 +77,6 @@ object ZhTwProfile : LanguageProfile {
 object ZhCnProfile : LanguageProfile {
     override val id = "zh-CN"
     override val supportsXAsr = true
-    override val supportsHotwords = true
     override val supportsSpokenNumbers = true
 
     override fun convertSpokenNumbers(text: String): String = SpokenNumberConverter.convert(text)

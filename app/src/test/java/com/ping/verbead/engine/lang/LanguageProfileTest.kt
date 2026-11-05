@@ -62,15 +62,12 @@ class LanguageProfileTest {
     }
 
     @Test
-    fun xAsrAndHotwords_areChineseOnly() {
+    fun xAsr_isChineseOnly() {
         for (p in listOf(ZhTwProfile, ZhCnProfile)) {
             assertTrue(p.id, p.supportsXAsr)
-            assertTrue(p.id, p.supportsHotwords)
         }
         for (id in listOf("en", "ja", "ko")) {
-            val p = LanguageProfiles.byId(id)
-            assertFalse(id, p.supportsXAsr)
-            assertFalse(id, p.supportsHotwords)
+            assertFalse(id, LanguageProfiles.byId(id).supportsXAsr)
         }
     }
 

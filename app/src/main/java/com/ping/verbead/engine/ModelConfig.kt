@@ -143,16 +143,14 @@ object ModelConfig {
 
     /**
      * 是否把自訂詞庫當成熱詞提示詞送給 Qwen3-ASR。預設開啟。
-     * 熱詞會被插入模型的提示詞，靜音或底噪時模型可能把熱詞當內容輸出，
-     * 詞庫又以中文為主，也可能把日韓語音拉向中文；關閉後詞庫的取代規則仍照常運作。
+     * 不分輸入語言：詞庫裡的詞可以是中、英、日、韓文。熱詞會被插入模型的提示詞，
+     * 靜音或底噪時模型可能把熱詞當內容輸出；關閉後詞庫的取代規則仍照常運作。
      */
     fun isHotwordsEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
             .getBoolean(KEY_HOTWORDS_ENABLED, true)
 
-    /** 實際要不要送熱詞：使用者開關加上輸入語言是否適用。 */
-    fun isHotwordsEffective(context: Context): Boolean =
-        isHotwordsEnabled(context) && LanguageProfiles.byId(inputLanguage(context)).supportsHotwords
+
 
     fun setHotwordsEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
