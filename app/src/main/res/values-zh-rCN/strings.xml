@@ -1,0 +1,505 @@
+<resources>
+    <string name="app_name">珠玑</string>
+    <string name="accessibility_service_desc">允许珠玑悬浮球将识别出的文字直接填入任何应用程序的输入框中，无需切换当前使用的输入法。</string>
+    <string name="bubble_notification_channel">悬浮输入服务</string>
+
+    <!-- Notifications -->
+    <string name="notif_bubble_title">珠玑 悬浮输入助手</string>
+    <string name="notif_bubble_text">轻触悬浮球即可输入文字或扫描条码至当前焦点输入框</string>
+    <string name="notif_bubble_action_close">关闭悬浮球</string>
+    <string name="notif_channel_bubble_desc">提供悬浮泡泡语音输入服务</string>
+    <string name="notif_download_title">正在下载语音识别模型</string>
+
+    <!-- DictSettings Toasts -->
+    <string name="toast_dict_import_success">成功导入 %1$d 条词汇</string>
+    <string name="toast_dict_import_cannot_read">无法读取选择的文件</string>
+    <string name="toast_dict_import_failed">导入失败：%1$s</string>
+    <string name="toast_dict_export_success">成功导出 %1$d 条词汇</string>
+    <string name="toast_dict_export_cannot_write">无法写入目标文件</string>
+    <string name="toast_dict_export_failed">导出失败：%1$s</string>
+    <string name="toast_dict_file_picker_error">无法打开文件选择器：%1$s</string>
+    <string name="toast_dict_save_dialog_error">无法打开保存对话框：%1$s</string>
+    <string name="toast_dict_target_word_empty">请输入目标词汇内容</string>
+
+    <!-- VoiceAccessibility Toasts -->
+    <string name="toast_password_not_supported">密码框不支持自动填入</string>
+    <string name="toast_fallback_clipboard">无法直接填入，已安全复制至剪贴板</string>
+
+    <!-- Onboarding Tour -->
+    <string name="onboarding_tour_title">操作导览</string>
+    <string name="onboarding_page1_title">随处悬浮 · 点击即说</string>
+    <string name="onboarding_page1_desc">无须更换您习惯的拼音或 Gboard 键盘。在任何 App 的输入框中，轻触悬浮球即可开始录音；支持双引擎“实时预览 + 离线高精度转写”，悬浮球旁会实时流式显示识别文字并自动填入！</string>
+    <string name="onboarding_page1_tip">提示：点击悬浮球转为红色即开始录音，再次点击或静音即自动完成转写与填入。</string>
+    <string name="onboarding_page2_title">垂直胶囊 · 五大模式随心切换</string>
+    <string name="onboarding_page2_desc">长按悬浮球展开垂直功能胶囊，上下滑动对齐即可切换四大模式：“语音实时输入”、“条码扫描”、“文字识别 (PP-OCRv6)”与“常用语与历史记录”。</string>
+    <string name="onboarding_page2_tip">提示：滑动到想要的模式后放开手指，即可切换并立即使用。</string>
+    <string name="onboarding_page3_title">悬浮 X 键 · 一键撤回与还原</string>
+    <string name="onboarding_page3_desc">无论是语音输入或 OCR 截取，若结果不如预期，无需手动逐字修改！填入后 10 秒内点击悬浮球上方的小型 ✕ 键，即可瞬间撤回并完整还原原本的文字内容。</string>
+    <string name="onboarding_page3_tip">提示：完成输入后，悬浮球上方会浮现 ✕ 键，轻点即可执行 Undo 无损恢复。</string>
+    <string name="onboarding_page4_title">贴边收纳 · 键盘联动 · 摇晃分身</string>
+    <string name="onboarding_page4_desc" formatted="false">拖至屏幕边缘自动贴边收纳 70%，也可开启“仅软键盘出现时显示”。此外，拖动悬浮球时快速左右摇晃即可“分裂添加分身”（最多 5 颗），让语音、OCR 与 AI 改写多球同屏待命！</string>
+    <string name="onboarding_page4_tip">提示：分身悬浮球各自记忆独立模式；若要移除多余分身，拖动至屏幕顶部删除区即可。</string>
+    <string name="onboarding_page5_title" formatted="false">100% 离线端侧 · 一站式主设置</string>
+    <string name="onboarding_page5_desc">从双引擎语音到 PP-OCRv6 文字识别，全程在手机本机推理，零云端上传、零隐私外泄。所有权限、模型管理与离线模型包导入皆整合于主设置页面！</string>
+    <string name="onboarding_page5_tip">隐私保障：极致端侧运算速度与最高安全标准，点击下方前往主设置开始体验。</string>
+
+    <!-- Onboarding Toasts -->
+    <string name="toast_file_picker_error">无法打开文件选择器: %1$s</string>
+    <string name="toast_model_download_done">%1$s 模型下载完成</string>
+    <string name="toast_model_download_failed">%1$s 下载失败: %2$s</string>
+
+    <!-- ImeSettings Toasts -->
+    <string name="toast_url_open_error">无法打开链接：%1$s</string>
+    <string name="toast_model_not_downloaded">尚未下载此模型，请先点击下方下载</string>
+    <string name="toast_switched_to_qwen3_dual">已切换为 Qwen3-ASR 并启用双引擎模式</string>
+
+    <!-- FloatingBubbleService Toasts -->
+    <string name="toast_mic_permission_voice">请先授权麦克风权限以进行语音输入</string>
+    <string name="toast_offline_model_error_applied_streaming">离线模型转写异常，已应用实时识别结果</string>
+    <string name="toast_transcribe_failed_retry">转写失败，请重新录音</string>
+    <string name="toast_camera_permission_scan">请先授权相机权限以使用扫描功能</string>
+    <string name="toast_camera_permission_ocr">请先授权相机权限以使用文字识别功能</string>
+    <string name="toast_auto_enter_enabled">已开启自动换行</string>
+    <string name="toast_auto_enter_disabled">已关闭自动换行</string>
+    <string name="toast_ocr_model_not_downloaded">尚未下载 PP-OCR 模型，请先至设置页面下载</string>
+    <string name="toast_camera_capture_failed">无法截取当前相机画面</string>
+
+    <!-- FloatingBubbleService Previews -->
+    <string name="preview_restored">已恢复</string>
+    <string name="preview_voice_start_failed">语音输入启动失败: %1$s</string>
+    <string name="preview_loading_dual_models">加载双模型中…</string>
+    <string name="preview_loading_models">加载模型中…</string>
+    <string name="preview_model_load_failed">模型加载失败，请检查设置</string>
+    <string name="preview_cannot_create_stream">无法建立识别流</string>
+    <string name="preview_listening">聆听中…</string>
+    <string name="preview_no_speech_detected">未检测到语音</string>
+    <string name="preview_transcribe_failed">转写失败，请重新录音</string>
+    <string name="preview_no_text_detected">未检测到文字</string>
+    <string name="preview_copied">已复制</string>
+    <string name="preview_mode_voice">语音模式</string>
+    <string name="preview_mode_ocr">文字识别</string>
+    <string name="preview_mode_barcode">条码扫描</string>
+    <string name="preview_mode_phrases">常用语抽屉</string>
+    <string name="preview_inserted_phrase">已填入常用语</string>
+    <string name="preview_copied_barcode">已复制条码</string>
+    <string name="preview_copied_with_text">已复制：%1$s</string>
+
+    <!-- Quick Phrases Drawer Strings -->
+    <string name="dialog_phrase_add_title">添加常用语</string>
+    <string name="dialog_phrase_edit_title">编辑常用语</string>
+    <string name="dialog_phrase_delete_title">删除常用语</string>
+    <string name="dialog_phrase_delete_confirm">确定要删除此条常用语吗？\n“%1$s”</string>
+    <string name="btn_save">保存</string>
+    <string name="btn_cancel">取消</string>
+    <string name="btn_delete">删除</string>
+    <string name="toast_phrase_added">已添加常用语</string>
+    <string name="toast_phrase_updated">已更新常用语</string>
+    <string name="toast_phrase_deleted">已删除常用语</string>
+    <string name="toast_history_cleared">已清除近期记录</string>
+    <string name="toast_phrase_saved_from_history">已将记录加入常用语</string>
+    <string name="header_recent_history">近期记录 (最多 %1$d 条)</string>
+    <string name="header_quick_phrases">常用短语 (长按可拖动排序)</string>
+    <string name="action_clear_history">清除</string>
+    <string name="empty_quick_phrases">尚无常用语与记录\n点击右上角“+”立即添加</string>
+
+    <string name="toast_asr_model_not_ready">尚未下载语音识别模型 (%1$s)，请至设置下载</string>
+    <string name="ocr_pangu_spacing_title">盘古之白 (中英数自动空格)</string>
+    <string name="ocr_pangu_spacing_desc">在识别出的中文字与英数、符号之间自动补入半角空格，提升排版质感</string>
+    <string name="ocr_to_traditional_title">识别结果转为繁体中文</string>
+    <string name="ocr_to_traditional_desc">自动将识别出的简体字转换为台湾标准繁体中文 (OpenCC)</string>
+
+    <!-- Settings Category Titles -->
+    <string name="settings_cat_bubble_title">悬浮球与操作模式</string>
+    <string name="settings_cat_bubble_desc">多球切换、模式开关排序、贴边收纳与键盘联动</string>
+
+    <string name="settings_cat_speech_title">语音识别与模型</string>
+    <string name="settings_cat_speech_desc">双引擎切换、X-ASR 流式、Qwen3 离线高精与热词</string>
+
+    <string name="settings_cat_ocr_title">智能文字识别 (OCR)</string>
+    <string name="settings_cat_ocr_desc">PP-OCR 繁中离线模型、盘古排版间距、条码扫描</string>
+
+
+    <string name="settings_cat_backup_title">离线模型包备份与导入</string>
+    <string name="settings_cat_backup_desc">一键导出离线模型包、智能校验与还原 ZIP</string>
+
+    <string name="settings_cat_about_title">关于与授权致谢</string>
+    <string name="settings_cat_about_desc">版本信息、开源核心技术致谢与 GitHub 项目</string>
+
+    <!-- Manifest labels -->
+    <string name="onboarding_title">新手设置</string>
+    <string name="dict_settings_title">自定义词汇</string>
+
+    <!-- Interface language -->
+    <string name="settings_language_title">界面语言</string>
+    <string name="settings_language_dialog_title">选择界面语言</string>
+    <string name="settings_language_follow_system">跟随系统</string>
+
+    <!-- P1-1: small layouts -->
+    <string name="dict_settings_how_title">词汇作用方式</string>
+    <string name="dict_settings_how_body">1. Qwen3-ASR 会将自定义词汇加入热词列表以提升识别率。\n2. 于输入法中长按选择文字，可直接点击词汇进行替换。\n3. 或点击键盘“词汇”按钮开启面板快速插入。</string>
+    <string name="dict_settings_use_as_hotwords">使用词汇作为热词</string>
+    <string name="dict_settings_empty_title">尚无自定义词汇</string>
+    <string name="dict_settings_empty_hint">点击下方按钮加入专用名词、自定义词语或特殊术语</string>
+    <string name="dict_settings_import_csv">导入 CSV</string>
+    <string name="dict_settings_export_csv">导出 CSV</string>
+    <string name="dict_settings_add">＋ 添加</string>
+    <string name="common_close">关闭</string>
+    <string name="common_text_recognition">文字识别</string>
+    <string name="floating_resize_window_desc">缩放窗口</string>
+    <string name="floating_flash_desc">闪光灯</string>
+    <string name="floating_wrap_desc">自动换行</string>
+    <string name="floating_ocr_capture_desc">拍摄文字截图</string>
+    <string name="floating_ocr_shutter_hint">按快门拍字</string>
+    <string name="floating_scanner_close_desc">关闭扫描</string>
+    <string name="floating_scanner_title">条码扫描</string>
+    <string name="floating_scanner_hint">对准条码或 QR Code 自动填入</string>
+    <string name="ocr_snapshot_detecting">正在检测文字区块…</string>
+    <string name="ocr_snapshot_rotate_desc">旋转 180 度</string>
+    <string name="ocr_snapshot_select_all">全选</string>
+    <string name="ocr_snapshot_clear">清除</string>
+    <string name="ocr_snapshot_recognize_and_input">识别并输入</string>
+    <string name="settings_backup_restore_title">离线模型一键恢复</string>
+    <string name="settings_backup_status_not_ready">未完全就绪</string>
+    <string name="settings_backup_restore_desc">支持 Qwen3-ASR、X-ASR 与 PP-OCRv6 离线模型。加载模型包 (.zip) 将智能识别内容并自动解压恢复所含模型，免去逐一下载。</string>
+    <string name="settings_backup_pick_package">选择模型包导入</string>
+    <string name="settings_backup_load_internal">快速加载内部模型包</string>
+    <string name="bubble_mode_drag_handle_desc">按住拖动排序</string>
+    <string name="bubble_mode_voice_title">语音输入</string>
+    <string name="bubble_mode_voice_desc">单击气泡或长按菜单启动语音转文字</string>
+    <string name="bubble_mode_move_up_desc">上移</string>
+    <string name="bubble_mode_move_down_desc">下移</string>
+    <string name="capsule_voice_mode_desc">语音模式</string>
+    <string name="capsule_barcode_desc">条码识别</string>
+    <string name="capsule_phrases_drawer_desc">常用语抽屉</string>
+    <string name="dialog_add_entry_target_hint">目标词汇 / 正确文字（必填）</string>
+    <string name="dialog_add_entry_source_hint">原识别字 / 欲替换词（选填）</string>
+    <string name="dialog_add_entry_tip">提示：若填写“原识别字”，识别出该字时将自动替换为“目标词汇”；若留空，则直接作为专属词库加强语音识别。</string>
+    <string name="quick_history_desc">历史记录</string>
+    <string name="quick_history_add_phrase_desc">加入常用语</string>
+    <string name="quick_history_delete_desc">删除此记录</string>
+    <string name="quick_phrase_edit_desc">编辑常用语</string>
+    <string name="quick_phrase_delete_desc">删除常用语</string>
+    <string name="quick_phrase_drag_desc">拖动排序</string>
+    <string name="phrases_drawer_close_desc">关闭常用语</string>
+    <string name="common_quick_phrases">常用语</string>
+    <string name="phrases_drawer_add_desc">添加常用语</string>
+    <string name="dialog_phrase_entry_hint">常用语句内容</string>
+    <string name="dialog_phrase_entry_tip">提示：点击抽屉中的常用语即可直接填入焦点输入框。</string>
+    <string name="dict_entry_delete_desc">删除词汇</string>
+    <string name="bubble_delete_zone_desc">移除悬浮球</string>
+    <string name="floating_bubble_desc">珠玑悬浮球</string>
+    <string name="floating_preview_recognizing">识别中…</string>
+
+    <!-- P1-2: large settings layouts -->
+    <string name="settings_speech_dual_title">双引擎模式</string>
+    <string name="settings_speech_dual_desc">说话时实时预览文字，结束后自动精准润色输入</string>
+    <string name="settings_speech_xasr_title">X-ASR 极速流式引擎</string>
+    <string name="settings_speech_xasr_desc">随说随出字、低延迟实时识别、原生繁中词库</string>
+    <string name="common_checking">检查中…</string>
+    <string name="common_select_engine">选择引擎</string>
+    <string name="common_download_model">下载模型</string>
+    <string name="settings_speech_qwen_title">Qwen3-ASR 高精度离线引擎</string>
+    <string name="settings_speech_qwen_desc">标点完整、语义通顺、专为精准批量转写打造</string>
+    <string name="settings_speech_prefs_title">语音输入偏好</string>
+    <string name="settings_speech_prefs_desc">适用于所有语音识别模式与引擎</string>
+    <string name="settings_speech_external_audio_title">优先使用外部音频</string>
+    <string name="settings_speech_external_audio_desc">连接蓝牙耳机或外接麦克风时优先录音，关闭则固定使用手机麦克风</string>
+    <string name="settings_speech_gain_title">外部音频增益</string>
+    <string name="settings_speech_gain_desc">调整耳机或外接麦克风录音音量倍率，解决远距偏小问题</string>
+    <string name="settings_speech_gain_value_default">2.5x 增益</string>
+    <string name="settings_speech_vad_title">停顿断句缓冲 (VAD)</string>
+    <string name="settings_speech_vad_desc">停止说话达此秒数后自动结束并发送识别</string>
+    <string name="settings_speech_vad_value_default">1.0 秒</string>
+    <string name="settings_speech_vocab_title">自定义管理词汇</string>
+    <string name="settings_speech_vocab_desc">加入常用人名、专有名词或修正字</string>
+    <string name="settings_speech_vocab_button">管理词汇</string>
+    <string name="settings_speech_qwen_prefs_title">文字后处理</string>
+    <string name="settings_speech_qwen_prefs_desc">识别完成后对输出文字做的处理，所有引擎皆适用</string>
+    <string name="settings_speech_to_traditional_title">转换为繁体中文</string>
+    <string name="settings_speech_to_traditional_desc">简体转繁体；日文、韩文段落不会被转换。关闭则完全保留识别原文</string>
+    <string name="settings_speech_spoken_numbers_title">口语数字转阿拉伯数字</string>
+    <string name="settings_speech_spoken_numbers_desc">把“一百二十三”转成 123，并处理加减乘除、百分比、分数、负数、根号与时间；单独的一位数（三个、一下）不会被转换</string>
+    <string name="settings_speech_filter_punct_title">过滤中文标点符号</string>
+    <string name="settings_speech_filter_punct_desc">自动去除逗号、句号、问号等全角符号</string>
+    <string name="settings_bubble_header_title">悬浮语音泡泡</string>
+    <string name="settings_bubble_header_desc">贴边常驻，一键语音、条码与文字识别</string>
+    <string name="settings_bubble_status_not_ready">未就绪</string>
+    <string name="settings_bubble_overlay_title">显示在上层</string>
+    <string name="settings_bubble_overlay_desc">允许显示在其他应用程序上层</string>
+    <string name="settings_bubble_overlay_help">无法打开显示在上层？点此查看解除受限制设置指引</string>
+    <string name="settings_bubble_overlay_action">前往授权</string>
+    <string name="settings_bubble_autofill_title">自动填入（无障碍）</string>
+    <string name="settings_bubble_autofill_desc">将识别文字直接填入焦点输入框</string>
+    <string name="settings_bubble_autofill_help">无法打开自动填入？点此查看解除受限制设置指引</string>
+    <string name="settings_bubble_autofill_action">前往开启</string>
+    <string name="settings_bubble_restricted_title">解除受限制的设置</string>
+    <string name="settings_bubble_restricted_desc">若“显示在上层”或“自动填入”开关被系统反灰锁定，请点此前往应用程序信息页面，点击画面右上角“︙”（三点击单）并选择“解除受限制的设置”即可解除锁定</string>
+    <string name="settings_bubble_restricted_action">前往解除</string>
+    <string name="settings_bubble_keyboard_only_title">仅在键盘出现时显示</string>
+    <string name="settings_bubble_keyboard_only_desc">开启时仅于输入键盘弹出时显示悬浮球；关闭时常驻贴边</string>
+    <string name="settings_bubble_multi_title">多悬浮球并存模式</string>
+    <string name="settings_bubble_multi_desc">画面同时显示多个功能悬浮球，支持智能碰撞推挤避让，贴边不重叠</string>
+    <string name="settings_bubble_count_title">悬浮球数量</string>
+    <string name="settings_bubble_count_desc">设置同时显示的悬浮球数量 (2～4 个：语音、识别、条码、常用语)</string>
+    <string name="settings_bubble_count_value_default">4 个</string>
+    <string name="settings_bubble_modes_title">悬浮球功能模式与排序</string>
+    <string name="settings_bubble_modes_desc">按住拖动把手或点击箭头调整胶囊菜单与复制球顺序，亦可开关个别模式</string>
+    <string name="settings_bubble_modes_reset">重置默认</string>
+    <string name="settings_bubble_paste_title">使用剪贴板粘贴模式</string>
+    <string name="settings_bubble_paste_desc">开启时使用剪贴板粘贴 (Paste) 填入文字；关闭时使用无障碍直接填入 (SetText)</string>
+    <string name="settings_bubble_history_title">常用语抽屉输入记录</string>
+    <string name="settings_bubble_history_desc">开启时自动暂存其他模式 (语音/识别/条码) 输入内容于常用语抽屉</string>
+    <string name="settings_bubble_history_count_title">保留历史记录条数</string>
+    <string name="settings_bubble_history_count_desc">设置常用语抽屉顶端最多保留几条历史回溯记录 (1～12 条)</string>
+    <string name="settings_bubble_history_count_value_default">6 条</string>
+    <string name="settings_status_title">功能配置状态</string>
+    <string name="settings_status_desc">点击未完成项目可直接跳转设置</string>
+    <string name="settings_status_checking">检查中</string>
+    <string name="settings_perm_mic_title">麦克风录音权限</string>
+    <string name="settings_perm_denied_action">未授权 ➜</string>
+    <string name="settings_perm_camera_title">相机权限（文字识别与条码扫描）</string>
+    <string name="settings_perm_overlay_title">悬浮窗显示权限</string>
+    <string name="settings_perm_accessibility_title">无障碍焦点填入</string>
+    <string name="settings_perm_disabled_action">未启用 ➜</string>
+    <string name="settings_perm_model_title">语音识别模型</string>
+    <string name="settings_perm_not_downloaded_action">未下载 ➜</string>
+    <string name="settings_tour_button">操作示范与功能导览</string>
+    <string name="settings_categories_title">功能设置分类</string>
+    <string name="settings_restore_desc_short">支持 X-ASR、Qwen3 与 PP-OCR 模型包 ZIP 自动恢复</string>
+    <string name="settings_restore_desc_long">导入离线模型包 (.zip) 将自动识别并解压恢复模型文件，免去手动逐一下载。</string>
+    <string name="settings_restore_pick_zip">选择模型包导入 (.zip)</string>
+    <string name="settings_restore_load_internal">快速加载内部保存模型包</string>
+    <string name="settings_footer_title">珠玑</string>
+    <string name="settings_footer_tagline">落辞成玉，字字珠玑</string>
+    <string name="settings_ocr_header_title">PP-OCRv6 端侧文字识别</string>
+    <string name="settings_ocr_header_desc">于悬浮扫描器中点击相机画面文字即可定格识别并自动填入</string>
+    <string name="settings_ocr_tip_vertical">竖排文字自动展开：书籍、菜单、春联等竖排中文会自动正立展开，精准识别不颠倒。</string>
+    <string name="settings_ocr_tip_multiselect">多选区块依序组合：点击文字区块显示 ①②③ 序号，可依自定义顺序拼接；双击任一区块立即确认粘贴。</string>
+    <string name="settings_ocr_auto_enter_title">识别与扫描后自动换行</string>
+    <string name="settings_ocr_auto_enter_desc">填入条码或选择文字后自动发送 Enter 键</string>
+    <string name="settings_ocr_smart_join_title">智能段落折行拼接</string>
+    <string name="settings_ocr_smart_join_desc">智能判定相邻文字框是否为自然折行，自动消除换行或补入空格；关闭时使用下方固定间隔</string>
+    <string name="settings_ocr_join_spacing_title">多选区块拼接间隔</string>
+    <string name="settings_ocr_join_spacing_desc">同时选择多个文字框时，组合字符串之间的间隔方式</string>
+    <string name="settings_ocr_join_newline">换行</string>
+    <string name="settings_ocr_join_space">空格</string>
+    <string name="settings_ocr_join_none">无间隔</string>
+    <string name="settings_about_credits_title">开源项目与致谢</string>
+    <string name="settings_about_credits_intro">珠玑 衷心感谢开源社区与模型作者的卓越贡献（点击开启项目）：</string>
+    <string name="settings_about_paddleocr_credit">"  作者：PaddlePaddle 团队 (百度飞桨) · 离线文字识别"</string>
+    <string name="settings_about_zxing_title">• zxing-cpp 条码识别库 ↗</string>
+    <string name="settings_about_zxing_credit">"  作者：zxing-cpp 团队 / Axel Waggershauser · C++ 条码扫描"</string>
+    <string name="settings_about_sherpa_credit">"  作者：Next-gen Kaldi (k2-fsa) · 端侧语音识别 Runtime"</string>
+    <string name="settings_about_xasr_title">• X-ASR 繁中流式模型 ↗</string>
+    <string name="settings_about_xasr_credit">"  作者：Luigi · 台湾繁体中文/国台英语优化模型"</string>
+    <string name="settings_about_qwen_title">• Qwen3-ASR 语音模型 ↗</string>
+    <string name="settings_about_qwen_credit">"  作者：Alibaba Qwen Team · 高精度开源语音大模型"</string>
+    <string name="settings_about_onnx_credit">"  作者：Microsoft · 跨平台高性能神经网络推理引擎"</string>
+
+    <!-- P1-3: settings activities -->
+    <string name="common_add">添加</string>
+    <string name="common_download">下载</string>
+    <string name="common_redownload">重新下载</string>
+    <string name="common_ready">已就绪</string>
+    <string name="common_not_downloaded">未下载</string>
+    <string name="common_cancel_download">取消下载</string>
+    <string name="common_connecting">连接中…</string>
+    <string name="common_got_it">我知道了</string>
+    <string name="ocr_model_name_small">PP-OCRv6 标准版</string>
+    <string name="ocr_model_name_tiny">PP-OCRv6 轻量版</string>
+    <string name="settings_toast_camera_permission">请在系统设置中开启相机权限</string>
+    <string name="settings_toast_quick_zip_not_found">未在 Download 目录中找到默认模型 ZIP 包</string>
+    <string name="settings_import_preparing">正在准备解压模型包…</string>
+    <string name="settings_import_extracting">解压中：%1$s (%2$d%%)</string>
+    <string name="settings_import_invalid_source">无效的文件来源</string>
+    <string name="settings_import_core_files_item">• 离线模型核心文件</string>
+    <string name="settings_import_success_title">离线模型一键恢复成功</string>
+    <string name="settings_import_success_message">已根据导入包内容智能识别并恢复共 %1$d 个模型核心文件！\n\n本次恢复就绪项目：\n%2$s\n\n所有对应功能均已自动启用，可立即使用。</string>
+    <string name="settings_import_success_ok">太棒了</string>
+    <string name="settings_import_failed_title">导入失败</string>
+    <string name="settings_import_failed_message">无法顺利解压或安装此模型包：\n%1$s</string>
+    <string name="settings_status_ready_check">已就绪 ✓</string>
+    <string name="settings_status_off_action">未开启 ➜</string>
+    <string name="settings_overall_all_ready">全部就绪</string>
+    <string name="settings_overall_pending">待配置 %1$d 项</string>
+    <string name="settings_summary_bubble_running">常驻运行中</string>
+    <string name="settings_summary_bubble_not_running">未运行</string>
+    <string name="settings_summary_bubble_multi">%1$d 球模式</string>
+    <string name="settings_summary_bubble_single">单球模式</string>
+    <string name="settings_summary_bubble">%1$s · %2$s · 启用 %3$d 个模式</string>
+    <string name="settings_summary_engine_dual">双引擎切换 (X-ASR + Qwen3)</string>
+    <string name="settings_summary_engine_qwen">Qwen3 离线高精识别</string>
+    <string name="settings_summary_engine_xasr">X-ASR 繁中流式识别</string>
+    <string name="settings_summary_ocr_pangu">盘古空格</string>
+    <string name="settings_summary_ocr_compact">紧凑排版</string>
+    <string name="settings_summary_ocr_trad">繁中</string>
+    <string name="settings_summary_ocr_original">原字</string>
+    <string name="settings_summary_backup">已下载 %1$d/%2$d 个离线模型 · 支持 ZIP 导入</string>
+    <string name="settings_all_models_ready">全部模型已就绪</string>
+    <string name="settings_restore_load_internal_size">快速加载内部保存模型包 (%1$dMB)</string>
+    <string name="settings_summary_about">版本 %1$s · 开源技术致谢与授权</string>
+    <string name="dict_dialog_delete_title">删除专属词汇</string>
+    <string name="dict_dialog_delete_message">确定要删除“%1$s”吗？</string>
+    <string name="dict_dialog_add_title">添加专属词汇 / 替换规则</string>
+    <string name="dict_dialog_edit_title">编辑专属词汇 / 替换规则</string>
+    <string name="dict_entry_mapping">自动替换：%1$s → %2$s</string>
+    <string name="settings_bubble_count_value">%1$d 个</string>
+    <string name="settings_bubble_history_count_value">%1$d 条</string>
+    <string name="settings_bubble_toast_min_one_mode">至少需保留 1 个启用的悬浮球功能模式</string>
+    <string name="settings_bubble_overlay_granted">已取得显示在上层权限</string>
+    <string name="settings_bubble_button_granted">已授权</string>
+    <string name="settings_bubble_overlay_not_granted">尚未授予显示在上层权限</string>
+    <string name="settings_bubble_accessibility_running">无障碍服务运行中，支持自动填入</string>
+    <string name="settings_bubble_button_enabled">已开启</string>
+    <string name="settings_bubble_accessibility_not_enabled">尚未启用无障碍服务</string>
+    <string name="settings_bubble_modes_summary_multi">已开启多球：已启用 %1$d 个功能模式，画面将同时呈现多颗悬浮球</string>
+    <string name="settings_bubble_modes_summary_single">已关闭多球：单颗悬浮球模式，长按悬浮球可叫出垂直胶囊菜单切换功能</string>
+    <string name="settings_bubble_paste_desc_on">识别完成后自动将文字直接填入当前焦点所在的文字框</string>
+    <string name="settings_bubble_paste_desc_off">识别完成后不直接填入，仅将文字复制至系统剪贴板供您随时手动粘贴</string>
+    <string name="settings_bubble_history_desc_on">在快速常用语抽屉上方实时显示近期的转写历史记录</string>
+    <string name="settings_bubble_history_desc_off">已关闭历史记录，常用语抽屉将仅显示固定常用语</string>
+    <string name="settings_bubble_restricted_dialog_title">如何解除 Android 13+ 受限制的设置</string>
+    <string name="settings_bubble_restricted_dialog_message">在 Android 13 及以上版本中，自外部安装的应用程序，系统会默认限制“无障碍服务”与“悬浮窗权限”的开启。\n\n请按照以下步骤解除限制：\n1. 点击下方“前往应用程序信息”\n2. 在应用程序详细信息页面中，点击右上角的“︙”（三点击单）\n3. 点击“解除受限制的设置”\n4. 通过指纹或锁定密码验证后返回本页，即可顺利开启权限！</string>
+    <string name="settings_bubble_restricted_dialog_action">前往应用程序信息</string>
+    <string name="settings_bubble_restricted_dialog_dismiss">知道了</string>
+    <string name="settings_speech_toast_bluetooth_denied">未授予蓝牙连接权限，可能无法自动切换至蓝牙耳机</string>
+    <string name="settings_speech_gain_original">1.0x (原音)</string>
+    <string name="settings_speech_gain_format">%1$.1fx 增益</string>
+    <string name="settings_speech_vad_format">%1$.1f 秒</string>
+    <string name="settings_speech_engine_switch">切换为此引擎</string>
+    <string name="settings_speech_engine_in_use">使用中</string>
+    <string name="settings_speech_vocab_desc_count">已收录 %1$d 条自定义词汇 · 点击管理专属词库</string>
+    <string name="settings_speech_engine_xasr_name">X-ASR 流式引擎</string>
+    <string name="settings_speech_engine_qwen_name">Qwen3-ASR 离线引擎</string>
+    <string name="settings_speech_toast_engine_switched">已切换主识别引擎为 %1$s</string>
+    <string name="settings_speech_toast_dual_on">已启用双引擎识别模式</string>
+    <string name="settings_speech_toast_dual_off">已停用双引擎模式</string>
+    <string name="settings_speech_missing_both">X-ASR 与 Qwen3-ASR</string>
+    <string name="settings_speech_dual_needs_model_title">需要下载模型以启用双引擎</string>
+    <string name="settings_speech_dual_needs_model_message">双引擎模式结合了 X-ASR 的低延迟实时预览与 Qwen3-ASR 的高精离线转写。\n\n当前尚未下载：%1$s。\n请先点击“下载模型”完成安装后再开启。</string>
+    <string name="settings_speech_model_label_xasr">X-ASR 繁中流式模型</string>
+    <string name="settings_speech_model_label_qwen">Qwen3-ASR 语音模型</string>
+    <string name="settings_speech_download_title">下载 %1$s</string>
+    <string name="settings_speech_redownload_title">重新下载 %1$s</string>
+    <string name="settings_speech_download_message">预估大小：约 %1$d MB。\n下载过程中将在背景维持前景服务，下载完成后即可离线运行。</string>
+    <string name="settings_speech_toast_download_done">模型下载完成！</string>
+    <string name="settings_ocr_checking_size">检查文件大小…</string>
+    <string name="settings_ocr_download_message">即将下载约 %1$s 的离线繁中识别模型，下载完成后文字识别全程在本机执行。\n\n是否继续？</string>
+    <string name="settings_ocr_download_start">开始下载</string>
+    <string name="settings_ocr_toast_download_done">PP-OCR 模型下载完成！</string>
+
+    <!-- P1-4: onboarding -->
+    <string name="onboarding_skip">跳过</string>
+    <string name="onboarding_prev">上一步</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_finish">前往设置开始使用</string>
+    <string name="onboarding_mode_badge">模式 %1$d/%2$d</string>
+    <string name="onboarding_capsule_title">垂直胶囊 · 滑动菜单切换</string>
+    <string name="onboarding_mode_voice_title">语音实时输入</string>
+    <string name="onboarding_capsule_badge_default">模式 1/5</string>
+    <string name="onboarding_mode_voice_desc">高精准度离线语音识别，轻触即开始听写并直接粘贴</string>
+    <string name="onboarding_capsule_tags_default">• 离线 ASR 双模型实时转写\n• 支持自动标点与自定义专属词汇\n• 耳机外接音频倍率增益</string>
+    <string name="onboarding_capsule_hint">长按悬浮球展开胶囊，上下滑动对齐切换模式</string>
+    <string name="onboarding_mode_voice_tags">• 双引擎“实时预览 + 离线高精度转写”\n• 支持自动标点与自定义专属词汇替换\n• 耳机外接音频与麦克风倍率增益</string>
+    <string name="onboarding_mode_barcode_title">条码与 QR 扫描</string>
+    <string name="onboarding_mode_barcode_desc">极速本机条码读取，瞄准即识别并自动填入</string>
+    <string name="onboarding_mode_barcode_tags">• 支持 QR Code 及各类一维条码\n• 支持相机双指缩放与闪光灯补光\n• 扫描完成后可设置自动换行</string>
+    <string name="onboarding_mode_ocr_title">文字识别 (PP-OCRv6)</string>
+    <string name="onboarding_mode_ocr_desc">冻结画面框选或多选文字区块，离线高精度截取</string>
+    <string name="onboarding_mode_ocr_tags">• PP-OCRv6 离线模型，支持竖排中文正立识别\n• 点击区块依序多选组合与智能段落折行拼接\n• 可自定义换行或空格分隔符，双指缩放对焦</string>
+    <string name="onboarding_mode_phrases_title">常用语与历史记录</string>
+    <string name="onboarding_mode_phrases_desc">自定义短语随点即贴，自动回溯最近输入内容</string>
+    <string name="onboarding_mode_phrases_tags">• 常用短语支持长按拖动平滑换位排序\n• 自动置顶最近 1～12 条各模式输入回溯\n• 随点即贴，免重复打字</string>
+    <string name="onboarding_voice_sample">今天下午两点在三楼会议室开会。</string>
+    <string name="onboarding_undo_sample">今天开会时间是两点整。</string>
+    <string name="onboarding_gesture_edge_title">1. 边缘收纳：超出边界 70%</string>
+    <string name="onboarding_gesture_edge_desc">自动藏入屏幕边缘，仅露 30% 圆弧，轻点即可拉出</string>
+    <string name="onboarding_gesture_keyboard_title">2. 键盘联动：仅打字时现身</string>
+    <string name="onboarding_gesture_keyboard_desc">主设置开启“仅软键盘出现时显示”，伴随键盘升起淡入出现</string>
+    <string name="onboarding_gesture_shake_title">3. 摇晃分身：多颗悬浮球并行</string>
+    <string name="onboarding_gesture_shake_desc">拖动悬浮球时快速左右摇晃即可分裂新球（最多 5 颗），各自独立记忆模式</string>
+    <string name="onboarding_gestures_title">收纳 · 联动 · 摇晃分裂多球</string>
+    <string name="onboarding_gestures_mock_keyboard">系统软键盘 (Gboard / 拼音)</string>
+    <string name="onboarding_privacy_title">隐私安全 · 100% 离线端侧运算</string>
+    <string name="onboarding_privacy_subtitle">纯本机推理 · 零云端传输</string>
+    <string name="onboarding_privacy_chip_dual">双引擎离线语音</string>
+    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 识别</string>
+    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 离线识别</string>
+    <string name="onboarding_privacy_chip_zero_upload">零上传 · 全程本机</string>
+    <string name="onboarding_undo_title">实时恢复 · 点击上方 ✕ 键撤回</string>
+    <string name="onboarding_undo_mock_question">请问演示文稿在哪里？</string>
+    <string name="onboarding_undo_mock_hint">点击悬浮球输入...</string>
+    <string name="onboarding_undo_done">已恢复输入内容</string>
+    <string name="onboarding_voice_title">任何应用程序 · 即刻输入</string>
+    <string name="onboarding_voice_mock_question">请问今天下午的会议几点开始？</string>
+    <string name="onboarding_voice_mock_hint">点击悬浮球开始输入...</string>
+    <string name="onboarding_voice_listening">正在聆听…</string>
+
+    <!-- P1-5: data layer decoupling -->
+    <string name="bubble_mode_meta_voice_short">语音</string>
+    <string name="bubble_mode_meta_voice_desc">点击启动离线语音识别，说话结束自动填入焦点文字框</string>
+    <string name="bubble_mode_meta_barcode_short">条码</string>
+    <string name="bubble_mode_meta_barcode_desc">悬浮相机实时扫描一维条码与 QR Code 并自动输入</string>
+    <string name="bubble_mode_meta_ocr_title">文字识别 (OCR)</string>
+    <string name="bubble_mode_meta_ocr_short">识别</string>
+    <string name="bubble_mode_meta_ocr_desc">悬浮相机截取画面文字，支持竖排中文与多区块顺序拼接</string>
+    <string name="bubble_mode_meta_phrases_desc">快速点击自定义常用短语与近期识别历史记录</string>
+    <string name="model_label_qwen3_detail">Qwen3-ASR 高精度离线语音</string>
+    <string name="model_label_xasr_detail">X-ASR 极速实时流式语音</string>
+    <string name="model_label_ocr_small_detail">PP-OCRv6 (Small 高精版) 文字识别</string>
+    <string name="model_label_ocr_tiny_detail">PP-OCRv6 (Tiny 轻量版) 文字识别</string>
+    <string name="settings_import_success_status">模型包恢复成功！还原模型：%1$s</string>
+    <string name="settings_import_no_models">压缩包中未包含有效模型文件</string>
+    <string name="settings_import_stream_unreadable">无法读取选择的文件 (InputStream 为空)</string>
+    <string name="settings_import_file_not_found">找不到模型压缩包或无读取权限: %1$s</string>
+    <string name="settings_import_extract_failed">解压缩失败: %1$s</string>
+    <string name="settings_import_no_combo">无完整模型组合</string>
+    <string name="settings_import_finishing">恢复完成</string>
+    <string name="common_list_separator">、</string>
+    <string name="model_progress_downloading">下载中…</string>
+    <string name="model_progress_downloading_files">下载中 (%1$d/%2$d)…</string>
+    <string name="model_progress_extracting">解压缩中：%1$s</string>
+    <string name="common_size_unknown">大小未知</string>
+
+    <!-- P1-6: remaining UI strings -->
+    <string name="ocr_overlay_selected_count">已选择 %1$d 个区块 (按序号组合)，点“识别并输入”</string>
+    <string name="ocr_overlay_confirm_with_count">识别并输入 (%1$d)</string>
+    <string name="ocr_overlay_hint_select">滑动拉框圈选或点击欲输入之文字区块</string>
+    <string name="ocr_overlay_model_check_files">请确认模型文件完整</string>
+    <string name="ocr_overlay_model_load_failed">PP-OCR 模型加载失败: %1$s</string>
+    <string name="ocr_overlay_no_text_found">未检测到清晰文字，可尝试翻转 180° 或重试</string>
+    <string name="ocr_overlay_hint_select_count">滑动拉框圈选或点击文字区块 (共 %1$d 处)</string>
+    <string name="ocr_overlay_process_error">OCR 处理发生错误 (%1$s): %2$s</string>
+    <string name="common_unknown_error">未知错误</string>
+    <string name="ocr_overlay_rotated_redetecting">已翻转 180°，正在重新检测文字…</string>
+    <string name="ocr_overlay_recognizing_one">正在识别选择文字…</string>
+    <string name="ocr_overlay_recognizing_many">正在识别选择的 %1$d 个区块…</string>
+    <string name="ocr_overlay_recognize_failed_retry">未能成功识别，请重试或选择其他文字</string>
+    <string name="ocr_overlay_recognize_error">识别失败 (%1$s): %2$s</string>
+    <string name="bubble_toast_one_mode_only">当前仅开启 1 种模式，无法复制悬浮球\n请至设置开启更多功能模式</string>
+    <string name="bubble_toast_limit_reached">已达当前开启模式数量上限（最多 %1$d 颗）</string>
+    <string name="bubble_toast_duplicated">已复制“%1$s”悬浮球（共 %2$d 颗，已开启多球并存）</string>
+    <string name="floating_ocr_desc">悬浮文字识别</string>
+    <string name="floating_barcode_desc">悬浮条码扫描</string>
+    <string name="floating_voice_desc">悬浮语音输入</string>
+    <string name="quick_phrase_default_1">好的，收到！</string>
+    <string name="quick_phrase_default_2">稍等我一下，马上处理。</string>
+    <string name="quick_phrase_default_3">非常感谢！辛苦了！</string>
+    <string name="quick_phrase_default_4">已发送，请查收。</string>
+    <string name="quick_phrase_default_5">请稍候，我稍后回复您。</string>
+    <string name="quick_phrase_default_6">没问题，我来处理。</string>
+    <string name="notif_download_preparing">准备下载 %1$s 模型…</string>
+    <string name="notif_download_channel_name">模型下载</string>
+
+    <!-- P3: input language -->
+    <string name="settings_speech_input_language_title">输入语言</string>
+    <string name="settings_speech_input_language_desc">你说话的语言，决定识别后文字的处理方式</string>
+    <string name="settings_speech_input_language_dialog_title">选择输入语言</string>
+
+    <!-- P4: recognition integration -->
+    <string name="dict_settings_hotwords_unavailable">热词只在输入语言为中文时使用</string>
+
+    <!-- language sections -->
+    <string name="language_section_chinese_title">中文设置</string>
+    <string name="language_section_hint_chinese">输入语言非中文时默认关闭，仍可自行开启</string>
+</resources>

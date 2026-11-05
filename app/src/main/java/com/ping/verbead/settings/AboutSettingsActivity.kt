@@ -65,6 +65,7 @@ class AboutSettingsActivity : AppCompatActivity() {
 
     private fun languageLabel(tag: String): String = when (tag) {
         "zh-TW" -> getString(R.string.settings_language_zh_tw)
+        "zh-CN" -> getString(R.string.settings_language_zh_cn)
         "en" -> getString(R.string.settings_language_en)
         "ja" -> getString(R.string.settings_language_ja)
         "ko" -> getString(R.string.settings_language_ko)
