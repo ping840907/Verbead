@@ -501,5 +501,5 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">中国語の設定</string>
-    <string name="language_section_hint_chinese">入力言語が中国語のときに適用されます</string>
+    <string name="language_section_hint_chinese">入力言語が中国語以外のときは既定でオフです（手動でオンにできます）</string>
 </resources>

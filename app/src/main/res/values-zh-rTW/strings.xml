@@ -501,5 +501,5 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">中文設定</string>
-    <string name="language_section_hint_chinese">輸入語言為中文時適用</string>
+    <string name="language_section_hint_chinese">輸入語言非中文時預設關閉，仍可自行開啟</string>
 </resources>

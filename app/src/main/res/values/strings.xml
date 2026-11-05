@@ -506,5 +506,7 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">Chinese settings</string>
-    <string name="language_section_hint_chinese">Applies when the input language is Chinese</string>
+    <string name="language_section_hint_chinese">Off by default when the input language isn\'t Chinese; you can still turn them on</string>
+
+    <!-- p7 -->
 </resources>

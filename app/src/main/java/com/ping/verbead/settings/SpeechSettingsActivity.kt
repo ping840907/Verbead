@@ -241,6 +241,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
         switchConvertTraditional.isChecked = ModelConfig.isConvertToTraditionalEnabled(this)
         switchConvertTraditional.setOnCheckedChangeListener { _, isChecked ->
+            if (bindingLanguageToggles) return@setOnCheckedChangeListener
             HapticUtil.click(this)
             ModelConfig.setConvertToTraditionalEnabled(this, isChecked)
         }
@@ -251,6 +252,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
         switchSpokenNumbers.isChecked = ModelConfig.isSpokenNumbersEnabled(this)
         switchSpokenNumbers.setOnCheckedChangeListener { _, isChecked ->
+            if (bindingLanguageToggles) return@setOnCheckedChangeListener
             HapticUtil.click(this)
             ModelConfig.setSpokenNumbersEnabled(this, isChecked)
         }
@@ -322,24 +324,23 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
     }
 
-    /** 簡轉繁與口語數字只有部分輸入語言有規則；沒有的設定列淡化並鎖住，X-ASR 只對中文提供。 */
+    /** X-ASR 與雙引擎只對中文提供；中文限定的開關隨輸入語言重新載入。 */
     private fun applyInputLanguageVisibility() {
         val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
-        val script = profile.supportsScriptConversion
-        val numbers = profile.supportsSpokenNumbers
         val xAsr = profile.supportsXAsr
         findViewById<View>(R.id.card_dual_engine).visibility = if (xAsr) View.VISIBLE else View.GONE
         cardXAsr.visibility = if (xAsr) View.VISIBLE else View.GONE
-        setSettingRowEnabled(layoutConvertTraditionalToggle, switchConvertTraditional, script)
-        setSettingRowEnabled(layoutSpokenNumbersToggle, switchSpokenNumbers, numbers)
+        refreshLanguageToggles()
     }
 
-    /** 目前輸入語言沒有對應規則的設定列：淡化並鎖住，區塊展開時仍看得到有哪些設定。 */
-    private fun setSettingRowEnabled(row: View, toggle: MaterialSwitch, enabled: Boolean) {
-        row.isEnabled = enabled
-        row.isClickable = enabled
-        row.alpha = if (enabled) 1f else 0.4f
-        toggle.isEnabled = enabled
+    private var bindingLanguageToggles = false
+
+    /** 簡轉繁與口語數字的開關隨輸入語言各自保存；切換語言後把開關狀態換成該語言的值（不觸發寫入）。 */
+    private fun refreshLanguageToggles() {
+        bindingLanguageToggles = true
+        switchConvertTraditional.isChecked = ModelConfig.isConvertToTraditionalEnabled(this)
+        switchSpokenNumbers.isChecked = ModelConfig.isSpokenNumbersEnabled(this)
+        bindingLanguageToggles = false
     }
 
     private fun audioGainLabel(gain: Float) = if (gain == 1.0f) getString(R.string.settings_speech_gain_original) else getString(R.string.settings_speech_gain_format, gain)

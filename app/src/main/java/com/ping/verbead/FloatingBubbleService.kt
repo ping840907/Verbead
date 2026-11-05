@@ -60,6 +60,7 @@ import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.lang.LanguageProfiles
 import com.ping.verbead.engine.lang.ScriptMode
+import com.ping.verbead.engine.lang.ZhTwProfile
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
@@ -3010,21 +3011,23 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     /** 辨識後處理：依輸入語言的 [com.ping.verbead.engine.lang.LanguageProfile] 依序套用，本身不含任何語言規則。 */
     private fun postProcess(raw: String): String {
         val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
+        // 簡轉繁與口語數字的開關隨輸入語言各自保存（其他語言預設關閉，使用者可自己打開）；
+        // 規則本身以字元證據逐句判斷，日韓文句子不會被動到，所以任何輸入語言打開都安全
         val scriptMode = when {
-            !profile.supportsScriptConversion || !ModelConfig.isConvertToTraditionalEnabled(this) -> ScriptMode.OFF
+            !ModelConfig.isConvertToTraditionalEnabled(this) -> ScriptMode.OFF
             ModelConfig.effectiveEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
             else -> ScriptMode.FULL
         }
-        val converted = profile.convertScript(raw, scriptMode)
+        val converted = ZhTwProfile.convertScript(raw, scriptMode)
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
         val postReplaced = if (userReplaced == converted || scriptMode == ScriptMode.OFF) {
             userReplaced
         } else {
-            profile.applyVariantRules(userReplaced)
+            ZhTwProfile.applyVariantRules(userReplaced)
         }
         // 數字轉換要在標點過濾之前：它依標點切小句，且不能被過濾後的文字影響
-        val numbered = if (profile.supportsSpokenNumbers && ModelConfig.isSpokenNumbersEnabled(this)) {
-            profile.convertSpokenNumbers(postReplaced)
+        val numbered = if (ModelConfig.isSpokenNumbersEnabled(this)) {
+            ZhTwProfile.convertSpokenNumbers(postReplaced)
         } else {
             postReplaced
         }

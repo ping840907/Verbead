@@ -163,24 +163,20 @@ object ModelConfig {
 
     /** 是否把口語中文數字與加減乘除、百分比、分數、時間等轉成阿拉伯數字。預設關閉，避免改變既有輸出。 */
     fun isSpokenNumbersEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_SPOKEN_NUMBERS, false)
+        languageBool(context, PREF_QWEN3_SETTINGS, KEY_SPOKEN_NUMBERS) { false }
 
     fun setSpokenNumbersEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_SPOKEN_NUMBERS, enabled).apply()
+        setLanguageBool(context, PREF_QWEN3_SETTINGS, KEY_SPOKEN_NUMBERS, enabled)
 
     // ── Traditional Chinese conversion switch ─────────────────────────────────
     private const val KEY_CONVERT_TRADITIONAL = "convert_to_traditional"
 
     /** 關閉時語音輸出不做簡繁轉換與台灣用詞規則，原樣保留辨識結果。預設開啟。 */
     fun isConvertToTraditionalEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_CONVERT_TRADITIONAL, true)
+        languageBool(context, PREF_QWEN3_SETTINGS, KEY_CONVERT_TRADITIONAL) { it.supportsScriptConversion }
 
     fun setConvertToTraditionalEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_CONVERT_TRADITIONAL, enabled).apply()
+        setLanguageBool(context, PREF_QWEN3_SETTINGS, KEY_CONVERT_TRADITIONAL, enabled)
 
     // ── Input (recognition) language ──────────────────────────────────────────
     private const val KEY_INPUT_LANGUAGE = "input_language"
@@ -193,6 +189,30 @@ object ModelConfig {
     fun setInputLanguage(context: Context, id: String) =
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
             .edit().putString(KEY_INPUT_LANGUAGE, id).apply()
+
+    // ── 隨輸入語言各自保存的開關 ────────────────────────────────────────────────
+    // 繁體中文沿用原本的 key（既有設定不受影響）；其他語言各存一份，沒設定過就用該語言的預設值，
+    // 所以切到其他語言時中文規則預設是關的，但使用者仍可自己打開。
+
+    private fun languageKey(baseKey: String, language: String): String =
+        if (language == LanguageProfiles.DEFAULT_ID) baseKey else "${baseKey}__$language"
+
+    private fun languageBool(
+        context: Context,
+        pref: String,
+        baseKey: String,
+        default: (com.ping.verbead.engine.lang.LanguageProfile) -> Boolean,
+    ): Boolean {
+        val language = inputLanguage(context)
+        val prefs = context.getSharedPreferences(pref, Context.MODE_PRIVATE)
+        val key = languageKey(baseKey, language)
+        return if (prefs.contains(key)) prefs.getBoolean(key, false) else default(LanguageProfiles.byId(language))
+    }
+
+    private fun setLanguageBool(context: Context, pref: String, baseKey: String, enabled: Boolean) {
+        context.getSharedPreferences(pref, Context.MODE_PRIVATE)
+            .edit().putBoolean(languageKey(baseKey, inputLanguage(context)), enabled).apply()
+    }
 
     // ── External Audio Routing ────────────────────────────────────────────────
     private const val PREF_AUDIO = "audio_routing_settings"
@@ -268,22 +288,18 @@ object ModelConfig {
     const val KEY_OCR_PANGU_SPACING = "ocr_pangu_spacing"
 
     fun isOcrPanguSpacingEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .getBoolean(KEY_OCR_PANGU_SPACING, false)
+        languageBool(context, PREF_OCR, KEY_OCR_PANGU_SPACING) { false }
 
     fun setOcrPanguSpacingEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_OCR_PANGU_SPACING, enabled).apply()
+        setLanguageBool(context, PREF_OCR, KEY_OCR_PANGU_SPACING, enabled)
 
     const val KEY_OCR_TO_TRADITIONAL = "ocr_to_traditional"
 
     fun isOcrToTraditionalEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .getBoolean(KEY_OCR_TO_TRADITIONAL, true)
+        languageBool(context, PREF_OCR, KEY_OCR_TO_TRADITIONAL) { it.supportsScriptConversion }
 
     fun setOcrToTraditionalEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_OCR_TO_TRADITIONAL, enabled).apply()
+        setLanguageBool(context, PREF_OCR, KEY_OCR_TO_TRADITIONAL, enabled)
 
     fun ocrSeparator(context: Context): String =
         context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
