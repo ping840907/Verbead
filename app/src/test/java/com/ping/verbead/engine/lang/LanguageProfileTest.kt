@@ -1,9 +1,6 @@
 package com.ping.verbead.engine.lang
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LanguageProfileTest {
@@ -33,51 +30,11 @@ class LanguageProfileTest {
     }
 
     @Test
-    fun zhTw_japaneseInsideChineseIsNotConverted() {
+    fun zhTw_japaneseAndKoreanClausesAreNotConverted() {
         val ja = "今日はいい天気ですね。"
         assertEquals(ja, ZhTwProfile.convertScript(ja, ScriptMode.FULL))
-    }
-
-    @Test
-    fun zhCn_doesNotConvertScriptButConvertsNumbers() {
-        assertFalse(ZhCnProfile.supportsScriptConversion)
-        assertEquals("国家的学校", ZhCnProfile.convertScript("国家的学校", ScriptMode.FULL))
-        assertTrue(ZhCnProfile.supportsSpokenNumbers)
-        assertEquals("123", ZhCnProfile.convertSpokenNumbers("一百二十三"))
-    }
-
-    @Test
-    fun plainProfiles_changeNothingExceptPunctuation() {
-        for (id in listOf("en", "ja", "ko")) {
-            val p = LanguageProfiles.byId(id)
-            assertEquals(id, p.id)
-            assertFalse(p.supportsScriptConversion)
-            assertFalse(p.supportsSpokenNumbers)
-            assertEquals("国家的学校", p.convertScript("国家的学校", ScriptMode.FULL))
-            assertEquals("迴應", p.applyVariantRules("迴應"))
-            assertEquals("一百二十三", p.convertSpokenNumbers("一百二十三"))
-        }
-        assertEquals("今日はいい天気です行こう", LanguageProfiles.byId("ja").filterPunctuation("今日は、いい天気です。「行こう」"))
-        assertEquals("안녕하세요 반갑습니다", LanguageProfiles.byId("ko").filterPunctuation("안녕하세요… 반갑습니다。"))
-    }
-
-    @Test
-    fun xAsr_isChineseOnly() {
-        for (p in listOf(ZhTwProfile, ZhCnProfile)) {
-            assertTrue(p.id, p.supportsXAsr)
-        }
-        for (id in listOf("en", "ja", "ko")) {
-            assertFalse(id, LanguageProfiles.byId(id).supportsXAsr)
-        }
-    }
-
-    @Test
-    fun registry_hasUniqueIdsAndFallsBackToZhTw() {
-        val ids = LanguageProfiles.ALL.map { it.id }
-        assertEquals(ids.size, ids.toSet().size)
-        assertEquals(listOf("zh-TW", "zh-CN", "en", "ja", "ko"), ids)
-        assertEquals("zh-TW", LanguageProfiles.DEFAULT_ID)
-        assertSame(ZhTwProfile, LanguageProfiles.byId(null))
-        assertSame(ZhTwProfile, LanguageProfiles.byId("fr"))
+        assertEquals(ja, ZhTwProfile.convertSpokenNumbers(ja))
+        assertEquals("今日はいい天気です行こう", ZhTwProfile.filterPunctuation("今日は、いい天気です。「行こう」"))
+        assertEquals("안녕하세요 반갑습니다", ZhTwProfile.filterPunctuation("안녕하세요… 반갑습니다。"))
     }
 }

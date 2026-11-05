@@ -193,8 +193,8 @@
     <!-- P1-2: large settings layouts -->
     <string name="settings_speech_dual_title">デュアルエンジンモード</string>
     <string name="settings_speech_dual_desc">話している間はテキストをリアルタイムで表示し、終了後に自動で正確に仕上げて入力します</string>
-    <string name="settings_speech_xasr_title">X-ASR 高速ストリーミングエンジン</string>
-    <string name="settings_speech_xasr_desc">話すそばから文字が表示される低遅延のリアルタイム認識、繁体字中国語ネイティブの辞書</string>
+    <string name="settings_speech_xasr_title">X-ASR 高速ストリーミングエンジン（繁体字中国語）</string>
+    <string name="settings_speech_xasr_desc">繁体字中国語に最適化：話すそばから文字が表示される低遅延のリアルタイム認識、繁体字中国語ネイティブの辞書</string>
     <string name="common_checking">確認中…</string>
     <string name="common_select_engine">エンジンを選択</string>
     <string name="common_download_model">モデルをダウンロード</string>
@@ -491,12 +491,6 @@
     <string name="notif_download_preparing">%1$s モデルのダウンロードを準備中…</string>
     <string name="notif_download_channel_name">モデルのダウンロード</string>
 
-    <!-- P3: input language -->
-    <string name="settings_speech_input_language_title">入力言語</string>
-    <string name="settings_speech_input_language_desc">話す言語です。認識後のテキストの処理方法が決まります</string>
-    <string name="settings_speech_input_language_dialog_title">入力言語を選択</string>
-
     <!-- language sections -->
     <string name="language_section_chinese_title">中国語の設定</string>
-    <string name="language_section_hint_chinese">入力言語が中国語以外のときは既定でオフです（手動でオンにできます）</string>
 </resources>

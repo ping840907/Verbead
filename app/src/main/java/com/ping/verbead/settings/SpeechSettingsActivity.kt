@@ -25,7 +25,6 @@ import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
 import com.ping.verbead.UserDictionary
 import com.ping.verbead.engine.ModelConfig
-import com.ping.verbead.engine.lang.LanguageProfiles
 import com.ping.verbead.util.LanguageSection
 import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloadSpec
@@ -234,14 +233,13 @@ class SpeechSettingsActivity : AppCompatActivity() {
         })
 
         // Convert to Traditional Chinese
-        setupInputLanguage()
+        setupChineseSection()
 
         layoutConvertTraditionalToggle.setOnClickListener {
             switchConvertTraditional.toggle()
         }
         switchConvertTraditional.isChecked = ModelConfig.isConvertToTraditionalEnabled(this)
         switchConvertTraditional.setOnCheckedChangeListener { _, isChecked ->
-            if (bindingLanguageToggles) return@setOnCheckedChangeListener
             HapticUtil.click(this)
             ModelConfig.setConvertToTraditionalEnabled(this, isChecked)
         }
@@ -252,7 +250,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
         switchSpokenNumbers.isChecked = ModelConfig.isSpokenNumbersEnabled(this)
         switchSpokenNumbers.setOnCheckedChangeListener { _, isChecked ->
-            if (bindingLanguageToggles) return@setOnCheckedChangeListener
             HapticUtil.click(this)
             ModelConfig.setSpokenNumbersEnabled(this, isChecked)
         }
@@ -278,69 +275,14 @@ class SpeechSettingsActivity : AppCompatActivity() {
         btnOpenDict.setOnClickListener { openDictAction() }
     }
 
-    private fun inputLanguageLabel(id: String): String = getString(
-        when (id) {
-            "zh-CN" -> R.string.settings_language_zh_cn
-            "en" -> R.string.settings_language_en
-            "ja" -> R.string.settings_language_ja
-            "ko" -> R.string.settings_language_ko
-            else -> R.string.settings_language_zh_tw
-        }
-    )
-
-    private lateinit var chineseSection: LanguageSection
-
-    private fun setupInputLanguage() {
-        val value = findViewById<TextView>(R.id.text_input_language_value)
-        value.text = inputLanguageLabel(ModelConfig.inputLanguage(this))
-        chineseSection = LanguageSection(
+    private fun setupChineseSection() {
+        LanguageSection(
             context = this,
             id = "speech_chinese",
-            languageIds = LanguageProfiles.CHINESE_IDS,
             header = findViewById(R.id.section_chinese_header),
             content = findViewById(R.id.section_chinese_content),
             title = getString(R.string.language_section_chinese_title),
-            hint = getString(R.string.language_section_hint_chinese),
-        )
-        chineseSection.refresh()
-        applyInputLanguageVisibility()
-        findViewById<View>(R.id.layout_input_language).setOnClickListener {
-            HapticUtil.click(this)
-            val ids = LanguageProfiles.ALL.map { it.id }
-            val current = ids.indexOf(ModelConfig.inputLanguage(this)).coerceAtLeast(0)
-            AlertDialog.Builder(this)
-                .setTitle(R.string.settings_speech_input_language_dialog_title)
-                .setSingleChoiceItems(ids.map(::inputLanguageLabel).toTypedArray(), current) { dialog, which ->
-                    ModelConfig.setInputLanguage(this, ids[which])
-                    LanguageSection.clearOverrides(this)
-                    chineseSection.refresh()
-                    value.text = inputLanguageLabel(ids[which])
-                    applyInputLanguageVisibility()
-                    updateAllStatus()
-                    dialog.dismiss()
-                }
-                .setNegativeButton(R.string.btn_cancel, null)
-                .show()
-        }
-    }
-
-    /** X-ASR 與雙引擎只對中文提供；中文限定的開關隨輸入語言重新載入。 */
-    private fun applyInputLanguageVisibility() {
-        val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
-        val xAsr = profile.supportsXAsr
-        findViewById<View>(R.id.card_dual_engine).visibility = if (xAsr) View.VISIBLE else View.GONE
-        cardXAsr.visibility = if (xAsr) View.VISIBLE else View.GONE
-        refreshLanguageToggles()
-    }
-
-    private var bindingLanguageToggles = false
-
-    /** 簡轉繁與口語數字的開關隨輸入語言各自保存；切換語言後把開關狀態換成該語言的值（不觸發寫入）。 */
-    private fun refreshLanguageToggles() {
-        bindingLanguageToggles = true
-        switchConvertTraditional.isChecked = ModelConfig.isConvertToTraditionalEnabled(this)
-        switchSpokenNumbers.isChecked = ModelConfig.isSpokenNumbersEnabled(this)
-        bindingLanguageToggles = false
+        ).refresh()
     }
 
     private fun audioGainLabel(gain: Float) = if (gain == 1.0f) getString(R.string.settings_speech_gain_original) else getString(R.string.settings_speech_gain_format, gain)
@@ -349,7 +291,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private fun updateAllStatus() {
         val xReady = ModelConfig.isXAsrReady(this)
         val qReady = ModelConfig.isQwen3Ready(this)
-        val selected = ModelConfig.effectiveEngine(this)
+        val selected = ModelConfig.selectedEngine(this)
         val isDual = ModelConfig.isDualEngineActive(this)
 
         // Dual Engine

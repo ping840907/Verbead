@@ -19,7 +19,6 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
 import com.ping.verbead.engine.ModelConfig
-import com.ping.verbead.engine.lang.LanguageProfiles
 import com.ping.verbead.util.LanguageSection
 import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloader
@@ -110,11 +109,9 @@ class OcrSettingsActivity : AppCompatActivity() {
         LanguageSection(
             context = this,
             id = "ocr_chinese",
-            languageIds = LanguageProfiles.CHINESE_IDS,
             header = findViewById(R.id.section_chinese_ocr_header),
             content = findViewById(R.id.section_chinese_ocr_content),
             title = getString(R.string.language_section_chinese_title),
-            hint = getString(R.string.language_section_hint_chinese),
         ).refresh()
         layoutOcrToTraditionalToggle = findViewById(R.id.layout_ocr_to_traditional_toggle)
         switchOcrToTraditional = findViewById(R.id.switch_ocr_to_traditional)

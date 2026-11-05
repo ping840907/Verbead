@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 可折疊「語言限定設定」區塊的標題列；標題、提示與展開狀態由 LanguageSection 設定 -->
+<!-- 可折疊「語言限定設定」區塊的標題列；標題與展開狀態由 LanguageSection 設定 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
@@ -13,29 +14,15 @@
     android:paddingEnd="16dp"
     android:paddingBottom="12dp">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tv_section_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="12dp"
         android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/tv_section_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tv_section_hint"
-            style="@style/Verbead.Text.Caption"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:visibility="gone" />
-    </LinearLayout>
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
     <ImageView
         android:id="@+id/iv_section_chevron"
@@ -43,6 +30,5 @@
         android:layout_height="24dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_arrow_down"
-        app:tint="@color/text_secondary"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        app:tint="@color/text_secondary" />
 </LinearLayout>

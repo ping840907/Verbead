@@ -59,7 +59,7 @@ import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
-import com.ping.verbead.engine.lang.LanguageProfiles
+
 import com.ping.verbead.engine.lang.ScriptMode
 import com.ping.verbead.engine.lang.ZhTwProfile
 import com.ping.verbead.engine.ModelDownloadState
@@ -2511,7 +2511,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 return
             }
 
-            val engine = ModelConfig.effectiveEngine(this)
+            val engine = ModelConfig.selectedEngine(this)
             if (engine == ModelConfig.ENGINE_X_ASR) {
                 if (!xAsr.isLoaded()) {
                     preloadAndStart(engine)
@@ -3013,14 +3013,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             ""
         }
 
-    /** 辨識後處理：依輸入語言的 [com.ping.verbead.engine.lang.LanguageProfile] 依序套用，本身不含任何語言規則。 */
+    /** 辨識後處理：依 [ZhTwProfile] 的規則依序套用。規則以字元證據逐句判斷，日韓文句子不會被動到。 */
     private fun postProcess(raw: String): String {
-        val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
-        // 簡轉繁與口語數字的開關隨輸入語言各自保存（其他語言預設關閉，使用者可自己打開）；
-        // 規則本身以字元證據逐句判斷，日韓文句子不會被動到，所以任何輸入語言打開都安全
         val scriptMode = when {
             !ModelConfig.isConvertToTraditionalEnabled(this) -> ScriptMode.OFF
-            ModelConfig.effectiveEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
+            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
             else -> ScriptMode.FULL
         }
         val converted = ZhTwProfile.convertScript(raw, scriptMode)
@@ -3037,7 +3034,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             postReplaced
         }
         return if (ModelConfig.isFilterPunctuationEnabled(this)) {
-            profile.filterPunctuation(numbered)
+            ZhTwProfile.filterPunctuation(numbered)
         } else {
             numbered
         }
