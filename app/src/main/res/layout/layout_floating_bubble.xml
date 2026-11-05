@@ -34,5 +34,17 @@
             android:indeterminate="true"
             android:indeterminateTint="#FFFFFF"
             android:visibility="gone" />
+
+        <!-- 收納到邊緣時，在露出的那一側顯示的小拉出箭頭（顯示與方向由 FloatingBubbleItem 控制） -->
+        <ImageView
+            android:id="@+id/iv_tuck_arrow"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginStart="1dp"
+            android:alpha="0.9"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_tuck_arrow"
+            android:visibility="gone" />
     </FrameLayout>
 </FrameLayout>

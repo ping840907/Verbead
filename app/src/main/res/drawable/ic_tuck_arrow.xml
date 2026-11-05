@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="14dp"
+    android:height="14dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 指向左邊的小箭頭；靠左收納時由程式水平翻轉 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15.41,7.41L14,6l-6,6 6,6 1.41,-1.41L10.83,12z" />
+</vector>
