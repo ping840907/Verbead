@@ -194,12 +194,12 @@
     <string name="settings_speech_dual_title">듀얼 엔진 모드</string>
     <string name="settings_speech_dual_desc">말하는 동안 텍스트를 실시간으로 미리 보여 주고, 끝나면 자동으로 정밀하게 다듬어 입력합니다</string>
     <string name="settings_speech_xasr_title">X-ASR 초고속 스트리밍 엔진</string>
-    <string name="settings_speech_xasr_desc">번체 중국어에 최적화: 말하는 대로 바로 글자가 나타나는 저지연 실시간 인식, 번체 중국어 기본 사전 탑재</string>
+    <string name="settings_speech_xasr_desc">말하는 대로 바로 글자가 나타나는 저지연 실시간 인식</string>
     <string name="common_checking">확인 중…</string>
     <string name="common_select_engine">엔진 선택</string>
     <string name="common_download_model">모델 다운로드</string>
     <string name="settings_speech_qwen_title">Qwen3-ASR 고정밀 오프라인 엔진</string>
-    <string name="settings_speech_qwen_desc">구두점이 완전하고 문맥이 자연스러우며, 정확한 일괄 변환을 위해 만들어졌습니다</string>
+    <string name="settings_speech_qwen_desc">구두점이 완전하고 문맥이 자연스러워 일괄 변환에 적합</string>
     <string name="settings_speech_prefs_title">음성 입력 환경설정</string>
     <string name="settings_speech_prefs_desc">모든 음성 인식 모드와 엔진에 적용됩니다</string>
     <string name="settings_speech_external_audio_title">외부 오디오 우선 사용</string>
@@ -329,7 +329,7 @@
     <string name="settings_summary_bubble">%1$s · %2$s · 켜진 모드: %3$d개</string>
     <string name="settings_summary_engine_dual">듀얼 엔진 (X-ASR + Qwen3)</string>
     <string name="settings_summary_engine_qwen">Qwen3 오프라인 고정밀 인식</string>
-    <string name="settings_summary_engine_xasr">X-ASR 번체 중국어 스트리밍 인식</string>
+    <string name="settings_summary_engine_xasr">X-ASR 스트리밍 인식</string>
     <string name="settings_summary_ocr_pangu">한중영 띄어쓰기</string>
     <string name="settings_summary_ocr_compact">붙여쓰기</string>
     <string name="settings_summary_ocr_trad">번체</string>
@@ -377,7 +377,7 @@
     <string name="settings_speech_missing_both">X-ASR과 Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">듀얼 엔진을 켜려면 모델 다운로드가 필요합니다</string>
     <string name="settings_speech_dual_needs_model_message">듀얼 엔진 모드는 X-ASR의 저지연 실시간 미리보기와 Qwen3-ASR의 고정밀 오프라인 변환을 결합합니다.\n\n아직 다운로드되지 않음: %1$s.\n먼저 \"모델 다운로드\"를 눌러 설치한 뒤 켜 주세요.</string>
-    <string name="settings_speech_model_label_xasr">X-ASR 번체 중국어 스트리밍 모델</string>
+    <string name="settings_speech_model_label_xasr">X-ASR 스트리밍 모델</string>
     <string name="settings_speech_model_label_qwen">Qwen3-ASR 음성 모델</string>
     <string name="settings_speech_download_title">%1$s 다운로드</string>
     <string name="settings_speech_redownload_title">%1$s 다시 다운로드</string>

@@ -194,12 +194,12 @@
     <string name="settings_speech_dual_title">デュアルエンジンモード</string>
     <string name="settings_speech_dual_desc">話している間はテキストをリアルタイムで表示し、終了後に自動で正確に仕上げて入力します</string>
     <string name="settings_speech_xasr_title">X-ASR 高速ストリーミングエンジン</string>
-    <string name="settings_speech_xasr_desc">繁体字中国語に最適化：話すそばから文字が表示される低遅延のリアルタイム認識、繁体字中国語ネイティブの辞書</string>
+    <string name="settings_speech_xasr_desc">話すそばから文字が表示される低遅延リアルタイム認識</string>
     <string name="common_checking">確認中…</string>
     <string name="common_select_engine">エンジンを選択</string>
     <string name="common_download_model">モデルをダウンロード</string>
     <string name="settings_speech_qwen_title">Qwen3-ASR 高精度オフラインエンジン</string>
-    <string name="settings_speech_qwen_desc">句読点が完全で文意が自然、正確なバッチ文字起こし向けに作られています</string>
+    <string name="settings_speech_qwen_desc">句読点が完全で文意が自然、バッチ文字起こし向け</string>
     <string name="settings_speech_prefs_title">音声入力の設定</string>
     <string name="settings_speech_prefs_desc">すべての音声認識モードとエンジンに適用されます</string>
     <string name="settings_speech_external_audio_title">外部オーディオを優先</string>
@@ -329,7 +329,7 @@
     <string name="settings_summary_bubble">%1$s · %2$s · 有効なモード：%3$d</string>
     <string name="settings_summary_engine_dual">デュアルエンジン (X-ASR + Qwen3)</string>
     <string name="settings_summary_engine_qwen">Qwen3 オフライン高精度認識</string>
-    <string name="settings_summary_engine_xasr">X-ASR 繁体字中国語ストリーミング認識</string>
+    <string name="settings_summary_engine_xasr">X-ASR ストリーミング認識</string>
     <string name="settings_summary_ocr_pangu">和欧文間スペース</string>
     <string name="settings_summary_ocr_compact">詰め組み</string>
     <string name="settings_summary_ocr_trad">繁体字</string>
@@ -377,7 +377,7 @@
     <string name="settings_speech_missing_both">X-ASR と Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">デュアルエンジンにはモデルのダウンロードが必要です</string>
     <string name="settings_speech_dual_needs_model_message">デュアルエンジンモードは、X-ASR の低遅延リアルタイムプレビューと、Qwen3-ASR の高精度オフライン文字起こしを組み合わせます。\n\n未ダウンロード：%1$s。\n先に「モデルをダウンロード」をタップしてインストールしてから、オンにしてください。</string>
-    <string name="settings_speech_model_label_xasr">X-ASR 繁体字中国語ストリーミングモデル</string>
+    <string name="settings_speech_model_label_xasr">X-ASR ストリーミングモデル</string>
     <string name="settings_speech_model_label_qwen">Qwen3-ASR 音声モデル</string>
     <string name="settings_speech_download_title">%1$s をダウンロード</string>
     <string name="settings_speech_redownload_title">%1$s を再ダウンロード</string>

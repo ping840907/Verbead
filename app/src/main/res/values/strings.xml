@@ -199,12 +199,12 @@
     <string name="settings_speech_dual_title">Dual-engine mode</string>
     <string name="settings_speech_dual_desc">Live text preview while you speak, then an accurate polish pass when you finish</string>
     <string name="settings_speech_xasr_title">X-ASR fast streaming engine</string>
-    <string name="settings_speech_xasr_desc">Optimized for Traditional Chinese: text appears as you speak, low-latency live recognition, native Traditional Chinese lexicon</string>
+    <string name="settings_speech_xasr_desc">Text appears as you speak, with low-latency live recognition</string>
     <string name="common_checking">Checking…</string>
     <string name="common_select_engine">Select engine</string>
     <string name="common_download_model">Download model</string>
     <string name="settings_speech_qwen_title">Qwen3-ASR high-accuracy offline engine</string>
-    <string name="settings_speech_qwen_desc">Full punctuation and fluent phrasing, built for accurate batch transcription</string>
+    <string name="settings_speech_qwen_desc">Full punctuation and fluent phrasing, ideal for batch transcription</string>
     <string name="settings_speech_prefs_title">Voice input preferences</string>
     <string name="settings_speech_prefs_desc">Applies to all recognition modes and engines</string>
     <string name="settings_speech_external_audio_title">Prefer external audio</string>
@@ -334,7 +334,7 @@
     <string name="settings_summary_bubble">%1$s · %2$s · Modes enabled: %3$d</string>
     <string name="settings_summary_engine_dual">Dual engine (X-ASR + Qwen3)</string>
     <string name="settings_summary_engine_qwen">Qwen3 offline high accuracy</string>
-    <string name="settings_summary_engine_xasr">X-ASR streaming (Traditional Chinese)</string>
+    <string name="settings_summary_engine_xasr">X-ASR streaming</string>
     <string name="settings_summary_ocr_pangu">CJK spacing</string>
     <string name="settings_summary_ocr_compact">Compact</string>
     <string name="settings_summary_ocr_trad">Traditional</string>
@@ -382,7 +382,7 @@
     <string name="settings_speech_missing_both">X-ASR and Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">Download needed for dual-engine mode</string>
     <string name="settings_speech_dual_needs_model_message">Dual-engine mode combines X-ASR\'s low-latency live preview with Qwen3-ASR\'s high-accuracy offline transcription.\n\nNot downloaded yet: %1$s.\nTap \"Download model\" to install it first, then turn this on.</string>
-    <string name="settings_speech_model_label_xasr">X-ASR Traditional Chinese streaming model</string>
+    <string name="settings_speech_model_label_xasr">X-ASR streaming model</string>
     <string name="settings_speech_model_label_qwen">Qwen3-ASR speech model</string>
     <string name="settings_speech_download_title">Download %1$s</string>
     <string name="settings_speech_redownload_title">Download %1$s again</string>

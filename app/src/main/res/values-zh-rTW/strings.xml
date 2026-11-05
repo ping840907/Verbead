@@ -194,12 +194,12 @@
     <string name="settings_speech_dual_title">雙引擎模式</string>
     <string name="settings_speech_dual_desc">說話時即時預覽文字，結束後自動精準潤飾輸入</string>
     <string name="settings_speech_xasr_title">X-ASR 極速串流引擎</string>
-    <string name="settings_speech_xasr_desc">針對繁體中文優化：隨說隨出字、低延遲即時辨識、原生繁中詞庫</string>
+    <string name="settings_speech_xasr_desc">隨說隨出字，低延遲即時辨識</string>
     <string name="common_checking">檢查中…</string>
     <string name="common_select_engine">選取引擎</string>
     <string name="common_download_model">下載模型</string>
     <string name="settings_speech_qwen_title">Qwen3-ASR 高精度離線引擎</string>
-    <string name="settings_speech_qwen_desc">標點完整、語意通順、專為精準批次轉譯打造</string>
+    <string name="settings_speech_qwen_desc">標點完整、語意通順，適合批次轉寫</string>
     <string name="settings_speech_prefs_title">語音輸入偏好</string>
     <string name="settings_speech_prefs_desc">適用於所有語音辨識模式與引擎</string>
     <string name="settings_speech_external_audio_title">優先使用外部音訊</string>
@@ -329,7 +329,7 @@
     <string name="settings_summary_bubble">%1$s · %2$s · 啟用 %3$d 個模式</string>
     <string name="settings_summary_engine_dual">雙引擎切換 (X-ASR + Qwen3)</string>
     <string name="settings_summary_engine_qwen">Qwen3 離線高精辨識</string>
-    <string name="settings_summary_engine_xasr">X-ASR 繁中串流辨識</string>
+    <string name="settings_summary_engine_xasr">X-ASR 串流辨識</string>
     <string name="settings_summary_ocr_pangu">盤古空格</string>
     <string name="settings_summary_ocr_compact">緊湊排版</string>
     <string name="settings_summary_ocr_trad">繁中</string>
@@ -377,7 +377,7 @@
     <string name="settings_speech_missing_both">X-ASR 與 Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">需要下載模型以啟用雙引擎</string>
     <string name="settings_speech_dual_needs_model_message">雙引擎模式結合了 X-ASR 的低延遲即時預覽與 Qwen3-ASR 的高精離線轉譯。\n\n目前尚未下載：%1$s。\n請先點選「下載模型」完成安裝後再開啟。</string>
-    <string name="settings_speech_model_label_xasr">X-ASR 繁中串流模型</string>
+    <string name="settings_speech_model_label_xasr">X-ASR 串流模型</string>
     <string name="settings_speech_model_label_qwen">Qwen3-ASR 語音模型</string>
     <string name="settings_speech_download_title">下載 %1$s</string>
     <string name="settings_speech_redownload_title">重新下載 %1$s</string>
