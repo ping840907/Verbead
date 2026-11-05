@@ -498,4 +498,8 @@
 
     <!-- P4: recognition integration -->
     <string name="dict_settings_hotwords_unavailable">熱詞只在輸入語言為中文時使用</string>
+
+    <!-- language sections -->
+    <string name="language_section_chinese_title">中文設定</string>
+    <string name="language_section_hint_chinese">輸入語言為中文時適用</string>
 </resources>

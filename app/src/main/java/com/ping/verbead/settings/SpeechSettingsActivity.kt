@@ -26,6 +26,7 @@ import com.ping.verbead.R
 import com.ping.verbead.UserDictionary
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.lang.LanguageProfiles
+import com.ping.verbead.util.LanguageSection
 import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
@@ -285,9 +286,21 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
     )
 
+    private lateinit var chineseSection: LanguageSection
+
     private fun setupInputLanguage() {
         val value = findViewById<TextView>(R.id.text_input_language_value)
         value.text = inputLanguageLabel(ModelConfig.inputLanguage(this))
+        chineseSection = LanguageSection(
+            context = this,
+            id = "speech_chinese",
+            languageIds = LanguageProfiles.CHINESE_IDS,
+            header = findViewById(R.id.section_chinese_header),
+            content = findViewById(R.id.section_chinese_content),
+            title = getString(R.string.language_section_chinese_title),
+            hint = getString(R.string.language_section_hint_chinese),
+        )
+        chineseSection.refresh()
         applyInputLanguageVisibility()
         findViewById<View>(R.id.layout_input_language).setOnClickListener {
             HapticUtil.click(this)
@@ -297,6 +310,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
                 .setTitle(R.string.settings_speech_input_language_dialog_title)
                 .setSingleChoiceItems(ids.map(::inputLanguageLabel).toTypedArray(), current) { dialog, which ->
                     ModelConfig.setInputLanguage(this, ids[which])
+                    LanguageSection.clearOverrides(this)
+                    chineseSection.refresh()
                     value.text = inputLanguageLabel(ids[which])
                     applyInputLanguageVisibility()
                     updateAllStatus()
@@ -307,7 +322,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
     }
 
-    /** 簡轉繁與口語數字只有部分輸入語言有規則；沒有的就把整列藏起來。 */
+    /** 簡轉繁與口語數字只有部分輸入語言有規則；沒有的設定列淡化並鎖住，X-ASR 只對中文提供。 */
     private fun applyInputLanguageVisibility() {
         val profile = LanguageProfiles.byId(ModelConfig.inputLanguage(this))
         val script = profile.supportsScriptConversion
@@ -315,12 +330,16 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val xAsr = profile.supportsXAsr
         findViewById<View>(R.id.card_dual_engine).visibility = if (xAsr) View.VISIBLE else View.GONE
         cardXAsr.visibility = if (xAsr) View.VISIBLE else View.GONE
-        layoutConvertTraditionalToggle.visibility = if (script) View.VISIBLE else View.GONE
-        layoutSpokenNumbersToggle.visibility = if (numbers) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.divider_before_spoken_numbers).visibility =
-            if (script && numbers) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.divider_before_filter_punctuation).visibility =
-            if (script || numbers) View.VISIBLE else View.GONE
+        setSettingRowEnabled(layoutConvertTraditionalToggle, switchConvertTraditional, script)
+        setSettingRowEnabled(layoutSpokenNumbersToggle, switchSpokenNumbers, numbers)
+    }
+
+    /** 目前輸入語言沒有對應規則的設定列：淡化並鎖住，區塊展開時仍看得到有哪些設定。 */
+    private fun setSettingRowEnabled(row: View, toggle: MaterialSwitch, enabled: Boolean) {
+        row.isEnabled = enabled
+        row.isClickable = enabled
+        row.alpha = if (enabled) 1f else 0.4f
+        toggle.isEnabled = enabled
     }
 
     private fun audioGainLabel(gain: Float) = if (gain == 1.0f) getString(R.string.settings_speech_gain_original) else getString(R.string.settings_speech_gain_format, gain)

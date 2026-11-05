@@ -271,6 +271,17 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp" />
 
+                <!-- 中文限定設定（可折疊；依輸入語言預設展開） -->
+                <include
+                    android:id="@+id/section_chinese_ocr_header"
+                    layout="@layout/layout_language_section_header" />
+
+                <LinearLayout
+                    android:id="@+id/section_chinese_ocr_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
                 <!-- Pangu Spacing (Chinese-English-Number spacing) toggle -->
                 <LinearLayout
                     android:id="@+id/layout_ocr_pangu_spacing_toggle"
@@ -350,6 +361,7 @@
                         android:id="@+id/switch_ocr_to_traditional"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
+                </LinearLayout>
                 </LinearLayout>
 
                 <View

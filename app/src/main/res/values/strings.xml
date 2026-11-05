@@ -503,4 +503,8 @@
 
     <!-- P4: recognition integration -->
     <string name="dict_settings_hotwords_unavailable">Hotwords are only used when the input language is Chinese</string>
+
+    <!-- language sections -->
+    <string name="language_section_chinese_title">Chinese settings</string>
+    <string name="language_section_hint_chinese">Applies when the input language is Chinese</string>
 </resources>

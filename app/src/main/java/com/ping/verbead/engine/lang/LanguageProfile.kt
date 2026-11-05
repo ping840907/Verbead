@@ -94,6 +94,9 @@ class PlainProfile(override val id: String) : LanguageProfile
 object LanguageProfiles {
     const val DEFAULT_ID = "zh-TW"
 
+    /** 中文的輸入語言；「中文限定設定」區塊只對這些語言預設展開 */
+    val CHINESE_IDS: Set<String> = setOf("zh-TW", "zh-CN")
+
     /** 設定頁顯示的順序 */
     val ALL: List<LanguageProfile> = listOf(
         ZhTwProfile,
