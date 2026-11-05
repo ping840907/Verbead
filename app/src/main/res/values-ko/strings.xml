@@ -193,7 +193,7 @@
     <!-- P1-2: large settings layouts -->
     <string name="settings_speech_dual_title">듀얼 엔진 모드</string>
     <string name="settings_speech_dual_desc">말하는 동안 텍스트를 실시간으로 미리 보여 주고, 끝나면 자동으로 정밀하게 다듬어 입력합니다</string>
-    <string name="settings_speech_xasr_title">X-ASR 초고속 스트리밍 엔진(번체 중국어)</string>
+    <string name="settings_speech_xasr_title">X-ASR 초고속 스트리밍 엔진</string>
     <string name="settings_speech_xasr_desc">번체 중국어에 최적화: 말하는 대로 바로 글자가 나타나는 저지연 실시간 인식, 번체 중국어 기본 사전 탑재</string>
     <string name="common_checking">확인 중…</string>
     <string name="common_select_engine">엔진 선택</string>
@@ -493,4 +493,7 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">중국어 설정</string>
+
+    <!-- language tags -->
+    <string name="language_tag_multilingual">다국어</string>
 </resources>

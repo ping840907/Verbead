@@ -110,6 +110,13 @@
                             android:layout_height="wrap_content"
                             android:text="@string/settings_speech_xasr_title" />
 
+                        <LinearLayout
+                            android:id="@+id/layout_language_tags_xasr"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal" />
+
                         <TextView
                             android:id="@+id/tv_xasr_description"
                             style="@style/Verbead.Text.Body"
@@ -202,6 +209,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/settings_speech_qwen_title" />
+
+                        <LinearLayout
+                            android:id="@+id/layout_language_tags_qwen3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal" />
 
                         <TextView
                             android:id="@+id/tv_qwen3_description"

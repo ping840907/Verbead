@@ -198,7 +198,7 @@
     <!-- P1-2: large settings layouts -->
     <string name="settings_speech_dual_title">Dual-engine mode</string>
     <string name="settings_speech_dual_desc">Live text preview while you speak, then an accurate polish pass when you finish</string>
-    <string name="settings_speech_xasr_title">X-ASR fast streaming engine (Traditional Chinese)</string>
+    <string name="settings_speech_xasr_title">X-ASR fast streaming engine</string>
     <string name="settings_speech_xasr_desc">Optimized for Traditional Chinese: text appears as you speak, low-latency live recognition, native Traditional Chinese lexicon</string>
     <string name="common_checking">Checking…</string>
     <string name="common_select_engine">Select engine</string>
@@ -498,4 +498,7 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">Chinese settings</string>
+
+    <!-- language tags -->
+    <string name="language_tag_multilingual">Multilingual</string>
 </resources>

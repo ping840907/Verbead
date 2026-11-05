@@ -25,7 +25,9 @@ import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
 import com.ping.verbead.UserDictionary
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.lang.ModelLanguages
 import com.ping.verbead.util.LanguageSection
+import com.ping.verbead.util.bindLanguageTags
 import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
@@ -234,6 +236,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
         // Convert to Traditional Chinese
         setupChineseSection()
+        bindEngineLanguageTags()
 
         layoutConvertTraditionalToggle.setOnClickListener {
             switchConvertTraditional.toggle()
@@ -273,6 +276,12 @@ class SpeechSettingsActivity : AppCompatActivity() {
         cardCustomDict.setOnClickListener { openDictAction() }
         layoutDictToggle.setOnClickListener { openDictAction() }
         btnOpenDict.setOnClickListener { openDictAction() }
+    }
+
+    /** 在 X-ASR 與 Qwen3-ASR 的卡片標題下標示各自適用的語言。 */
+    private fun bindEngineLanguageTags() {
+        bindLanguageTags(findViewById(R.id.layout_language_tags_xasr), ModelLanguages.tagsFor(ModelConfig.ENGINE_X_ASR))
+        bindLanguageTags(findViewById(R.id.layout_language_tags_qwen3), ModelLanguages.tagsFor(ModelConfig.ENGINE_QWEN3))
     }
 
     private fun setupChineseSection() {

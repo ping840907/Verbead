@@ -193,7 +193,7 @@
     <!-- P1-2: large settings layouts -->
     <string name="settings_speech_dual_title">雙引擎模式</string>
     <string name="settings_speech_dual_desc">說話時即時預覽文字，結束後自動精準潤飾輸入</string>
-    <string name="settings_speech_xasr_title">X-ASR 繁體中文極速串流引擎</string>
+    <string name="settings_speech_xasr_title">X-ASR 極速串流引擎</string>
     <string name="settings_speech_xasr_desc">針對繁體中文優化：隨說隨出字、低延遲即時辨識、原生繁中詞庫</string>
     <string name="common_checking">檢查中…</string>
     <string name="common_select_engine">選取引擎</string>
@@ -493,4 +493,7 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">中文設定</string>
+
+    <!-- language tags -->
+    <string name="language_tag_multilingual">多語言</string>
 </resources>

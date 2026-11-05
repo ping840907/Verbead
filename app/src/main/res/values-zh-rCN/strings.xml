@@ -193,7 +193,7 @@
     <!-- P1-2: large settings layouts -->
     <string name="settings_speech_dual_title">双引擎模式</string>
     <string name="settings_speech_dual_desc">说话时实时预览文字，结束后自动精准润色输入</string>
-    <string name="settings_speech_xasr_title">X-ASR 繁体中文极速流式引擎</string>
+    <string name="settings_speech_xasr_title">X-ASR 极速流式引擎</string>
     <string name="settings_speech_xasr_desc">针对繁体中文优化：随说随出字、低延迟实时识别、原生繁中词库</string>
     <string name="common_checking">检查中…</string>
     <string name="common_select_engine">选择引擎</string>
@@ -493,4 +493,7 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">中文设置</string>
+
+    <!-- language tags -->
+    <string name="language_tag_multilingual">多语言</string>
 </resources>

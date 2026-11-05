@@ -193,7 +193,7 @@
     <!-- P1-2: large settings layouts -->
     <string name="settings_speech_dual_title">デュアルエンジンモード</string>
     <string name="settings_speech_dual_desc">話している間はテキストをリアルタイムで表示し、終了後に自動で正確に仕上げて入力します</string>
-    <string name="settings_speech_xasr_title">X-ASR 高速ストリーミングエンジン（繁体字中国語）</string>
+    <string name="settings_speech_xasr_title">X-ASR 高速ストリーミングエンジン</string>
     <string name="settings_speech_xasr_desc">繁体字中国語に最適化：話すそばから文字が表示される低遅延のリアルタイム認識、繁体字中国語ネイティブの辞書</string>
     <string name="common_checking">確認中…</string>
     <string name="common_select_engine">エンジンを選択</string>
@@ -493,4 +493,7 @@
 
     <!-- language sections -->
     <string name="language_section_chinese_title">中国語の設定</string>
+
+    <!-- language tags -->
+    <string name="language_tag_multilingual">多言語</string>
 </resources>
