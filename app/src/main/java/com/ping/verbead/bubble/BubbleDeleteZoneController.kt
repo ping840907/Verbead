@@ -1,6 +1,7 @@
 package com.ping.verbead.bubble
 
 import android.content.Context
+import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
 import android.util.Log
 import android.view.Gravity
@@ -86,6 +87,7 @@ class BubbleDeleteZoneController(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
+            allowDisplayCutout()
             gravity = Gravity.TOP or Gravity.LEFT
             x = posX
             y = posY
