@@ -56,7 +56,6 @@ import com.ping.verbead.bubble.BubblePhysics
 import com.ping.verbead.bubble.BubblePosition
 import com.ping.verbead.bubble.BubbleDeleteZoneController
 import com.ping.verbead.bubble.BubbleShakeDetector
-import com.ping.verbead.bubble.UnderlapFrameLayout
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
@@ -130,10 +129,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         private const val ACTION_STOP = "com.ping.verbead.ACTION_STOP_BUBBLE"
         const val MODE_VOICE = 0
         const val MODE_OCR = 1
-        /** Centre-to-centre distance of bubbles linked by shaking: less than the 60dp bubble, so each one overlaps the one in front. */
-        const val CHAIN_SPACING_DP = 44f
+        /** Centre-to-centre distance of bubbles linked by shaking while the dragged bubble moves: the 60dp bubble plus a small gap, so they never overlap. */
+        const val CHAIN_SPACING_DP = 68f
 
-        /** Spacing once the dragged bubble stops: the chain fans out so the bubbles no longer pile up (no overlap, a gap). */
+        /** Spacing once the dragged bubble stops: the chain relaxes to a slightly roomier gap. */
         const val CHAIN_REST_SPACING_DP = 80f
 
         /** Below this speed of the dragged bubble the chain is fully fanned out, above it fully tight. */
@@ -1592,12 +1591,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val usedSpare = spareBubbleView != null
-        val inflated = spareBubbleView?.also { spareBubbleView = null }
+        val v = spareBubbleView?.also { spareBubbleView = null }
             ?: LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
-        // the window root can hide the part of the bubble that the bubble in front covers (see UnderlapFrameLayout)
-        val v = UnderlapFrameLayout(themedCtx).apply {
-            addView(inflated, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-        }
         val tInflated = SystemClock.elapsedRealtime()
         val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
         val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
@@ -1748,7 +1743,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     /** The gesture is over: unlink the bubbles (normal edge snapping, with collisions, takes over from here). */
     private fun endShakeChain() {
         if (shakeChain.isEmpty()) return
-        for (f in shakeChain) (f.view as? UnderlapFrameLayout)?.clearHole()
         shakeChain.clear()
         shakeChainLeader = null
         chainState.clear()
@@ -1759,14 +1753,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     /**
      * One animation frame of the chain linked behind the dragged bubble. Each linked bubble is pulled toward the circle of
-     * radius [CHAIN_SPACING_DP] around the bubble in front of it (along the line between them, like a rope), but only a
-     * fraction of the way per frame, so it trails the finger with a slight delay. The spacing is smaller than a bubble, so
-     * the two overlap; the bubble behind hides the part the bubble in front covers, which makes it look like it sits under it.
+     * radius [CHAIN_SPACING_DP] around the bubble in front of it (along the line between them, like a rope), and
+     * has inertia (see [CHAIN_STIFFNESS]). Linked bubbles are left out of the collision physics while the finger is down.
      */
     private fun stepShakeChain(dtMs: Float) {
         val leader = shakeChainLeader ?: return
         val density = resources.displayMetrics.density
-        val half = 30f * density
         val maxX = (getScreenWidth() - (60 * density).toInt()).toFloat()
         val minY = getMinY().toFloat()
         val maxY = getMaxY().toFloat()
@@ -1829,12 +1821,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 f.windowLayoutParams.y = ny
                 windowManager.updateViewLayout(f.view, f.windowLayoutParams)
             }
-            // hide the part of this bubble that the bubble in front covers
-            (f.view as? UnderlapFrameLayout)?.setHole(
-                front[0] + half - st[0],
-                front[1] + half - st[1],
-                half
-            )
             front = st
             frontView = f
         }
