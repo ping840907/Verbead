@@ -131,15 +131,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         const val MODE_OCR = 1
         /** Centre-to-centre distance of bubbles linked by shaking while the dragged bubble moves: the 60dp bubble plus a small gap, so they never overlap. */
         const val CHAIN_SPACING_DP = 68f
-
-        /** Spacing once the dragged bubble stops: the chain relaxes to a slightly roomier gap. */
-        const val CHAIN_REST_SPACING_DP = 80f
-
-        /** Below this speed of the dragged bubble the chain is fully fanned out, above it fully tight. */
-        const val CHAIN_TIGHT_SPEED_DP_PER_S = 260f
-
-        /** How quickly the chain tightens / fans out (time constant). */
-        const val CHAIN_SPREAD_MS = 220f
         /**
          * Linked bubbles are masses on a spring-damper rope: stiffness in 1/s^2 (about 3.5 Hz). The damping acts on the speed
          * *relative to the bubble in front* and its ratio is below 1: a flick of the front bubble carries this one along instead
@@ -255,9 +246,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     /** id -> [x, y, vx, vy] in px and px/s for the leader and every linked bubble (positions kept as floats). */
     private val chainState = HashMap<Int, FloatArray>()
-
-    /** 0 = tight (dragged bubble moving), 1 = fanned out (dragged bubble still). */
-    private var chainSpread = 1f
     private val chainFrameCallback = object : android.view.Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             if (shakeChain.isEmpty()) {
@@ -1746,7 +1734,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         shakeChain.clear()
         shakeChainLeader = null
         chainState.clear()
-        chainSpread = 1f
         android.view.Choreographer.getInstance().removeFrameCallback(chainFrameCallback)
         chainLastFrameNs = 0L
     }
@@ -1776,12 +1763,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         lead[0] = lx
         lead[1] = ly
 
-        // while the dragged bubble moves the chain stays tight (overlapping, carried along); when it stops the bubbles
-        // ease apart to a comfortable spacing instead of staying piled up
-        val speed = hypot(lead[2], lead[3])
-        val targetSpread = 1f - (speed / (CHAIN_TIGHT_SPEED_DP_PER_S * density)).coerceIn(0f, 1f)
-        chainSpread += (targetSpread - chainSpread) * (1f - kotlin.math.exp(-dtMs / CHAIN_SPREAD_MS))
-        val spacing = (CHAIN_SPACING_DP + (CHAIN_REST_SPACING_DP - CHAIN_SPACING_DP) * chainSpread) * density
+        val spacing = CHAIN_SPACING_DP * density
 
         val k = CHAIN_STIFFNESS
         val c = 2f * CHAIN_DAMPING_RATIO * kotlin.math.sqrt(k)
