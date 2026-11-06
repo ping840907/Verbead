@@ -137,8 +137,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
          * *relative to the bubble in front* and its ratio is below 1: a flick of the front bubble carries this one along instead
          * of leaving it behind, and it swings a little past its spot when the front one stops (inertia).
          */
-        const val CHAIN_STIFFNESS = 480f
-        const val CHAIN_DAMPING_RATIO = 0.45f
+        const val CHAIN_STIFFNESS = 520f
+        const val CHAIN_DAMPING_RATIO = 0.6f
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
