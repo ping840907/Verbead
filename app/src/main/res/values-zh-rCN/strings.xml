@@ -11,10 +11,8 @@
     <string name="notif_download_title">正在下载语音识别模型</string>
 
     <!-- DictSettings Toasts -->
-    <string name="toast_dict_import_success">成功导入 %1$d 条词汇</string>
     <string name="toast_dict_import_cannot_read">无法读取选择的文件</string>
     <string name="toast_dict_import_failed">导入失败：%1$s</string>
-    <string name="toast_dict_export_success">成功导出 %1$d 条词汇</string>
     <string name="toast_dict_export_cannot_write">无法写入目标文件</string>
     <string name="toast_dict_export_failed">导出失败：%1$s</string>
     <string name="toast_dict_file_picker_error">无法打开文件选择器：%1$s</string>
@@ -45,13 +43,10 @@
 
     <!-- Onboarding Toasts -->
     <string name="toast_file_picker_error">无法打开文件选择器: %1$s</string>
-    <string name="toast_model_download_done">%1$s 模型下载完成</string>
-    <string name="toast_model_download_failed">%1$s 下载失败: %2$s</string>
 
     <!-- ImeSettings Toasts -->
     <string name="toast_url_open_error">无法打开链接：%1$s</string>
     <string name="toast_model_not_downloaded">尚未下载此模型，请先点击下方下载</string>
-    <string name="toast_switched_to_qwen3_dual">已切换为 Qwen3-ASR 并启用双引擎模式</string>
 
     <!-- FloatingBubbleService Toasts -->
     <string name="toast_mic_permission_voice">请先授权麦克风权限以进行语音输入</string>
@@ -59,8 +54,6 @@
     <string name="toast_transcribe_failed_retry">转写失败，请重新录音</string>
     <string name="toast_camera_permission_scan">请先授权相机权限以使用扫描功能</string>
     <string name="toast_camera_permission_ocr">请先授权相机权限以使用文字识别功能</string>
-    <string name="toast_auto_enter_enabled">已开启自动换行</string>
-    <string name="toast_auto_enter_disabled">已关闭自动换行</string>
     <string name="toast_ocr_model_not_downloaded">尚未下载 PP-OCR 模型，请先至设置页面下载</string>
     <string name="toast_camera_capture_failed">无法截取当前相机画面</string>
 
@@ -92,17 +85,11 @@
     <string name="btn_save">保存</string>
     <string name="btn_cancel">取消</string>
     <string name="btn_delete">删除</string>
-    <string name="toast_phrase_added">已添加常用语</string>
-    <string name="toast_phrase_updated">已更新常用语</string>
-    <string name="toast_phrase_deleted">已删除常用语</string>
-    <string name="toast_history_cleared">已清除近期记录</string>
-    <string name="toast_phrase_saved_from_history">已将记录加入常用语</string>
     <string name="header_recent_history">近期记录 (最多 %1$d 条)</string>
     <string name="header_quick_phrases">常用短语 (长按可拖动排序)</string>
     <string name="action_clear_history">清除</string>
     <string name="empty_quick_phrases">尚无常用语与记录\n点击右上角“+”立即添加</string>
 
-    <string name="toast_asr_model_not_ready">尚未下载语音识别模型 (%1$s)，请至设置下载</string>
     <string name="ocr_pangu_spacing_title">盘古之白 (中英数自动空格)</string>
     <string name="ocr_pangu_spacing_desc">在识别出的中文字与英数、符号之间自动补入半角空格，提升排版质感</string>
     <string name="ocr_to_traditional_title">识别结果转为繁体中文</string>
@@ -370,9 +357,6 @@
     <string name="settings_speech_vocab_desc_count">已收录 %1$d 条自定义词汇 · 点击管理专属词库</string>
     <string name="settings_speech_engine_xasr_name">X-ASR 流式引擎</string>
     <string name="settings_speech_engine_qwen_name">Qwen3-ASR 离线引擎</string>
-    <string name="settings_speech_toast_engine_switched">已切换主识别引擎为 %1$s</string>
-    <string name="settings_speech_toast_dual_on">已启用双引擎识别模式</string>
-    <string name="settings_speech_toast_dual_off">已停用双引擎模式</string>
     <string name="settings_speech_missing_both">X-ASR 与 Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">需要下载模型以启用双引擎</string>
     <string name="settings_speech_dual_needs_model_message">双引擎模式结合了 X-ASR 的低延迟实时预览与 Qwen3-ASR 的高精离线转写。\n\n当前尚未下载：%1$s。\n请先点击“下载模型”完成安装后再开启。</string>
@@ -381,11 +365,9 @@
     <string name="settings_speech_download_title">下载 %1$s</string>
     <string name="settings_speech_redownload_title">重新下载 %1$s</string>
     <string name="settings_speech_download_message">预估大小：约 %1$d MB。\n下载过程中将在背景维持前景服务，下载完成后即可离线运行。</string>
-    <string name="settings_speech_toast_download_done">模型下载完成！</string>
     <string name="settings_ocr_checking_size">检查文件大小…</string>
     <string name="settings_ocr_download_message">即将下载约 %1$s 的离线繁中识别模型，下载完成后文字识别全程在本机执行。\n\n是否继续？</string>
     <string name="settings_ocr_download_start">开始下载</string>
-    <string name="settings_ocr_toast_download_done">PP-OCR 模型下载完成！</string>
 
     <!-- P1-4: onboarding -->
     <string name="onboarding_skip">跳过</string>
@@ -477,7 +459,6 @@
     <string name="ocr_overlay_recognize_error">识别失败 (%1$s): %2$s</string>
     <string name="bubble_toast_one_mode_only">当前仅开启 1 种模式，无法复制悬浮球\n请至设置开启更多功能模式</string>
     <string name="bubble_toast_limit_reached">已达当前开启模式数量上限（最多 %1$d 颗）</string>
-    <string name="bubble_toast_duplicated">已复制“%1$s”悬浮球（共 %2$d 颗，已开启多球并存）</string>
     <string name="floating_ocr_desc">悬浮文字识别</string>
     <string name="floating_barcode_desc">悬浮条码扫描</string>
     <string name="floating_voice_desc">悬浮语音输入</string>

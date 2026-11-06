@@ -369,8 +369,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setSelectedEngine(this, targetEngine)
             ModelConfig.setDualEngineEnabled(this, false)
             updateAllStatus()
-            val name = getString(if (targetEngine == ModelConfig.ENGINE_X_ASR) R.string.settings_speech_engine_xasr_name else R.string.settings_speech_engine_qwen_name)
-            Toast.makeText(this, getString(R.string.settings_speech_toast_engine_switched, name), Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, R.string.toast_model_not_downloaded, Toast.LENGTH_SHORT).show()
         }
@@ -385,8 +383,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setSelectedEngine(this, ModelConfig.ENGINE_QWEN3)
             HapticUtil.click(this)
             updateAllStatus()
-            val msg = getString(if (next) R.string.settings_speech_toast_dual_on else R.string.settings_speech_toast_dual_off)
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         } else {
             switchDualEngine.isChecked = false
             val missing = if (!xReady && !qReady) getString(R.string.settings_speech_missing_both) else if (!xReady) "X-ASR" else "Qwen3-ASR"
@@ -486,9 +482,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
                 if (engine == ModelConfig.ENGINE_X_ASR || engine == ModelConfig.ENGINE_QWEN3) {
                     hideDownloadProgress(engine)
                     updateAllStatus()
-                    if (result.isSuccess) {
-                        Toast.makeText(this@SpeechSettingsActivity, getString(R.string.settings_speech_toast_download_done), Toast.LENGTH_SHORT).show()
-                    }
                 }
             }
         }

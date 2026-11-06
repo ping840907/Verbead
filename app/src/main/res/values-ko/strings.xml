@@ -11,10 +11,8 @@
     <string name="notif_download_title">음성 인식 모델 다운로드 중</string>
 
     <!-- DictSettings Toasts -->
-    <string name="toast_dict_import_success">단어 %1$d개를 가져왔습니다</string>
     <string name="toast_dict_import_cannot_read">선택한 파일을 읽을 수 없습니다</string>
     <string name="toast_dict_import_failed">가져오기 실패: %1$s</string>
-    <string name="toast_dict_export_success">단어 %1$d개를 내보냈습니다</string>
     <string name="toast_dict_export_cannot_write">대상 파일에 쓸 수 없습니다</string>
     <string name="toast_dict_export_failed">내보내기 실패: %1$s</string>
     <string name="toast_dict_file_picker_error">파일 선택기를 열 수 없습니다: %1$s</string>
@@ -45,13 +43,10 @@
 
     <!-- Onboarding Toasts -->
     <string name="toast_file_picker_error">파일 선택기를 열 수 없습니다: %1$s</string>
-    <string name="toast_model_download_done">%1$s 모델 다운로드를 완료했습니다</string>
-    <string name="toast_model_download_failed">%1$s 다운로드 실패: %2$s</string>
 
     <!-- ImeSettings Toasts -->
     <string name="toast_url_open_error">링크를 열 수 없습니다: %1$s</string>
     <string name="toast_model_not_downloaded">이 모델이 아직 다운로드되지 않았습니다. 아래에서 먼저 다운로드해 주세요</string>
-    <string name="toast_switched_to_qwen3_dual">Qwen3-ASR로 전환하고 듀얼 엔진 모드를 켰습니다</string>
 
     <!-- FloatingBubbleService Toasts -->
     <string name="toast_mic_permission_voice">음성 입력을 사용하려면 먼저 마이크 권한을 허용해 주세요</string>
@@ -59,8 +54,6 @@
     <string name="toast_transcribe_failed_retry">변환에 실패했습니다. 다시 녹음해 주세요</string>
     <string name="toast_camera_permission_scan">스캔 기능을 사용하려면 먼저 카메라 권한을 허용해 주세요</string>
     <string name="toast_camera_permission_ocr">문자 인식을 사용하려면 먼저 카메라 권한을 허용해 주세요</string>
-    <string name="toast_auto_enter_enabled">자동 줄바꿈을 켰습니다</string>
-    <string name="toast_auto_enter_disabled">자동 줄바꿈을 껐습니다</string>
     <string name="toast_ocr_model_not_downloaded">PP-OCR 모델이 아직 다운로드되지 않았습니다. 먼저 설정 화면에서 다운로드해 주세요</string>
     <string name="toast_camera_capture_failed">현재 카메라 화면을 캡처할 수 없습니다</string>
 
@@ -92,17 +85,11 @@
     <string name="btn_save">저장</string>
     <string name="btn_cancel">취소</string>
     <string name="btn_delete">삭제</string>
-    <string name="toast_phrase_added">문구를 추가했습니다</string>
-    <string name="toast_phrase_updated">문구를 수정했습니다</string>
-    <string name="toast_phrase_deleted">문구를 삭제했습니다</string>
-    <string name="toast_history_cleared">최근 기록을 지웠습니다</string>
-    <string name="toast_phrase_saved_from_history">기록을 자주 쓰는 문구에 추가했습니다</string>
     <string name="header_recent_history">최근 기록 (최대 %1$d개)</string>
     <string name="header_quick_phrases">자주 쓰는 문구 (길게 눌러 순서 변경)</string>
     <string name="action_clear_history">지우기</string>
     <string name="empty_quick_phrases">자주 쓰는 문구나 기록이 아직 없습니다\n오른쪽 위의 \"+\"를 탭해 추가하세요</string>
 
-    <string name="toast_asr_model_not_ready">음성 인식 모델(%1$s)이 아직 다운로드되지 않았습니다. 설정에서 다운로드해 주세요</string>
     <string name="ocr_pangu_spacing_title">한중영 사이 띄어쓰기</string>
     <string name="ocr_pangu_spacing_desc">인식된 중국어 글자와 영문·숫자·기호 사이에 반각 공백을 자동으로 넣어 가독성을 높입니다</string>
     <string name="ocr_to_traditional_title">인식 결과를 번체 중국어로 변환</string>
@@ -370,9 +357,6 @@
     <string name="settings_speech_vocab_desc_count">사용자 단어 %1$d개 · 탭하여 관리</string>
     <string name="settings_speech_engine_xasr_name">X-ASR 스트리밍 엔진</string>
     <string name="settings_speech_engine_qwen_name">Qwen3-ASR 오프라인 엔진</string>
-    <string name="settings_speech_toast_engine_switched">주 인식 엔진을 %1$s(으)로 전환했습니다</string>
-    <string name="settings_speech_toast_dual_on">듀얼 엔진 인식 모드를 켰습니다</string>
-    <string name="settings_speech_toast_dual_off">듀얼 엔진 모드를 껐습니다</string>
     <string name="settings_speech_missing_both">X-ASR과 Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">듀얼 엔진을 켜려면 모델 다운로드가 필요합니다</string>
     <string name="settings_speech_dual_needs_model_message">듀얼 엔진 모드는 X-ASR의 저지연 실시간 미리보기와 Qwen3-ASR의 고정밀 오프라인 변환을 결합합니다.\n\n아직 다운로드되지 않음: %1$s.\n먼저 \"모델 다운로드\"를 눌러 설치한 뒤 켜 주세요.</string>
@@ -381,11 +365,9 @@
     <string name="settings_speech_download_title">%1$s 다운로드</string>
     <string name="settings_speech_redownload_title">%1$s 다시 다운로드</string>
     <string name="settings_speech_download_message">예상 크기: 약 %1$d MB.\n다운로드하는 동안 백그라운드에서 포그라운드 서비스가 유지되며, 완료 후에는 오프라인으로 사용할 수 있습니다.</string>
-    <string name="settings_speech_toast_download_done">모델 다운로드를 완료했습니다!</string>
     <string name="settings_ocr_checking_size">파일 크기 확인 중…</string>
     <string name="settings_ocr_download_message">약 %1$s 크기의 오프라인 번체 중국어 인식 모델을 다운로드합니다. 완료 후 문자 인식은 모두 기기 안에서 실행됩니다.\n\n계속할까요?</string>
     <string name="settings_ocr_download_start">다운로드 시작</string>
-    <string name="settings_ocr_toast_download_done">PP-OCR 모델 다운로드를 완료했습니다!</string>
 
     <!-- P1-4: onboarding -->
     <string name="onboarding_skip">건너뛰기</string>
@@ -477,7 +459,6 @@
     <string name="ocr_overlay_recognize_error">인식 실패 (%1$s): %2$s</string>
     <string name="bubble_toast_one_mode_only">켜진 모드가 1개뿐이라 버블을 복제할 수 없습니다\n설정에서 기능 모드를 더 켜 주세요</string>
     <string name="bubble_toast_limit_reached">켜진 모드 수의 한도에 도달했습니다 (최대 %1$d개)</string>
-    <string name="bubble_toast_duplicated">\"%1$s\" 버블을 복제했습니다 (총 %2$d개, 다중 버블을 켰습니다)</string>
     <string name="floating_ocr_desc">플로팅 문자 인식</string>
     <string name="floating_barcode_desc">플로팅 바코드 스캔</string>
     <string name="floating_voice_desc">플로팅 음성 입력</string>

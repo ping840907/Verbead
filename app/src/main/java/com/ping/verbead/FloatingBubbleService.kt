@@ -211,14 +211,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
      * 預先載入好的懸浮球版面。搖晃複製發生在拖曳手勢當中，若當場才載入版面，
      * 會和 addView、刪除區視窗、Toast 擠在同一個畫面幀內造成卡頓，所以在主執行緒閒置時先備好一份。
      */
-    /** 搖晃複製的提示文字，等手指放開再顯示（Toast 在拖曳中顯示會拖慢手勢）。 */
-    private var pendingShakeToast: String? = null
-
-    private fun flushPendingShakeToast() {
-        pendingShakeToast?.let { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() }
-        pendingShakeToast = null
-    }
-
     /**
      * 手指剛按下、球還沒開始動時，先把搖晃複製會用到的東西備好：
      * 新球的版面、刪除區視窗。這時做不會影響正在進行的手勢。
@@ -1298,7 +1290,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     recordTouchSample(event.rawX, event.rawY)
                     longPressHandler.removeCallbacks(longPressRunnable)
                     bubbleDeleteZoneController.discardPrewarm()
-                    flushPendingShakeToast()
                     if (isLongPressTriggered || isCapsuleMenuShowing) {
                         capsuleMenuController.finishDrag(event.rawX, event.rawY)
                         isLongPressTriggered = false
@@ -1343,7 +1334,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 MotionEvent.ACTION_CANCEL -> {
                     longPressHandler.removeCallbacks(longPressRunnable)
                     bubbleDeleteZoneController.discardPrewarm()
-                    flushPendingShakeToast()
                     item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
                     currentlyDraggedBubble = null
                     endShakeChain()
@@ -1716,9 +1706,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             val deleteZoneTargetY = getMinY() + (24 * density).toInt()
             bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
         }
-        // Toast 等手指放開再顯示。設定頁的多球開關由設定值變更的監聽自行同步，不必在這裡通知
-        val meta = ModelConfig.getBubbleModeMeta(newMode)
-        pendingShakeToast = getString(R.string.bubble_toast_duplicated, getString(meta.titleRes), newCount)
+        // 設定頁的多球開關由設定值變更的監聽自行同步，不必在這裡通知
 
         Log.d(
             TAG,

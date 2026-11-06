@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -307,9 +306,6 @@ class OcrSettingsActivity : AppCompatActivity() {
                 if (engine == ModelConfig.ENGINE_PP_OCR_TINY || engine == ModelConfig.ENGINE_PP_OCR_SMALL) {
                     hideDownloadProgress()
                     updateAllStatus()
-                    if (result.isSuccess) {
-                        Toast.makeText(this@OcrSettingsActivity, getString(R.string.settings_ocr_toast_download_done), Toast.LENGTH_SHORT).show()
-                    }
                 }
             }
         }
