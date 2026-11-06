@@ -504,7 +504,7 @@
     <string name="pending_text_fill">入力欄に挿入</string>
     <string name="pending_text_no_field">フォーカスされた入力欄がありません</string>
     <string name="settings_bubble_pending_title">フローティング入力待ちテキスト</string>
-    <string name="settings_bubble_pending_desc">入力できる欄がないとき、認識したテキストをバブルの横に浮かべておき、後でタップして挿入できます。すべてのモードで使えます。0 でオフ。クリップボードへ書き込むのは、クリップボード貼り付けモードのとき、またはこの機能がオフのときだけです。</string>
+    <string name="settings_bubble_pending_desc">入力できる欄がないとき、認識したテキストをバブルの横に浮かべておき、後でタップして挿入できます。すべてのモードで使えます。0 でオフ。クリップボードへ書き込むのは、クリップボード貼り付けモードのときだけです。</string>
     <string name="settings_bubble_pending_off">オフ</string>
     <string name="settings_bubble_pending_value">%1$d</string>
 </resources>

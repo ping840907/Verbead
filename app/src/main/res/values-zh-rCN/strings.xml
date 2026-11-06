@@ -504,7 +504,7 @@
     <string name="pending_text_fill">填入文本框</string>
     <string name="pending_text_no_field">当前没有可填入的文本框</string>
     <string name="settings_bubble_pending_title">漂浮待填文字</string>
-    <string name="settings_bubble_pending_desc">识别到的内容找不到可填入的文本框时，会漂浮在悬浮球旁，等有文本框时点一下即可填入。语音、文字识别、条码、短语都适用。设为 0 即关闭。只有在使用剪贴板粘贴模式，或此功能关闭时，才会写入剪贴板。</string>
+    <string name="settings_bubble_pending_desc">识别到的内容找不到可填入的文本框时，会漂浮在悬浮球旁，等有文本框时点一下即可填入。语音、文字识别、条码、短语都适用。设为 0 即关闭。只有在使用剪贴板粘贴模式时，才会写入剪贴板。</string>
     <string name="settings_bubble_pending_off">关闭</string>
     <string name="settings_bubble_pending_value">%1$d</string>
 </resources>

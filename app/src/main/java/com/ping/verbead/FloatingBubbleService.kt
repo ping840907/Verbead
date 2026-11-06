@@ -3034,13 +3034,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     /**
-     * [text] could not be filled in anywhere. It waits in the floating quick-fill list; the clipboard is only written when
-     * clipboard-paste mode is on, or when the list is switched off (otherwise the text would be lost).
-     * @return true when the text is waiting in the list (so the caller needs no "copied" notice).
+     * [text] could not be filled in anywhere. It waits in the floating quick-fill list (when that is on); the clipboard is
+     * only written in clipboard-paste mode.
+     * @return true when the text is waiting in the list (so the caller needs no notice).
      */
     private fun keepUnfilledText(text: String): Boolean {
         val parked = offerPendingText(text)
-        if (!parked || ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(text)
+        if (ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(text)
         return parked
     }
 
