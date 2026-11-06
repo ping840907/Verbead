@@ -440,7 +440,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     insertQuickPhrase(phrase)
                 }
                 override fun onDrawerClosed(hideX: Boolean) {
-                    removeTemporaryPhrasesBubble()
+                    // 常用語球體在關閉抽屜後保留，不再自動消失
                     checkAndHideBubbleIfKeyboardClosed(animate = true)
                 }
                 override fun onShowXButton() {
@@ -1311,7 +1311,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                 if (item.isTucked) {
                                     untuckBubble(item, animate = true)
                                 } else {
-                                    if (ModelConfig.isMultiBubbleEnabled(this@FloatingBubbleService)) {
+                                    if (ModelConfig.isMultiBubbleEnabled(this@FloatingBubbleService) || item === temporaryPhrasesBubble) {
                                         onBubbleClickForMode(item)
                                     } else {
                                         onBubbleClick()
@@ -1371,6 +1371,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         if (MODE_PHRASES !in enabledModes && isPhrasesDrawerActive) {
             closePhrasesDrawer()
+        }
+        if (MODE_PHRASES !in enabledModes) {
+            removeTemporaryPhrasesBubble()
         }
         if (currentMode !in enabledModes) {
             currentMode = fallbackMode
@@ -2998,6 +3001,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
      * @return true (the drawer itself is the notice, so callers show nothing else).
      */
     private fun keepUnfilledText(text: String): Boolean {
+        if (MODE_PHRASES !in ModelConfig.getEnabledBubbleModes(this)) {
+            // 常用語功能已關閉：不彈出清單，改為複製到剪貼簿，由呼叫端顯示「已複製」提示
+            copyToClipboardFallback(text)
+            return false
+        }
         QuickPhrasesManager.addHistory(this, text, force = true)
         if (ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(text)
         mainHandler.post { revealPhrasesDrawer() }
@@ -3034,8 +3042,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         iv.contentDescription = desc
 
         val step = (68 * density).toInt()
-        val below = anchor.windowLayoutParams.y + step
-        val y = (if (below <= getMaxY()) below else anchor.windowLayoutParams.y - step).coerceIn(getMinY(), getMaxY())
+        // 預設出現在當前球體上方；上方空間不足時才改放下方
+        val above = anchor.windowLayoutParams.y - step
+        val y = (if (above >= getMinY()) above else anchor.windowLayoutParams.y + step).coerceIn(getMinY(), getMaxY())
         val lp = WindowManager.LayoutParams(
             sizePx, sizePx,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
