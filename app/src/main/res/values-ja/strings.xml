@@ -149,7 +149,6 @@
     <string name="floating_flash_desc">フラッシュ</string>
     <string name="floating_wrap_desc">自動改行</string>
     <string name="floating_ocr_capture_desc">文字のスナップショットを撮影</string>
-    <string name="floating_ocr_shutter_hint">シャッターで文字を撮影</string>
     <string name="floating_scanner_close_desc">スキャンを閉じる</string>
     <string name="floating_scanner_title">バーコードスキャン</string>
     <string name="floating_scanner_hint">バーコードや QR コードに向けると自動で入力します</string>

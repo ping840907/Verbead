@@ -43,18 +43,6 @@
             android:layout_centerVertical="true"
             android:orientation="horizontal">
 
-            <!-- 螢幕 OCR (Screen OCR) -->
-            <ImageButton
-                android:id="@+id/btn_ocr_screen"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/bg_scanner_btn_circle"
-                android:contentDescription="@string/floating_screen_ocr_desc"
-                android:padding="6dp"
-                android:src="@drawable/ic_screen_ocr"
-                app:tint="#FFFFFFFF" />
-
             <!-- 縮放鍵 (Scale/Resize Toggle) -->
             <ImageButton
                 android:id="@+id/btn_ocr_scale"
@@ -114,7 +102,7 @@
         android:progressTint="#64B5F6"
         android:thumbTint="#90CAF9" />
 
-    <!-- Bottom Controls: Auto-Enter, Shutter Button, and Hint -->
+    <!-- Bottom Controls: Auto-Enter, Shutter Button, and Screen OCR -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="58dp"
@@ -146,15 +134,18 @@
             android:focusable="true"
             android:contentDescription="@string/floating_ocr_capture_desc" />
 
-        <TextView
-            android:id="@+id/tv_ocr_hint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <!-- 螢幕 OCR (Screen OCR): bottom-right corner, away from the title -->
+        <ImageButton
+            android:id="@+id/btn_ocr_screen"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:text="@string/floating_ocr_shutter_hint"
-            android:textColor="#B0FFFFFF"
-            android:textSize="11sp" />
+            android:background="@drawable/bg_scanner_btn_circle"
+            android:contentDescription="@string/floating_screen_ocr_desc"
+            android:padding="6dp"
+            android:src="@drawable/ic_screen_ocr"
+            app:tint="#FFFFFFFF" />
     </RelativeLayout>
 
 </LinearLayout>

@@ -154,7 +154,6 @@
     <string name="floating_flash_desc">Flash</string>
     <string name="floating_wrap_desc">Auto Enter</string>
     <string name="floating_ocr_capture_desc">Capture text snapshot</string>
-    <string name="floating_ocr_shutter_hint">Tap the shutter to capture text</string>
     <string name="floating_scanner_close_desc">Close scanner</string>
     <string name="floating_scanner_title">Barcode scanning</string>
     <string name="floating_scanner_hint">Aim at a barcode or QR code to fill it in automatically</string>

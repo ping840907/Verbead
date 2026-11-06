@@ -149,7 +149,6 @@
     <string name="floating_flash_desc">플래시</string>
     <string name="floating_wrap_desc">자동 줄바꿈</string>
     <string name="floating_ocr_capture_desc">텍스트 스냅샷 촬영</string>
-    <string name="floating_ocr_shutter_hint">셔터를 눌러 텍스트 촬영</string>
     <string name="floating_scanner_close_desc">스캔 닫기</string>
     <string name="floating_scanner_title">바코드 스캔</string>
     <string name="floating_scanner_hint">바코드나 QR 코드에 맞추면 자동으로 입력됩니다</string>

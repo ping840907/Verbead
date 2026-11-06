@@ -149,7 +149,6 @@
     <string name="floating_flash_desc">閃光燈</string>
     <string name="floating_wrap_desc">自動換行</string>
     <string name="floating_ocr_capture_desc">拍攝文字截圖</string>
-    <string name="floating_ocr_shutter_hint">按快門拍字</string>
     <string name="floating_scanner_close_desc">關閉掃描</string>
     <string name="floating_scanner_title">條碼掃描</string>
     <string name="floating_scanner_hint">對準條碼或 QR Code 自動填入</string>
