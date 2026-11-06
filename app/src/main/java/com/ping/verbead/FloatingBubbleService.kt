@@ -56,6 +56,7 @@ import com.ping.verbead.bubble.BubblePhysics
 import com.ping.verbead.bubble.BubblePosition
 import com.ping.verbead.bubble.BubbleDeleteZoneController
 import com.ping.verbead.bubble.BubbleShakeDetector
+import com.ping.verbead.bubble.UnderlapFrameLayout
 import com.ping.verbead.bubble.FloatingBubbleItem
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
@@ -129,6 +130,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         private const val ACTION_STOP = "com.ping.verbead.ACTION_STOP_BUBBLE"
         const val MODE_VOICE = 0
         const val MODE_OCR = 1
+        /** Centre-to-centre distance of bubbles linked by shaking: less than the 60dp bubble, so each one overlaps the one in front. */
+        const val CHAIN_SPACING_DP = 44f
+        /** Time constant of the trailing delay of linked bubbles (smaller = tighter). */
+        const val CHAIN_LAG_MS = 70f
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
@@ -172,6 +177,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private val routingManager by lazy { AudioRoutingManager.getInstance(this) }
 
     private lateinit var windowManager: WindowManager
+    private lateinit var trackingWindowManager: com.ping.verbead.util.TrackingWindowManager
     private lateinit var windowLayoutParams: WindowManager.LayoutParams
     private lateinit var bubbleView: View
     val bubbleItems = mutableListOf<FloatingBubbleItem>()
@@ -187,6 +193,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private lateinit var bubblePreviewController: BubblePreviewController
     private lateinit var bubblePulseController: BubblePulseController
     private lateinit var bubbleXButtonController: BubbleXButtonController
+    private lateinit var pendingTextController: com.ping.verbead.bubble.PendingTextController
+    private val isPendingTextShowing: Boolean
+        get() = ::pendingTextController.isInitialized && pendingTextController.isShowing
     private val isXButtonShowing: Boolean
         get() = ::bubbleXButtonController.isInitialized && bubbleXButtonController.isShowing
     private val isPulseShowing: Boolean
@@ -221,6 +230,31 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     /** 搖晃複製後母球回彈動畫進行中，這段時間拖曳不可把縮放強制重設。 */
     private var shakeRecoilUntilUptime = 0L
+
+    /**
+     * Bubbles cloned by shaking stay linked behind the bubble being dragged (nearest first) for the rest of the
+     * gesture: each one trails the one in front of it at a fixed distance. Cleared when a new touch starts or the
+     * drag ends, after which the normal edge snapping takes over.
+     */
+    private val shakeChain = ArrayList<FloatingBubbleItem>()
+    private var shakeChainLeader: FloatingBubbleItem? = null
+    private var chainLastFrameNs = 0L
+    private val chainFrameCallback = object : android.view.Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            if (shakeChain.isEmpty()) {
+                chainLastFrameNs = 0L
+                return
+            }
+            val dtMs = if (chainLastFrameNs == 0L) 16f else ((frameTimeNanos - chainLastFrameNs) / 1e6f).coerceIn(1f, 50f)
+            chainLastFrameNs = frameTimeNanos
+            stepShakeChain(dtMs)
+            android.view.Choreographer.getInstance().postFrameCallback(this)
+        }
+    }
+    private var dragOriginX = 0f
+    private var dragOriginY = 0f
+    private var dragRawX = 0f
+    private var dragRawY = 0f
 
     private var spareBubbleView: View? = null
     private var spareBubbleScheduled = false
@@ -376,7 +410,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (currentMode !in enabledModes) {
             currentMode = enabledModes.firstOrNull() ?: MODE_VOICE
         }
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        trackingWindowManager = com.ping.verbead.util.TrackingWindowManager(getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+        windowManager = trackingWindowManager
         capsuleMenuController = CapsuleMenuController(
             context = themedCtx,
             windowManager = windowManager,
@@ -462,6 +497,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             scope = scope
         )
 
+        pendingTextController = com.ping.verbead.bubble.PendingTextController(
+            context = themedCtx,
+            windowManager = windowManager,
+            onFill = { t -> VoiceAccessibilityService.instance?.inputText(t) ?: false }
+        )
+
         ocrOverlayController = OcrOverlayController(
             context = themedCtx,
             lifecycleOwner = this,
@@ -483,6 +524,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 override fun onHideXButton() {
                     if (state != State.PASTED) hideXButton()
+                }
+                override fun onRequestScreenCapture() {
+                    captureScreenForOcr()
                 }
                 override fun onRequestCameraPermission() {
                     Toast.makeText(this@FloatingBubbleService, R.string.toast_camera_permission_ocr, Toast.LENGTH_LONG).show()
@@ -826,7 +870,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     fun setBubbleVisible(visible: Boolean, animate: Boolean = true) {
         if (!::bubbleView.isInitialized) return
-        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing)) {
+        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing || isPendingTextShowing)) {
             return
         }
         for (item in bubbleItems) {
@@ -852,7 +896,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (item.id == 0) hideXButtonImmediately()
                 if (animate) {
                     v.animate().alpha(0f).setDuration(180).withEndAction {
-                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive) {
+                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isPendingTextShowing) {
                             v.visibility = View.GONE
                         } else {
                             v.alpha = 1f
@@ -882,7 +926,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
         val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
+        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing && !isPendingTextShowing) {
             setBubbleVisible(false, animate = animate)
         }
     }
@@ -1017,6 +1061,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     currentlyDraggedBubble = item
+                    endShakeChain()
                     shakeDetector?.reset()
                     Looper.myQueue().addIdleHandler {
                         if (currentlyDraggedBubble != null) prewarmForShake()
@@ -1035,6 +1080,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     }
                     touchStartX = event.rawX
                     touchStartY = event.rawY
+                    dragOriginX = event.rawX
+                    dragOriginY = event.rawY
+                    dragRawX = event.rawX
+                    dragRawY = event.rawY
                     isDragging = false
                     isLongPressTriggered = false
                     recentTouchSamples.clear()
@@ -1070,6 +1119,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         }
                     }
                     if (isDragging) {
+                        dragRawX = event.rawX
+                        dragRawY = event.rawY
                         shakeDetector?.addSample(event.rawX, event.rawY)
 
                         val screenHeight = getScreenHeight()
@@ -1137,7 +1188,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             val squeezeOvershootPx = 20f * density
 
                             val boundsMap = mutableMapOf<Int, Pair<Float, Float>>()
-                            val positions = bubbleItems.map {
+                            // bubbles linked by shaking neither push nor get pushed until the drag ends and they snap to the edge
+                            val collidable = bubbleItems.filter { it !in shakeChain }
+                            val positions = collidable.map {
                                 val posX = if (it.isTucked) {
                                     if (it.isDockedOnRight) tuckRightX else tuckLeftX
                                 } else {
@@ -1168,7 +1221,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             val dragCx = newX + bubbleWidthPx / 2f
                             val dragCy = newY + bubbleHeightPx / 2f
                             for (other in bubbleItems) {
-                                if (other.id == item.id || other.isTucked || !other.view.isAttachedToWindow) continue
+                                if (other.id == item.id || other in shakeChain || other.isTucked || !other.view.isAttachedToWindow) continue
                                 val ox = other.windowLayoutParams.x
                                 val edgeX = when {
                                     ox > normalRightX -> normalRightX
@@ -1246,6 +1299,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         item.view.setLayerType(View.LAYER_TYPE_NONE, null)
                     } else {
                         currentlyDraggedBubble = null
+                        endShakeChain()
                         shakeDetector?.reset()
 
                         if (isDragging && bubbleDeleteZoneController.isShowing && bubbleDeleteZoneController.isAttracted) {
@@ -1285,6 +1339,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     flushPendingShakeToast()
                     item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
                     currentlyDraggedBubble = null
+                    endShakeChain()
                     shakeDetector?.reset()
                     if (bubbleDeleteZoneController.isShowing) {
                         bubbleDeleteZoneController.hide(animated = true)
@@ -1517,8 +1572,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         val usedSpare = spareBubbleView != null
-        val v = spareBubbleView?.also { spareBubbleView = null }
+        val inflated = spareBubbleView?.also { spareBubbleView = null }
             ?: LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+        // the window root can hide the part of the bubble that the bubble in front covers (see UnderlapFrameLayout)
+        val v = UnderlapFrameLayout(themedCtx).apply {
+            addView(inflated, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        }
         val tInflated = SystemClock.elapsedRealtime()
         val btn = v.findViewById<FrameLayout>(R.id.btn_bubble_mic)
         val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
@@ -1527,8 +1586,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         iv.setImageResource(iconRes)
         iv.contentDescription = desc
 
-        val initialX = parent.windowLayoutParams.x
-        val initialY = parent.windowLayoutParams.y
+        // the new bubble links in behind the last bubble of the chain (or behind the dragged bubble itself)
+        val tail = shakeChain.lastOrNull()?.takeIf { it.view.isAttachedToWindow } ?: parent
+        val initialX = tail.windowLayoutParams.x
+        val initialY = tail.windowLayoutParams.y
 
         val lp = WindowManager.LayoutParams(
             bubbleWidthPx,
@@ -1592,74 +1653,60 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             .setInterpolator(DecelerateInterpolator(1.6f))
             .start()
 
-        // 新球「分裂」出去：繼承搖晃當下的速度，再減速停在斥開位置。
-        // 搖晃是動態的動作，若新球從靜止開始播固定時間的位移，視覺上會突然停頓；
-        // 用 Hermite 曲線讓新球一開始的速度等於手指的速度，結尾速度為 0。
+        // 新球串接在被搖晃的球後面：方向與被拖曳的球前進的方向相反，距離固定，之後拖曳時像鏈條一樣跟著走。
         val safeMin = getMinY().toFloat()
         val safeMax = getMaxY().toFloat()
         val screenWidth = getScreenWidth()
         val maxX = (screenWidth - bubbleWidthPx).toFloat()
-        val travel = 68 * density
-        val durationMs = 260L
-        val durSec = durationMs / 1000f
+        val spacing = CHAIN_SPACING_DP * density
         val x0 = initialX.toFloat()
         val y0 = initialY.toFloat()
-        val (vx0, vy0) = computeScreenVelocity()
-        val speed = hypot(vx0, vy0)
-        val hasMotion = speed >= 400f
-        val dirX = if (hasMotion) vx0 / speed else 0f
-        val dirY = if (hasMotion) vy0 / speed else 0f
 
-        fun targetFor(dx: Float, dy: Float) = Pair(
-            (x0 + dx * travel).coerceIn(0f, maxX),
-            (y0 + dy * travel).coerceIn(safeMin, safeMax)
+        // 被拖曳的球正往哪裡走：先看放手前的速度，搖晃時速度會來回抵銷，就改看從按下到現在的位移，再沒有就當作往上
+        val (vx0, vy0) = computeScreenVelocity()
+        var fx = vx0
+        var fy = vy0
+        if (hypot(fx, fy) < 400f) {
+            fx = dragRawX - dragOriginX
+            fy = dragRawY - dragOriginY
+            if (hypot(fx, fy) < 24 * density) {
+                fx = 0f
+                fy = -1f
+            }
+        }
+        val fl = hypot(fx, fy)
+        val fdx = fx / fl
+        val fdy = fy / fl
+
+        fun candidate(dx: Float, dy: Float) = Pair(
+            (x0 + dx * spacing).coerceIn(0f, maxX),
+            (y0 + dy * spacing).coerceIn(safeMin, safeMax)
         )
         fun reach(t: Pair<Float, Float>) = hypot(t.first - x0, t.second - y0)
 
-        var target = targetFor(dirX, dirY)
-        var inheritMotion = hasMotion
-        if (!hasMotion || reach(target) < travel * 0.6f) {
-            // 速度太小，或前進方向被邊界擋住：改走反方向；兩邊都不行就用原本的上下斥開
-            val flipped = targetFor(-dirX, -dirY)
-            inheritMotion = false
-            target = if (hasMotion && reach(flipped) >= travel * 0.6f) {
-                flipped
-            } else {
-                val existingYs = bubbleItems.map { it.windowLayoutParams.y }
-                val candidateDown = (y0 + travel).coerceIn(safeMin, safeMax)
-                val candidateUp = (y0 - travel).coerceIn(safeMin, safeMax)
-                val distDown = existingYs.minOfOrNull { kotlin.math.abs(it - candidateDown) } ?: Float.MAX_VALUE
-                val distUp = existingYs.minOfOrNull { kotlin.math.abs(it - candidateUp) } ?: Float.MAX_VALUE
-                Pair(x0, if (distDown >= distUp) candidateDown else candidateUp)
-            }
+        // 後方被螢幕邊緣擋住時，依序改放側邊、前方
+        var target = candidate(-fdx, -fdy)
+        if (reach(target) < spacing * 0.6f) {
+            target = listOf(candidate(-fdy, fdx), candidate(fdy, -fdx), candidate(fdx, fdy))
+                .firstOrNull { reach(it) >= spacing * 0.6f } ?: target
         }
         val x1 = target.first
         val y1 = target.second
-        // 起始速度不可大到讓曲線衝過終點（減速到 0 所需位移至少是 速度×時間/2）
-        val vEff = if (inheritMotion) minOf(speed, 2f * reach(target) / durSec) else 0f
-        val m0x = dirX * vEff * durSec
-        val m0y = dirY * vEff * durSec
 
         newItem.isDockedOnRight = (x1 + bubbleWidthPx / 2f) >= screenWidth / 2f
         newItem.snapAnimator?.cancel()
-        newItem.snapAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = durationMs
-            interpolator = android.view.animation.LinearInterpolator()
-            addUpdateListener { va ->
-                if (v.isAttachedToWindow) {
-                    val u = va.animatedFraction
-                    val u2 = u * u
-                    val u3 = u2 * u
-                    val h00 = 2 * u3 - 3 * u2 + 1
-                    val h10 = u3 - 2 * u2 + u
-                    val h01 = -2 * u3 + 3 * u2
-                    lp.x = (h00 * x0 + h10 * m0x + h01 * x1).toInt()
-                    lp.y = (h00 * y0 + h10 * m0y + h01 * y1).toInt()
-                    windowManager.updateViewLayout(v, lp)
-                }
-            }
-            start()
-        }
+        // 一開始藏在前一顆球正下方，只朝「後方」偏 1px 讓方向有定義，之後由跟隨迴圈帶著它慢慢滑出到固定間距
+        val bx = x1 - x0
+        val by = y1 - y0
+        val bl = hypot(bx, by).coerceAtLeast(1f)
+        lp.x = (x0 + bx / bl).toInt()
+        lp.y = (y0 + by / bl).toInt()
+        windowManager.updateViewLayout(v, lp)
+        if (shakeChain.isEmpty()) shakeChainLeader = parent
+        shakeChain.add(newItem)
+        chainLastFrameNs = 0L
+        android.view.Choreographer.getInstance().removeFrameCallback(chainFrameCallback)
+        android.view.Choreographer.getInstance().postFrameCallback(chainFrameCallback)
 
         // 刪除區視窗已在按下時預先建好，這裡只播進場動畫；沒備好時才會當場建立
         if (bubbleItems.size > 1 && !bubbleDeleteZoneController.isShowing) {
@@ -1676,6 +1723,60 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 "addView=${tAdded - tBeforeAdd}ms mainThread=${SystemClock.elapsedRealtime() - tStart}ms"
         )
         return true
+    }
+
+    /** The gesture is over: unlink the bubbles (normal edge snapping, with collisions, takes over from here). */
+    private fun endShakeChain() {
+        if (shakeChain.isEmpty()) return
+        for (f in shakeChain) (f.view as? UnderlapFrameLayout)?.clearHole()
+        shakeChain.clear()
+        shakeChainLeader = null
+        android.view.Choreographer.getInstance().removeFrameCallback(chainFrameCallback)
+        chainLastFrameNs = 0L
+    }
+
+    /**
+     * One animation frame of the chain linked behind the dragged bubble. Each linked bubble is pulled toward the circle of
+     * radius [CHAIN_SPACING_DP] around the bubble in front of it (along the line between them, like a rope), but only a
+     * fraction of the way per frame, so it trails the finger with a slight delay. The spacing is smaller than a bubble, so
+     * the two overlap; the bubble behind hides the part the bubble in front covers, which makes it look like it sits under it.
+     */
+    private fun stepShakeChain(dtMs: Float) {
+        val leader = shakeChainLeader ?: return
+        val density = resources.displayMetrics.density
+        val spacing = CHAIN_SPACING_DP * density
+        val half = 30f * density
+        val maxX = (getScreenWidth() - (60 * density).toInt()).toFloat()
+        val minY = getMinY().toFloat()
+        val maxY = getMaxY().toFloat()
+        val follow = 1f - kotlin.math.exp(-dtMs / CHAIN_LAG_MS)
+        var front = leader
+        for (f in shakeChain) {
+            if (!f.view.isAttachedToWindow || !front.view.isAttachedToWindow) { front = f; continue }
+            f.snapAnimator?.cancel()
+            val px = front.windowLayoutParams.x.toFloat()
+            val py = front.windowLayoutParams.y.toFloat()
+            var dx = f.windowLayoutParams.x - px
+            var dy = f.windowLayoutParams.y - py
+            var d = hypot(dx, dy)
+            if (d < 0.5f) { dx = 0f; dy = 1f; d = 1f } // exactly under the bubble in front: come out below it
+            val goalX = (px + dx / d * spacing).coerceIn(0f, maxX)
+            val goalY = (py + dy / d * spacing).coerceIn(minY, maxY)
+            val nx = f.windowLayoutParams.x + (goalX - f.windowLayoutParams.x) * follow
+            val ny = f.windowLayoutParams.y + (goalY - f.windowLayoutParams.y) * follow
+            if (nx.toInt() != f.windowLayoutParams.x || ny.toInt() != f.windowLayoutParams.y) {
+                f.windowLayoutParams.x = nx.toInt()
+                f.windowLayoutParams.y = ny.toInt()
+                windowManager.updateViewLayout(f.view, f.windowLayoutParams)
+            }
+            // hide the part of this bubble that the bubble in front covers
+            (f.view as? UnderlapFrameLayout)?.setHole(
+                px + half - f.windowLayoutParams.x,
+                py + half - f.windowLayoutParams.y,
+                half
+            )
+            front = f
+        }
     }
 
     private fun handleDeleteBubble(bubbleToDelete: FloatingBubbleItem) {
@@ -1799,6 +1900,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (isScannerModeActive) updateScannerPosition()
             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
             updatePreviewPosition()
+            updatePendingTextPosition()
         }
 
         if (bubblesToMove.isEmpty()) {
@@ -2841,6 +2943,102 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    /**
+     * Parks [text] in the floating quick-fill list beside the bubble (any mode: speech, OCR, barcode, quick phrase).
+     * @return false when the feature is switched off in the settings (count 0), so the caller shows its usual notice.
+     */
+    private fun offerPendingText(text: String): Boolean {
+        if (!::pendingTextController.isInitialized) return false
+        val limit = ModelConfig.getPendingTextCount(this)
+        if (limit <= 0 || text.isBlank()) return false
+        val anchor = currentAnchorBubble
+        if (anchor?.isTucked == true) {
+            untuckBubble(anchor, animate = false)
+        } else if (isTucked) {
+            untuckBubble(animate = false)
+        }
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        pendingTextController.add(text, limit, anchorY, isRight, getScreenWidth(), getSafeBottom())
+        return true
+    }
+
+    /** Test hook (used by the debug build's receiver): behaves like a recognized result that found no text field. */
+    fun debugOfferPendingText(text: String): Boolean = offerPendingText(text)
+
+    /**
+     * Test hook for the debug build: shakes the first bubble [clones] times (as if the user had wiggled it), then drags it
+     * along a short path and lets go, so the linked bubbles can be inspected without touch input.
+     */
+    fun debugShakeChainDemo(clones: Int, dragDx: Float, dragDy: Float, durationMs: Long = 1500L) {
+        mainHandler.post {
+            val leader = bubbleItems.firstOrNull() ?: return@post
+            ModelConfig.setMultiBubbleEnabled(this, true)
+            repeat(clones) { handleShakeToDuplicate(leader) }
+            val x0 = leader.windowLayoutParams.x.toFloat()
+            val y0 = leader.windowLayoutParams.y.toFloat()
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = durationMs
+                addUpdateListener { va ->
+                    val u = va.animatedFraction
+                    leader.windowLayoutParams.x = (x0 + dragDx * u).toInt()
+                    leader.windowLayoutParams.y = (y0 + dragDy * u).toInt()
+                    if (leader.view.isAttachedToWindow) windowManager.updateViewLayout(leader.view, leader.windowLayoutParams)
+                    if (leader.id == 0) { windowLayoutParams.x = leader.windowLayoutParams.x; windowLayoutParams.y = leader.windowLayoutParams.y }
+                }
+                addListener(object : android.animation.AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        endShakeChain()
+                        snapBubbleToSafeBoundsWithInertia(leader, 0f, 0f)
+                    }
+                })
+                start()
+            }
+        }
+    }
+
+    /** Test hook for the debug build: sets how many bubbles exist. */
+    fun debugSetBubbleCount(count: Int) {
+        ModelConfig.setMultiBubbleEnabled(this, true)
+        ModelConfig.setMultiBubbleCount(this, count)
+        mainHandler.post { updateMultiBubbleMode() }
+    }
+
+    /** The settings slider changed: shrink the waiting list to the new size (0 closes it). */
+    fun onPendingTextCountChanged() {
+        if (::pendingTextController.isInitialized) {
+            mainHandler.post { pendingTextController.trim(ModelConfig.getPendingTextCount(this)) }
+        }
+    }
+
+    private fun updatePendingTextPosition() {
+        if (!isPendingTextShowing) return
+        val anchor = currentAnchorBubble
+        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
+        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
+        pendingTextController.updatePosition(anchorY, isRight, getScreenWidth(), getSafeBottom())
+    }
+
+    /** 截圖前暫時隱藏本程式所有懸浮畫面，截完立即還原，再開啟框選辨識。 */
+    private fun captureScreenForOcr() {
+        val acc = VoiceAccessibilityService.instance
+        if (acc == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Toast.makeText(this, R.string.toast_screen_capture_failed, Toast.LENGTH_LONG).show()
+            return
+        }
+        trackingWindowManager.hideAll()
+        mainHandler.postDelayed({
+            acc.captureScreen { bmp ->
+                trackingWindowManager.showAll()
+                if (bmp == null) {
+                    Toast.makeText(this, R.string.toast_screen_capture_failed, Toast.LENGTH_LONG).show()
+                } else {
+                    ocrOverlayController.showScreenSnapshot(bmp)
+                }
+            }
+        }, 250)
+    }
+
     private fun onTranscriptionDone(text: String) {
 
         if (text.isBlank()) {
@@ -2864,7 +3062,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             copyToClipboardFallback(text)
             setState(State.IDLE)
             hideXButton()
-            showPreviewText(getString(R.string.preview_copied), autoHide = true)
+            if (!offerPendingText(text)) showPreviewText(getString(R.string.preview_copied), autoHide = true)
         }
     }
 
@@ -3308,8 +3506,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             copyToClipboardFallback(text)
             setState(State.IDLE)
             hideXButton()
-            val previewMsg = if (text.length > 25) "${text.take(25)}…" else text
-            showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
+            if (!offerPendingText(text)) {
+                val previewMsg = if (text.length > 25) "${text.take(25)}…" else text
+                showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
+            }
         }
     }
 
@@ -3330,7 +3530,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             copyToClipboardFallback(code)
             setState(State.IDLE)
             hideXButton()
-            showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
+            if (!offerPendingText(code)) showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
         }
         stopScannerMode(hideX = !injected)
     }
@@ -3401,7 +3601,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         } else {
             copyToClipboardFallback(phrase)
             setState(State.IDLE)
-            showPreviewText(getString(R.string.toast_fallback_clipboard), autoHide = true)
+            if (!offerPendingText(phrase)) showPreviewText(getString(R.string.toast_fallback_clipboard), autoHide = true)
         }
         closePhrasesDrawer(hideX = !injected)
     }
@@ -3457,6 +3657,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
             safely("routingManager") { routingManager.stop() }
             safely("scanner") { if (::scannerOverlayController.isInitialized) scannerOverlayController.destroy() }
+            safely("pendingText") { if (::pendingTextController.isInitialized) pendingTextController.destroy() }
             safely("ocr") { if (::ocrOverlayController.isInitialized) ocrOverlayController.destroy() }
             safely("phrasesDrawer") { if (::phrasesDrawerController.isInitialized) phrasesDrawerController.destroy() }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }

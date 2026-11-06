@@ -84,7 +84,7 @@ class ModelZipInstallerTest {
                 zos.write("xasr_dummy".toByteArray())
                 zos.closeEntry()
             }
-            for (name in listOf("pp_ocrv6_tiny_det.onnx", "pp_ocrv6_tiny_rec.onnx", "pp_ocrv6_tiny_dict.txt")) {
+            for (name in ModelConfig.requiredOcrFiles(ModelConfig.OCR_MODEL_TINY)) {
                 zos.putNextEntry(ZipEntry(name)) // root level to test smart normalization too
                 zos.write("ocr_tiny_dummy".toByteArray())
                 zos.closeEntry()
@@ -98,8 +98,8 @@ class ModelZipInstallerTest {
             targetDir = outDir
         )
 
-        assertEquals(7, report.fileCount)
-        assertTrue(File(outDir, "ocr/pp_ocrv6_tiny_det.onnx").exists())
+        assertEquals(4 + ModelConfig.requiredOcrFiles(ModelConfig.OCR_MODEL_TINY).size, report.fileCount)
+        assertTrue(File(outDir, "ocr/pp_ocrv6_tiny_det_640x640.tflite").exists())
 
         val analysis = ModelZipInstaller.analyzeRestoredPackage(report.extractedEntries, outDir)
         // Qwen3-ASR was NOT in the ZIP, so qwen3Restored must be false even though it's on disk

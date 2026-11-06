@@ -31,3 +31,6 @@ app/libs/*.jar
 *.apk
 app/release/
 
+
+# Qualcomm QAIRT runtime libs (proprietary, local only)
+app/src/debug/jniLibs/

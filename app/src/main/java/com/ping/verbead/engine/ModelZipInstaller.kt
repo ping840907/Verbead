@@ -196,14 +196,10 @@ object ModelZipInstaller {
 
         val ocrDir = File(targetDir, "ocr")
         val ocrSmallRestored = hasOcrSmallEntry &&
-            File(ocrDir, "pp_ocrv6_small_det.onnx").exists() &&
-            File(ocrDir, "pp_ocrv6_small_rec.onnx").exists() &&
-            File(ocrDir, "pp_ocrv6_small_dict.txt").exists()
+            ModelConfig.requiredOcrFiles(ModelConfig.OCR_MODEL_SMALL).all { File(ocrDir, it).exists() }
 
         val ocrTinyRestored = hasOcrTinyEntry &&
-            File(ocrDir, "pp_ocrv6_tiny_det.onnx").exists() &&
-            File(ocrDir, "pp_ocrv6_tiny_rec.onnx").exists() &&
-            File(ocrDir, "pp_ocrv6_tiny_dict.txt").exists()
+            ModelConfig.requiredOcrFiles(ModelConfig.OCR_MODEL_TINY).all { File(ocrDir, it).exists() }
 
         val detailedLabels = mutableListOf<Int>()
         val shortLabels = mutableListOf<String>()

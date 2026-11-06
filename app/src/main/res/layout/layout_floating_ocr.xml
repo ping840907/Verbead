@@ -43,6 +43,18 @@
             android:layout_centerVertical="true"
             android:orientation="horizontal">
 
+            <!-- 螢幕 OCR (Screen OCR) -->
+            <ImageButton
+                android:id="@+id/btn_ocr_screen"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_scanner_btn_circle"
+                android:contentDescription="@string/floating_screen_ocr_desc"
+                android:padding="6dp"
+                android:src="@drawable/ic_screen_ocr"
+                app:tint="#FFFFFFFF" />
+
             <!-- 縮放鍵 (Scale/Resize Toggle) -->
             <ImageButton
                 android:id="@+id/btn_ocr_scale"

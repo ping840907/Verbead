@@ -113,11 +113,23 @@ object TextStitcher {
             val maxLineWidth = blocks.maxOfOrNull { it.width } ?: 0f
 
             val sb = StringBuilder()
-            for (i in 0 until blocks.size - 1) {
-                val prev = blocks[i]
-                val curr = blocks[i + 1]
+            // acc: 目前累積中的最後一行（文字可能已併入網址續行，幾何沿用最後一行）
+            var acc = blocks[0]
+            for (i in 1 until blocks.size) {
+                val curr = blocks[i]
+                val join = joinUrlWrap(acc, curr, maxLineWidth)
+                if (join != null) {
+                    if (join.rest.isEmpty()) {
+                        acc = OcrBlock(join.urlText, curr.left, curr.top, curr.right, curr.bottom)
+                    } else {
+                        // 網址之後的文字屬於另一段內容：只用空白接在後面，絕不併入網址
+                        sb.append(join.urlText).append(" ")
+                        acc = OcrBlock(join.rest, curr.left, curr.top, curr.right, curr.bottom)
+                    }
+                    continue
+                }
                 val conn = determineConnection(
-                    prev = prev,
+                    prev = acc,
                     curr = curr,
                     fallbackSep = fallbackSep,
                     maxLineWidth = maxLineWidth,
@@ -125,12 +137,63 @@ object TextStitcher {
                 )
                 sb.append(conn.prevText)
                 sb.append(conn.separator)
+                acc = curr
             }
-            sb.append(blocks.last().text)
+            sb.append(acc.text)
             val result = sb.toString()
             if (panguSpacing) applyPanguSpacing(result) else result
         }
         return if (toTraditional) ZhTwRules.toTaiwanTraditional(initial) else initial
+    }
+
+    private val URL_START_REGEX = Regex(
+        "^(?:[A-Za-z][A-Za-z0-9+.-]*://|www\\.|[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+/)\\S*$",
+        RegexOption.IGNORE_CASE
+    )
+    private val URL_CHARS_REGEX = Regex("^[A-Za-z0-9\\-._~:/?#\\[\\]@!$&'()*+,;=%]+$")
+
+    /** URL 折行縫合結果：[urlText] 為已接上續段的文字，[rest] 為續段之後與網址無關的剩餘文字。 */
+    data class UrlJoin(val urlText: String, val rest: String)
+
+    /**
+     * 判斷 [prev] 是否以被截斷的網址結尾，且 [curr] 開頭是該網址的續段。
+     * 是則回傳消除分行分隔後的網址，續段只取 [curr] 的第一個以空白分隔的字詞，
+     * 其餘文字原樣放在 rest，確保網址不會吃到不相干的文字。
+     *
+     * 判斷條件（全部成立才縫合）：
+     * 1. prev 最後一個字詞像網址開頭（協定://、www.、網域/路徑），且全是網址合法字元。
+     * 2. prev 這行接近最寬行寬（網址被迫在行尾斷開）；沒有幾何資料時改看是否停在 / - . ? & = # _ % 等斷點。
+     * 3. curr 與 prev 的版面是相連的下一行（未向上跳躍、字高相近、行距正常），且不是列表項目。
+     * 4. curr 第一個字詞只含網址合法字元；prev 以句點結尾而 curr 以大寫字母開頭時視為新句子，不縫合。
+     */
+    fun joinUrlWrap(prev: OcrBlock, curr: OcrBlock, maxLineWidth: Float): UrlJoin? {
+        val prevT = prev.text.trimEnd()
+        val currT = curr.text.trimStart()
+        if (prevT.isEmpty() || currT.isEmpty()) return null
+
+        val prevToken = prevT.split(Regex("[\\s\u3000]+")).last()
+        if (!URL_START_REGEX.matches(prevToken) || !URL_CHARS_REGEX.matches(prevToken)) return null
+
+        val wsIdx = currT.indexOfFirst { it.isWhitespace() || it == '\u3000' }
+        val token = if (wsIdx < 0) currT else currT.substring(0, wsIdx)
+        val rest = if (wsIdx < 0) "" else currT.substring(wsIdx).trim()
+        if (token.isEmpty() || !URL_CHARS_REGEX.matches(token)) return null
+        if (isListItem(currT)) return null
+        if (prevToken.endsWith('.') && token.first().isUpperCase()) return null
+
+        val hasGeometry = prev.height > 0f && curr.height > 0f && maxLineWidth > 0f
+        if (hasGeometry) {
+            if (prev.width < maxLineWidth * 0.85f) return null
+            if (curr.top < prev.top - 0.5f * prev.height) return null
+            val ratio = prev.height / curr.height
+            if (ratio > 1.25f || ratio < 0.8f) return null
+            val deltaY = curr.top - prev.bottom
+            if (deltaY > 1.2f * prev.height || deltaY < -0.3f * prev.height) return null
+        } else if (prevToken.last() !in "/-._?&=#%+~:,") {
+            return null
+        }
+
+        return UrlJoin(prevT + token, rest)
     }
 
     /**

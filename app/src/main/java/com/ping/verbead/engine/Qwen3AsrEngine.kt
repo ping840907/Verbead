@@ -53,13 +53,6 @@ class Qwen3AsrEngine(private val context: Context) {
 
             release()
 
-            // Explicitly preload onnxruntime native library
-            try {
-                System.loadLibrary("onnxruntime")
-            } catch (t: Throwable) {
-                Log.w(TAG, "Preload onnxruntime: ${t.message}")
-            }
-
             var lastError: Throwable? = null
             for (provider in ModelConfig.ASR_PROVIDER_PRIORITY) {
                 try {

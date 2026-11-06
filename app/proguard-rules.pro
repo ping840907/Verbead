@@ -10,9 +10,6 @@
     native <methods>;
 }
 
-# ONNX Runtime Android
--keep class ai.onnxruntime.** { *; }
--dontwarn ai.onnxruntime.**
 
 # Sherpa-onnx JNI
 -keep class com.k2fsa.sherpa.onnx.** { *; }

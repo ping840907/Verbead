@@ -1,8 +1,5 @@
 package com.ping.verbead.ocr
 
-import ai.onnxruntime.OnnxTensor
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -10,32 +7,32 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.util.Log
+import com.google.ai.edge.litert.Accelerator
+import com.google.ai.edge.litert.CompiledModel
+import com.google.ai.edge.litert.Environment
+import com.google.ai.edge.litert.TensorBuffer
 import com.ping.verbead.engine.ModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.nio.FloatBuffer
-import java.util.LinkedList
-import java.util.Queue
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * On-device PP-OCRv6 inference engine powered by ONNX Runtime.
+ * On-device PP-OCRv6 inference engine powered by LiteRT (GPU first, CPU fallback).
  * Performs fast text detection (Det) and targeted text recognition (Rec) on captured frames.
  */
 class PpOcrEngine(private val context: Context) {
 
     companion object {
         private const val TAG = "PpOcrEngine"
-        private const val DET_MAX_SIDE = 736
-        private const val REC_HEIGHT = 48
-        private const val DB_THRESH = 0.2f
-        private const val BOX_THRESH = 0.4f
-        private const val UNCLIP_RATIO = 1.6f
+
+        /** Test hook: run the GPU at full FP32 precision instead of the runtime default (used to compare accuracy). */
+        @Volatile
+        var forceGpuFp32: Boolean = false
 
         /**
          * Pure evaluation function for deciding whether to adopt a 180-degree flipped OCR candidate over 0-degree upright.
@@ -118,109 +115,116 @@ class PpOcrEngine(private val context: Context) {
         }
     }
 
-    private var env: OrtEnvironment? = null
-    private var detSession: OrtSession? = null
-    private var recSession: OrtSession? = null
     private val charDict = mutableListOf<String>()
 
     private val detMutex = Mutex()
     private val recMutex = Mutex()
 
+    private var litertEnv: Environment? = null
     private var loadedModel: String? = null
+    private var modelName: String = ModelConfig.OCR_MODEL_SMALL
+    private var modelDir: File? = null
+    private val detNets = HashMap<String, Net>()
+    private val recNets = HashMap<Int, Net>()
+
     var lastLoadError: String? = null
         private set
 
     val isReady: Boolean
-        get() = detSession != null && recSession != null
+        get() = litertEnv != null && charDict.isNotEmpty()
+
+    /**
+     * One fixed-shape LiteRT model with reusable input/output buffers. Tries the GPU first (compiled programs are
+     * cached on disk so later launches skip the compile) and falls back to the CPU when the GPU cannot take the model.
+     */
+    private inner class Net(private val file: File) : AutoCloseable {
+        private var model: CompiledModel
+        private var input: TensorBuffer
+        private var output: TensorBuffer
+        private var onGpu = false
+
+        init {
+            val m = try {
+                create(Accelerator.GPU).also { onGpu = true }
+            } catch (t: Throwable) {
+                Log.w(TAG, "GPU unavailable for ${file.name} (${t.message}); using CPU")
+                create(Accelerator.CPU)
+            }
+            model = m
+            input = m.createInputBuffers().first()
+            output = m.createOutputBuffers().first()
+        }
+
+        private fun create(acc: Accelerator): CompiledModel {
+            val opts = CompiledModel.Options(acc)
+            if (acc == Accelerator.GPU) {
+                val dir = File(context.cacheDir, "ocr_gpu_cache").apply { mkdirs() }
+                opts.gpuOptions = CompiledModel.GpuOptions(
+                    serializationDir = dir.path,
+                    modelCacheKey = file.name.removeSuffix(".tflite"),
+                    serializeProgramCache = true,
+                    serializeExternalTensors = true,
+                    precision = if (forceGpuFp32) CompiledModel.GpuOptions.Precision.FP32 else null
+                )
+            }
+            return CompiledModel.create(file.path, opts, litertEnv!!)
+        }
+
+        fun run(data: FloatArray): FloatArray {
+            try {
+                input.writeFloat(data)
+                model.run(listOf(input), listOf(output))
+                return output.readFloat()
+            } catch (t: Throwable) {
+                if (!onGpu) throw t
+                Log.w(TAG, "GPU run failed for ${file.name} (${t.message}); retrying on CPU")
+                runCatching { model.close() }
+                onGpu = false
+                model = create(Accelerator.CPU)
+                input = model.createInputBuffers().first()
+                output = model.createOutputBuffers().first()
+                input.writeFloat(data)
+                model.run(listOf(input), listOf(output))
+                return output.readFloat()
+            }
+        }
+
+        override fun close() {
+            runCatching { model.close() }
+        }
+    }
+
+    private fun detNet(w: Int, h: Int): Net =
+        detNets.getOrPut("${w}x${h}") { Net(File(modelDir!!, "${modelName}_det_${w}x${h}.tflite")) }
+
+    private fun recNet(width: Int): Net =
+        recNets.getOrPut(width) { Net(File(modelDir!!, "${modelName}_rec_${width}.tflite")) }
 
     suspend fun load(): Boolean = withContext(Dispatchers.IO) {
         try {
-            val prefModel = ModelConfig.selectedOcrModel(context)
-            if (isReady && loadedModel == prefModel) return@withContext true
-            if (isReady && loadedModel != prefModel) {
-                release()
-            }
+            val selected = ModelConfig.selectedOcrModel(context)
+            if (isReady && loadedModel == selected) return@withContext true
+            release()
             lastLoadError = null
 
             // 優先載入所選模型；若尚未備齊則回退至已備妥的任一模型（Tiny 或 Small）
-            var ocrPaths = ModelConfig.findOcrPaths(context, prefModel)
-            if (ocrPaths == null) {
-                ocrPaths = ModelConfig.findOcrPaths(context, null)
-            }
-
-            if (ocrPaths == null) {
-                val searched = ModelConfig.ocrDir(context)
-                lastLoadError = "Model files not found (searched: $searched)"
+            val paths = ModelConfig.findOcrPaths(context, selected) ?: ModelConfig.findOcrPaths(context, null)
+            if (paths == null) {
+                lastLoadError = "Model files not found (searched: ${ModelConfig.ocrDir(context)})"
                 Log.w(TAG, lastLoadError!!)
                 return@withContext false
             }
-
-            val detPath = ocrPaths.detPath
-            val recPath = ocrPaths.recPath
-            val dictPath = ocrPaths.dictPath
-            ModelConfig.setSelectedOcrModel(context, ocrPaths.model)
-            loadedModel = ocrPaths.model
-
-            Log.i(TAG, "Loading PP-OCR models (${ocrPaths.model}): det=$detPath, rec=$recPath, dict=$dictPath")
-
-            // Explicitly preload native libraries to ensure linker resolves symbols cleanly
-            try {
-                System.loadLibrary("onnxruntime")
-            } catch (t: Throwable) {
-                Log.w(TAG, "Preload onnxruntime: ${t.message}")
-            }
-            try {
-                System.loadLibrary("onnxruntime4j_jni")
-            } catch (t: Throwable) {
-                Log.w(TAG, "Preload onnxruntime4j_jni: ${t.message}")
-            }
-
-            env = try {
-                OrtEnvironment.getEnvironment()
-            } catch (t: Throwable) {
-                val cause = t.cause
-                val msg = if (cause != null) {
-                    "${t.javaClass.simpleName}: ${t.message} [cause: ${cause.javaClass.simpleName}: ${cause.message}]"
-                } else {
-                    "${t.javaClass.simpleName}: ${t.message}"
-                }
-                lastLoadError = "OrtEnvironment init failed ($msg)"
-                Log.e(TAG, lastLoadError!!, t)
+            ModelConfig.setSelectedOcrModel(context, paths.model)
+            loadDictionary(File(paths.dictPath).readLines())
+            if (charDict.isEmpty()) {
+                lastLoadError = "Dictionary is empty (${paths.dictPath})"
                 return@withContext false
             }
-
-            if (env == null) {
-                lastLoadError = "OrtEnvironment init failed (env is null)"
-                Log.e(TAG, lastLoadError!!)
-                return@withContext false
-            }
-
-            val sessionOptions = OrtSession.SessionOptions().apply {
-                setInterOpNumThreads(2)
-                setIntraOpNumThreads(2)
-            }
-
-            detSession = try {
-                env?.createSession(detPath, sessionOptions)
-            } catch (e: Throwable) {
-                Log.w(TAG, "Failed to create detSession with sessionOptions, retrying with default: ${e.message}")
-                env?.createSession(detPath)
-            }
-
-            recSession = try {
-                env?.createSession(recPath, sessionOptions)
-            } catch (e: Throwable) {
-                Log.w(TAG, "Failed to create recSession with sessionOptions, retrying with default: ${e.message}")
-                env?.createSession(recPath)
-            }
-
-            try {
-                loadDictionary(dictPath)
-            } catch (e: Throwable) {
-                Log.w(TAG, "Non-fatal error loading dictionary from $dictPath: ${e.message}", e)
-            }
-
-            Log.i(TAG, "PP-OCR engine loaded successfully! Dictionary size=${charDict.size}")
+            litertEnv = Environment.create(context)
+            modelName = paths.model
+            modelDir = File(paths.dir)
+            loadedModel = paths.model
+            Log.i(TAG, "PP-OCR (LiteRT, ${paths.model}) ready from ${paths.dir}, dictionary size=${charDict.size}")
             true
         } catch (e: Throwable) {
             val causeMsg = e.cause?.let { " [cause: ${it.javaClass.simpleName}: ${it.message}]" } ?: ""
@@ -231,43 +235,29 @@ class PpOcrEngine(private val context: Context) {
         }
     }
 
-    private fun loadDictionary(dictPath: String) {
+    /** Parses the Paddle inference.yml (character_dict list) or a plain one-character-per-line dictionary. */
+    private fun loadDictionary(lines: List<String>) {
         charDict.clear()
-        val file = File(dictPath)
-        val targetFile = if (file.exists()) file else File(file.parentFile, "inference.yml").takeIf { it.exists() }
-        if (targetFile == null || !targetFile.exists()) {
-            Log.e(TAG, "Dictionary file not found: $dictPath")
-            return
-        }
-
-        val isYaml = targetFile.useLines { lines ->
-            lines.take(40).any { it.contains("character_dict:") || it.contains("Global:") || it.contains("PostProcess:") }
-        }
-
+        val isYaml = lines.take(40).any { it.contains("character_dict:") || it.contains("Global:") || it.contains("PostProcess:") }
         if (isYaml) {
-            parseYmlDict(targetFile)
+            parseYmlDict(lines)
         } else {
-            targetFile.forEachLine { line ->
+            lines.forEach { line ->
                 val trimmed = line.trimEnd('\r', '\n')
-                if (trimmed.isNotEmpty()) {
-                    charDict.add(trimmed)
-                }
+                if (trimmed.isNotEmpty()) charDict.add(trimmed)
             }
-            if (!charDict.contains(" ")) {
-                charDict.add(" ")
-            }
+            if (!charDict.contains(" ")) charDict.add(" ")
         }
-        Log.i(TAG, "Loaded dictionary from ${targetFile.name}: ${charDict.size} characters (isYaml=$isYaml)")
     }
 
-    private fun parseYmlDict(file: File) {
+    private fun parseYmlDict(lines: List<String>) {
         charDict.clear()
         var inDict = false
-        file.forEachLine { line ->
+        lines.forEach { line ->
             val lineClean = line.trimEnd('\r', '\n')
             if (lineClean.trim().startsWith("character_dict:")) {
                 inDict = true
-                return@forEachLine
+                return@forEach
             }
             if (inDict) {
                 val trimmed = lineClean.trimStart()
@@ -287,9 +277,7 @@ class PpOcrEngine(private val context: Context) {
                 }
             }
         }
-        if (!charDict.contains(" ")) {
-            charDict.add(" ")
-        }
+        if (!charDict.contains(" ")) charDict.add(" ")
     }
 
     /**
@@ -298,78 +286,46 @@ class PpOcrEngine(private val context: Context) {
      */
     suspend fun detectText(bitmap: Bitmap): List<RectF> = withContext(Dispatchers.Default) {
         detMutex.withLock {
-            val session = detSession ?: return@withLock emptyList()
-            val ortEnv = env ?: return@withLock emptyList()
-
+            if (!isReady) return@withLock emptyList()
             try {
                 val origW = bitmap.width
                 val origH = bitmap.height
+                // The detector exists at a few fixed sizes: pick the one that keeps the image largest and letterbox into it.
+                val plan = OcrShapes.planDet(origW, origH)
+                val scaledBitmap = Bitmap.createScaledBitmap(bitmap, plan.contentW, plan.contentH, true)
 
-                // Calculate scaled dimensions (multiples of 32)
-                var scale = 1.0f
-                if (max(origW, origH) > DET_MAX_SIDE) {
-                    scale = DET_MAX_SIDE.toFloat() / max(origW, origH)
+                // NHWC float input, ImageNet mean/std. Untouched (zero) padding equals the mean colour.
+                val input = FloatArray(plan.width * plan.height * 3)
+                val pixels = IntArray(plan.contentW * plan.contentH)
+                scaledBitmap.getPixels(pixels, 0, plan.contentW, 0, 0, plan.contentW, plan.contentH)
+                for (y in 0 until plan.contentH) {
+                    var o = y * plan.width * 3
+                    val row = y * plan.contentW
+                    for (x in 0 until plan.contentW) {
+                        val c = pixels[row + x]
+                        input[o++] = (Color.red(c) / 255.0f - 0.485f) / 0.229f
+                        input[o++] = (Color.green(c) / 255.0f - 0.456f) / 0.224f
+                        input[o++] = (Color.blue(c) / 255.0f - 0.406f) / 0.225f
+                    }
                 }
-                var targetW = (origW * scale).toInt()
-                var targetH = (origH * scale).toInt()
-                targetW = max(32, (targetW / 32) * 32)
-                targetH = max(32, (targetH / 32) * 32)
+                if (scaledBitmap != bitmap) scaledBitmap.recycle()
 
-                val scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+                val out = detNet(plan.width, plan.height).run(input) // [H x W] probability map
+                val probMap = Array(plan.height) { y -> out.copyOfRange(y * plan.width, (y + 1) * plan.width) }
 
-                // Normalize CHW tensor: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                val floatBuffer = FloatBuffer.allocate(1 * 3 * targetH * targetW)
-                val pixels = IntArray(targetW * targetH)
-                scaledBitmap.getPixels(pixels, 0, targetW, 0, 0, targetW, targetH)
+                val rawBoxes = extractBoxesFromProbMap(probMap, plan.width, plan.height)
 
-                val rPlane = FloatArray(targetW * targetH)
-                val gPlane = FloatArray(targetW * targetH)
-                val bPlane = FloatArray(targetW * targetH)
-
-                for (i in pixels.indices) {
-                    val color = pixels[i]
-                    val r = Color.red(color) / 255.0f
-                    val g = Color.green(color) / 255.0f
-                    val b = Color.blue(color) / 255.0f
-
-                    rPlane[i] = (r - 0.485f) / 0.229f
-                    gPlane[i] = (g - 0.456f) / 0.224f
-                    bPlane[i] = (b - 0.406f) / 0.225f
-                }
-                floatBuffer.put(rPlane)
-                floatBuffer.put(gPlane)
-                floatBuffer.put(bPlane)
-                floatBuffer.flip()
-
-                val inputShape = longArrayOf(1, 3, targetH.toLong(), targetW.toLong())
-                val inputTensor = OnnxTensor.createTensor(ortEnv, floatBuffer, inputShape)
-
-                val inputName = session.inputNames.iterator().next()
-                val output = session.run(mapOf(inputName to inputTensor))
-                val predTensor = output[0].value as Array<Array<Array<FloatArray>>> // [1, 1, H, W]
-                val probMap = predTensor[0][0]
-
-                inputTensor.close()
-                output.close()
-                if (scaledBitmap != bitmap) {
-                    scaledBitmap.recycle()
-                }
-
-                // Post-process: connected components on probMap
-                val rawBoxes = extractBoxesFromProbMap(probMap, targetW, targetH)
-
-                // Scale boxes back to original bitmap coordinates
-                val scaleX = origW.toFloat() / targetW
-                val scaleY = origH.toFloat() / targetH
-
+                // Back to original bitmap coordinates (the padding area carries no text, but unclip may spill into it)
+                val scaleX = origW.toFloat() / plan.contentW
+                val scaleY = origH.toFloat() / plan.contentH
                 rawBoxes.map { rect ->
                     RectF(
-                        rect.left * scaleX,
-                        rect.top * scaleY,
-                        rect.right * scaleX,
-                        rect.bottom * scaleY
+                        (rect.left * scaleX).coerceIn(0f, origW.toFloat()),
+                        (rect.top * scaleY).coerceIn(0f, origH.toFloat()),
+                        (rect.right * scaleX).coerceIn(0f, origW.toFloat()),
+                        (rect.bottom * scaleY).coerceIn(0f, origH.toFloat())
                     )
-                }
+                }.filter { it.width() > 1f && it.height() > 1f }
             } catch (e: Throwable) {
                 Log.e(TAG, "Detection error: ${e.message}", e)
                 emptyList()
@@ -377,76 +333,9 @@ class PpOcrEngine(private val context: Context) {
         }
     }
 
-    /**
-     * Connected components labeling & box unclip on probability map.
-     */
-    private fun extractBoxesFromProbMap(
-        probMap: Array<FloatArray>,
-        w: Int,
-        h: Int
-    ): List<RectF> {
-        val visited = Array(h) { BooleanArray(w) }
-        val boxes = mutableListOf<RectF>()
-
-        for (y in 0 until h step 2) {
-            for (x in 0 until w step 2) {
-                if (probMap[y][x] >= DB_THRESH && !visited[y][x]) {
-                    var minX = x
-                    var maxX = x
-                    var minY = y
-                    var maxY = y
-                    var count = 0
-                    var scoreSum = 0.0
-
-                    val queue: Queue<Int> = LinkedList()
-                    queue.add((y shl 16) or x)
-                    visited[y][x] = true
-
-                    while (!queue.isEmpty()) {
-                        val pos = queue.poll() ?: continue
-                        val cy = pos shr 16
-                        val cx = pos and 0xFFFF
-
-                        minX = min(minX, cx)
-                        maxX = max(maxX, cx)
-                        minY = min(minY, cy)
-                        maxY = max(maxY, cy)
-                        count++
-                        scoreSum += probMap[cy][cx]
-
-                        // 4-neighborhood exploration with step 2
-                        val dirs = arrayOf(0 to 2, 0 to -2, 2 to 0, -2 to 0)
-                        for (d in dirs) {
-                            val ny = cy + d.first
-                            val nx = cx + d.second
-                            if (ny in 0 until h && nx in 0 until w && !visited[ny][nx] && probMap[ny][nx] >= DB_THRESH) {
-                                visited[ny][nx] = true
-                                queue.add((ny shl 16) or nx)
-                            }
-                        }
-                    }
-
-                    val bw = maxX - minX + 1
-                    val bh = maxY - minY + 1
-                    val avgScore = if (count > 0) scoreSum / count else 0.0
-
-                    if (bw >= 6 && bh >= 6 && avgScore >= BOX_THRESH) {
-                        // Standard DBNet contour unclip: offset distance is based on area / perimeter
-                        val area = bw.toDouble() * bh
-                        val perimeter = 2.0 * (bw + bh)
-                        val d = ((area * (UNCLIP_RATIO - 1.0)) / perimeter).toInt().coerceAtLeast(1)
-                        val unclipLeft = max(0, minX - d).toFloat()
-                        val unclipTop = max(0, minY - d).toFloat()
-                        val unclipRight = min(w - 1, maxX + d).toFloat()
-                        val unclipBottom = min(h - 1, maxY + d).toFloat()
-
-                        boxes.add(RectF(unclipLeft, unclipTop, unclipRight, unclipBottom))
-                    }
-                }
-            }
-        }
-        return boxes
-    }
+    /** Connected components + unclip on the detector probability map (see [DbPostProcessor]). */
+    private fun extractBoxesFromProbMap(probMap: Array<FloatArray>, w: Int, h: Int): List<RectF> =
+        DbPostProcessor.extractBoxes(probMap, w, h)
 
     /**
      * Crops the specified bounding box from source bitmap and runs text recognition.
@@ -784,67 +673,56 @@ class PpOcrEngine(private val context: Context) {
      * Recognizes a single horizontal image strip and returns (decodedText, avgConfidence).
      */
     private fun recognizeHorizontalStrip(strip: Bitmap): Pair<String, Float> {
-        val session = recSession ?: return "" to 0f
-        val ortEnv = env ?: return "" to 0f
+        if (!isReady) return "" to 0f
 
         val curW = strip.width
         val curH = strip.height
         if (curW < 4 || curH < 4) return "" to 0f
 
-        val targetH = REC_HEIGHT
-        var targetW = (curW * (targetH.toFloat() / curH)).toInt().coerceIn(32, 1280)
-        targetW = max(32, ((targetW + 3) / 4) * 4)
+        val targetH = OcrShapes.REC_HEIGHT
+        val targetW = OcrShapes.recStripWidth(curW, curH)
+        val bucket = OcrShapes.recBucket(targetW, tiny = modelName == ModelConfig.OCR_MODEL_TINY)
 
         val scaledBitmap = Bitmap.createScaledBitmap(strip, targetW, targetH, true)
-
-        val floatBuffer = FloatBuffer.allocate(1 * 3 * targetH * targetW)
         val pixels = IntArray(targetW * targetH)
         scaledBitmap.getPixels(pixels, 0, targetW, 0, 0, targetW, targetH)
 
-        val rPlane = FloatArray(targetW * targetH)
-        val gPlane = FloatArray(targetW * targetH)
-        val bPlane = FloatArray(targetW * targetH)
-
-        for (i in pixels.indices) {
-            val color = pixels[i]
-            rPlane[i] = (Color.red(color) / 255.0f - 0.5f) / 0.5f
-            gPlane[i] = (Color.green(color) / 255.0f - 0.5f) / 0.5f
-            bPlane[i] = (Color.blue(color) / 255.0f - 0.5f) / 0.5f
+        // NHWC, (v/255 - 0.5)/0.5. The model only exists at fixed widths, so the strip is padded on the right with
+        // normalized zero (the array default), the padding PaddleOCR itself uses. Measured against the variable-width
+        // model: 14/14 of Google's recognizer fixtures and 24/24 of our own strips decode identically (edge-repeat
+        // padding dropped a space in one fixture, white padding too).
+        val input = FloatArray(targetH * bucket * 3)
+        for (y in 0 until targetH) {
+            var o = y * bucket * 3
+            val row = y * targetW
+            for (x in 0 until targetW) {
+                val c = pixels[row + x]
+                input[o++] = (Color.red(c) / 255.0f - 0.5f) / 0.5f
+                input[o++] = (Color.green(c) / 255.0f - 0.5f) / 0.5f
+                input[o++] = (Color.blue(c) / 255.0f - 0.5f) / 0.5f
+            }
         }
-        floatBuffer.put(rPlane)
-        floatBuffer.put(gPlane)
-        floatBuffer.put(bPlane)
-        floatBuffer.flip()
+        if (scaledBitmap != strip) scaledBitmap.recycle()
 
-        val inputShape = longArrayOf(1, 3, targetH.toLong(), targetW.toLong())
-        val inputTensor = OnnxTensor.createTensor(ortEnv, floatBuffer, inputShape)
-
-        val inputName = session.inputNames.iterator().next()
-        val output = session.run(mapOf(inputName to inputTensor))
-        val predTensor = output[0].value as Array<Array<FloatArray>>
-        val logits = predTensor[0]
-
-        inputTensor.close()
-        output.close()
-        if (scaledBitmap != strip) {
-            scaledBitmap.recycle()
-        }
-
-        return ctcGreedyDecode(logits)
+        val out = recNet(bucket).run(input) // [bucket/8 x vocab] probabilities
+        val steps = bucket / 8
+        if (steps == 0 || out.size % steps != 0) return "" to 0f
+        return ctcGreedyDecode(out, steps, out.size / steps)
     }
 
-    private fun ctcGreedyDecode(logits: Array<FloatArray>): Pair<String, Float> {
+    private fun ctcGreedyDecode(probs: FloatArray, steps: Int, vocab: Int): Pair<String, Float> {
         val sb = StringBuilder()
         var lastIndex = -1
         var totalScore = 0f
         var emittedCount = 0
 
-        for (timeStep in logits) {
+        for (t in 0 until steps) {
+            val base = t * vocab
             var maxIndex = 0
-            var maxVal = timeStep[0]
-            for (c in 1 until timeStep.size) {
-                if (timeStep[c] > maxVal) {
-                    maxVal = timeStep[c]
+            var maxVal = probs[base]
+            for (c in 1 until vocab) {
+                if (probs[base + c] > maxVal) {
+                    maxVal = probs[base + c]
                     maxIndex = c
                 }
             }
@@ -867,15 +745,17 @@ class PpOcrEngine(private val context: Context) {
 
     fun release() {
         try {
-            detSession?.close()
-            recSession?.close()
-            env?.close()
+            detNets.values.forEach { it.close() }
+            recNets.values.forEach { it.close() }
+            litertEnv?.close()
         } catch (e: Exception) {
             Log.w(TAG, "Error closing PP-OCR engine resources", e)
         }
-        detSession = null
-        recSession = null
-        env = null
+        detNets.clear()
+        recNets.clear()
+        litertEnv = null
+        charDict.clear()
+        modelDir = null
         loadedModel = null
     }
 }

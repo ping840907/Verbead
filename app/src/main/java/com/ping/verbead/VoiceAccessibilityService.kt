@@ -84,6 +84,47 @@ class VoiceAccessibilityService : AccessibilityService() {
         return (System.currentTimeMillis() - snap.capturedAtMs) < 15_000
     }
 
+    /**
+     * 擷取目前整個螢幕畫面（需 Android 11+）。回呼在主執行緒；失敗回傳 null。
+     * 回傳的是已複製為軟體 ARGB_8888 的 Bitmap，呼叫端負責 recycle。
+     */
+    @android.annotation.SuppressLint("NewApi") // guarded by the SDK_INT check below
+    fun captureScreen(callback: (android.graphics.Bitmap?) -> Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            callback(null)
+            return
+        }
+        try {
+            takeScreenshot(
+                android.view.Display.DEFAULT_DISPLAY,
+                java.util.concurrent.Executors.newSingleThreadExecutor(),
+                object : TakeScreenshotCallback {
+                    override fun onSuccess(result: ScreenshotResult) {
+                        var bmp: android.graphics.Bitmap? = null
+                        try {
+                            val hw = android.graphics.Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)
+                            bmp = hw?.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                            hw?.recycle()
+                        } catch (e: Throwable) {
+                            Log.e("VoiceA11y", "screenshot convert failed", e)
+                        } finally {
+                            result.hardwareBuffer.close()
+                        }
+                        mainHandler.post { callback(bmp) }
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        Log.w("VoiceA11y", "takeScreenshot failed: $errorCode")
+                        mainHandler.post { callback(null) }
+                    }
+                }
+            )
+        } catch (e: Throwable) {
+            Log.e("VoiceA11y", "takeScreenshot error", e)
+            callback(null)
+        }
+    }
+
     private var isKeyboardCheckScheduled = false
     private val keyboardCheckRunnable = Runnable {
         isKeyboardCheckScheduled = false

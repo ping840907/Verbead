@@ -4,6 +4,7 @@ import android.content.Context
 
 import androidx.annotation.StringRes
 import com.ping.verbead.R
+import com.ping.verbead.ocr.OcrShapes
 import java.io.File
 
 object ModelConfig {
@@ -283,6 +284,7 @@ object ModelConfig {
         for (dir in candidates) {
             if (dir.exists() && dir.isDirectory) {
                 val hasFiles = dir.listFiles()?.any {
+                    it.name.endsWith(".tflite", ignoreCase = true) ||
                     it.name.endsWith(".onnx", ignoreCase = true) ||
                     it.name.endsWith(".txt", ignoreCase = true) ||
                     it.name.endsWith(".yml", ignoreCase = true)
@@ -296,9 +298,9 @@ object ModelConfig {
         return "${modelsDir(context)}/$OCR_DIR"
     }
 
+    /** A folder that holds every file of one OCR model ([dir]), plus the path of its dictionary. */
     data class OcrPaths(
-        val detPath: String,
-        val recPath: String,
+        val dir: String,
         val dictPath: String,
         val model: String
     )
@@ -322,53 +324,29 @@ object ModelConfig {
     }
 
     /**
-     * 嚴格尋找指定 OCR 模型（Tiny 或 Small）檔案路徑，絕不跨模型回退。
+     * File names a complete OCR model needs: the detector at each fixed size, the recognizer at each width of the
+     * model's ladder, and the dictionary. All of them are LiteRT files (see [OcrModelManifest]).
+     */
+    fun requiredOcrFiles(model: String): List<String> {
+        val tiny = model == OCR_MODEL_TINY
+        return buildList {
+            for ((w, h) in OcrShapes.DET_SIZES) add("${model}_det_${w}x${h}.tflite")
+            for (w in OcrShapes.recWidths(tiny)) add("${model}_rec_${w}.tflite")
+            add("${model}_dict.txt")
+        }
+    }
+
+    /**
+     * 嚴格尋找指定 OCR 模型（Tiny 或 Small）：同一個資料夾內必須備齊 [requiredOcrFiles] 的每個檔案，絕不跨模型回退。
      */
     fun findSpecificOcrPathsInDirs(searchDirs: List<File>, model: String): OcrPaths? {
-        val isTiny = (model == OCR_MODEL_TINY)
-        val detName = "${model}_det.onnx"
-        val recName = "${model}_rec.onnx"
-        val dictName = "${model}_dict.txt"
-
-        // 1. 標準檔案命名比對（不分大小寫）
+        val required = requiredOcrFiles(model)
         for (dir in searchDirs) {
             if (!dir.exists() || !dir.isDirectory) continue
-            val files = dir.listFiles() ?: continue
-            val detFile = files.firstOrNull { it.name.equals(detName, ignoreCase = true) }
-            val recFile = files.firstOrNull { it.name.equals(recName, ignoreCase = true) }
-            if (detFile != null && recFile != null) {
-                val dictFile = files.firstOrNull {
-                    it.name.equals(dictName, ignoreCase = true) ||
-                    it.name.equals("inference.yml", ignoreCase = true) ||
-                    it.name.equals("dict.txt", ignoreCase = true)
-                } ?: File(dir, dictName)
-                return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, model)
+            if (required.all { name -> File(dir, name).let { it.isFile && it.length() > 0L } }) {
+                return OcrPaths(dir.absolutePath, File(dir, "${model}_dict.txt").absolutePath, model)
             }
         }
-
-        // 2. 寬鬆檔名特徵匹配（嚴格比對 tiny / small 關鍵字）
-        for (dir in searchDirs) {
-            if (!dir.exists() || !dir.isDirectory) continue
-            val files = dir.listFiles() ?: continue
-            val detFile = files.firstOrNull {
-                val n = it.name.lowercase()
-                n.endsWith(".onnx") && (n.contains("det") || n.contains("detect")) &&
-                    (if (isTiny) n.contains("tiny") else (!n.contains("tiny") || n.contains("small")))
-            }
-            val recFile = files.firstOrNull {
-                val n = it.name.lowercase()
-                n.endsWith(".onnx") && (n.contains("rec") || n.contains("recogn")) &&
-                    (if (isTiny) n.contains("tiny") else (!n.contains("tiny") || n.contains("small")))
-            }
-            if (detFile != null && recFile != null) {
-                val dictFile = files.firstOrNull {
-                    val n = it.name.lowercase()
-                    (n.endsWith(".txt") || n.endsWith(".yml") || n.endsWith(".yaml")) && (n.contains("dict") || n.contains("inference"))
-                } ?: File(dir, dictName)
-                return OcrPaths(detFile.absolutePath, recFile.absolutePath, dictFile.absolutePath, model)
-            }
-        }
-
         return null
     }
 
@@ -393,15 +371,9 @@ object ModelConfig {
             ?: findSpecificOcrPaths(context, OCR_MODEL_TINY)
     }
 
-    fun ocrDetPath(context: Context, model: String = selectedOcrModel(context)): String =
-        findSpecificOcrPaths(context, model)?.detPath ?: "${ocrDir(context)}/${model}_det.onnx"
-
     /** 嚴格判斷特定 OCR 模型（Tiny 或 Small）是否已下載並完整就緒。 */
     fun isOcrModelStrictlyReady(context: Context, model: String): Boolean {
-        if (findSpecificOcrPaths(context, model) != null) return true
-        val det = File("${ocrDir(context)}/${model}_det.onnx")
-        val rec = File("${ocrDir(context)}/${model}_rec.onnx")
-        return det.exists() && det.length() > 0L && rec.exists() && rec.length() > 0L
+        return findSpecificOcrPaths(context, model) != null
     }
 
     fun isOcrTinyReady(context: Context): Boolean = isOcrModelStrictlyReady(context, OCR_MODEL_TINY)
@@ -428,9 +400,9 @@ object ModelConfig {
         for (file in files) {
             val name = file.name.lowercase()
             val isMatch = if (target == OCR_MODEL_TINY) {
-                name.contains("tiny") && (name.endsWith(".onnx") || name.endsWith(".txt") || name.endsWith(".yml") || name.endsWith(".part"))
+                name.contains("tiny") && (name.endsWith(".tflite") || name.endsWith(".onnx") || name.endsWith(".txt") || name.endsWith(".yml") || name.endsWith(".part"))
             } else if (target == OCR_MODEL_SMALL) {
-                name.contains("small") && (name.endsWith(".onnx") || name.endsWith(".txt") || name.endsWith(".yml") || name.endsWith(".part"))
+                name.contains("small") && (name.endsWith(".tflite") || name.endsWith(".onnx") || name.endsWith(".txt") || name.endsWith(".yml") || name.endsWith(".part"))
             } else {
                 name.startsWith("${target}_")
             }
@@ -452,6 +424,30 @@ object ModelConfig {
         for (dir in dirs) {
             deleteOcrFilesFromDir(dir, model)
         }
+    }
+
+    /**
+     * Older versions ran PP-OCR on ONNX Runtime and downloaded pp_ocrv6_*_det.onnx / _rec.onnx. They are useless now;
+     * delete them (and unfinished .part downloads of them) from the app-private model folders. Returns the bytes freed.
+     */
+    fun deleteLegacyOcrOnnx(context: Context): Long {
+        val dirs = listOfNotNull(
+            context.getExternalFilesDir("models")?.let { File(it, OCR_DIR) },
+            File(context.filesDir, "models/$OCR_DIR"),
+            File(context.filesDir, OCR_DIR),
+            context.getExternalFilesDir(null)?.let { File(it, "models/$OCR_DIR") }
+        ).distinctBy { it.absolutePath }
+        var freed = 0L
+        for (dir in dirs) {
+            for (f in dir.listFiles() ?: continue) {
+                val n = f.name.lowercase()
+                if (n.startsWith("pp_ocrv6_") && f.isFile && (n.endsWith(".onnx") || n.endsWith(".onnx.part"))) {
+                    val size = f.length()
+                    if (f.delete()) freed += size
+                }
+            }
+        }
+        return freed
     }
 
     // ── Camera & Scanner Settings ─────────────────────────────────────────────
@@ -780,6 +776,9 @@ object ModelConfig {
     const val MAX_HISTORY_LIMIT = 12
     const val KEY_HISTORY_ENABLED = "history_enabled"
     const val KEY_HISTORY_LIMIT = "history_limit"
+    const val KEY_PENDING_TEXT_COUNT = "pending_text_count"
+    const val DEFAULT_PENDING_TEXT_COUNT = 3
+    const val MAX_PENDING_TEXT_COUNT = 5
 
     fun isHistoryEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
@@ -788,6 +787,19 @@ object ModelConfig {
     fun setHistoryEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_HISTORY_ENABLED, enabled).apply()
+
+    /**
+     * How many recognized results may wait as floating quick-fill text when nothing can be filled in
+     * (0 = the feature is off; the clipboard fallback still happens).
+     */
+    fun getPendingTextCount(context: Context): Int =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getInt(KEY_PENDING_TEXT_COUNT, DEFAULT_PENDING_TEXT_COUNT)
+            .coerceIn(0, MAX_PENDING_TEXT_COUNT)
+
+    fun setPendingTextCount(context: Context, count: Int) =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_PENDING_TEXT_COUNT, count.coerceIn(0, MAX_PENDING_TEXT_COUNT)).apply()
 
     fun getHistoryLimit(context: Context): Int =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)

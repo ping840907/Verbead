@@ -34,13 +34,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = '17' }
+    kotlinOptions {
+        jvmTarget = '17'
+        // LiteRT 2.3.x is compiled with Kotlin 2.4 metadata; this project's compiler is 2.2
+        freeCompilerArgs += ['-Xskip-metadata-version-check']
+    }
     buildFeatures { viewBinding true; buildConfig true }
     packagingOptions {
         jniLibs {
             useLegacyPackaging = false
         }
-        pickFirst 'lib/*/libonnxruntime.so'
         pickFirst 'lib/*/libc++_shared.so'
     }
 
@@ -70,8 +73,9 @@ dependencies {
     implementation libs.androidx.camera.lifecycle
     implementation libs.androidx.camera.view
 
-    // ONNX Runtime for PP-OCRv6 (Det & Rec)
-    implementation libs.onnxruntime.android
+    // LiteRT (CompiledModel, GPU first / CPU fallback) for PP-OCRv6 detection & recognition
+    implementation libs.litert
+    implementation libs.litert.gpu
 
     // ZXing C++ barcode reader
     implementation files('libs/zxingcpp-release.aar')
@@ -96,85 +100,3 @@ configurations.all {
         force "androidx.core:core-ktx:1.12.0"
     }
 }
-
-// Auto-align sherpa-onnx AAR ELF symbol version requirement (VERS_1.24.3 / VERS_1.28.2 -> VERS_1.28.0)
-// so it cleanly links against Microsoft ONNX Runtime 1.28.0 without symbol mismatch.
-tasks.register('alignSherpaAar') {
-    doLast {
-        def aarFile = file('libs/sherpa-onnx-2.0.1.aar')
-        if (!aarFile.exists()) return
-
-        boolean needsPatch = false
-        def zipFile = new java.util.zip.ZipFile(aarFile)
-        try {
-            def entries = zipFile.entries()
-            while (entries.hasMoreElements()) {
-                def entry = entries.nextElement()
-                if (entry.name.endsWith('.so') && (entry.name.contains('sherpa-onnx-jni') || entry.name.contains('sherpa-onnx-c-api'))) {
-                    byte[] bytes = zipFile.getInputStream(entry).bytes
-                    String s = new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
-                    if (s.contains("VERS_1.24.3") || s.contains("VERS_1.28.2")) {
-                        needsPatch = true
-                        break
-                    }
-                }
-            }
-        } finally {
-            zipFile.close()
-        }
-
-        if (needsPatch) {
-            logger.lifecycle("alignSherpaAar: Aligning sherpa-onnx-2.0.1.aar symbol version to VERS_1.28.0...")
-            def tempOut = file("libs/temp_${aarFile.name}")
-            def zf = new java.util.zip.ZipFile(aarFile)
-            def zos = new java.util.zip.ZipOutputStream(new BufferedOutputStream(new FileOutputStream(tempOut)))
-            try {
-                def entries = zf.entries()
-                while (entries.hasMoreElements()) {
-                    def entry = entries.nextElement()
-                    byte[] data = zf.getInputStream(entry).bytes
-                    if (entry.name.contains('sherpa-onnx-c-api') || entry.name.contains('sherpa-onnx-jni')) {
-                        for (String oldVer : ["VERS_1.24.3", "VERS_1.28.2"]) {
-                            byte[] targetStr = oldVer.getBytes(java.nio.charset.StandardCharsets.UTF_8)
-                            byte[] replStr = "VERS_1.28.0".getBytes(java.nio.charset.StandardCharsets.UTF_8)
-                            for (int i = 0; i <= data.length - targetStr.length; i++) {
-                                boolean match = true
-                                for (int j = 0; j < targetStr.length; j++) {
-                                    if (data[i + j] != targetStr[j]) { match = false; break; }
-                                }
-                                if (match) {
-                                    System.arraycopy(replStr, 0, data, i, replStr.length)
-                                }
-                            }
-                        }
-                        for (int i = 0; i <= data.length - 4; i++) {
-                            if ((data[i] & 0xff) == 0x83 && (data[i+1] & 0xff) == 0xf2 &&
-                                (data[i+2] & 0xff) == 0x7b && (data[i+3] & 0xff) == 0x02) {
-                                data[i] = (byte)0x80
-                                data[i+1] = (byte)0xfe
-                            } else if ((data[i] & 0xff) == 0x82 && (data[i+1] & 0xff) == 0xfe &&
-                                       (data[i+2] & 0xff) == 0x7b && (data[i+3] & 0xff) == 0x02) {
-                                data[i] = (byte)0x80
-                            }
-                        }
-                    }
-                    def outEntry = new java.util.zip.ZipEntry(entry.name)
-                    outEntry.setTime(entry.getTime())
-                    zos.putNextEntry(outEntry)
-                    zos.write(data)
-                    zos.closeEntry()
-                }
-            } finally {
-                zf.close()
-                zos.close()
-            }
-            java.nio.file.Files.move(tempOut.toPath(), aarFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-            logger.lifecycle("alignSherpaAar: Successfully aligned sherpa-onnx-2.0.1.aar to VERS_1.28.0.")
-        }
-    }
-}
-tasks.matching { it.name.startsWith("pre") && it.name.endsWith("Build") }.configureEach {
-    dependsOn('alignSherpaAar')
-}
-
-

@@ -501,4 +501,15 @@
 
     <!-- language tags -->
     <string name="language_tag_multilingual">Multilingual</string>
+    <string name="floating_screen_ocr_desc">Screen OCR</string>
+    <string name="toast_screen_capture_failed">Screen capture failed. Enable the Verbead accessibility service (Android 11+)</string>
+    <string name="pending_text_title">Waiting to fill</string>
+    <string name="pending_text_dismiss_all">Clear all</string>
+    <string name="pending_text_dismiss">Remove</string>
+    <string name="pending_text_fill">Fill into the text field</string>
+    <string name="pending_text_no_field">No text field is focused</string>
+    <string name="settings_bubble_pending_title">Floating quick-fill text</string>
+    <string name="settings_bubble_pending_desc">When nothing can be filled in (no text field has focus), recognized text stays floating beside the bubble; tap one to fill it later. Works in every mode. 0 turns it off.</string>
+    <string name="settings_bubble_pending_off">Off</string>
+    <string name="settings_bubble_pending_value">%1$d</string>
 </resources>

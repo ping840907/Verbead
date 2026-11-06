@@ -51,34 +51,9 @@ class SherpaOnnxTest {
     }
 
     @Test
-    fun testOnnxRuntimeAndSherpaCoexistence() {
-        Log.i(TAG, "Testing JNI loading of sherpa-onnx...")
-        com.k2fsa.sherpa.onnx.OnlineRecognizer.prependAdspLibraryPath("")
-        Log.i(TAG, "Testing OrtEnvironment initialization...")
-        val env = ai.onnxruntime.OrtEnvironment.getEnvironment()
-        assertNotNull(env)
-        Log.i(TAG, "OrtEnvironment and Sherpa-ONNX both loaded successfully!")
-    }
-
-    private fun ensureOcrModels(context: android.content.Context) {
-        val dest = File(context.filesDir, "models/ocr")
-        dest.mkdirs()
-        val tmpOcr = File("/data/local/tmp/ocr")
-        if (tmpOcr.exists()) {
-            tmpOcr.listFiles()?.forEach { f ->
-                val target = File(dest, f.name)
-                if (!target.exists() || target.length() != f.length()) {
-                    f.copyTo(target, overwrite = true)
-                }
-            }
-        }
-    }
-
-    @Test
     fun testPpOcrEngineLoad() {
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
-            ensureOcrModels(context)
             if (File(ModelConfig.ocrDetPath(context, ModelConfig.OCR_MODEL_SMALL)).exists()) {
                 ModelConfig.setSelectedOcrModel(context, ModelConfig.OCR_MODEL_SMALL)
             }
@@ -94,7 +69,6 @@ class SherpaOnnxTest {
     fun testPpOcrVerticalTextRecognition() {
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
-            ensureOcrModels(context)
             if (File(ModelConfig.ocrDetPath(context, ModelConfig.OCR_MODEL_SMALL)).exists()) {
                 ModelConfig.setSelectedOcrModel(context, ModelConfig.OCR_MODEL_SMALL)
             }

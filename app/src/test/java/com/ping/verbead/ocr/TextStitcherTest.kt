@@ -272,4 +272,43 @@ class TextStitcherTest {
         assertTrue(result, result.contains("這個專案要上線。"))
         assertTrue(result, result.contains("国の学校です。"))
     }
+
+    @Test
+    fun testTruncatedUrlWrapIsJoined() {
+        val b1 = OcrBlock("Docs: https://example.com/very/long/pa", 50f, 100f, 400f, 120f)
+        val b2 = OcrBlock("th/file.html", 50f, 130f, 200f, 150f)
+        assertEquals("Docs: https://example.com/very/long/path/file.html", TextStitcher.stitch(listOf(b1, b2)))
+    }
+
+    @Test
+    fun testUrlWrapDoesNotAbsorbUnrelatedText() {
+        val b1 = OcrBlock("see https://example.com/a/b-", 50f, 100f, 400f, 120f)
+        val b2 = OcrBlock("c/d.html then continue reading", 50f, 130f, 390f, 150f)
+        assertEquals("see https://example.com/a/b-c/d.html then continue reading", TextStitcher.stitch(listOf(b1, b2)))
+    }
+
+    @Test
+    fun testUrlFollowedByUnrelatedLineIsNotMerged() {
+        // URL 行未達最寬行寬（自然結束），下一行是不相干文字
+        val b1 = OcrBlock("https://example.com/", 50f, 100f, 200f, 120f)
+        val b2 = OcrBlock("Contact us for more information today", 50f, 130f, 400f, 150f)
+        val result = TextStitcher.stitch(listOf(b1, b2))
+        assertEquals("https://example.com/ Contact us for more information today", result)
+    }
+
+    @Test
+    fun testMultiLineUrlWrap() {
+        val b1 = OcrBlock("https://example.com/aaaa", 50f, 100f, 400f, 120f)
+        val b2 = OcrBlock("bbbb/cccc", 50f, 130f, 395f, 150f)
+        val b3 = OcrBlock("dddd?x=1", 50f, 160f, 150f, 180f)
+        assertEquals("https://example.com/aaaabbbb/ccccdddd?x=1", TextStitcher.stitch(listOf(b1, b2, b3)))
+    }
+
+    @Test
+    fun testUrlThenListItemNotMerged() {
+        val b1 = OcrBlock("https://example.com/path/", 50f, 100f, 400f, 120f)
+        val b2 = OcrBlock("2. next item", 50f, 130f, 200f, 150f)
+        val result = TextStitcher.stitch(listOf(b1, b2))
+        assertEquals("https://example.com/path/" + "\n" + "2. next item", result)
+    }
 }

@@ -496,4 +496,15 @@
 
     <!-- language tags -->
     <string name="language_tag_multilingual">多語言</string>
+    <string name="floating_screen_ocr_desc">螢幕文字辨識</string>
+    <string name="toast_screen_capture_failed">螢幕擷取失敗，請啟用珠璣無障礙服務（需 Android 11 以上）</string>
+    <string name="pending_text_title">待填文字</string>
+    <string name="pending_text_dismiss_all">全部清除</string>
+    <string name="pending_text_dismiss">移除</string>
+    <string name="pending_text_fill">填入文字框</string>
+    <string name="pending_text_no_field">目前沒有可填入的文字框</string>
+    <string name="settings_bubble_pending_title">漂浮待填文字</string>
+    <string name="settings_bubble_pending_desc">辨識到的內容找不到可填入的文字框時，會漂浮在懸浮球旁，等有文字框時點一下即可填入。語音、文字辨識、條碼、片語都適用。設為 0 即關閉。</string>
+    <string name="settings_bubble_pending_off">關閉</string>
+    <string name="settings_bubble_pending_value">%1$d</string>
 </resources>

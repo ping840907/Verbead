@@ -72,6 +72,8 @@ class OcrOverlayController(
         fun onShowXButton()
         fun onHideXButton()
         fun onRequestCameraPermission()
+        /** 使用者按下「螢幕 OCR」：由服務隱藏懸浮畫面、截圖後呼叫 showScreenSnapshot。 */
+        fun onRequestScreenCapture()
     }
 
     companion object {
@@ -157,6 +159,7 @@ class OcrOverlayController(
         val btnFlash = ocr.findViewById<ImageButton>(R.id.btn_ocr_flash)
         val btnAutoEnter = ocr.findViewById<ImageButton>(R.id.btn_ocr_auto_enter)
         val btnShutter = ocr.findViewById<FrameLayout>(R.id.btn_ocr_shutter)
+        val btnScreen = ocr.findViewById<ImageButton>(R.id.btn_ocr_screen)
         val sliderZoom = ocr.findViewById<SeekBar>(R.id.slider_ocr_zoom)
         val viewFinder = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
         val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
@@ -170,6 +173,15 @@ class OcrOverlayController(
         btnClose.setOnClickListener {
             HapticUtil.click(context)
             stop()
+        }
+
+        btnScreen.setOnClickListener {
+            HapticUtil.heavyClick(context)
+            if (!ModelConfig.isOcrReady(context)) {
+                triggerSnapshot()
+                return@setOnClickListener
+            }
+            listener.onRequestScreenCapture()
         }
 
         btnScale.setOnClickListener {
@@ -433,6 +445,18 @@ class OcrOverlayController(
             rawBitmap
         }
 
+        showSnapshotView(bitmap)
+    }
+
+    /** 以螢幕截圖（已不含懸浮畫面）進入框選辨識流程。 */
+    fun showScreenSnapshot(rawBitmap: Bitmap) {
+        val maxDim = 2560
+        val bitmap = if (rawBitmap.width > maxDim || rawBitmap.height > maxDim) {
+            val scale = maxDim.toFloat() / maxOf(rawBitmap.width, rawBitmap.height)
+            val scaled = Bitmap.createScaledBitmap(rawBitmap, (rawBitmap.width * scale).toInt(), (rawBitmap.height * scale).toInt(), true)
+            if (scaled !== rawBitmap) rawBitmap.recycle()
+            scaled
+        } else rawBitmap
         showSnapshotView(bitmap)
     }
 

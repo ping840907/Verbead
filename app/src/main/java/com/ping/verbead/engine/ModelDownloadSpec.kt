@@ -57,51 +57,18 @@ object ModelDownloadSpec {
         ),
     )
 
-    // PP-OCRv6: locked to respective commit hashes on 2026-10-07
-    fun ocr(model: String = ModelConfig.OCR_MODEL_TINY): DownloadTarget {
-        val isSmall = (model == ModelConfig.OCR_MODEL_SMALL)
-        val detModel = if (isSmall) "PP-OCRv6_small_det_onnx" else "PP-OCRv6_tiny_det_onnx"
-        val recModel = if (isSmall) "PP-OCRv6_small_rec_onnx" else "PP-OCRv6_tiny_rec_onnx"
-        val detCommit = if (isSmall) "28fe5895c24fd108c19eb3e8479f4ab385fbfc62" else "2ba1506c0380b8f0b03dd142459aac66d4421f6c"
-        val recCommit = if (isSmall) "b8f84f0b80c529de40b4fbb3544b84fa7233a513" else "2612ab37152ae0a677521bae4e1e3d4fb4cf7c30"
-
-        val detSha256 = if (isSmall) {
-            "d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e"
-        } else {
-            "193bab7a04fca699a6c82e6abb5b81bdb28177f0abd4062552b04908dafb19f8"
-        }
-        val recSha256 = if (isSmall) {
-            "5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634"
-        } else {
-            "9ef676d6ed3c88256a2d92c640c44f25b0c40947e111b14b8be8f594091563e6"
-        }
-        val dictSha256 = if (isSmall) {
-            "ab078671bb49f06228eadccd34f1bb501e157f7a047095ffb943ba81512c77d1"
-        } else {
-            "66170210bad538e83fff3c4a3867e547d6bf20b50d64b20347c4b913f3034ea1"
-        }
-
-        return DownloadTarget(
-            engine = model,
-            files = listOf(
-                RemoteFile(
-                    "https://huggingface.co/PaddlePaddle/$detModel/resolve/$detCommit/inference.onnx",
-                    "${model}_det.onnx",
-                    detSha256
-                ),
-                RemoteFile(
-                    "https://huggingface.co/PaddlePaddle/$recModel/resolve/$recCommit/inference.onnx",
-                    "${model}_rec.onnx",
-                    recSha256
-                ),
-                RemoteFile(
-                    "https://huggingface.co/PaddlePaddle/$recModel/resolve/$recCommit/inference.yml",
-                    "${model}_dict.txt",
-                    dictSha256
-                )
+    // PP-OCRv6 (LiteRT): every file is an asset of the repository release OcrModelManifest.RELEASE_TAG,
+    // checked against the sums recorded in OcrModelManifest.
+    fun ocr(model: String = ModelConfig.OCR_MODEL_TINY): DownloadTarget = DownloadTarget(
+        engine = model,
+        files = ModelConfig.requiredOcrFiles(model).map { name ->
+            RemoteFile(
+                OcrModelManifest.BASE_URL + name,
+                name,
+                requireNotNull(OcrModelManifest.sha256[name]) { "no checksum recorded for $name" }
             )
-        )
-    }
+        }
+    )
 
     fun forEngine(engine: String): DownloadTarget = when {
         engine == ModelConfig.ENGINE_X_ASR -> xAsr()
