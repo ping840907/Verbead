@@ -16,7 +16,6 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -106,7 +105,6 @@ class PhrasesDrawerController(
             onSaveHistoryAsPhrase = { text ->
                 HapticUtil.click(context)
                 QuickPhrasesManager.add(context, text)
-                Toast.makeText(context, R.string.toast_phrase_saved_from_history, Toast.LENGTH_SHORT).show()
                 refreshPhrasesList()
             },
             onDeleteHistory = { historyIndex ->
@@ -117,7 +115,6 @@ class PhrasesDrawerController(
             onClearHistory = {
                 HapticUtil.click(context)
                 QuickPhrasesManager.clearHistory(context)
-                Toast.makeText(context, R.string.toast_history_cleared, Toast.LENGTH_SHORT).show()
                 refreshPhrasesList()
             },
             onStartDrag = { viewHolder ->
@@ -416,7 +413,6 @@ class PhrasesDrawerController(
                 val text = etPhrase.text.toString().trim()
                 if (text.isNotBlank()) {
                     QuickPhrasesManager.add(context, text)
-                    Toast.makeText(context, R.string.toast_phrase_added, Toast.LENGTH_SHORT).show()
                     refreshPhrasesList()
                 }
             }
@@ -450,7 +446,6 @@ class PhrasesDrawerController(
                         currentPhrases[idx] = newText
                         QuickPhrasesManager.save(context, currentPhrases)
                     }
-                    Toast.makeText(context, R.string.toast_phrase_updated, Toast.LENGTH_SHORT).show()
                     refreshPhrasesList()
                 }
             }
@@ -474,7 +469,6 @@ class PhrasesDrawerController(
                 val currentPhrases = QuickPhrasesManager.load(context).toMutableList()
                 currentPhrases.remove(phrase)
                 QuickPhrasesManager.save(context, currentPhrases)
-                Toast.makeText(context, R.string.toast_phrase_deleted, Toast.LENGTH_SHORT).show()
                 refreshPhrasesList()
             }
             .setNegativeButton(R.string.btn_cancel) { _, _ ->

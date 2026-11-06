@@ -31,9 +31,8 @@ class DictSettingsActivity : AppCompatActivity() {
         uri ?: return@registerForActivityResult
         try {
             contentResolver.openInputStream(uri)?.use { stream ->
-                val count = UserDictionary.importAndMergeFromCsv(this, stream)
+                UserDictionary.importAndMergeFromCsv(this, stream)
                 refreshList()
-                Toast.makeText(this, getString(R.string.toast_dict_import_success, count), Toast.LENGTH_SHORT).show()
             } ?: run {
                 Toast.makeText(this, R.string.toast_dict_import_cannot_read, Toast.LENGTH_SHORT).show()
             }
@@ -50,7 +49,6 @@ class DictSettingsActivity : AppCompatActivity() {
             val entries = UserDictionary.load(this)
             contentResolver.openOutputStream(uri)?.use { stream ->
                 UserDictionary.exportToCsv(entries, stream)
-                Toast.makeText(this, getString(R.string.toast_dict_export_success, entries.size), Toast.LENGTH_SHORT).show()
             } ?: run {
                 Toast.makeText(this, R.string.toast_dict_export_cannot_write, Toast.LENGTH_SHORT).show()
             }

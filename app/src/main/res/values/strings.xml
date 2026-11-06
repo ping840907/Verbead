@@ -11,10 +11,8 @@
     <string name="notif_download_title">Downloading speech recognition model</string>
 
     <!-- DictSettings Toasts -->
-    <string name="toast_dict_import_success">Entries imported: %1$d</string>
     <string name="toast_dict_import_cannot_read">Can\'t read the selected file</string>
     <string name="toast_dict_import_failed">Import failed: %1$s</string>
-    <string name="toast_dict_export_success">Entries exported: %1$d</string>
     <string name="toast_dict_export_cannot_write">Can\'t write to the target file</string>
     <string name="toast_dict_export_failed">Export failed: %1$s</string>
     <string name="toast_dict_file_picker_error">Can\'t open the file picker: %1$s</string>
@@ -45,13 +43,10 @@
 
     <!-- Onboarding Toasts -->
     <string name="toast_file_picker_error">Can\'t open the file picker: %1$s</string>
-    <string name="toast_model_download_done">%1$s model downloaded</string>
-    <string name="toast_model_download_failed">%1$s download failed: %2$s</string>
 
     <!-- ImeSettings Toasts -->
     <string name="toast_url_open_error">Can\'t open the link: %1$s</string>
     <string name="toast_model_not_downloaded">This model isn\'t downloaded yet. Please download it below first</string>
-    <string name="toast_switched_to_qwen3_dual">Switched to Qwen3-ASR and enabled dual-engine mode</string>
 
     <!-- FloatingBubbleService Toasts -->
     <string name="toast_mic_permission_voice">Please grant microphone permission to use voice input</string>
@@ -59,8 +54,6 @@
     <string name="toast_transcribe_failed_retry">Transcription failed. Please record again</string>
     <string name="toast_camera_permission_scan">Please grant camera permission to use scanning</string>
     <string name="toast_camera_permission_ocr">Please grant camera permission to use text recognition</string>
-    <string name="toast_auto_enter_enabled">Auto Enter turned on</string>
-    <string name="toast_auto_enter_disabled">Auto Enter turned off</string>
     <string name="toast_ocr_model_not_downloaded">The PP-OCR model isn\'t downloaded yet. Please download it in Settings first</string>
     <string name="toast_camera_capture_failed">Couldn\'t capture the current camera frame</string>
 
@@ -92,17 +85,11 @@
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_delete">Delete</string>
-    <string name="toast_phrase_added">Quick phrase added</string>
-    <string name="toast_phrase_updated">Quick phrase updated</string>
-    <string name="toast_phrase_deleted">Quick phrase deleted</string>
-    <string name="toast_history_cleared">Recent history cleared</string>
-    <string name="toast_phrase_saved_from_history">Saved to quick phrases</string>
     <string name="header_recent_history">Recent (up to %1$d)</string>
     <string name="header_quick_phrases">Quick phrases (long-press to reorder)</string>
     <string name="action_clear_history">Clear</string>
     <string name="empty_quick_phrases">No quick phrases or history yet\nTap \"+\" at the top right to add one</string>
 
-    <string name="toast_asr_model_not_ready">Speech model (%1$s) isn\'t downloaded yet. Please download it in Settings</string>
     <string name="ocr_pangu_spacing_title">CJK–Latin spacing</string>
     <string name="ocr_pangu_spacing_desc">Automatically inserts a space between Chinese characters and Latin letters, digits or symbols for cleaner typography</string>
     <string name="ocr_to_traditional_title">Convert results to Traditional Chinese</string>
@@ -375,9 +362,6 @@
     <string name="settings_speech_vocab_desc_count">Custom entries: %1$d · tap to manage</string>
     <string name="settings_speech_engine_xasr_name">X-ASR streaming engine</string>
     <string name="settings_speech_engine_qwen_name">Qwen3-ASR offline engine</string>
-    <string name="settings_speech_toast_engine_switched">Main recognition engine switched to %1$s</string>
-    <string name="settings_speech_toast_dual_on">Dual-engine mode enabled</string>
-    <string name="settings_speech_toast_dual_off">Dual-engine mode disabled</string>
     <string name="settings_speech_missing_both">X-ASR and Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">Download needed for dual-engine mode</string>
     <string name="settings_speech_dual_needs_model_message">Dual-engine mode combines X-ASR\'s low-latency live preview with Qwen3-ASR\'s high-accuracy offline transcription.\n\nNot downloaded yet: %1$s.\nTap \"Download model\" to install it first, then turn this on.</string>
@@ -386,11 +370,9 @@
     <string name="settings_speech_download_title">Download %1$s</string>
     <string name="settings_speech_redownload_title">Download %1$s again</string>
     <string name="settings_speech_download_message">Estimated size: about %1$d MB.\nA foreground service keeps the download running in the background; once it finishes, the model works offline.</string>
-    <string name="settings_speech_toast_download_done">Model downloaded!</string>
     <string name="settings_ocr_checking_size">Checking file size…</string>
     <string name="settings_ocr_download_message">About to download an offline Traditional Chinese recognition model (%1$s). Once it finishes, text recognition runs entirely on this device.\n\nContinue?</string>
     <string name="settings_ocr_download_start">Start download</string>
-    <string name="settings_ocr_toast_download_done">PP-OCR model downloaded!</string>
 
     <!-- P1-4: onboarding -->
     <string name="onboarding_skip">Skip</string>
@@ -482,7 +464,6 @@
     <string name="ocr_overlay_recognize_error">Recognition failed (%1$s): %2$s</string>
     <string name="bubble_toast_one_mode_only">Only one mode is enabled, so the bubble can\'t be duplicated\nEnable more modes in Settings</string>
     <string name="bubble_toast_limit_reached">Reached the limit for enabled modes (up to %1$d bubbles)</string>
-    <string name="bubble_toast_duplicated">Duplicated the \"%1$s\" bubble (%2$d bubbles now, multi-bubble on)</string>
     <string name="floating_ocr_desc">Floating text recognition</string>
     <string name="floating_barcode_desc">Floating barcode scanner</string>
     <string name="floating_voice_desc">Floating voice input</string>

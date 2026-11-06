@@ -203,7 +203,6 @@ class OcrOverlayController(
             val nextState = !ModelConfig.isOcrAutoEnterEnabled(context)
             ModelConfig.setOcrAutoEnterEnabled(context, nextState)
             btnAutoEnter.setImageResource(if (nextState) R.drawable.ic_auto_enter_on else R.drawable.ic_auto_enter_off)
-            Toast.makeText(context, if (nextState) R.string.toast_auto_enter_enabled else R.string.toast_auto_enter_disabled, Toast.LENGTH_SHORT).show()
         }
 
         val savedZoom = ModelConfig.getCameraZoom(context, MODE_OCR)
