@@ -132,8 +132,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         const val MODE_OCR = 1
         /** Centre-to-centre distance of bubbles linked by shaking: less than the 60dp bubble, so each one overlaps the one in front. */
         const val CHAIN_SPACING_DP = 44f
-        /** Time constant of the trailing delay of linked bubbles (smaller = tighter). */
-        const val CHAIN_LAG_MS = 70f
+        /**
+         * Linked bubbles are masses on a spring-damper rope: stiffness in 1/s^2 (about 3.5 Hz). The damping acts on the speed
+         * *relative to the bubble in front* and its ratio is below 1: a flick of the front bubble carries this one along instead
+         * of leaving it behind, and it swings a little past its spot when the front one stops (inertia).
+         */
+        const val CHAIN_STIFFNESS = 480f
+        const val CHAIN_DAMPING_RATIO = 0.45f
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
@@ -239,6 +244,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private val shakeChain = ArrayList<FloatingBubbleItem>()
     private var shakeChainLeader: FloatingBubbleItem? = null
     private var chainLastFrameNs = 0L
+
+    /** id -> [x, y, vx, vy] in px and px/s for the leader and every linked bubble (positions kept as floats). */
+    private val chainState = HashMap<Int, FloatArray>()
     private val chainFrameCallback = object : android.view.Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             if (shakeChain.isEmpty()) {
@@ -1731,6 +1739,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         for (f in shakeChain) (f.view as? UnderlapFrameLayout)?.clearHole()
         shakeChain.clear()
         shakeChainLeader = null
+        chainState.clear()
         android.view.Choreographer.getInstance().removeFrameCallback(chainFrameCallback)
         chainLastFrameNs = 0L
     }
@@ -1749,33 +1758,66 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val maxX = (getScreenWidth() - (60 * density).toInt()).toFloat()
         val minY = getMinY().toFloat()
         val maxY = getMaxY().toFloat()
-        val follow = 1f - kotlin.math.exp(-dtMs / CHAIN_LAG_MS)
-        var front = leader
+        val dt = (dtMs / 1000f).coerceIn(0.001f, 0.05f)
+
+        // the dragged bubble is moved by the finger; only its position and speed are tracked
+        val lead = chainState.getOrPut(leader.id) {
+            floatArrayOf(leader.windowLayoutParams.x.toFloat(), leader.windowLayoutParams.y.toFloat(), 0f, 0f)
+        }
+        val lx = leader.windowLayoutParams.x.toFloat()
+        val ly = leader.windowLayoutParams.y.toFloat()
+        // touch events do not arrive every frame, so smooth the measured speed
+        lead[2] += ((lx - lead[0]) / dt - lead[2]) * 0.5f
+        lead[3] += ((ly - lead[1]) / dt - lead[3]) * 0.5f
+        lead[0] = lx
+        lead[1] = ly
+
+        val k = CHAIN_STIFFNESS
+        val c = 2f * CHAIN_DAMPING_RATIO * kotlin.math.sqrt(k)
+        var front = lead
+        var frontView = leader
         for (f in shakeChain) {
-            if (!f.view.isAttachedToWindow || !front.view.isAttachedToWindow) { front = f; continue }
+            val st = chainState.getOrPut(f.id) {
+                floatArrayOf(f.windowLayoutParams.x.toFloat(), f.windowLayoutParams.y.toFloat(), 0f, 0f)
+            }
+            if (!f.view.isAttachedToWindow || !frontView.view.isAttachedToWindow) { front = st; frontView = f; continue }
             f.snapAnimator?.cancel()
-            val px = front.windowLayoutParams.x.toFloat()
-            val py = front.windowLayoutParams.y.toFloat()
-            var dx = f.windowLayoutParams.x - px
-            var dy = f.windowLayoutParams.y - py
+
+            var dx = st[0] - front[0]
+            var dy = st[1] - front[1]
             var d = hypot(dx, dy)
             if (d < 0.5f) { dx = 0f; dy = 1f; d = 1f } // exactly under the bubble in front: come out below it
-            val goalX = (px + dx / d * spacing).coerceIn(0f, maxX)
-            val goalY = (py + dy / d * spacing).coerceIn(minY, maxY)
-            val nx = f.windowLayoutParams.x + (goalX - f.windowLayoutParams.x) * follow
-            val ny = f.windowLayoutParams.y + (goalY - f.windowLayoutParams.y) * follow
-            if (nx.toInt() != f.windowLayoutParams.x || ny.toInt() != f.windowLayoutParams.y) {
-                f.windowLayoutParams.x = nx.toInt()
-                f.windowLayoutParams.y = ny.toInt()
+            // rest point: on the circle of radius spacing around the bubble in front, on the side where this one already is
+            val goalX = front[0] + dx / d * spacing
+            val goalY = front[1] + dy / d * spacing
+
+            // spring toward the rest point, damping relative to the bubble in front (semi-implicit Euler, one short step per frame)
+            st[2] += (k * (goalX - st[0]) - c * (st[2] - front[2])) * dt
+            st[3] += (k * (goalY - st[1]) - c * (st[3] - front[3])) * dt
+            st[0] += st[2] * dt
+            st[1] += st[3] * dt
+
+            // keep it on screen; a wall absorbs the speed in that direction
+            if (st[0] < 0f) { st[0] = 0f; if (st[2] < 0f) st[2] = 0f }
+            if (st[0] > maxX) { st[0] = maxX; if (st[2] > 0f) st[2] = 0f }
+            if (st[1] < minY) { st[1] = minY; if (st[3] < 0f) st[3] = 0f }
+            if (st[1] > maxY) { st[1] = maxY; if (st[3] > 0f) st[3] = 0f }
+
+            val nx = st[0].toInt()
+            val ny = st[1].toInt()
+            if (nx != f.windowLayoutParams.x || ny != f.windowLayoutParams.y) {
+                f.windowLayoutParams.x = nx
+                f.windowLayoutParams.y = ny
                 windowManager.updateViewLayout(f.view, f.windowLayoutParams)
             }
             // hide the part of this bubble that the bubble in front covers
             (f.view as? UnderlapFrameLayout)?.setHole(
-                px + half - f.windowLayoutParams.x,
-                py + half - f.windowLayoutParams.y,
+                front[0] + half - st[0],
+                front[1] + half - st[1],
                 half
             )
-            front = f
+            front = st
+            frontView = f
         }
     }
 
