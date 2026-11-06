@@ -504,7 +504,7 @@
     <string name="pending_text_fill">입력란에 채우기</string>
     <string name="pending_text_no_field">포커스된 입력란이 없습니다</string>
     <string name="settings_bubble_pending_title">떠 있는 입력 대기 텍스트</string>
-    <string name="settings_bubble_pending_desc">입력할 곳이 없을 때 인식된 텍스트를 버블 옆에 띄워 두었다가 나중에 눌러서 채울 수 있습니다. 모든 모드에서 작동합니다. 0이면 꺼집니다.</string>
+    <string name="settings_bubble_pending_desc">입력할 곳이 없을 때 인식된 텍스트를 버블 옆에 띄워 두었다가 나중에 눌러서 채울 수 있습니다. 모든 모드에서 작동합니다. 0이면 꺼집니다.클립보드에는 클립보드 붙여넣기 모드이거나 이 기능이 꺼져 있을 때만 저장됩니다.</string>
     <string name="settings_bubble_pending_off">끔</string>
     <string name="settings_bubble_pending_value">%1$d</string>
 </resources>

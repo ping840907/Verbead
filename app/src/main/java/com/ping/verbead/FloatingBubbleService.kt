@@ -3033,6 +3033,17 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         mainHandler.post { updateMultiBubbleMode() }
     }
 
+    /**
+     * [text] could not be filled in anywhere. It waits in the floating quick-fill list; the clipboard is only written when
+     * clipboard-paste mode is on, or when the list is switched off (otherwise the text would be lost).
+     * @return true when the text is waiting in the list (so the caller needs no "copied" notice).
+     */
+    private fun keepUnfilledText(text: String): Boolean {
+        val parked = offerPendingText(text)
+        if (!parked || ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(text)
+        return parked
+    }
+
     /** The settings slider changed: shrink the waiting list to the new size (0 closes it). */
     fun onPendingTextCountChanged() {
         if (::pendingTextController.isInitialized) {
@@ -3088,10 +3099,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             enterPastedState()
         } else {
             // 若未找到焦點輸入框或無障礙服務不可用，備援複製至剪貼簿（具備 EXTRA_IS_SENSITIVE 隱私標記）
-            copyToClipboardFallback(text)
             setState(State.IDLE)
             hideXButton()
-            if (!offerPendingText(text)) showPreviewText(getString(R.string.preview_copied), autoHide = true)
+            if (!keepUnfilledText(text)) showPreviewText(getString(R.string.preview_copied), autoHide = true)
         }
     }
 
@@ -3532,10 +3542,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             enterPastedState()
         } else {
-            copyToClipboardFallback(text)
             setState(State.IDLE)
             hideXButton()
-            if (!offerPendingText(text)) {
+            if (!keepUnfilledText(text)) {
                 val previewMsg = if (text.length > 25) "${text.take(25)}…" else text
                 showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
             }
@@ -3556,10 +3565,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             enterPastedState()
         } else {
-            copyToClipboardFallback(code)
             setState(State.IDLE)
             hideXButton()
-            if (!offerPendingText(code)) showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
+            if (!keepUnfilledText(code)) showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
         }
         stopScannerMode(hideX = !injected)
     }
@@ -3628,9 +3636,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             showPreviewText(getString(R.string.preview_inserted_phrase), autoHide = true)
             enterPastedState()
         } else {
-            copyToClipboardFallback(phrase)
             setState(State.IDLE)
-            if (!offerPendingText(phrase)) showPreviewText(getString(R.string.toast_fallback_clipboard), autoHide = true)
+            if (!keepUnfilledText(phrase)) showPreviewText(getString(R.string.toast_fallback_clipboard), autoHide = true)
         }
         closePhrasesDrawer(hideX = !injected)
     }

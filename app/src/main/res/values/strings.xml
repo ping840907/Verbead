@@ -509,7 +509,7 @@
     <string name="pending_text_fill">Fill into the text field</string>
     <string name="pending_text_no_field">No text field is focused</string>
     <string name="settings_bubble_pending_title">Floating quick-fill text</string>
-    <string name="settings_bubble_pending_desc">When nothing can be filled in (no text field has focus), recognized text stays floating beside the bubble; tap one to fill it later. Works in every mode. 0 turns it off.</string>
+    <string name="settings_bubble_pending_desc">When nothing can be filled in (no text field has focus), recognized text stays floating beside the bubble; tap one to fill it later. Works in every mode. 0 turns it off. The clipboard is only written in clipboard-paste mode, or when this is off.</string>
     <string name="settings_bubble_pending_off">Off</string>
     <string name="settings_bubble_pending_value">%1$d</string>
 </resources>
