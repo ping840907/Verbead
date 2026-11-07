@@ -52,11 +52,6 @@ class BubbleModeConfigAdapter(
         return true
     }
 
-    fun onDragFinished() {
-        notifyItemRangeChanged(0, modeOrder.size)
-        onConfigChanged()
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ModeViewHolder {
         val v = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_bubble_mode_config, parent, false)

@@ -360,8 +360,6 @@
     <string name="settings_speech_engine_switch">Use this engine</string>
     <string name="settings_speech_engine_in_use">In use</string>
     <string name="settings_speech_vocab_desc_count">Custom entries: %1$d · tap to manage</string>
-    <string name="settings_speech_engine_xasr_name">X-ASR streaming engine</string>
-    <string name="settings_speech_engine_qwen_name">Qwen3-ASR offline engine</string>
     <string name="settings_speech_missing_both">X-ASR and Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">Download needed for dual-engine mode</string>
     <string name="settings_speech_dual_needs_model_message">Dual-engine mode combines X-ASR\'s low-latency live preview with Qwen3-ASR\'s high-accuracy offline transcription.\n\nNot downloaded yet: %1$s.\nTap \"Download model\" to install it first, then turn this on.</string>

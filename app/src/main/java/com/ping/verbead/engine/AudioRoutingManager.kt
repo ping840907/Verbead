@@ -152,27 +152,6 @@ class AudioRoutingManager(private val context: Context) {
     }
 
     /**
-     * 判斷指定音訊裝置是否屬於外部裝置（藍牙耳機、有線耳機、USB 耳麥等）。
-     */
-    fun isExternalDevice(device: AudioDeviceInfo?): Boolean {
-        if (device == null) return false
-        return device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-               device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
-               device.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
-               (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && device.type == AudioDeviceInfo.TYPE_BLE_HEADSET) ||
-               (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && device.type == AudioDeviceInfo.TYPE_USB_DEVICE)
-    }
-
-    /**
-     * 判斷指定音訊裝置是否屬於藍牙耳機（Classic SCO 或 BLE Audio）。
-     */
-    fun isBluetoothDevice(device: AudioDeviceInfo?): Boolean {
-        if (device == null) return false
-        return device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-               (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && device.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
-    }
-
-    /**
      * 檢查目標裝置是否支援 16kHz 寬頻語音（Wideband Speech / mSBC / LC3）。
      * 若 sampleRates 為空或包含 16000，表示支援或不限制。
      */

@@ -178,9 +178,6 @@ object ModelConfig {
     private const val KEY_EXTERNAL_AUDIO_GAIN   = "external_audio_gain"
 
     const val DEFAULT_EXTERNAL_AUDIO_GAIN = 2.5f
-    const val MIN_EXTERNAL_AUDIO_GAIN = 1.0f
-    const val MAX_EXTERNAL_AUDIO_GAIN = 6.0f
-    const val STEP_EXTERNAL_AUDIO_GAIN = 0.5f
 
     fun isPreferExternalAudio(context: Context): Boolean =
         context.getSharedPreferences(PREF_AUDIO, Context.MODE_PRIVATE)
@@ -517,10 +514,6 @@ object ModelConfig {
     private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
     private const val KEY_ONBOARDING_MODE = "onboarding_mode"
 
-    fun isOnboardingCompleted(context: Context): Boolean =
-        context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
-            .getBoolean(KEY_ONBOARDING_COMPLETED, false)
-
     fun setOnboardingCompleted(context: Context, completed: Boolean) =
         context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply()
@@ -740,14 +733,6 @@ object ModelConfig {
             }
         }
         return true
-    }
-
-    fun resetBubbleModesToDefault(context: Context) {
-        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
-            .edit()
-            .remove(KEY_BUBBLE_MODE_ORDER)
-            .remove(KEY_BUBBLE_DISABLED_MODES)
-            .apply()
     }
 
     // ── Text Injection Settings ───────────────────────────────────────────────

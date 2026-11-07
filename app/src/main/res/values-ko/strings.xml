@@ -355,8 +355,6 @@
     <string name="settings_speech_engine_switch">이 엔진으로 전환</string>
     <string name="settings_speech_engine_in_use">사용 중</string>
     <string name="settings_speech_vocab_desc_count">사용자 단어 %1$d개 · 탭하여 관리</string>
-    <string name="settings_speech_engine_xasr_name">X-ASR 스트리밍 엔진</string>
-    <string name="settings_speech_engine_qwen_name">Qwen3-ASR 오프라인 엔진</string>
     <string name="settings_speech_missing_both">X-ASR과 Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">듀얼 엔진을 켜려면 모델 다운로드가 필요합니다</string>
     <string name="settings_speech_dual_needs_model_message">듀얼 엔진 모드는 X-ASR의 저지연 실시간 미리보기와 Qwen3-ASR의 고정밀 오프라인 변환을 결합합니다.\n\n아직 다운로드되지 않음: %1$s.\n먼저 \"모델 다운로드\"를 눌러 설치한 뒤 켜 주세요.</string>

@@ -355,8 +355,6 @@
     <string name="settings_speech_engine_switch">切換為此引擎</string>
     <string name="settings_speech_engine_in_use">使用中</string>
     <string name="settings_speech_vocab_desc_count">已收錄 %1$d 筆自訂詞彙 · 點擊管理專屬詞庫</string>
-    <string name="settings_speech_engine_xasr_name">X-ASR 串流引擎</string>
-    <string name="settings_speech_engine_qwen_name">Qwen3-ASR 離線引擎</string>
     <string name="settings_speech_missing_both">X-ASR 與 Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">需要下載模型以啟用雙引擎</string>
     <string name="settings_speech_dual_needs_model_message">雙引擎模式結合了 X-ASR 的低延遲即時預覽與 Qwen3-ASR 的高精離線轉譯。\n\n目前尚未下載：%1$s。\n請先點選「下載模型」完成安裝後再開啟。</string>

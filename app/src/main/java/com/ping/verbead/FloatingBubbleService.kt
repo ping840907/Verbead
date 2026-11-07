@@ -197,12 +197,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private lateinit var bubblePreviewController: BubblePreviewController
     private lateinit var bubblePulseController: BubblePulseController
     private lateinit var bubbleXButtonController: BubbleXButtonController
-    /** 填入失敗時臨時長出來的常用語球；抽屜關閉後就收掉。 */
+    /** 填入失敗時臨時長出來的常用語球（不存設定）；關閉抽屜後保留，常用語功能被關閉時才移除。 */
     private var temporaryPhrasesBubble: FloatingBubbleItem? = null
-    private val isXButtonShowing: Boolean
-        get() = ::bubbleXButtonController.isInitialized && bubbleXButtonController.isShowing
-    private val isPulseShowing: Boolean
-        get() = ::bubblePulseController.isInitialized && bubblePulseController.isShowing
     private var isRestoringSnapshot = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -3561,10 +3557,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (!isOcrModeActive) return
         val isRight = currentAnchorBubble?.isDockedOnRight ?: isDockedOnRight
         ocrOverlayController.stop(hideX = hideX, isDockedOnRight = isRight)
-    }
-
-    private fun triggerOcrSnapshot() {
-        ocrOverlayController.triggerSnapshot()
     }
 
     private fun dismissOcrSnapshot(hideX: Boolean = true) {
