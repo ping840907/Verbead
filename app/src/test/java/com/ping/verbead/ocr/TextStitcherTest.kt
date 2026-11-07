@@ -335,6 +335,148 @@ class TextStitcherTest {
     }
 
     @Test
+    fun testFirstLineIndentJoinsFollowingLines() {
+        // 首行縮排（右邊界對齊、左邊界內縮）不是居中，要和後面的行接起來；下一段的縮排首行才斷行
+        val l1 = OcrBlock("這是第一段落縮排的首行文字內容很長很長", 90f, 100f, 400f, 120f)
+        val l2 = OcrBlock("接續上一行沒有縮排的第二行文字內容", 50f, 130f, 400f, 150f)
+        val l3 = OcrBlock("第一段落最後一行", 50f, 160f, 300f, 180f)
+        val l4 = OcrBlock("第二段落縮排的首行文字內容很長很長", 90f, 190f, 400f, 210f)
+        val l5 = OcrBlock("接續第二段落的下一行文字內容", 50f, 220f, 400f, 240f)
+        assertEquals(
+            "這是第一段落縮排的首行文字內容很長很長接續上一行沒有縮排的第二行文字內容第一段落最後一行\n" +
+                "第二段落縮排的首行文字內容很長很長接續第二段落的下一行文字內容",
+            TextStitcher.stitch(listOf(l1, l2, l3, l4, l5))
+        )
+    }
+
+    @Test
+    fun testFirstLineIndentWithPhotoNoiseOnRightEdge() {
+        // 實拍報紙：首行縮排約 0.7 字，右邊界有幾個像素的雜訊（下一行反而多出 5px）
+        val l1 = OcrBlock("臺灣5人制棒球代表隊（上圖）昨在", 355f, 740f, 1225f, 810f)
+        val l2 = OcrBlock("達卡青奧金牌戰以1:2、1：7不敵世界", 305f, 820f, 1230f, 890f)
+        val l3 = OcrBlock("排名第一的古巴拿到銀牌。", 303f, 900f, 1100f, 970f)
+        assertEquals(
+            "臺灣5人制棒球代表隊（上圖）昨在達卡青奧金牌戰以1:2、1：7不敵世界排名第一的古巴拿到銀牌。",
+            TextStitcher.stitch(listOf(l1, l2, l3))
+        )
+
+        // 右邊界雜訊朝另一個方向也一樣
+        val m1 = OcrBlock("武術小將朱宥恩（下圖）在女子太", 360f, 1260f, 1250f, 1330f)
+        val m2 = OcrBlock("極拳／太極扇發揮亮眼，最終以總分", 295f, 1340f, 1245f, 1410f)
+        assertEquals("武術小將朱宥恩（下圖）在女子太極拳／太極扇發揮亮眼，最終以總分", TextStitcher.stitch(listOf(m1, m2)))
+    }
+
+    @Test
+    fun testCenteredTitleStillBreaks() {
+        // 左右邊界反向內縮才是居中，仍然斷行
+        val title = OcrBlock("年度報告重點摘要整理", 100f, 100f, 400f, 120f)
+        val sub = OcrBlock("二零二六年版本", 150f, 130f, 350f, 150f)
+        assertEquals("年度報告重點摘要整理\n二零二六年版本", TextStitcher.stitch(listOf(title, sub)))
+    }
+
+    @Test
+    fun testTextFollowedByNumberOrEnglishStaysJoined() {
+        // 小數、型號開頭不是列表編號
+        val a1 = OcrBlock("本次出貨總重量共計", 50f, 100f, 300f, 120f)
+        val a2 = OcrBlock("12.5公斤請確認", 50f, 130f, 300f, 150f)
+        assertEquals("本次出貨總重量共計12.5公斤請確認", TextStitcher.stitch(listOf(a1, a2)))
+
+        val b1 = OcrBlock("使用的耳機接頭規格為", 50f, 100f, 300f, 120f)
+        val b2 = OcrBlock("3.5mm 與 USB Type-C", 50f, 130f, 300f, 150f)
+        assertEquals("使用的耳機接頭規格為3.5mm 與 USB Type-C", TextStitcher.stitch(listOf(b1, b2)))
+
+        // 負號、縮寫不是項目符號
+        val c1 = OcrBlock("今天最低氣溫降到", 50f, 100f, 300f, 120f)
+        val c2 = OcrBlock("-5°C 請多加衣物", 50f, 130f, 300f, 150f)
+        assertEquals("今天最低氣溫降到-5°C 請多加衣物", TextStitcher.stitch(listOf(c1, c2)))
+
+        val d1 = OcrBlock("本公司總部位於", 50f, 100f, 300f, 120f)
+        val d2 = OcrBlock("U.S. 西岸地區", 50f, 130f, 300f, 150f)
+        assertEquals("本公司總部位於U.S. 西岸地區", TextStitcher.stitch(listOf(d1, d2)))
+
+        // 真正的列表項目仍然斷行
+        val e1 = OcrBlock("請確認下列事項", 50f, 100f, 300f, 120f)
+        val e2 = OcrBlock("A. 身分證明", 50f, 130f, 300f, 150f)
+        val e3 = OcrBlock("- 印章", 50f, 160f, 300f, 180f)
+        assertEquals("請確認下列事項\nA. 身分證明\n- 印章", TextStitcher.stitch(listOf(e1, e2, e3)))
+    }
+
+    private fun lines(vararg texts: String): List<OcrBlock> =
+        texts.mapIndexed { i, t -> OcrBlock(t, 50f, 100f + 30f * i, 300f, 120f + 30f * i) }
+
+    private fun stitchLines(vararg texts: String) = TextStitcher.stitch(lines(*texts))
+
+    @Test
+    fun testJapaneseWrapAndListMarkers() {
+        // 假名、漢字之間換行不補空格
+        assertEquals("これは日本語の文章です", stitchLines("これは日本語の", "文章です"))
+        // 日文項目符號與註記起首行斷行
+        assertEquals("確認事項\n・本人確認書類\n※注意", stitchLines("確認事項", "・本人確認書類", "※注意"))
+        assertEquals("手順\n①開く\n②閉じる", stitchLines("手順", "①開く", "②閉じる"))
+        assertEquals("条件\n（１）第一項\n（２）第二項", stitchLines("条件", "（１）第一項", "（２）第二項"))
+        // 日文讀點結尾視為句子未完
+        assertEquals("まず、次に", stitchLines("まず、", "次に"))
+    }
+
+    @Test
+    fun testKoreanListMarkers() {
+        assertEquals("안녕하세요 반갑습니다", stitchLines("안녕하세요", "반갑습니다"))
+        assertEquals("항목\n가. 첫째\n나. 둘째", stitchLines("항목", "가. 첫째", "나. 둘째"))
+    }
+
+    @Test
+    fun testCyrillicHyphenAndAbbreviations() {
+        assertEquals("Это осуществляется легко", stitchLines("Это осущест-", "вляется легко"))
+        // 專有複合詞保留連字號
+        assertEquals("город Санкт-Петербург", stitchLines("город Санкт-", "Петербург"))
+        // т.д. 是縮寫，不斷行
+        assertEquals("Овощи, фрукты и т.д. Дальше идёт текст", stitchLines("Овощи, фрукты и т.д.", "Дальше идёт текст"))
+        // 一般句末後大寫開頭 -> 新句
+        assertEquals("Это конец.\nНовое предложение", stitchLines("Это конец.", "Новое предложение"))
+        // 俄文單字母編號
+        assertEquals("Пункты\nа) первый\nб) второй", stitchLines("Пункты", "а) первый", "б) второй"))
+    }
+
+    @Test
+    fun testGermanFrenchSpanishAbbreviationsAndHyphens() {
+        assertEquals("Früchte z.B. Äpfel und Birnen.", stitchLines("Früchte z.B.", "Äpfel und Birnen."))
+        assertEquals("Wir spielen Fußball heute", stitchLines("Wir spielen Fuß-", "ball heute"))
+        assertEquals("im Bezirk Berlin-Mitte gelegen", stitchLines("im Bezirk Berlin-", "Mitte gelegen"))
+        assertEquals("Hable con la Sra. García mañana", stitchLines("Hable con la Sra.", "García mañana"))
+        // 法文引號：開引號後不補空格
+        assertEquals("Il a dit «bonjour»", stitchLines("Il a dit «", "bonjour»"))
+        // U+2010 與軟連字號
+        assertEquals("international", stitchLines("inter‐", "national"))
+        assertEquals("international", stitchLines("inter­", "national"))
+    }
+
+    @Test
+    fun testVietnameseExtendedLatinIsLatin() {
+        assertTrue(TextStitcher.isLatin('ệ'))
+        assertTrue(TextStitcher.isLatin('ạ'))
+        assertEquals("Tiếng Việt rất hay", stitchLines("Tiếng Việt", "rất hay"))
+    }
+
+    @Test
+    fun testArabicHebrewHindiSentenceEnds() {
+        // 句號後接無大小寫的文字 -> 新句
+        assertEquals("هذه جملة.\nجملة جديدة", stitchLines("هذه جملة.", "جملة جديدة"))
+        assertEquals("This is it.\n你好", stitchLines("This is it.", "你好"))
+        // 阿拉伯問號、梵文 danda 是句末
+        assertEquals("ماذا تريد؟\nلا شيء", stitchLines("ماذا تريد؟", "لا شيء"))
+        assertEquals("यह एक वाक्य है।\nयह दूसरा", stitchLines("यह एक वाक्य है।", "यह दूसरा"))
+        // 阿拉伯逗號 -> 連接
+        assertEquals("أولا، ثانيا", stitchLines("أولا،", "ثانيا"))
+        // 阿拉伯-印度數字編號
+        assertEquals("البنود\n١. الأول", stitchLines("البنود", "١. الأول"))
+    }
+
+    @Test
+    fun testThaiWrapJoinsWithoutSpace() {
+        assertEquals("สวัสดีครับยินดีที่ได้รู้จัก", stitchLines("สวัสดีครับ", "ยินดีที่ได้รู้จัก"))
+    }
+
+    @Test
     fun testTruncatedUrlWrapIsJoined() {
         val b1 = OcrBlock("Docs: https://example.com/very/long/pa", 50f, 100f, 400f, 120f)
         val b2 = OcrBlock("th/file.html", 50f, 130f, 200f, 150f)

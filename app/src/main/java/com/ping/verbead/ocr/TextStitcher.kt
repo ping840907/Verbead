@@ -64,37 +64,67 @@ object TextStitcher {
 
     private val LIST_ITEM_REGEX = Regex(
         "^(" +
-            "[0-9]+[.\\u3001\\)]" +            // 1. or 1、 or 1)
-            "|\\[[0-9]+\\]" +                  // [1]
-            "|\\([0-9]+\\)" +                  // (1)
-            "|[•·\\-*▪◆]" +                    // Bullet points
-            "|[A-Za-z][.\\)]" +                // A. or a)
+            // \p{Nd} 涵蓋全形、阿拉伯-印度、天城文、泰文等各種十進位數字
+            "\\p{Nd}+[.\\u3001\\)](?!\\p{Nd})" + // 1. or 1、 or 1)（排除 12.5、3.5mm 這類小數）
+            "|[\\[［]\\p{Nd}+[\\]］]" +          // [1]
+            "|[(（]\\p{Nd}+[)）]" +              // (1) or （１）
+            "|[•·▪◆\\u30FB※◎○●□■△▲▼▽★☆]" +    // 項目符號（含日文中點 U+30FB、※ 與各式圓點方塊）
+            "|[\\u2460-\\u2473\\u3220-\\u3229\\u3251-\\u325F\\u32B1-\\u32BF]" + // ① ⑳ ㈠ ㉑ 圈號
+            "|[\\-*](?![0-9\\-*])" +             // - 或 * 項目符號（排除 -5°C 這類負號）
+            // 單一字母編號 A. a) 與俄文 а) 希臘文 α)；後面要有空白或中日文（排除 U.S.、e.g.）
+            "|[\\p{IsLatin}\\p{IsCyrillic}\\p{IsGreek}][.\\)](?=[\\s\\u3000\\u4E00-\\u9FFF]|$)" +
+            // 韓文 가. 나. 다. 라. 마. 바. 사. 아. 자. 차. 카. 타. 파. 하.（以 \u 跳脫寫，避免寫死 CJK 字面量）
+            "|[\\uAC00\\uB098\\uB2E4\\uB77C\\uB9C8\\uBC14\\uC0AC\\uC544\\uC790\\uCC28\\uCE74\\uD0C0\\uD30C\\uD558][.\\)]" +
             "|[一二三四五六七八九十]+[、.]" +      // 一、 or 一.
             "|[(（][一二三四五六七八九十]+[)）]" + // （一） or (一)
         ")"
     )
 
-    // 終止標點符號集合（包含使用者要求的 ： 與 :）
-    private val TERMINAL_PUNCTS = setOf('。', '！', '？', '!', '?', '；', ';', '：', ':', '\n')
+    // 終止標點符號集合：中日（。！？；：）、半形、阿拉伯文（؟ ۔ ؛）、印度文（। ॥）、半形日文句點
+    private val TERMINAL_PUNCTS = setOf(
+        '。', '！', '？', '!', '?', '；', ';', '：', ':', '\n',
+        '｡', '．', '‼', '⁇', '⁈', '⁉', '؟', '۔', '؛', '।', '॥'
+    )
+
+    // 數字、英文之前常見的符號（負號、貨幣、標籤、帳號）：與 CJK 交界時比照英數字處理
+    private val LEADING_SIGN_CHARS = setOf('-', '+', '$', '#', '@', '~', '%')
+
+    // 行尾連字號：ASCII 連字號、U+2010、U+2011、軟連字號
+    private val HYPHEN_CHARS = setOf('-', '‐', '‑', '­')
 
     // 逗號類字元：行尾或行首出現時視為句子未結束
-    private val COMMA_CHARS = setOf('，', ',', '、', '､')
+    private val COMMA_CHARS = setOf('，', ',', '、', '､', '،', '﹐', '﹑')
 
     // 逗號連接時容許的字高倍率與行距上限（比一般斷行規則寬鬆）
     private const val COMMA_MAX_HEIGHT_RATIO = 1.6f
     private const val COMMA_MAX_GAP = 2.0f
 
     // 閉合括號與引號
-    private val CLOSING_CHARS = setOf('」', '』', '”', '’', '"', '\'', '）', ')', '】', ']', '｝', '}', '》', '>')
+    private val CLOSING_CHARS = setOf(
+        '」', '』', '”', '’', '"', '\'', '）', ')', '】', ']', '｝', '}', '》', '>',
+        '»', '›', '〉', '〕', '］'
+    )
 
     // 開放括號與引號
-    private val OPENING_CHARS = setOf('「', '『', '“', '‘', '（', '(', '【', '[', '｛', '{', '《', '<')
+    private val OPENING_CHARS = setOf(
+        '「', '『', '“', '‘', '（', '(', '【', '[', '｛', '{', '《', '<',
+        '«', '‹', '„', '‚', '〈', '〔', '［'
+    )
 
-    // 英文常見縮寫（小寫）
+    // 常見縮寫（小寫、不含結尾句點）：英、德、法、西、葡、意、俄。俄文縮寫內含句點（т.д.），所以也列出帶點的形式
     private val COMMON_ABBREVIATIONS = setOf(
-        "mr", "mrs", "ms", "dr", "prof", "sr", "jr", "vs", "etc", "eg", "ie",
+        // English
+        "mr", "mrs", "ms", "dr", "prof", "sr", "jr", "vs", "etc", "eg", "ie", "e.g", "i.e",
         "fig", "al", "no", "inc", "ltd", "co", "corp", "dept", "gen", "rep",
-        "sen", "gov", "approx", "avg", "est", "min", "max"
+        "sen", "gov", "approx", "avg", "est", "min", "max",
+        // Deutsch
+        "z.b", "d.h", "u.a", "bzw", "usw", "ggf", "ca", "nr", "hr", "fr", "str", "dipl", "ing", "vgl", "evtl", "inkl", "zzgl",
+        // Français
+        "mme", "mlle", "mm", "cf", "env", "p.ex", "av", "bd", "boul",
+        // Español / Português / Italiano
+        "sra", "srta", "dra", "ud", "uds", "sig", "dott", "avv", "ecc", "pág", "pag", "tel", "núm", "exmo",
+        // Русский
+        "т.д", "т.п", "т.е", "т.к", "и т.д", "см", "рис", "стр", "им", "ул", "г", "гг", "тыс", "млн", "млрд", "руб", "коп"
     )
 
     data class StitchConnection(
@@ -271,10 +301,17 @@ object TextStitcher {
         if (avgWidth > 0f && prev.height > 0f && curr.height > 0f) {
             val centerDiff = abs(prev.centerX - curr.centerX)
             if (centerDiff < 0.15f * avgWidth) {
-                val leftDiff = abs(curr.left - prev.left)
+                val leftDelta = curr.left - prev.left
+                val rightDelta = curr.right - prev.right
+                // 真正的居中：左右邊界往相反方向各退一段明顯的距離。首行縮排只有左邊界不同、
+                // 右邊界對齊（實拍照片右緣會有幾個像素的雜訊，方向可能剛好相反），中心點雖然接近，
+                // 但不是居中，必須和下一行接起來
+                val edgeThreshold = 0.4f * prev.height
+                val edgesMoveOpposite = leftDelta * rightDelta < 0f &&
+                    abs(leftDelta) > edgeThreshold && abs(rightDelta) > edgeThreshold
                 val isShortPrev = prev.width < 7f * prev.height
                 val isShortCurr = curr.width < 7f * curr.height
-                if (leftDiff > 0.4f * prev.height || (isShortPrev && isShortCurr)) {
+                if (edgesMoveOpposite || (isShortPrev && isShortCurr)) {
                     return StitchConnection(prev.text, "\n")
                 }
             }
@@ -317,7 +354,9 @@ object TextStitcher {
             val isAbbr = isAbbreviation(strippedPrev)
             val firstChar = currTrimmed.first()
             if (!isAbbr) {
-                if (firstChar.isUpperCase() || !firstChar.isLetter()) {
+                // 小寫字母開頭才視為句子延續；大寫、非字母，以及沒有大小寫的文字（阿拉伯文、希伯來文、
+                // 中日韓、泰文等）都當成新句子的開頭
+                if (!firstChar.isLowerCase()) {
                     return StitchConnection(prev.text, "\n")
                 }
             }
@@ -328,12 +367,19 @@ object TextStitcher {
             return StitchConnection(prev.text, "\n")
         }
 
-        // 4. 英文連字號消除（Hyphen Unwrapping）
-        if (prevTrimmed.endsWith('-') && prevTrimmed.length >= 2) {
+        // 4. 連字號消除（Hyphen Unwrapping）：拉丁、西里爾、希臘等以空格分詞的文字，
+        // 行尾連字號（含 U+2010、U+2011、軟連字號）把單字拆成兩段時接回去。
+        // 下一行以大寫開頭多半是專有複合詞（Berlin-Mitte、Spider-Man），保留連字號不補空格。
+        if (prevTrimmed.last() in HYPHEN_CHARS && prevTrimmed.length >= 2) {
+            val hyphen = prevTrimmed.last()
             val charBeforeHyphen = prevTrimmed[prevTrimmed.length - 2]
             val firstChar = currTrimmed.first()
-            if (isLatin(charBeforeHyphen) && isLatin(firstChar)) {
-                return StitchConnection(prevTrimmed.dropLast(1), "")
+            if (isSpaceDelimitedLetter(charBeforeHyphen) && isSpaceDelimitedLetter(firstChar)) {
+                return if (hyphen != '­' && firstChar.isUpperCase()) {
+                    StitchConnection(prevTrimmed, "")
+                } else {
+                    StitchConnection(prevTrimmed.dropLast(1), "")
+                }
             }
         }
 
@@ -424,8 +470,11 @@ object TextStitcher {
             // 3. Hangul 連接 Hangul
             isHangul(lastChar) && isHangul(firstChar) -> " "
 
+            // 3.5 泰文、寮文、高棉文、緬文、藏文：詞與詞之間不用空格，換行處直接貼合
+            isNoSpaceScript(lastChar) && isNoSpaceScript(firstChar) -> ""
+
             // 4. CJK 與 Latin / 數字混排交界
-            (isCjk(lastChar) && (isLatin(firstChar) || isDigit(firstChar))) ||
+            (isCjk(lastChar) && (isLatin(firstChar) || isDigit(firstChar) || firstChar in LEADING_SIGN_CHARS)) ||
             ((isLatin(lastChar) || isDigit(lastChar)) && isCjk(firstChar)) -> {
                 if (panguSpacing) " " else ""
             }
@@ -457,8 +506,22 @@ object TextStitcher {
         return (code in 0x0041..0x005A) ||   // A-Z
                (code in 0x0061..0x007A) ||   // a-z
                (code in 0x00C0..0x00FF) ||   // Latin-1 Supplement letters
-               (code in 0x0100..0x024F)      // Latin Extended-A & B
+               (code in 0x0100..0x024F) ||   // Latin Extended-A & B
+               (code in 0x1E00..0x1EFF)      // Latin Extended Additional（越南語聲調字母等）
     }
+
+    /** 不用空格分詞的文字：泰文、寮文、藏文、緬文、高棉文。 */
+    internal fun isNoSpaceScript(c: Char): Boolean {
+        val code = c.code
+        return (code in 0x0E00..0x0EFF) ||   // Thai, Lao
+               (code in 0x0F00..0x0FFF) ||   // Tibetan
+               (code in 0x1000..0x109F) ||   // Myanmar
+               (code in 0x1780..0x17FF)      // Khmer
+    }
+
+    /** 以空格分詞的字母（拉丁、西里爾、希臘、亞美尼亞、喬治亞等），排除中日韓與不用空格的文字。 */
+    internal fun isSpaceDelimitedLetter(c: Char): Boolean =
+        c.isLetter() && !isCjk(c) && !isHangul(c) && !isNoSpaceScript(c)
 
     internal fun isHangul(c: Char): Boolean {
         val code = c.code
@@ -499,6 +562,6 @@ object TextStitcher {
     }
 
     internal fun isDigit(c: Char): Boolean {
-        return c in '0'..'9' || c in '\uFF10'..'\uFF19'
+        return c in '0'..'9' || c in '\uFF10'..'\uFF19' || (c.code > 0x7F && Character.isDigit(c))
     }
 }
