@@ -274,6 +274,67 @@ class TextStitcherTest {
     }
 
     @Test
+    fun testCommaEndingJoinsDespiteIndentation() {
+        // 縮排本來會斷行，但行尾是逗號代表句子未完
+        val p1 = OcrBlock("前一段落最後一句，", 50f, 100f, 300f, 120f)
+        val p2 = OcrBlock("縮排開始的下半句", 90f, 130f, 350f, 150f)
+        assertEquals("前一段落最後一句，縮排開始的下半句", TextStitcher.stitch(listOf(p1, p2)))
+    }
+
+    @Test
+    fun testCommaEndingJoinsCenteredShortLines() {
+        val s1 = OcrBlock("白鴿洗髮精，", 150f, 100f, 250f, 130f)
+        val s2 = OcrBlock("柔順亮麗", 160f, 140f, 240f, 170f)
+        assertEquals("白鴿洗髮精，柔順亮麗", TextStitcher.stitch(listOf(s1, s2)))
+    }
+
+    @Test
+    fun testCommaEndingToleratesLargerLineGapButNotHuge() {
+        val a = OcrBlock("段落一，", 50f, 100f, 300f, 120f)
+        val near = OcrBlock("段落二", 50f, 150f, 300f, 170f) // deltaY = 30 > 1.2h，但仍在逗號容許範圍
+        assertEquals("段落一，段落二", TextStitcher.stitch(listOf(a, near)))
+
+        val far = OcrBlock("段落二", 50f, 200f, 300f, 220f) // deltaY = 80 > 2h
+        assertEquals("段落一，\n段落二", TextStitcher.stitch(listOf(a, far)))
+    }
+
+    @Test
+    fun testCommaEndingStillBreaksOnColumnJumpAndListItem() {
+        val left = OcrBlock("左欄底部，", 50f, 500f, 250f, 520f)
+        val right = OcrBlock("右欄頂部", 300f, 100f, 500f, 120f)
+        assertEquals("左欄底部，\n右欄頂部", TextStitcher.stitch(listOf(left, right)))
+
+        val head = OcrBlock("請準備，", 50f, 100f, 300f, 120f)
+        val item = OcrBlock("1. 身分證", 50f, 130f, 300f, 150f)
+        assertEquals("請準備，\n1. 身分證", TextStitcher.stitch(listOf(head, item)))
+    }
+
+    @Test
+    fun testLineStartingWithCommaJoinsPrevious() {
+        val p1 = OcrBlock("這是第一句", 50f, 100f, 300f, 120f)
+        val p2 = OcrBlock("，接著第二句", 90f, 130f, 350f, 150f)
+        assertEquals("這是第一句，接著第二句", TextStitcher.stitch(listOf(p1, p2)))
+    }
+
+    @Test
+    fun testCommaSeparatorByScript() {
+        // 全形逗號後接英文：不補空格
+        val zh = OcrBlock("請使用，", 50f, 100f, 300f, 120f)
+        val en = OcrBlock("Android", 50f, 130f, 300f, 150f)
+        assertEquals("請使用，Android", TextStitcher.stitch(listOf(zh, en)))
+
+        // 半形逗號後接英文：補空格
+        val e1 = OcrBlock("Hello,", 150f, 100f, 250f, 120f)
+        val e2 = OcrBlock("world", 160f, 130f, 240f, 150f)
+        assertEquals("Hello, world", TextStitcher.stitch(listOf(e1, e2)))
+
+        // 數字千分位被折行
+        val n1 = OcrBlock("共計 1,", 50f, 100f, 300f, 120f)
+        val n2 = OcrBlock("000 元", 50f, 130f, 300f, 150f)
+        assertEquals("共計 1,000 元", TextStitcher.stitch(listOf(n1, n2)))
+    }
+
+    @Test
     fun testTruncatedUrlWrapIsJoined() {
         val b1 = OcrBlock("Docs: https://example.com/very/long/pa", 50f, 100f, 400f, 120f)
         val b2 = OcrBlock("th/file.html", 50f, 130f, 200f, 150f)

@@ -51,7 +51,6 @@ data class OcrBlock(
     val height: Float get() = (bottom - top).coerceAtLeast(0f)
     val width: Float get() = (right - left).coerceAtLeast(0f)
     val centerX: Float get() = (left + right) / 2f
-    val centerY: Float get() = (top + bottom) / 2f
 }
 
 /**
@@ -77,6 +76,13 @@ object TextStitcher {
 
     // 終止標點符號集合（包含使用者要求的 ： 與 :）
     private val TERMINAL_PUNCTS = setOf('。', '！', '？', '!', '?', '；', ';', '：', ':', '\n')
+
+    // 逗號類字元：行尾或行首出現時視為句子未結束
+    private val COMMA_CHARS = setOf('，', ',', '、', '､')
+
+    // 逗號連接時容許的字高倍率與行距上限（比一般斷行規則寬鬆）
+    private const val COMMA_MAX_HEIGHT_RATIO = 1.6f
+    private const val COMMA_MAX_GAP = 2.0f
 
     // 閉合括號與引號
     private val CLOSING_CHARS = setOf('」', '』', '”', '’', '"', '\'', '）', ')', '】', ']', '｝', '}', '》', '>')
@@ -234,6 +240,11 @@ object TextStitcher {
             return StitchConnection(prevTrimmed, sep)
         }
 
+        // 1.5 逗號連接（Comma Continuation）：行尾是逗號、或下一行以逗號開頭，代表句子還沒說完，
+        // 優先於縮排、居中短行、行距、字高等版面規則接成同一句；只有明確的多欄跳行、
+        // 行距遠超標、字高差距過大，或下一行是列表項目時才仍然斷行。
+        commaConnection(prev, curr, prevTrimmed, currTrimmed, panguSpacing)?.let { return it }
+
         // 2. 多欄排版與 Y 軸向上跳躍判定（Multi-column & Upward Jump Safeguard）
         if (prev.height > 0f && curr.top < prev.top - 0.5f * prev.height) {
             return StitchConnection(prev.text, "\n")
@@ -341,6 +352,49 @@ object TextStitcher {
         val sep = determineUnicodeSep(lastChar, firstChar, panguSpacing)
         val baseText = if (sep.isEmpty() || sep == " ") prevTrimmed else prev.text
         return StitchConnection(baseText, sep)
+    }
+
+    /**
+     * 逗號連接判定。[prevTrimmed] 以逗號結尾（可帶右引號/括號）或 [currTrimmed] 以逗號開頭時，
+     * 若版面仍是相連的下一行就回傳接合結果，否則回傳 null 交給後續規則處理。
+     */
+    private fun commaConnection(
+        prev: OcrBlock,
+        curr: OcrBlock,
+        prevTrimmed: String,
+        currTrimmed: String,
+        panguSpacing: Boolean
+    ): StitchConnection? {
+        val prevEndsWithComma = stripClosingPunctuation(prevTrimmed).lastOrNull()?.let { it in COMMA_CHARS } == true
+        val currStartsWithComma = currTrimmed.first() in COMMA_CHARS
+        if (!prevEndsWithComma && !currStartsWithComma) return null
+
+        // 列表項目是新的一條，不接
+        if (!currStartsWithComma && isListItem(currTrimmed)) return null
+
+        // 版面仍須是相連的下一行：多欄跳行、行距遠超標、字高差距過大都不接
+        if (prev.height > 0f && curr.height > 0f) {
+            if (curr.top < prev.top - 0.5f * prev.height) return null
+            val ratio = prev.height / curr.height
+            if (ratio > COMMA_MAX_HEIGHT_RATIO || ratio < 1f / COMMA_MAX_HEIGHT_RATIO) return null
+            val deltaY = curr.top - prev.bottom
+            if (deltaY > COMMA_MAX_GAP * prev.height || deltaY < -0.3f * prev.height) return null
+        }
+
+        val lastC = prevTrimmed.last()
+        val firstC = currTrimmed.first()
+        val sep = when {
+            currStartsWithComma -> ""
+            firstC in CLOSING_CHARS -> ""
+            // 全形逗號、頓號後面不補空格（中英混排的空格交給盤古之白）
+            lastC == '，' || lastC == '、' -> if (panguSpacing && isLatin(firstC)) " " else ""
+            // 數字千分位被折行：1, + 000 -> 1,000
+            lastC == ',' && prevTrimmed.length >= 2 && isDigit(prevTrimmed[prevTrimmed.length - 2]) && isDigit(firstC) -> ""
+            // 半形逗號後接中日文
+            lastC == ',' && isCjk(firstC) -> ""
+            else -> " "
+        }
+        return StitchConnection(prevTrimmed, sep)
     }
 
     internal fun stripClosingPunctuation(text: String): String {
