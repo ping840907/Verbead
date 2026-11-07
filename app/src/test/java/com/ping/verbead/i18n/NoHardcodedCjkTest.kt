@@ -6,10 +6,14 @@ import org.junit.Test
 
 /**
  * 防倒退：版面、選單與 Kotlin 原始碼裡寫死的中日韓字只許減少、不許增加。
- * 現有違規記在 tools/i18n-allowlist.txt（每行「相對路徑 數量」）；
- * 計算規則與 tools/i18n-inventory.js 一致。語言規則檔是永久例外。
+ * 現有違規記在 app/src/test/resources/i18n-allowlist.txt（每行「相對路徑 數量」）；
+ * 語言規則檔是永久例外。
  */
 class NoHardcodedCjkTest {
+
+    private companion object {
+        const val ALLOWLIST = "app/src/test/resources/i18n-allowlist.txt"
+    }
 
     private val cjk = Regex("[぀-ヿ㐀-鿿가-힯]")
     private val stringLiteral = Regex("\"(?:[^\"\\\\]|\\\\.)*\"")
@@ -22,8 +26,8 @@ class NoHardcodedCjkTest {
 
     private fun projectRoot(): File {
         var dir: File? = File("").absoluteFile
-        while (dir != null && !File(dir, "tools/i18n-allowlist.txt").exists()) dir = dir.parentFile
-        return requireNotNull(dir) { "找不到 tools/i18n-allowlist.txt" }
+        while (dir != null && !File(dir, ALLOWLIST).exists()) dir = dir.parentFile
+        return requireNotNull(dir) { "找不到 $ALLOWLIST" }
     }
 
     private fun scan(): Map<String, Int> {
@@ -48,7 +52,7 @@ class NoHardcodedCjkTest {
     }
 
     private fun allowlist(): Map<String, Int> =
-        File(projectRoot(), "tools/i18n-allowlist.txt").readLines()
+        File(projectRoot(), ALLOWLIST).readLines()
             .map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("#") }
             .associate { line ->
@@ -73,7 +77,7 @@ class NoHardcodedCjkTest {
         val stale = allowlist().filter { (file, n) -> (actual[file] ?: 0) < n }
             .map { (file, n) -> "$file：允許 $n，實際 ${actual[file] ?: 0}" }
         assertTrue(
-            "違規已減少，請同步調降 tools/i18n-allowlist.txt（只減不增）：\n" + stale.joinToString("\n"),
+            "違規已減少，請同步調降 $ALLOWLIST（只減不增）：\n" + stale.joinToString("\n"),
             stale.isEmpty()
         )
     }

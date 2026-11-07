@@ -9,7 +9,7 @@ import kotlin.math.roundToInt
  * few sizes and the input is letterboxed / padded into the nearest one.
  */
 object OcrShapes {
-    /** Detector input sizes (width x height); see tools/litert/convert_ocr.py. */
+    /** Detector input sizes (width x height) the converted detector models are built for. */
     val DET_SIZES = listOf(640 to 640, 480 to 960, 960 to 480)
 
     /**

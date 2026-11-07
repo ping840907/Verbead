@@ -3,7 +3,7 @@ package com.ping.verbead.engine
 /**
  * Where the PP-OCRv6 LiteRT models are downloaded from, and their SHA-256 sums.
  *
- * The files are the output of tools/litert/convert_ocr.py (see tools/litert/README.md), attached to the GitHub release
+ * The converted files are attached to the GitHub release
  * [RELEASE_TAG] of this repository under exactly these names. To publish a new set, upload the new files to a new
  * release, bump [RELEASE_TAG] and replace the sums below (the release also carries a SHA256SUMS.txt with them).
  */

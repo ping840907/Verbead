@@ -34,3 +34,7 @@ app/release/
 
 # Qualcomm QAIRT runtime libs (proprietary, local only)
 app/src/debug/jniLibs/
+
+# Local-only notes and one-off scripts (kept out of the remote)
+docs/
+tools/
