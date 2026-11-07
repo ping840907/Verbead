@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.annotation.SuppressLint
 import com.ping.verbead.util.allowDisplayCutout
 import android.content.Context
@@ -257,7 +258,7 @@ class ScannerOverlayController(
             .scaleY(0.7f)
             .setDuration(180)
             .withEndAction {
-                if (scanner.isAttachedToWindow) {
+                if (windowManager.isViewAdded(scanner)) {
                     try {
                         windowManager.removeView(scanner)
                     } catch (e: Exception) {
@@ -389,7 +390,7 @@ class ScannerOverlayController(
         cameraExecutor = null
 
         val scanner = scannerView
-        if (scanner != null && scanner.isAttachedToWindow) {
+        if (scanner != null && windowManager.isViewAdded(scanner)) {
             try {
                 windowManager.removeView(scanner)
             } catch (e: Exception) {

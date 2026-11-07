@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.content.Context
 import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
@@ -205,7 +206,7 @@ class CapsuleMenuController(
 
         updateItemHighlights(currentIndex, animate = false)
 
-        if (menu.isAttachedToWindow) {
+        if (windowManager.isViewAdded(menu)) {
             try {
                 windowManager.removeView(menu)
             } catch (e: Exception) {
@@ -374,7 +375,7 @@ class CapsuleMenuController(
 
         menu?.findViewById<LinearLayout>(R.id.layout_capsule_pill)?.animate()?.cancel()
 
-        if (menu != null && menu.isAttachedToWindow) {
+        if (menu != null && windowManager.isViewAdded(menu)) {
             try {
                 windowManager.removeView(menu)
             } catch (e: Exception) {

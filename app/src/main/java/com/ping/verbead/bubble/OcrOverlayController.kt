@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.annotation.SuppressLint
 import com.ping.verbead.util.allowDisplayCutout
 import android.content.Context
@@ -290,7 +291,7 @@ class OcrOverlayController(
             .scaleY(0.7f)
             .setDuration(180)
             .withEndAction {
-                if (ocr.isAttachedToWindow) {
+                if (windowManager.isViewAdded(ocr)) {
                     try {
                         windowManager.removeView(ocr)
                     } catch (e: Exception) {
@@ -711,7 +712,7 @@ class OcrOverlayController(
             .alpha(0f)
             .setDuration(160)
             .withEndAction {
-                if (ocrView.isAttachedToWindow) {
+                if (windowManager.isViewAdded(ocrView)) {
                     try {
                         windowManager.removeView(ocrView)
                     } catch (e: Exception) {
@@ -743,7 +744,7 @@ class OcrOverlayController(
         dismissSnapshot(hideX = false)
 
         val ocr = ocrWindowView
-        if (ocr != null && ocr.isAttachedToWindow) {
+        if (ocr != null && windowManager.isViewAdded(ocr)) {
             try {
                 windowManager.removeView(ocr)
             } catch (e: Exception) {

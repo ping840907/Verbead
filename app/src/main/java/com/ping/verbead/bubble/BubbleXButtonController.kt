@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.content.Context
 import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
@@ -126,7 +127,7 @@ class BubbleXButtonController(
         }
 
         view.animate().cancel()
-        if (view.isAttachedToWindow) {
+        if (windowManager.isViewAdded(view)) {
             try {
                 windowManager.removeView(view)
             } catch (e: Exception) {
@@ -164,7 +165,7 @@ class BubbleXButtonController(
             .scaleY(0.6f)
             .setDuration(160)
             .withEndAction {
-                if (view.isAttachedToWindow) {
+                if (windowManager.isViewAdded(view)) {
                     try {
                         windowManager.removeView(view)
                     } catch (e: Exception) {
@@ -180,7 +181,7 @@ class BubbleXButtonController(
         isShowing = false
         val view = xButtonView ?: return
         view.animate().cancel()
-        if (view.isAttachedToWindow) {
+        if (windowManager.isViewAdded(view)) {
             try {
                 windowManager.removeView(view)
             } catch (e: Exception) {

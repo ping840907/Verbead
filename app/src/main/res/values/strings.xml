@@ -74,6 +74,7 @@
     <string name="preview_mode_barcode">Barcode scanning</string>
     <string name="preview_mode_phrases">Quick phrases</string>
     <string name="preview_inserted_phrase">Phrase inserted</string>
+    <string name="preview_phrase_no_focus">Tap a text field first, then tap the phrase</string>
     <string name="preview_copied_barcode">Barcode copied</string>
     <string name="preview_copied_with_text">Copied: %1$s</string>
 

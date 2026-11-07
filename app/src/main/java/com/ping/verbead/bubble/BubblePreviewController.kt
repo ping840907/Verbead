@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.content.Context
 import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
@@ -129,7 +130,7 @@ class BubblePreviewController(
 
     fun destroy() {
         autoHidePreviewJob?.cancel()
-        if (::previewView.isInitialized && previewView.isAttachedToWindow) {
+        if (::previewView.isInitialized && windowManager.isViewAdded(previewView)) {
             try {
                 windowManager.removeView(previewView)
             } catch (_: Exception) {}

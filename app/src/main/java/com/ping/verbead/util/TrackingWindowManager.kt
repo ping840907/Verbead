@@ -16,6 +16,9 @@ class TrackingWindowManager(private val base: WindowManager) : WindowManager by 
     var isHidden: Boolean = false
         private set
 
+    /** 這個視窗是經由本管理器加入、且尚未移除。 */
+    fun isAdded(view: View): Boolean = view in tracked
+
     // WindowManager 的 default 方法不會被 Kotlin 委派轉發，必須逐一覆寫，否則會丟 UnsupportedOperationException
     @RequiresApi(Build.VERSION_CODES.R)
     override fun getCurrentWindowMetrics(): android.view.WindowMetrics = base.currentWindowMetrics
@@ -82,3 +85,13 @@ class TrackingWindowManager(private val base: WindowManager) : WindowManager by 
         savedVisibility.clear()
     }
 }
+
+/**
+ * 這個視窗是不是已經被加進 WindowManager、還沒移除。
+ *
+ * 不能用 [View.isAttachedToWindow] 判斷：addView 之後要等下一個畫面幀 View 才算「已附加」，
+ * 這之前就想移除（例如輕點時預先建好又立刻丟棄的刪除區視窗）會被略過，視窗就變成沒人管的孤兒，
+ * 永遠留在螢幕上。多個半透明的孤兒視窗疊在一起，不透明度會累加，超過系統上限後底下 App 的觸控就被擋掉。
+ */
+fun WindowManager.isViewAdded(view: View): Boolean =
+    (this as? TrackingWindowManager)?.isAdded(view) ?: view.isAttachedToWindow

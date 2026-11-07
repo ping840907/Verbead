@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.content.Context
 import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
@@ -79,7 +80,7 @@ class BubblePulseController(
         viewPulseRing?.animate()?.cancel()
         viewPulseWave?.animate()?.cancel()
 
-        if (view.isAttachedToWindow) {
+        if (windowManager.isViewAdded(view)) {
             try {
                 windowManager.removeView(view)
             } catch (e: Exception) {
@@ -132,7 +133,7 @@ class BubblePulseController(
             ?.scaleY(1.0f)
             ?.setDuration(160)
             ?.withEndAction {
-                if (view.isAttachedToWindow && !isShowing) {
+                if (windowManager.isViewAdded(view) && !isShowing) {
                     try {
                         windowManager.removeView(view)
                     } catch (e: Exception) {
@@ -188,7 +189,7 @@ class BubblePulseController(
     fun destroy() {
         isShowing = false
         val view = pulseView ?: return
-        if (view.isAttachedToWindow) {
+        if (windowManager.isViewAdded(view)) {
             try {
                 windowManager.removeView(view)
             } catch (e: Exception) {

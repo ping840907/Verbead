@@ -74,6 +74,7 @@
     <string name="preview_mode_barcode">バーコードスキャン</string>
     <string name="preview_mode_phrases">定型文</string>
     <string name="preview_inserted_phrase">定型文を入力しました</string>
+    <string name="preview_phrase_no_focus">先に入力欄をタップしてから、定型文をタップしてください</string>
     <string name="preview_copied_barcode">バーコードをコピーしました</string>
     <string name="preview_copied_with_text">コピーしました：%1$s</string>
 

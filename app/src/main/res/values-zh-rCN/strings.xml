@@ -74,6 +74,7 @@
     <string name="preview_mode_barcode">条码扫描</string>
     <string name="preview_mode_phrases">常用语抽屉</string>
     <string name="preview_inserted_phrase">已填入常用语</string>
+    <string name="preview_phrase_no_focus">请先点一下要填入的输入框，再点选常用语</string>
     <string name="preview_copied_barcode">已复制条码</string>
     <string name="preview_copied_with_text">已复制：%1$s</string>
 

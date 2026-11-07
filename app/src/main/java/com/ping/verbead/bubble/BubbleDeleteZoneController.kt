@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.content.Context
 import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
@@ -315,7 +316,7 @@ class BubbleDeleteZoneController(
                     cleanupView()
                 } else {
                     try {
-                        if (view.isAttachedToWindow) {
+                        if (windowManager.isViewAdded(view)) {
                             windowManager.removeView(view)
                         }
                     } catch (e: Exception) {
@@ -340,7 +341,7 @@ class BubbleDeleteZoneController(
         if (view != null) {
             view.animate().setListener(null).cancel()
             try {
-                if (view.isAttachedToWindow) {
+                if (windowManager.isViewAdded(view)) {
                     windowManager.removeView(view)
                 }
             } catch (e: Exception) {

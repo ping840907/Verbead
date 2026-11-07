@@ -1,5 +1,6 @@
 package com.ping.verbead.bubble
 
+import com.ping.verbead.util.isViewAdded
 import android.annotation.SuppressLint
 import com.ping.verbead.util.allowDisplayCutout
 import android.content.Context
@@ -212,7 +213,7 @@ class PhrasesDrawerController(
             .scaleY(0.6f)
             .setDuration(180)
             .withEndAction {
-                if (drawer.isAttachedToWindow) {
+                if (windowManager.isViewAdded(drawer)) {
                     try {
                         windowManager.removeView(drawer)
                     } catch (e: Exception) {
@@ -265,7 +266,7 @@ class PhrasesDrawerController(
 
     fun destroy() {
         val drawer = phrasesDrawerView
-        if (drawer != null && drawer.isAttachedToWindow) {
+        if (drawer != null && windowManager.isViewAdded(drawer)) {
             try {
                 windowManager.removeView(drawer)
             } catch (e: Exception) {

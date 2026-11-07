@@ -74,6 +74,7 @@
     <string name="preview_mode_barcode">바코드 스캔</string>
     <string name="preview_mode_phrases">자주 쓰는 문구</string>
     <string name="preview_inserted_phrase">문구를 입력했습니다</string>
+    <string name="preview_phrase_no_focus">먼저 입력란을 누른 다음 문구를 눌러 주세요</string>
     <string name="preview_copied_barcode">바코드를 복사했습니다</string>
     <string name="preview_copied_with_text">복사됨: %1$s</string>
 

@@ -1,5 +1,6 @@
 package com.ping.verbead
 
+import com.ping.verbead.util.isViewAdded
 import android.animation.ValueAnimator
 import com.ping.verbead.util.allowDisplayCutout
 import android.annotation.SuppressLint
@@ -197,8 +198,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private lateinit var bubblePreviewController: BubblePreviewController
     private lateinit var bubblePulseController: BubblePulseController
     private lateinit var bubbleXButtonController: BubbleXButtonController
-    /** 填入失敗時臨時長出來的常用語球（不存設定）；關閉抽屜後保留，常用語功能被關閉時才移除。 */
-    private var temporaryPhrasesBubble: FloatingBubbleItem? = null
     private var isRestoringSnapshot = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -359,7 +358,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var isBubbleMoving = false
 
     // 邊緣收納隱藏狀態 (~30% 可視，~70% 位於畫面外)
-    private var isTucked = false
     private val tuckRatio = 0.70f
 
     private fun getVisibleWidthPx(): Int {
@@ -401,9 +399,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         routingManager.start()
         val enabledModes = ModelConfig.getEnabledBubbleModes(this)
         currentMode = getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).getInt(KEY_MODE, enabledModes.firstOrNull() ?: MODE_VOICE)
-        if (currentMode !in enabledModes) {
-            currentMode = enabledModes.firstOrNull() ?: MODE_VOICE
-        }
+        coerceCurrentModeToEnabled(enabledModes, save = false)
         trackingWindowManager = com.ping.verbead.util.TrackingWindowManager(getSystemService(Context.WINDOW_SERVICE) as WindowManager)
         windowManager = trackingWindowManager
         capsuleMenuController = CapsuleMenuController(
@@ -746,7 +742,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                             updatePulsePosition()
                                             if (isOcrModeActive) updateOcrPosition()
                                             if (isScannerModeActive) updateScannerPosition()
-                                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                                            updatePhrasesDrawerPosition()
                                             updatePreviewPosition()
                                         }
                                     }
@@ -756,7 +752,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         } else {
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
-                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                            updatePhrasesDrawerPosition()
                             updateXButtonPosition()
                             updatePreviewPosition()
                         }
@@ -920,20 +916,18 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
-    private fun untuckBubble(animate: Boolean = true, onComplete: (() -> Unit)? = null) {
-        val target = currentAnchorBubble ?: return
-        untuckBubble(target, animate, onComplete)
+    /** 目前操作中的球若縮在螢幕邊緣就展開（要在它旁邊開視窗或開始錄音前呼叫）。 */
+    private fun untuckAnchorBubble(animate: Boolean = false) {
+        currentAnchorBubble?.takeIf { it.isTucked }?.let { untuckBubble(it, animate) }
     }
 
     private fun untuckBubble(item: FloatingBubbleItem, animate: Boolean = true, onComplete: (() -> Unit)? = null) {
         if (!item.isTucked || !item.view.isAttachedToWindow) {
             item.isTucked = false
-            if (item.id == 0) isTucked = false
             onComplete?.invoke()
             return
         }
         item.isTucked = false
-        if (item.id == 0) isTucked = false
         val screenWidth = getScreenWidth()
         val density = resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
@@ -951,7 +945,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 updatePulsePosition()
                 if (isOcrModeActive) updateOcrPosition()
                 if (isScannerModeActive) updateScannerPosition()
-                if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                updatePhrasesDrawerPosition()
             }
             if (item.id == 0) {
                 windowLayoutParams.x = targetX
@@ -984,7 +978,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
-                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                            updatePhrasesDrawerPosition()
                         }
                         if (item.id == 0) {
                             windowLayoutParams.x = curX
@@ -1006,7 +1000,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
-                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                            updatePhrasesDrawerPosition()
                         }
                         if (item.id == 0) {
                             windowLayoutParams.x = targetX
@@ -1268,7 +1262,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
-                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                            updatePhrasesDrawerPosition()
                         }
                         if (item.id == 0) {
                             updatePulsePosition()
@@ -1307,11 +1301,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                 if (item.isTucked) {
                                     untuckBubble(item, animate = true)
                                 } else {
-                                    if (ModelConfig.isMultiBubbleEnabled(this@FloatingBubbleService) || item === temporaryPhrasesBubble) {
-                                        onBubbleClickForMode(item)
-                                    } else {
-                                        onBubbleClick()
-                                    }
+                                    onBubbleClickForMode(item)
                                 }
                             } else {
                                 snapBubbleToSafeBoundsWithInertia(item, vx, vy)
@@ -1351,6 +1341,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    /** 單球模式記住的模式若已不在啟用清單裡，改成清單的第一個（[save] 時一併寫回設定）。 */
+    private fun coerceCurrentModeToEnabled(enabledModes: List<Int>, save: Boolean = true) {
+        if (currentMode in enabledModes) return
+        currentMode = enabledModes.firstOrNull() ?: MODE_VOICE
+        if (save) {
+            getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, currentMode).apply()
+        }
+    }
+
     fun updateBubbleModesConfig() {
         if (!::bubbleView.isInitialized) return
         if (isCapsuleMenuShowing) {
@@ -1368,13 +1367,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (MODE_PHRASES !in enabledModes && isPhrasesDrawerActive) {
             closePhrasesDrawer()
         }
-        if (MODE_PHRASES !in enabledModes) {
-            removeTemporaryPhrasesBubble()
-        }
-        if (currentMode !in enabledModes) {
-            currentMode = fallbackMode
-            getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, currentMode).apply()
-        }
+        coerceCurrentModeToEnabled(enabledModes)
 
         val usedModes = mutableSetOf<Int>()
         for (item in bubbleItems) {
@@ -1517,10 +1510,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     it.remove()
                 }
             }
-            if (currentMode !in enabledModes) {
-                currentMode = fallbackMode
-                getSharedPreferences(PREF_BUBBLE_MODE, Context.MODE_PRIVATE).edit().putInt(KEY_MODE, currentMode).apply()
-            }
+            coerceCurrentModeToEnabled(enabledModes)
             val bubble0 = bubbleItems.firstOrNull()
             if (bubble0 != null) {
                 bubble0.mode = currentMode
@@ -1822,7 +1812,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     windowLayoutParams.x = survivor.windowLayoutParams.x
                     windowLayoutParams.y = survivor.windowLayoutParams.y
                     isDockedOnRight = survivor.isDockedOnRight
-                    isTucked = survivor.isTucked
                     setBubbleMode(0, survivor.mode)
 
                     bubbleToDelete.view.scaleX = 1f
@@ -1908,7 +1897,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             updatePulsePosition()
             if (isOcrModeActive) updateOcrPosition()
             if (isScannerModeActive) updateScannerPosition()
-            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+            updatePhrasesDrawerPosition()
             updatePreviewPosition()
         }
 
@@ -1957,7 +1946,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
+    /**
+     * 所有球（單球、多球、後來長出來的常用語球）共用的點擊入口：依這顆球自己的模式動作。
+     * 單球模式下主球的模式存在 [currentMode]，先同步過來再判斷。
+     */
     private fun onBubbleClickForMode(item: FloatingBubbleItem) {
+        if (item.id == 0 && !ModelConfig.isMultiBubbleEnabled(this)) item.mode = currentMode
         activeAnchorBubble = item
         if (state == State.PASTED) {
             hideXButton()
@@ -2116,7 +2110,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         item.isTucked = shouldTuck
-        if (item.id == 0) isTucked = shouldTuck
 
         val targetX = if (targetOnRight) {
             if (shouldTuck) tuckRightX else normalRightX
@@ -2143,7 +2136,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     // 其他球不會因為別的球的碰撞或放開而被收進隱藏；使用者自己收起來的維持原狀
                     val otherShouldTuck = allowTuck && other.isTucked
                     other.isTucked = otherShouldTuck
-                    if (other.id == 0) isTucked = otherShouldTuck
                     val otherTargetX = if (otherShouldTuck) otherTuckX else otherNormalX
                     otherTargets[other.id] = otherTargetX to other.windowLayoutParams.y.toFloat()
                 }
@@ -2215,7 +2207,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                             updatePulsePosition()
                                             if (isOcrModeActive) updateOcrPosition()
                                             if (isScannerModeActive) updateScannerPosition()
-                                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                                            updatePhrasesDrawerPosition()
                                         }
                                         if (other.id == 0) {
                                             windowLayoutParams.x = cx
@@ -2238,7 +2230,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                             updatePulsePosition()
                                             if (isOcrModeActive) updateOcrPosition()
                                             if (isScannerModeActive) updateScannerPosition()
-                                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                                            updatePhrasesDrawerPosition()
                                         }
                                         if (other.id == 0) {
                                             windowLayoutParams.x = endOtherX
@@ -2311,7 +2303,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updatePulsePosition()
                             if (isOcrModeActive) updateOcrPosition()
                             if (isScannerModeActive) updateScannerPosition()
-                            if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                            updatePhrasesDrawerPosition()
                         }
                         if (item.id == 0) {
                             windowLayoutParams.x = newX
@@ -2340,7 +2332,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         updatePulsePosition()
                         if (isOcrModeActive) updateOcrPosition()
                         if (isScannerModeActive) updateScannerPosition()
-                        if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
+                        updatePhrasesDrawerPosition()
                     }
                     if (item.id == 0) {
                         isDockedOnRight = targetOnRight
@@ -2462,13 +2454,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             screenWidth = getScreenWidth(),
             safeBottom = getSafeBottom(),
             statusBarHeight = getStatusBarHeight(),
-            onUntuck = {
-                if (anchor?.isTucked == true) {
-                    untuckBubble(anchor, animate = false)
-                } else if (isTucked) {
-                    untuckBubble(animate = false)
-                }
-            }
+            onUntuck = { untuckAnchorBubble() }
         )
     }
 
@@ -2538,57 +2524,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             isDockedOnRight = isRight,
             screenWidth = getScreenWidth(),
             safeBottom = getSafeBottom(),
-            onUntuck = {
-                if (anchor?.isTucked == true) {
-                    untuckBubble(anchor, animate = false)
-                } else if (isTucked) {
-                    untuckBubble(animate = false)
-                }
-            }
+            onUntuck = { untuckAnchorBubble() }
         )
-    }
-
-    private fun onBubbleClick() {
-        val bubble0 = bubbleItems.firstOrNull()
-        if (bubble0 != null) {
-            activeAnchorBubble = bubble0
-        }
-        if (isTucked || bubble0?.isTucked == true) {
-            untuckBubble(animate = true)
-            return
-        }
-        if (state == State.PASTED) {
-            hideXButton()
-            setState(State.IDLE)
-        }
-        if (currentMode == MODE_PHRASES || isPhrasesDrawerActive) {
-            togglePhrasesDrawer()
-            return
-        }
-        if (currentMode == MODE_OCR || isOcrModeActive) {
-            toggleOcrMode()
-            return
-        }
-        if (currentMode == MODE_BARCODE || isScannerModeActive || state == State.SCANNING) {
-            toggleScannerMode()
-            return
-        }
-        when (state) {
-            State.RECORDING -> {
-                recorder.stopEarly()
-                hidePreviewText()
-                setState(State.TRANSCRIBING)
-            }
-            State.LOADING -> { /* Waiting for model */ }
-            State.TRANSCRIBING -> { /* Processing */ }
-            State.IDLE, State.PASTED -> {
-                hideXButton()
-                startRecording()
-            }
-            State.SCANNING -> {
-                toggleScannerMode()
-            }
-        }
     }
 
     private fun getInitialListeningPreviewText(): String = getString(R.string.preview_listening)
@@ -2597,12 +2534,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun startRecording() {
         isAborted = false
-        val anchor = activeAnchorBubble ?: currentAnchorBubble
-        if (anchor?.isTucked == true) {
-            untuckBubble(anchor, animate = false)
-        } else if (isTucked) {
-            untuckBubble(animate = false)
-        }
+        untuckAnchorBubble()
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, R.string.toast_mic_permission_voice, Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
@@ -2719,7 +2651,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         val combined = accumulatedXAsr + partial
                         if (combined.isNotBlank() && combined != lastStreamingText) {
                             lastStreamingText = combined
-                            Handler(Looper.getMainLooper()).post {
+                            mainHandler.post {
                                 if (isRecording && !isAborted) {
                                     showPreviewText(combined, autoHide = false)
                                 }
@@ -2758,7 +2690,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
 
             // 錄音結束，預覽氣泡淡出，維持目標框純淨
-            Handler(Looper.getMainLooper()).post {
+            mainHandler.post {
                 hidePreviewText()
                 setState(State.TRANSCRIBING)
             }
@@ -2878,7 +2810,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         val combined = accumulated + partial
                         if (combined.isNotBlank() && combined != lastShown) {
                             lastShown = combined
-                            Handler(Looper.getMainLooper()).post {
+                            mainHandler.post {
                                 if (isRecording && !isAborted) {
                                     showPreviewText(combined, autoHide = false)
                                 }
@@ -3011,19 +2943,23 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     /** Test hook (used by the debug build's receiver): behaves like a recognized result that found no text field. */
     fun debugKeepUnfilledText(text: String) { keepUnfilledText(text) }
 
-    /** Opens the phrases drawer next to a phrases bubble, creating a temporary one when none exists and there is room. */
+    /** Opens the phrases drawer next to a phrases bubble, adding one (a regular, saved bubble) when none exists and there is room. */
     private fun revealPhrasesDrawer() {
         if (isPhrasesDrawerActive) {
             phrasesDrawerController.refreshPhrasesList()
             return
         }
-        val bubble = bubbleItems.firstOrNull { it.mode == MODE_PHRASES } ?: spawnTemporaryPhrasesBubble()
+        val bubble = bubbleItems.firstOrNull { it.mode == MODE_PHRASES } ?: spawnPhrasesBubble()
         if (bubble != null) activeAnchorBubble = bubble
         openPhrasesDrawer()
     }
 
-    /** A phrases bubble pops out beside the current bubble (not saved in the settings). @return null when it cannot. */
-    private fun spawnTemporaryPhrasesBubble(): FloatingBubbleItem? {
+    /**
+     * A phrases bubble pops out above the current bubble and becomes a regular bubble: it is saved in the multi-bubble
+     * settings like any other, so shaking, deleting and the settings screen all treat it the same way.
+     * @return null when there is no room or the phrases mode is off.
+     */
+    private fun spawnPhrasesBubble(): FloatingBubbleItem? {
         if (MODE_PHRASES !in ModelConfig.getEnabledBubbleModes(this)) return null
         if (bubbleItems.size >= ModelConfig.getMaxMultiBubbleCountForEnabledModes(this)) return null
         val anchor = currentAnchorBubble ?: return null
@@ -3071,35 +3007,27 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         try {
             windowManager.addView(v, lp)
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to add temporary phrases bubble", e)
+            Log.w(TAG, "Failed to add phrases bubble", e)
             return null
         }
         bubbleItems.add(item)
-        temporaryPhrasesBubble = item
+        persistBubbleLayout()
         HapticUtil.heavyClick(this)
         v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(240L)
             .setInterpolator(DecelerateInterpolator(1.6f)).start()
         return item
     }
 
-    private fun removeTemporaryPhrasesBubble() {
-        val item = temporaryPhrasesBubble ?: return
-        temporaryPhrasesBubble = null
-        if (!bubbleItems.contains(item)) return
-        val remove = {
-            removeOverlay("temporary_phrases_bubble", item.view)
-            bubbleItems.remove(item)
-            if (activeAnchorBubble === item) activeAnchorBubble = bubbleItems.firstOrNull()
-            bubbleItems.forEachIndexed { index, b -> b.id = index }
+    /** 目前的球數與各球模式寫回設定（多球模式開啟），並通知設定頁同步。 */
+    private fun persistBubbleLayout() {
+        ModelConfig.setMultiBubbleEnabled(this, true)
+        ModelConfig.setMultiBubbleCount(this, bubbleItems.size)
+        bubbleItems.forEachIndexed { index, b ->
+            b.id = index
+            setBubbleMode(index, b.mode)
         }
-        if (item.view.isAttachedToWindow) {
-            item.view.animate().scaleX(0.55f).scaleY(0.55f).alpha(0f).setDuration(160L)
-                .withEndAction { remove() }.start()
-        } else {
-            remove()
-        }
+        ImeSettingsActivity.instance?.syncMultiBubbleState()
     }
-
 
     /** 截圖前暫時隱藏本程式所有懸浮畫面，截完立即還原，再開啟框選辨識。 */
     private fun captureScreenForOcr() {
@@ -3433,11 +3361,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isScannerModeActive) return
         hidePreviewText()
         val anchor = currentAnchorBubble
-        if (anchor?.isTucked == true) {
-            untuckBubble(anchor, animate = false)
-        } else if (isTucked) {
-            untuckBubble(animate = false)
-        }
+        untuckAnchorBubble()
         if (isOcrModeActive) {
             stopOcrMode()
         }
@@ -3505,11 +3429,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isOcrModeActive) return
         hidePreviewText()
         val anchor = currentAnchorBubble
-        if (anchor?.isTucked == true) {
-            untuckBubble(anchor, animate = false)
-        } else if (isTucked) {
-            untuckBubble(animate = false)
-        }
+        untuckAnchorBubble()
         if (isScannerModeActive) {
             stopScannerMode()
         }
@@ -3574,7 +3494,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val injected = VoiceAccessibilityService.instance?.inputText(text) ?: false
         if (injected) {
             if (ModelConfig.isOcrAutoEnterEnabled(this)) {
-                Handler(Looper.getMainLooper()).postDelayed({
+                mainHandler.postDelayed({
                     VoiceAccessibilityService.instance?.sendEnterKey()
                 }, 100)
             }
@@ -3597,7 +3517,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val injected = VoiceAccessibilityService.instance?.inputText(code) ?: false
         if (injected) {
             if (ModelConfig.isOcrAutoEnterEnabled(this)) {
-                Handler(Looper.getMainLooper()).postDelayed({
+                mainHandler.postDelayed({
                     VoiceAccessibilityService.instance?.sendEnterKey()
                 }, 100)
             }
@@ -3625,11 +3545,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isPhrasesDrawerActive) return
         hidePreviewText()
         val anchor = currentAnchorBubble
-        if (anchor?.isTucked == true) {
-            untuckBubble(anchor, animate = false)
-        } else if (isTucked) {
-            untuckBubble(animate = false)
-        }
+        untuckAnchorBubble()
         if (isScannerModeActive) {
             stopScannerMode()
         }
@@ -3678,6 +3594,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             // nothing has focus: the drawer stays open so the user can focus a field and tap again
             setState(State.IDLE)
             if (ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(phrase)
+            showPreviewText(getString(R.string.preview_phrase_no_focus), autoHide = true)
         }
     }
 
@@ -3718,9 +3635,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (isOcrModeActive) {
             setOcrEnlarged(isOcrEnlarged)
         }
-        if (isPhrasesDrawerActive) {
-            updatePhrasesDrawerPosition()
-        }
+        updatePhrasesDrawerPosition()
     }
 
     override fun onDestroy() {
@@ -3777,7 +3692,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun removeOverlay(tag: String, view: View?) {
-        if (view == null || !view.isAttachedToWindow) return
+        if (view == null || !windowManager.isViewAdded(view)) return
         try {
             windowManager.removeView(view)
         } catch (e: Exception) {
