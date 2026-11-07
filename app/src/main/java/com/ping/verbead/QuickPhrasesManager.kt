@@ -99,7 +99,6 @@ object QuickPhrasesManager {
     // ─── Input History (從其他模式輸入的內容，最多保留六項) ───
 
     fun loadHistory(context: Context): List<String> {
-        if (!ModelConfig.isHistoryEnabled(context)) return emptyList()
         val limit = ModelConfig.getHistoryLimit(context)
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val json = prefs.getString(KEY_HISTORY, null) ?: return emptyList()
@@ -132,8 +131,9 @@ object QuickPhrasesManager {
             .apply()
     }
 
-    fun addHistory(context: Context, text: String) {
-        if (!ModelConfig.isHistoryEnabled(context)) return
+    /** [force]: keep the text even when history is switched off (used for text that could not be filled in). */
+    fun addHistory(context: Context, text: String, force: Boolean = false) {
+        if (!force && !ModelConfig.isHistoryEnabled(context)) return
         val trimmed = text.trim()
         if (trimmed.isBlank()) return
         val limit = ModelConfig.getHistoryLimit(context)

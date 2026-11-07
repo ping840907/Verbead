@@ -577,7 +577,7 @@ class VoiceAccessibilityService : AccessibilityService() {
      * Injects [text] into the currently focused editable node in the active foreground window.
      * Uses ACTION_SET_TEXT combined with cursor calculation to insert text at current cursor without
      * writing to the system clipboard, preserving user privacy.
-     * Skips password fields and only falls back to clipboard (with EXTRA_IS_SENSITIVE) if ACTION_SET_TEXT fails.
+     * Skips password fields. The clipboard is only used in clipboard-paste mode; if ACTION_SET_TEXT fails this returns false.
      */
     fun inputText(text: String, createSnapshot: Boolean = true): Boolean {
         if (text.isEmpty()) return false
@@ -699,29 +699,10 @@ class VoiceAccessibilityService : AccessibilityService() {
                 return true
             }
 
-            // SET_TEXT 失敗（部分 WebView 或自繪編輯器如 Google Docs）時才退回剪貼簿，並加上 EXTRA_IS_SENSITIVE 標記與使用者提示
-            Log.w(TAG, "ACTION_SET_TEXT failed, falling back to clipboard paste with EXTRA_IS_SENSITIVE")
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("text", text).apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    description.extras = PersistableBundle().apply {
-                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                    }
-                }
-            }
-            clipboard.setPrimaryClip(clip)
-
-            val pasted = runCatching {
-                target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
-            }.getOrDefault(false)
-            Log.i(TAG, "Fallback ACTION_PASTE result: $pasted")
-
-            if (!pasted) {
-                mainHandler.post {
-                    Toast.makeText(this, R.string.toast_fallback_clipboard, Toast.LENGTH_SHORT).show()
-                }
-            }
-            return pasted
+            // SET_TEXT 失敗：直接填入模式絕不寫入剪貼簿（只有「剪貼簿貼上」模式才會動用剪貼簿）。
+            // 回傳 false，由呼叫端決定是否放進待填文字清單。
+            Log.w(TAG, "ACTION_SET_TEXT failed; not touching the clipboard outside clipboard-paste mode")
+            return false
         } finally {
             mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
         }

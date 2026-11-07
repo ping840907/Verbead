@@ -478,13 +478,4 @@
     <string name="language_tag_multilingual">多言語</string>
     <string name="floating_screen_ocr_desc">画面のOCR</string>
     <string name="toast_screen_capture_failed">画面のキャプチャに失敗しました。Verbead のユーザー補助サービスを有効にしてください（Android 11 以上）</string>
-    <string name="pending_text_title">入力待ち</string>
-    <string name="pending_text_dismiss_all">すべて消去</string>
-    <string name="pending_text_dismiss">削除</string>
-    <string name="pending_text_fill">入力欄に挿入</string>
-    <string name="pending_text_no_field">フォーカスされた入力欄がありません</string>
-    <string name="settings_bubble_pending_title">フローティング入力待ちテキスト</string>
-    <string name="settings_bubble_pending_desc">入力できる欄がないとき、認識したテキストをバブルの横に浮かべておき、後でタップして挿入できます。すべてのモードで使えます。0 でオフ。クリップボードへ書き込むのは、クリップボード貼り付けモードのときだけです。</string>
-    <string name="settings_bubble_pending_off">オフ</string>
-    <string name="settings_bubble_pending_value">%1$d</string>
 </resources>

@@ -776,9 +776,6 @@ object ModelConfig {
     const val MAX_HISTORY_LIMIT = 12
     const val KEY_HISTORY_ENABLED = "history_enabled"
     const val KEY_HISTORY_LIMIT = "history_limit"
-    const val KEY_PENDING_TEXT_COUNT = "pending_text_count"
-    const val DEFAULT_PENDING_TEXT_COUNT = 3
-    const val MAX_PENDING_TEXT_COUNT = 5
 
     fun isHistoryEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
@@ -787,19 +784,6 @@ object ModelConfig {
     fun setHistoryEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_HISTORY_ENABLED, enabled).apply()
-
-    /**
-     * How many recognized results may wait as floating quick-fill text when nothing can be filled in
-     * (0 = the feature is off; the clipboard fallback still happens).
-     */
-    fun getPendingTextCount(context: Context): Int =
-        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
-            .getInt(KEY_PENDING_TEXT_COUNT, DEFAULT_PENDING_TEXT_COUNT)
-            .coerceIn(0, MAX_PENDING_TEXT_COUNT)
-
-    fun setPendingTextCount(context: Context, count: Int) =
-        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
-            .edit().putInt(KEY_PENDING_TEXT_COUNT, count.coerceIn(0, MAX_PENDING_TEXT_COUNT)).apply()
 
     fun getHistoryLimit(context: Context): Int =
         context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
