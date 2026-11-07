@@ -197,9 +197,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private lateinit var bubblePreviewController: BubblePreviewController
     private lateinit var bubblePulseController: BubblePulseController
     private lateinit var bubbleXButtonController: BubbleXButtonController
-    private lateinit var pendingTextController: com.ping.verbead.bubble.PendingTextController
-    private val isPendingTextShowing: Boolean
-        get() = ::pendingTextController.isInitialized && pendingTextController.isShowing
+    /** 填入失敗時臨時長出來的常用語球；抽屜關閉後就收掉。 */
+    private var temporaryPhrasesBubble: FloatingBubbleItem? = null
     private val isXButtonShowing: Boolean
         get() = ::bubbleXButtonController.isInitialized && bubbleXButtonController.isShowing
     private val isPulseShowing: Boolean
@@ -441,6 +440,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     insertQuickPhrase(phrase)
                 }
                 override fun onDrawerClosed(hideX: Boolean) {
+                    removeTemporaryPhrasesBubble()
                     checkAndHideBubbleIfKeyboardClosed(animate = true)
                 }
                 override fun onShowXButton() {
@@ -494,12 +494,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             windowManager = windowManager,
             themedCtx = themedCtx,
             scope = scope
-        )
-
-        pendingTextController = com.ping.verbead.bubble.PendingTextController(
-            context = themedCtx,
-            windowManager = windowManager,
-            onFill = { t -> VoiceAccessibilityService.instance?.inputText(t) ?: false }
         )
 
         ocrOverlayController = OcrOverlayController(
@@ -869,7 +863,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     fun setBubbleVisible(visible: Boolean, animate: Boolean = true) {
         if (!::bubbleView.isInitialized) return
-        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing || isPendingTextShowing)) {
+        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing)) {
             return
         }
         for (item in bubbleItems) {
@@ -895,7 +889,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (item.id == 0) hideXButtonImmediately()
                 if (animate) {
                     v.animate().alpha(0f).setDuration(180).withEndAction {
-                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isPendingTextShowing) {
+                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive) {
                             v.visibility = View.GONE
                         } else {
                             v.alpha = 1f
@@ -925,7 +919,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
         val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing && !isPendingTextShowing) {
+        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
             setBubbleVisible(false, animate = animate)
         }
     }
@@ -1917,7 +1911,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (isScannerModeActive) updateScannerPosition()
             if (isPhrasesDrawerActive) updatePhrasesDrawerPosition()
             updatePreviewPosition()
-            updatePendingTextPosition()
         }
 
         if (bubblesToMove.isEmpty()) {
@@ -2961,29 +2954,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     /**
-     * Parks [text] in the floating quick-fill list beside the bubble (any mode: speech, OCR, barcode, quick phrase).
-     * @return false when the feature is switched off in the settings (count 0), so the caller shows its usual notice.
-     */
-    private fun offerPendingText(text: String): Boolean {
-        if (!::pendingTextController.isInitialized) return false
-        val limit = ModelConfig.getPendingTextCount(this)
-        if (limit <= 0 || text.isBlank()) return false
-        val anchor = currentAnchorBubble
-        if (anchor?.isTucked == true) {
-            untuckBubble(anchor, animate = false)
-        } else if (isTucked) {
-            untuckBubble(animate = false)
-        }
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        pendingTextController.add(text, limit, anchorY, isRight, getScreenWidth(), getSafeBottom())
-        return true
-    }
-
-    /** Test hook (used by the debug build's receiver): behaves like a recognized result that found no text field. */
-    fun debugOfferPendingText(text: String): Boolean = offerPendingText(text)
-
-    /**
      * Test hook for the debug build: shakes the first bubble [clones] times (as if the user had wiggled it), then drags it
      * along a short path and lets go, so the linked bubbles can be inspected without touch input.
      */
@@ -3022,30 +2992,109 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     /**
-     * [text] could not be filled in anywhere. It waits in the floating quick-fill list (when that is on); the clipboard is
-     * only written in clipboard-paste mode.
-     * @return true when the text is waiting in the list (so the caller needs no notice).
+     * [text] could not be filled in anywhere. It is kept in the quick-phrases history and the phrases drawer is opened
+     * (from a phrases bubble that pops out of the bubble if there is none yet), so the user can see where it went and tap
+     * it once a text field has focus. The clipboard is only written in clipboard-paste mode.
+     * @return true (the drawer itself is the notice, so callers show nothing else).
      */
     private fun keepUnfilledText(text: String): Boolean {
-        val parked = offerPendingText(text)
+        QuickPhrasesManager.addHistory(this, text, force = true)
         if (ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(text)
-        return parked
+        mainHandler.post { revealPhrasesDrawer() }
+        return true
     }
 
-    /** The settings slider changed: shrink the waiting list to the new size (0 closes it). */
-    fun onPendingTextCountChanged() {
-        if (::pendingTextController.isInitialized) {
-            mainHandler.post { pendingTextController.trim(ModelConfig.getPendingTextCount(this)) }
+    /** Test hook (used by the debug build's receiver): behaves like a recognized result that found no text field. */
+    fun debugKeepUnfilledText(text: String) { keepUnfilledText(text) }
+
+    /** Opens the phrases drawer next to a phrases bubble, creating a temporary one when none exists and there is room. */
+    private fun revealPhrasesDrawer() {
+        if (isPhrasesDrawerActive) {
+            phrasesDrawerController.refreshPhrasesList()
+            return
+        }
+        val bubble = bubbleItems.firstOrNull { it.mode == MODE_PHRASES } ?: spawnTemporaryPhrasesBubble()
+        if (bubble != null) activeAnchorBubble = bubble
+        openPhrasesDrawer()
+    }
+
+    /** A phrases bubble pops out beside the current bubble (not saved in the settings). @return null when it cannot. */
+    private fun spawnTemporaryPhrasesBubble(): FloatingBubbleItem? {
+        if (MODE_PHRASES !in ModelConfig.getEnabledBubbleModes(this)) return null
+        if (bubbleItems.size >= ModelConfig.getMaxMultiBubbleCountForEnabledModes(this)) return null
+        val anchor = currentAnchorBubble ?: return null
+        if (anchor.isTucked) untuckBubble(anchor, animate = false)
+
+        val density = resources.displayMetrics.density
+        val sizePx = (60 * density).toInt()
+        val v = LayoutInflater.from(themedCtx).inflate(R.layout.layout_floating_bubble, null)
+        val iv = v.findViewById<ImageView>(R.id.iv_bubble_icon)
+        val (iconRes, desc) = getIconAndDescForMode(MODE_PHRASES)
+        iv.setImageResource(iconRes)
+        iv.contentDescription = desc
+
+        val step = (68 * density).toInt()
+        val below = anchor.windowLayoutParams.y + step
+        val y = (if (below <= getMaxY()) below else anchor.windowLayoutParams.y - step).coerceIn(getMinY(), getMaxY())
+        val lp = WindowManager.LayoutParams(
+            sizePx, sizePx,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            allowDisplayCutout()
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = anchor.windowLayoutParams.x
+            this.y = y
+        }
+        val item = FloatingBubbleItem(
+            id = bubbleItems.size,
+            mode = MODE_PHRASES,
+            view = v,
+            windowLayoutParams = lp,
+            btnBubble = v.findViewById(R.id.btn_bubble_mic),
+            ivIcon = iv,
+            progress = v.findViewById(R.id.progress_bubble)
+        ).apply { isDockedOnRight = anchor.isDockedOnRight }
+
+        attachBubbleTouchListener(item)
+        v.scaleX = 0.55f
+        v.scaleY = 0.55f
+        v.alpha = 0.6f
+        try {
+            windowManager.addView(v, lp)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to add temporary phrases bubble", e)
+            return null
+        }
+        bubbleItems.add(item)
+        temporaryPhrasesBubble = item
+        HapticUtil.heavyClick(this)
+        v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(240L)
+            .setInterpolator(DecelerateInterpolator(1.6f)).start()
+        return item
+    }
+
+    private fun removeTemporaryPhrasesBubble() {
+        val item = temporaryPhrasesBubble ?: return
+        temporaryPhrasesBubble = null
+        if (!bubbleItems.contains(item)) return
+        val remove = {
+            removeOverlay("temporary_phrases_bubble", item.view)
+            bubbleItems.remove(item)
+            if (activeAnchorBubble === item) activeAnchorBubble = bubbleItems.firstOrNull()
+            bubbleItems.forEachIndexed { index, b -> b.id = index }
+        }
+        if (item.view.isAttachedToWindow) {
+            item.view.animate().scaleX(0.55f).scaleY(0.55f).alpha(0f).setDuration(160L)
+                .withEndAction { remove() }.start()
+        } else {
+            remove()
         }
     }
 
-    private fun updatePendingTextPosition() {
-        if (!isPendingTextShowing) return
-        val anchor = currentAnchorBubble
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        pendingTextController.updatePosition(anchorY, isRight, getScreenWidth(), getSafeBottom())
-    }
 
     /** 截圖前暫時隱藏本程式所有懸浮畫面，截完立即還原，再開啟框選辨識。 */
     private fun captureScreenForOcr() {
@@ -3623,11 +3672,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (injected) {
             showPreviewText(getString(R.string.preview_inserted_phrase), autoHide = true)
             enterPastedState()
+            closePhrasesDrawer(hideX = false)
         } else {
+            // nothing has focus: the drawer stays open so the user can focus a field and tap again
             setState(State.IDLE)
-            if (!keepUnfilledText(phrase)) showPreviewText(getString(R.string.toast_fallback_clipboard), autoHide = true)
+            if (ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(phrase)
         }
-        closePhrasesDrawer(hideX = !injected)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -3681,7 +3731,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
             safely("routingManager") { routingManager.stop() }
             safely("scanner") { if (::scannerOverlayController.isInitialized) scannerOverlayController.destroy() }
-            safely("pendingText") { if (::pendingTextController.isInitialized) pendingTextController.destroy() }
             safely("ocr") { if (::ocrOverlayController.isInitialized) ocrOverlayController.destroy() }
             safely("phrasesDrawer") { if (::phrasesDrawerController.isInitialized) phrasesDrawerController.destroy() }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }

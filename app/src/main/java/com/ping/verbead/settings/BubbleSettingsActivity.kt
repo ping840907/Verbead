@@ -19,6 +19,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.ping.verbead.FloatingBubbleService
+import com.ping.verbead.QuickPhrasesManager
 import com.ping.verbead.R
 import com.ping.verbead.VoiceAccessibilityService
 import com.ping.verbead.bubble.BubbleModeConfigAdapter
@@ -64,8 +65,6 @@ class BubbleSettingsActivity : AppCompatActivity() {
     private lateinit var sbHistoryLimit: SeekBar
     private lateinit var tvHistoryLimitValue: TextView
 
-    private lateinit var sbPendingTextCount: SeekBar
-    private lateinit var tvPendingTextCountValue: TextView
 
     private var bubbleModeConfigAdapter: BubbleModeConfigAdapter? = null
     private var bubbleModesTouchHelper: ItemTouchHelper? = null
@@ -158,8 +157,6 @@ class BubbleSettingsActivity : AppCompatActivity() {
         dividerHistoryLimit = findViewById(R.id.divider_history_limit)
         sbHistoryLimit = findViewById(R.id.sb_history_limit)
         tvHistoryLimitValue = findViewById(R.id.tv_history_limit_value)
-        sbPendingTextCount = findViewById(R.id.sb_pending_text_count)
-        tvPendingTextCountValue = findViewById(R.id.tv_pending_text_count_value)
     }
 
     private fun setupToolbar() {
@@ -265,6 +262,7 @@ class BubbleSettingsActivity : AppCompatActivity() {
         switchHistoryEnabled.setOnCheckedChangeListener { _, isChecked ->
             HapticUtil.click(this)
             ModelConfig.setHistoryEnabled(this, isChecked)
+            if (!isChecked) QuickPhrasesManager.clearHistory(this)
             updateHistoryUI(isChecked)
             FloatingBubbleService.instance?.updateBubbleModesConfig()
         }
@@ -280,29 +278,6 @@ class BubbleSettingsActivity : AppCompatActivity() {
                     ModelConfig.setHistoryLimit(this@BubbleSettingsActivity, limit)
                     tvHistoryLimitValue.text = getString(R.string.settings_bubble_history_count_value, limit)
                     HapticUtil.tick(this@BubbleSettingsActivity)
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-        setupPendingTextSlider()
-    }
-
-    private fun pendingCountLabel(count: Int): String =
-        if (count == 0) getString(R.string.settings_bubble_pending_off) else getString(R.string.settings_bubble_pending_value, count)
-
-    /** Floating quick-fill text: 0..5 waiting results, 0 = off. */
-    private fun setupPendingTextSlider() {
-        val cur = ModelConfig.getPendingTextCount(this)
-        sbPendingTextCount.progress = cur
-        tvPendingTextCountValue.text = pendingCountLabel(cur)
-        sbPendingTextCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    ModelConfig.setPendingTextCount(this@BubbleSettingsActivity, progress)
-                    tvPendingTextCountValue.text = pendingCountLabel(progress)
-                    HapticUtil.tick(this@BubbleSettingsActivity)
-                    FloatingBubbleService.instance?.onPendingTextCountChanged()
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}

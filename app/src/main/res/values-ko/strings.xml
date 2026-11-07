@@ -478,13 +478,4 @@
     <string name="language_tag_multilingual">다국어</string>
     <string name="floating_screen_ocr_desc">화면 OCR</string>
     <string name="toast_screen_capture_failed">화면 캡처에 실패했습니다. Verbead 접근성 서비스를 켜 주세요 (Android 11 이상)</string>
-    <string name="pending_text_title">입력 대기</string>
-    <string name="pending_text_dismiss_all">모두 지우기</string>
-    <string name="pending_text_dismiss">삭제</string>
-    <string name="pending_text_fill">입력란에 채우기</string>
-    <string name="pending_text_no_field">포커스된 입력란이 없습니다</string>
-    <string name="settings_bubble_pending_title">떠 있는 입력 대기 텍스트</string>
-    <string name="settings_bubble_pending_desc">입력할 곳이 없을 때 인식된 텍스트를 버블 옆에 띄워 두었다가 나중에 눌러서 채울 수 있습니다. 모든 모드에서 작동합니다. 0이면 꺼집니다.클립보드에는 클립보드 붙여넣기 모드일 때만 저장됩니다.</string>
-    <string name="settings_bubble_pending_off">끔</string>
-    <string name="settings_bubble_pending_value">%1$d</string>
 </resources>
