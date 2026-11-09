@@ -432,6 +432,7 @@
     <string name="settings_import_no_models">アーカイブに有効なモデルファイルが含まれていません</string>
     <string name="settings_import_stream_unreadable">選択したファイルを読み込めません（InputStream が空です）</string>
     <string name="settings_import_file_not_found">モデルパッケージが見つからないか、読み取り権限がありません：%1$s</string>
+    <string name="settings_import_insufficient_space">ストレージの空き容量が不足しています。%1$d MB 以上を空けてからもう一度お試しください</string>
     <string name="settings_import_extract_failed">展開に失敗しました：%1$s</string>
     <string name="settings_import_no_combo">完全なモデルの組み合わせがありません</string>
     <string name="settings_import_finishing">復元が完了しました</string>

@@ -394,6 +394,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         progressImportModels.progress = 0
         tvImportModelsStatus.visibility = View.VISIBLE
         tvImportModelsStatus.text = getString(R.string.settings_import_preparing)
+        // 解壓大型模型需要一段時間，避免螢幕休眠中斷
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         lifecycleScope.launch {
             val result = if (file != null) {
@@ -422,6 +424,7 @@ class ImeSettingsActivity : AppCompatActivity() {
                 )
             }
 
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             btnImportModelsZip.isEnabled = true
             btnQuickImportDownload.isEnabled = true
             progressImportModels.visibility = View.GONE
@@ -470,6 +473,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         ModelZipInstaller.Status.NO_MODELS_IN_ARCHIVE -> getString(R.string.settings_import_no_models)
         ModelZipInstaller.Status.STREAM_UNREADABLE -> getString(R.string.settings_import_stream_unreadable)
         ModelZipInstaller.Status.FILE_NOT_FOUND -> getString(R.string.settings_import_file_not_found, result.detail)
+        ModelZipInstaller.Status.INSUFFICIENT_SPACE -> getString(R.string.settings_import_insufficient_space, result.detail.toIntOrNull() ?: 0)
         ModelZipInstaller.Status.EXTRACT_FAILED -> getString(R.string.settings_import_extract_failed, result.detail)
         ModelZipInstaller.Status.INVALID_SOURCE -> getString(R.string.settings_import_invalid_source)
     }

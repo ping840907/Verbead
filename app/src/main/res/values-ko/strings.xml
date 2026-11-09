@@ -432,6 +432,7 @@
     <string name="settings_import_no_models">압축 파일에 유효한 모델 파일이 없습니다</string>
     <string name="settings_import_stream_unreadable">선택한 파일을 읽을 수 없습니다 (InputStream이 비어 있음)</string>
     <string name="settings_import_file_not_found">모델 패키지를 찾을 수 없거나 읽기 권한이 없습니다: %1$s</string>
+    <string name="settings_import_insufficient_space">저장 공간이 부족합니다. %1$d MB 이상 비운 뒤 다시 시도하세요</string>
     <string name="settings_import_extract_failed">압축 해제 실패: %1$s</string>
     <string name="settings_import_no_combo">완전한 모델 조합이 없습니다</string>
     <string name="settings_import_finishing">복원 완료</string>

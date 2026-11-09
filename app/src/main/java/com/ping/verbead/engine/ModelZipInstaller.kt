@@ -29,7 +29,7 @@ object ModelZipInstaller {
     /** 解壓完成時回報的檔名（空字串），由介面層顯示「復原完成」 */
     const val PROGRESS_COMPLETE = ""
 
-    enum class Status { SUCCESS, NO_MODELS_IN_ARCHIVE, STREAM_UNREADABLE, FILE_NOT_FOUND, EXTRACT_FAILED, INVALID_SOURCE }
+    enum class Status { SUCCESS, NO_MODELS_IN_ARCHIVE, STREAM_UNREADABLE, FILE_NOT_FOUND, EXTRACT_FAILED, INVALID_SOURCE, INSUFFICIENT_SPACE }
 
     data class InstallResult(
         val isSuccess: Boolean,
@@ -47,8 +47,28 @@ object ModelZipInstaller {
     data class ExtractionReport(
         val fileCount: Int,
         val totalBytes: Long,
-        val extractedEntries: List<String>
+        val extractedEntries: List<String>,
+        /** 非模型檔案（不在 qwen3_asr/、x_asr/、ocr/ 之下）而被略過的項目數 */
+        val skippedCount: Int = 0
     )
+
+    private val MODEL_ROOT_DIRS = listOf(
+        ModelConfig.QWEN3_ASR_DIR, ModelConfig.X_ASR_DIR, ModelConfig.OCR_DIR
+    )
+
+    /** 只解壓已知模型資料夾內的檔案，避免壓縮檔中的雜物被寫入模型目錄 */
+    internal fun isModelEntry(normalizedName: String): Boolean =
+        MODEL_ROOT_DIRS.any { normalizedName.startsWith("$it/") }
+
+    /** 預留 5% 餘裕；已知壓縮檔大小時，若可用空間不足則提前中止 */
+    internal fun requiredSpaceBytes(archiveSize: Long): Long =
+        if (archiveSize > 0) archiveSize + archiveSize / 20 else 0L
+
+    private fun cleanupTempFiles(dir: File) {
+        runCatching {
+            dir.walkTopDown().filter { it.isFile && it.name.endsWith(".tmp") }.forEach { it.delete() }
+        }
+    }
 
     /**
      * Checks if default preloaded package exists in App private directories.
@@ -185,7 +205,7 @@ object ModelZipInstaller {
             File(qwen3Dir, "conv_frontend.onnx").exists() &&
             File(qwen3Dir, "encoder.int8.onnx").exists() &&
             File(qwen3Dir, "decoder.int8.onnx").exists() &&
-            File(qwen3Dir, "vocab.json").exists()
+            (File(qwen3Dir, "vocab.json").exists() || File(qwen3Dir, ModelConfig.QWEN3_ASR_TOKENIZER_DIR).isDirectory)
 
         val xAsrDir = File(targetDir, "x_asr")
         val xAsrRestored = hasXAsrEntry &&
@@ -252,10 +272,26 @@ object ModelZipInstaller {
             targetDir.mkdirs()
         }
 
+        val needed = requiredSpaceBytes(totalSize)
+        if (needed > 0 && targetDir.usableSpace < needed) {
+            runCatching { rawStream.close() }
+            return InstallResult(
+                isSuccess = false,
+                xAsrReady = false,
+                qwen3Ready = false,
+                ocrReady = false,
+                fileCount = 0,
+                totalBytes = 0,
+                status = Status.INSUFFICIENT_SPACE,
+                detail = ((needed + 1024 * 1024 - 1) / (1024 * 1024)).toString()
+            )
+        }
+
         val report = try {
             extractZipToDirectoryWithReport(rawStream, totalSize, targetDir, onProgress)
         } catch (e: Exception) {
             Log.e(TAG, "Extraction failed: ${e.message}", e)
+            cleanupTempFiles(targetDir)
             return InstallResult(
                 isSuccess = false,
                 xAsrReady = false,
@@ -292,28 +328,19 @@ object ModelZipInstaller {
         val ocrTinyReady = ModelConfig.isOcrTinyReady(context)
         val ocrReady = ocrSmallReady || ocrTinyReady
 
-        val readyShortNames = if (analysis.shortLabels.isNotEmpty()) {
-            analysis.shortLabels
-        } else {
-            buildList {
-                if (qwen3Ready) add("Qwen3-ASR")
-                if (xAsrReady) add("X-ASR")
-                if (ocrReady) add("PP-OCRv6")
-            }
-        }
-
-
+        // 只有實際還原出至少一個完整模型才算成功（避免空包或殘缺包被誤報為成功）
+        val restoredAny = analysis.shortLabels.isNotEmpty()
 
         return InstallResult(
-            isSuccess = report.fileCount > 0,
+            isSuccess = restoredAny,
             xAsrReady = xAsrReady,
             qwen3Ready = qwen3Ready,
             ocrReady = ocrReady,
             restoredModels = analysis.detailedLabels,
-            restoredModelShortNames = readyShortNames,
+            restoredModelShortNames = analysis.shortLabels,
             fileCount = report.fileCount,
             totalBytes = report.totalBytes,
-            status = if (report.fileCount > 0) Status.SUCCESS else Status.NO_MODELS_IN_ARCHIVE
+            status = if (restoredAny) Status.SUCCESS else Status.NO_MODELS_IN_ARCHIVE
         )
     }
 
@@ -334,6 +361,7 @@ object ModelZipInstaller {
         onProgress: suspend (currentFile: String, percent: Int) -> Unit = { _, _ -> }
     ): ExtractionReport {
         var extractedCount = 0
+        var skippedCount = 0
         var totalBytesExtracted = 0L
         val extractedEntries = mutableListOf<String>()
 
@@ -363,6 +391,13 @@ object ModelZipInstaller {
                 val canonicalTarget = targetDir.canonicalPath
                 if (!canonicalDest.startsWith(canonicalTarget + File.separator) && canonicalDest != canonicalTarget) {
                     throw SecurityException("Illegal zip entry path (Zip Slip): $entryName")
+                }
+
+                if (!isModelEntry(entryName)) {
+                    skippedCount++
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                    continue
                 }
 
                 if (entry.isDirectory) {
@@ -407,7 +442,7 @@ object ModelZipInstaller {
                 entry = zis.nextEntry
             }
         }
-        return ExtractionReport(extractedCount, totalBytesExtracted, extractedEntries)
+        return ExtractionReport(extractedCount, totalBytesExtracted, extractedEntries, skippedCount)
     }
 
     private class ProgressInputStream(

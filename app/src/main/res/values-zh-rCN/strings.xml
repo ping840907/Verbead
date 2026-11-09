@@ -432,6 +432,7 @@
     <string name="settings_import_no_models">压缩包中未包含有效模型文件</string>
     <string name="settings_import_stream_unreadable">无法读取选择的文件 (InputStream 为空)</string>
     <string name="settings_import_file_not_found">找不到模型压缩包或无读取权限: %1$s</string>
+    <string name="settings_import_insufficient_space">存储空间不足，请先释放至少 %1$d MB 后再试一次</string>
     <string name="settings_import_extract_failed">解压缩失败: %1$s</string>
     <string name="settings_import_no_combo">无完整模型组合</string>
     <string name="settings_import_finishing">恢复完成</string>

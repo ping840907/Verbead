@@ -437,6 +437,7 @@
     <string name="settings_import_no_models">The archive contains no valid model files</string>
     <string name="settings_import_stream_unreadable">Can\'t read the selected file (empty InputStream)</string>
     <string name="settings_import_file_not_found">Model package not found or not readable: %1$s</string>
+    <string name="settings_import_insufficient_space">Not enough storage space. Free up at least %1$d MB and try again</string>
     <string name="settings_import_extract_failed">Extraction failed: %1$s</string>
     <string name="settings_import_no_combo">No complete model set</string>
     <string name="settings_import_finishing">Restore complete</string>

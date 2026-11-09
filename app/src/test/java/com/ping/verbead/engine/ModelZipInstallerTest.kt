@@ -143,4 +143,34 @@ class ModelZipInstallerTest {
 
         assertFalse("Evil file outside destination directory must not be created", evilFile.exists())
     }
+
+    @Test
+    fun testNonModelEntriesAreSkipped() = runBlocking {
+        val outDir = tempFolder.newFolder("skip_models")
+        val baos = ByteArrayOutputStream()
+        ZipOutputStream(baos).use { zos ->
+            for (name in listOf("readme.txt", "docs/notes.md", "x_asr/tokens.txt")) {
+                zos.putNextEntry(ZipEntry(name))
+                zos.write("data".toByteArray())
+                zos.closeEntry()
+            }
+        }
+        val bytes = baos.toByteArray()
+        val report = ModelZipInstaller.extractZipToDirectoryWithReport(
+            ByteArrayInputStream(bytes), bytes.size.toLong(), outDir
+        )
+        assertEquals(1, report.fileCount)
+        assertEquals(2, report.skippedCount)
+        assertTrue(File(outDir, "x_asr/tokens.txt").exists())
+        assertFalse(File(outDir, "readme.txt").exists())
+        assertFalse(File(outDir, "docs/notes.md").exists())
+    }
+
+    @Test
+    fun testRequiredSpaceBytes() {
+        assertEquals(0L, ModelZipInstaller.requiredSpaceBytes(-1L))
+        assertEquals(1050L, ModelZipInstaller.requiredSpaceBytes(1000L))
+        assertTrue(ModelZipInstaller.isModelEntry("qwen3_asr/encoder.int8.onnx"))
+        assertFalse(ModelZipInstaller.isModelEntry("other/file.bin"))
+    }
 }
