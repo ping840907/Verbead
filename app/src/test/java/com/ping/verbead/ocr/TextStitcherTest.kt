@@ -172,9 +172,9 @@ class TextStitcherTest {
 
     @Test
     fun testVerticalGapAndIndentation() {
-        // 垂直行距過大（大於 1.2 * height）
+        // 垂直行距過大（量不到典型行距時，超過 2.2 倍框高）
         val block1 = OcrBlock("段落一內容", 50f, 100f, 300f, 120f) // height = 20, bottom = 120
-        val block2 = OcrBlock("段落二內容", 50f, 150f, 300f, 170f) // deltaY = 30 > 24
+        val block2 = OcrBlock("段落二內容", 50f, 180f, 300f, 200f) // deltaY = 60 = 3h, well past natural leading
         assertEquals("段落一內容\n段落二內容", TextStitcher.stitch(listOf(block1, block2)))
 
         // 顯著縮排（curr.left - prev.left > 1.5 * height）
@@ -513,5 +513,58 @@ class TextStitcherTest {
         val b2 = OcrBlock("2. next item", 50f, 130f, 200f, 150f)
         val result = TextStitcher.stitch(listOf(b1, b2))
         assertEquals("https://example.com/path/" + "\n" + "2. next item", result)
+    }
+
+    // ── 實測：偵測框只有字形的七成，行距約 2 倍字高（網頁文章截圖，座標取自手機上的實際偵測結果）──
+
+    private fun articleLines(): List<OcrBlock> = listOf(
+        OcrBlock("全球AI晶片龍頭輝達（NVIDIA）執行長，AI教", 38f, 499f, 1159f, 532f),
+        OcrBlock("父黃仁勳驚傳與涉嫌涉及中國情報活動的女商", 40f, 594f, 1156f, 630f),
+        OcrBlock("人關係密切，更坦承曾對妻子不忠，輝達董事", 40f, 692f, 1156f, 725f),
+        OcrBlock("會已宣布展開獨立調查。消息震撼科技圈，今", 40f, 790f, 1156f, 823f),
+        OcrBlock("周一（9日）開盤一度下跌約2.9%，最低報", 38f, 885f, 1096f, 920f),
+        OcrBlock("180.15美元。市場預料，台積電（2330）、", 38f, 983f, 1102f, 1018f),
+        OcrBlock("京元電子（2449）、緯創（3231）等亞洲供", 38f, 1081f, 1126f, 1116f),
+        OcrBlock("應商股價也可能出現波動。", 38f, 1179f, 686f, 1211f),
+        OcrBlock("而台股近期同樣劇烈震盪，讓不少投資人帳面", 38f, 1361f, 1159f, 1396f),
+        OcrBlock("獲利大幅縮水。有號稱「南港巴菲特」的藝", 38f, 1458f, 1102f, 1491f),
+        OcrBlock("人黃鐙輝，過去靠著長期布局台積電及0050", 43f, 1556f, 1113f, 1589f),
+        OcrBlock("等標的，累積上千萬元投資成果，沒想到這", 40f, 1651f, 1102f, 1684f),
+        OcrBlock("波股災也讓他吃足苦頭。黃鐙輝近日宣傳新劇", 40f, 1749f, 1156f, 1782f),
+        OcrBlock("時透露，自己過去曾買進部分個股，帳面報酬", 38f, 1847f, 1159f, 1879f),
+        OcrBlock("率一度高達100%至200%，不料市場突然重", 38f, 1945f, 1110f, 1977f),
+        OcrBlock("挫，原本累積的獲利竟在短時間內幾乎全部蒸", 35f, 2042f, 1159f, 2075f),
+        OcrBlock("發，讓他深刻體會股市風險。", 38f, 2138f, 746f, 2173f)
+    )
+
+    @Test
+    fun testGenerousLeadingWithShrunkBoxesStillWrapsIntoParagraphs() {
+        val lines = articleLines()
+        assertEquals(98f, TextStitcher.estimateLinePitch(lines), 5f)
+        val result = TextStitcher.stitch(lines)
+        val paragraphs = result.split("\n")
+        assertEquals(2, paragraphs.size) // only the real paragraph gap (4.7x box height) breaks
+        assertEquals(
+            "全球AI晶片龍頭輝達（NVIDIA）執行長，AI教父黃仁勳驚傳與涉嫌涉及中國情報活動的女商人關係密切，更坦承曾對妻子不忠，輝達董事會已宣布展開獨立調查。" +
+                "消息震撼科技圈，今周一（9日）開盤一度下跌約2.9%，最低報180.15美元。市場預料，台積電（2330）、京元電子（2449）、緯創（3231）等亞洲供應商股價也可能出現波動。",
+            paragraphs[0]
+        )
+        assertTrue(paragraphs[1].startsWith("而台股近期同樣劇烈震盪，讓不少投資人帳面獲利大幅縮水。"))
+        assertTrue(paragraphs[1].endsWith("讓他深刻體會股市風險。"))
+    }
+
+    @Test
+    fun testTwoLinesWithGenerousLeadingStillJoinWithoutAPitchEstimate() {
+        val lines = articleLines().take(2) // one pair: no page-wide pitch, the looser fixed limit applies
+        assertEquals("全球AI晶片龍頭輝達（NVIDIA）執行長，AI教父黃仁勳驚傳與涉嫌涉及中國情報活動的女商", TextStitcher.stitch(lines))
+    }
+
+    @Test
+    fun testSpacedOutShortItemsAreNotMergedIntoOneLine() {
+        // a menu: short items with ~3x pitch and no punctuation must stay separate lines
+        val items = listOf("首頁", "最新消息", "熱門話題", "影音專區", "會員中心").mapIndexed { i, t ->
+            OcrBlock(t, 50f, 100f + i * 100f, 110f + i * 15f, 134f + i * 100f)
+        }
+        assertEquals(items.joinToString("\n") { it.text }, TextStitcher.stitch(items))
     }
 }

@@ -97,7 +97,22 @@ object TextStitcher {
 
     // 逗號連接時容許的字高倍率與行距上限（比一般斷行規則寬鬆）
     private const val COMMA_MAX_HEIGHT_RATIO = 1.6f
-    private const val COMMA_MAX_GAP = 2.0f
+
+    /**
+     * 偵測框只框到字形的七成左右，而網頁/App 內文的行高常是字高的兩倍，所以「行距 = 框高的 1.2 倍」這種固定倍率
+     * 會把正常的自然折行全部切開（實測：框高 33 px、行距 62 px、倍率 1.9）。因此改成：
+     * - 整頁有足夠的行可以量時，以「典型行距」（相鄰兩行上緣距離的中位數）為準，只有超過它的 [PITCH_BREAK_RATIO] 倍才算段落間距；
+     * - 量不到時（只有兩三行），退回較寬鬆的固定倍率 [FALLBACK_MAX_GAP]。
+     * 超過舊上限（1.2 倍框高）的寬鬆放行，還要求前一行夠長（[WRAP_MIN_WIDTH_RATIO]），避免把短行的選單、列表接在一起。
+     */
+    private const val STRICT_MAX_GAP = 1.2f
+    private const val FALLBACK_MAX_GAP = 2.2f
+    private const val COMMA_FALLBACK_MAX_GAP = 2.6f
+    private const val PITCH_BREAK_RATIO = 1.5f
+    private const val COMMA_PITCH_BREAK_RATIO = 2.0f
+    private const val WRAP_MIN_WIDTH_RATIO = 0.6f
+    private const val MAX_NATURAL_PITCH_IN_HEIGHTS = 3.3f
+    private const val MIN_PITCH_SAMPLES = 3
 
     // 閉合括號與引號
     private val CLOSING_CHARS = setOf(
@@ -133,6 +148,48 @@ object TextStitcher {
     )
 
     /**
+     * 估計這一頁的典型行距（相鄰兩行上緣的距離，中位數）。只取同一欄、字高相近、由上往下的相鄰行；
+     * 樣本少於 [MIN_PITCH_SAMPLES] 個、或行距超過 [MAX_NATURAL_PITCH_IN_HEIGHTS] 倍框高（那更像是一份份分開的項目，不是折行）時回傳 0。
+     */
+    fun estimateLinePitch(blocks: List<OcrBlock>): Float {
+        val pitches = ArrayList<Float>()
+        val heights = ArrayList<Float>()
+        for (i in 1 until blocks.size) {
+            val prev = blocks[i - 1]
+            val curr = blocks[i]
+            if (prev.height <= 0f || curr.height <= 0f) continue
+            val pitch = curr.top - prev.top
+            if (pitch <= 0f) continue
+            val ratio = prev.height / curr.height
+            if (ratio > 1.25f || ratio < 0.8f) continue
+            val overlapX = min(prev.right, curr.right) - max(prev.left, curr.left)
+            if (overlapX < 0.5f * min(prev.width, curr.width)) continue
+            pitches.add(pitch)
+            heights.add(prev.height)
+        }
+        if (pitches.size < MIN_PITCH_SAMPLES) return 0f
+        pitches.sort()
+        heights.sort()
+        val pitch = pitches[pitches.size / 2]
+        val height = heights[heights.size / 2]
+        return if (pitch > MAX_NATURAL_PITCH_IN_HEIGHTS * height) 0f else pitch
+    }
+
+    /** [curr] 離 [prev] 的行距仍在自然折行的範圍內嗎？（[pitchRatio]：有典型行距時的倍率；[fallbackGap]：沒有時的框高倍率） */
+    private fun withinNaturalSpacing(
+        prev: OcrBlock,
+        curr: OcrBlock,
+        linePitch: Float,
+        pitchRatio: Float,
+        fallbackGap: Float
+    ): Boolean =
+        if (linePitch > 0f) {
+            (curr.top - prev.top) <= pitchRatio * linePitch
+        } else {
+            (curr.top - prev.bottom) <= fallbackGap * prev.height
+        }
+
+    /**
      * Stitches OCR blocks into a single string by analyzing geometry, punctuation rules,
      * and Unicode language transitions.
      */
@@ -147,13 +204,14 @@ object TextStitcher {
             if (panguSpacing) applyPanguSpacing(blocks[0].text) else blocks[0].text
         } else {
             val maxLineWidth = blocks.maxOfOrNull { it.width } ?: 0f
+            val linePitch = estimateLinePitch(blocks)
 
             val sb = StringBuilder()
             // acc: 目前累積中的最後一行（文字可能已併入網址續行，幾何沿用最後一行）
             var acc = blocks[0]
             for (i in 1 until blocks.size) {
                 val curr = blocks[i]
-                val join = joinUrlWrap(acc, curr, maxLineWidth)
+                val join = joinUrlWrap(acc, curr, maxLineWidth, linePitch)
                 if (join != null) {
                     if (join.rest.isEmpty()) {
                         acc = OcrBlock(join.urlText, curr.left, curr.top, curr.right, curr.bottom)
@@ -169,7 +227,8 @@ object TextStitcher {
                     curr = curr,
                     fallbackSep = fallbackSep,
                     maxLineWidth = maxLineWidth,
-                    panguSpacing = panguSpacing
+                    panguSpacing = panguSpacing,
+                    linePitch = linePitch
                 )
                 sb.append(conn.prevText)
                 sb.append(conn.separator)
@@ -202,7 +261,7 @@ object TextStitcher {
      * 3. curr 與 prev 的版面是相連的下一行（未向上跳躍、字高相近、行距正常），且不是列表項目。
      * 4. curr 第一個字詞只含網址合法字元；prev 以句點結尾而 curr 以大寫字母開頭時視為新句子，不縫合。
      */
-    fun joinUrlWrap(prev: OcrBlock, curr: OcrBlock, maxLineWidth: Float): UrlJoin? {
+    fun joinUrlWrap(prev: OcrBlock, curr: OcrBlock, maxLineWidth: Float, linePitch: Float = 0f): UrlJoin? {
         val prevT = prev.text.trimEnd()
         val currT = curr.text.trimStart()
         if (prevT.isEmpty() || currT.isEmpty()) return null
@@ -224,7 +283,10 @@ object TextStitcher {
             val ratio = prev.height / curr.height
             if (ratio > 1.25f || ratio < 0.8f) return null
             val deltaY = curr.top - prev.bottom
-            if (deltaY > 1.2f * prev.height || deltaY < -0.3f * prev.height) return null
+            if (deltaY < -0.3f * prev.height) return null
+            if (deltaY > STRICT_MAX_GAP * prev.height &&
+                !withinNaturalSpacing(prev, curr, linePitch, PITCH_BREAK_RATIO, FALLBACK_MAX_GAP)
+            ) return null
         } else if (prevToken.last() !in "/-._?&=#%+~:,") {
             return null
         }
@@ -240,7 +302,8 @@ object TextStitcher {
         curr: OcrBlock,
         fallbackSep: String = "\n",
         maxLineWidth: Float = 0f,
-        panguSpacing: Boolean = false
+        panguSpacing: Boolean = false,
+        linePitch: Float = 0f
     ): StitchConnection {
         val prevTrimmed = prev.text.trimEnd()
         val currTrimmed = curr.text.trimStart()
@@ -273,7 +336,7 @@ object TextStitcher {
         // 1.5 逗號連接（Comma Continuation）：行尾是逗號、或下一行以逗號開頭，代表句子還沒說完，
         // 優先於縮排、居中短行、行距、字高等版面規則接成同一句；只有明確的多欄跳行、
         // 行距遠超標、字高差距過大，或下一行是列表項目時才仍然斷行。
-        commaConnection(prev, curr, prevTrimmed, currTrimmed, panguSpacing)?.let { return it }
+        commaConnection(prev, curr, prevTrimmed, currTrimmed, panguSpacing, linePitch)?.let { return it }
 
         // 2. 多欄排版與 Y 軸向上跳躍判定（Multi-column & Upward Jump Safeguard）
         if (prev.height > 0f && curr.top < prev.top - 0.5f * prev.height) {
@@ -289,10 +352,17 @@ object TextStitcher {
         }
 
         // 4. 垂直行距超標（Vertical Gap）
+        //    超過 1.2 倍框高時，只有「前一行夠長、行距仍符合這一頁的典型行距」才當成自然折行（見 STRICT_MAX_GAP 的說明）
         if (prev.height > 0f) {
             val deltaY = curr.top - prev.bottom
-            if (deltaY > 1.2f * prev.height || deltaY < -0.3f * prev.height) {
+            if (deltaY < -0.3f * prev.height) {
                 return StitchConnection(prev.text, "\n")
+            }
+            if (deltaY > STRICT_MAX_GAP * prev.height) {
+                val looksWrapped = maxLineWidth <= 0f || prev.width >= WRAP_MIN_WIDTH_RATIO * maxLineWidth
+                if (!looksWrapped || !withinNaturalSpacing(prev, curr, linePitch, PITCH_BREAK_RATIO, FALLBACK_MAX_GAP)) {
+                    return StitchConnection(prev.text, "\n")
+                }
             }
         }
 
@@ -409,7 +479,8 @@ object TextStitcher {
         curr: OcrBlock,
         prevTrimmed: String,
         currTrimmed: String,
-        panguSpacing: Boolean
+        panguSpacing: Boolean,
+        linePitch: Float
     ): StitchConnection? {
         val prevEndsWithComma = stripClosingPunctuation(prevTrimmed).lastOrNull()?.let { it in COMMA_CHARS } == true
         val currStartsWithComma = currTrimmed.first() in COMMA_CHARS
@@ -424,7 +495,8 @@ object TextStitcher {
             val ratio = prev.height / curr.height
             if (ratio > COMMA_MAX_HEIGHT_RATIO || ratio < 1f / COMMA_MAX_HEIGHT_RATIO) return null
             val deltaY = curr.top - prev.bottom
-            if (deltaY > COMMA_MAX_GAP * prev.height || deltaY < -0.3f * prev.height) return null
+            if (deltaY < -0.3f * prev.height) return null
+            if (!withinNaturalSpacing(prev, curr, linePitch, COMMA_PITCH_BREAK_RATIO, COMMA_FALLBACK_MAX_GAP)) return null
         }
 
         val lastC = prevTrimmed.last()

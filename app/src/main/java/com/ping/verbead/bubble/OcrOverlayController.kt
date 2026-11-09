@@ -660,7 +660,8 @@ class OcrOverlayController(
                     val sep = ModelConfig.ocrSeparator(context)
                     val pangu = ModelConfig.isOcrPanguSpacingEnabled(context)
                     val toTrad = ModelConfig.isOcrToTraditionalEnabled(context)
-                    var processed = if (ModelConfig.isOcrSmartStitchEnabled(context)) {
+                    val processed = if (ModelConfig.isOcrSmartStitchEnabled(context)) {
+                        // stitch() already applies CJK-Latin spacing and Traditional conversion itself
                         TextStitcher.stitch(
                             recognizedBlocks,
                             fallbackSep = sep,
@@ -668,13 +669,10 @@ class OcrOverlayController(
                             toTraditional = toTrad
                         )
                     } else {
-                        recognizedBlocks.joinToString(sep) { it.text }
-                    }
-                    if (pangu) {
-                        processed = TextStitcher.applyPanguSpacing(processed)
-                    }
-                    if (toTrad) {
-                        processed = ZhTwRules.toTaiwanTraditional(processed)
+                        var joined = recognizedBlocks.joinToString(sep) { it.text }
+                        if (pangu) joined = TextStitcher.applyPanguSpacing(joined)
+                        if (toTrad) joined = ZhTwRules.toTaiwanTraditional(joined)
+                        joined
                     }
                     HapticUtil.heavyClick(context)
                     listener.onOcrTextConfirmed(processed)

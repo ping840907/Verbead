@@ -209,11 +209,14 @@ class VoiceAccessibilityService : AccessibilityService() {
                             val t0 = android.os.SystemClock.elapsedRealtime()
                             val boxes = engine.detectText(bmp).sortedBy { it.top }
                             Log.i(TAG, "OCR_TEST boxes=${boxes.size} detect=${android.os.SystemClock.elapsedRealtime() - t0}ms")
+                            val recognized = mutableListOf<com.ping.verbead.ocr.OcrBlock>()
                             for (b in boxes) {
                                 val t1 = android.os.SystemClock.elapsedRealtime()
                                 val text = engine.recognizeBox(bmp, b)
+                                if (text.isNotBlank()) recognized.add(com.ping.verbead.ocr.OcrBlock(text.trim(), b))
                                 Log.i(TAG, "OCR_TEST box=${b.left.toInt()},${b.top.toInt()},${b.right.toInt()},${b.bottom.toInt()} ${android.os.SystemClock.elapsedRealtime() - t1}ms: $text")
                             }
+                            Log.i(TAG, "OCR_TEST stitched: " + com.ping.verbead.ocr.TextStitcher.stitch(recognized).replace("\n", " | "))
                             Log.i(TAG, "OCR_TEST done")
                         } catch (t: Throwable) {
                             Log.e(TAG, "OCR_TEST failed: ${t.message}", t)
