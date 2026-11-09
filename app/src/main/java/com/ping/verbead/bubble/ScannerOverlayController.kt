@@ -123,9 +123,9 @@ class ScannerOverlayController(
         val cardSize = scannerWidth - (16 * density).toInt()
 
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        val targetY = (micY - (estimatedHeight / 2)).coerceIn(0, maxOf(0, maxAllowedY))
+        // top edge level with the bubble's top edge, like the quick phrases drawer
+        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
 
         scannerLayoutParams = WindowManager.LayoutParams(
             scannerWidth,
@@ -204,7 +204,7 @@ class ScannerOverlayController(
             scanner.pivotX = 0f
             scanner.translationX = -(40 * density)
         }
-        scanner.pivotY = (140 * density)
+        scanner.pivotY = (30 * density) // the bubble's centre now sits 30dp below the window's top
         scanner.alpha = 0f
         scanner.scaleX = 0.7f
         scanner.scaleY = 0.7f
@@ -319,9 +319,9 @@ class ScannerOverlayController(
         btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
 
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        val targetY = (micY - (estimatedHeight / 2)).coerceIn(0, maxOf(0, maxAllowedY))
+        // top edge level with the bubble's top edge, like the quick phrases drawer
+        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
         lp.y = targetY
         lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
         lp.x = bubbleWidthPx + gap
@@ -367,9 +367,8 @@ class ScannerOverlayController(
 
         val cardSize = lp.width - (16 * density).toInt()
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        lp.y = (micY - (estimatedHeight / 2)).coerceIn(0, maxOf(0, maxAllowedY))
+        lp.y = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
         lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
         lp.x = bubbleWidthPx + gap
         try {

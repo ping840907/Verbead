@@ -138,9 +138,9 @@ class OcrOverlayController(
 
         val cardSize = ocrWidth - (16 * density).toInt()
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        val targetY = (micY - (estimatedHeight / 2)).coerceIn(0, maxOf(0, maxAllowedY))
+        // top edge level with the bubble's top edge, like the quick phrases drawer
+        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
 
         ocrWindowLayoutParams = WindowManager.LayoutParams(
             ocrWidth,
@@ -237,7 +237,7 @@ class OcrOverlayController(
             ocr.pivotX = 0f
             ocr.translationX = -(40 * density)
         }
-        ocr.pivotY = (140 * density)
+        ocr.pivotY = (30 * density) // the bubble's centre now sits 30dp below the window's top
         ocr.alpha = 0f
         ocr.scaleX = 0.7f
         ocr.scaleY = 0.7f
@@ -352,9 +352,9 @@ class OcrOverlayController(
         btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
 
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        val targetY = (micY - (estimatedHeight / 2)).coerceIn(0, maxOf(0, maxAllowedY))
+        // top edge level with the bubble's top edge, like the quick phrases drawer
+        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
         lp.y = targetY
         lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
         lp.x = bubbleWidthPx + gap
@@ -400,9 +400,8 @@ class OcrOverlayController(
 
         val cardSize = lp.width - (16 * density).toInt()
         val estimatedHeight = cardSize + (120 * density).toInt()
-        val micY = anchorY + (30 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        lp.y = (micY - (estimatedHeight / 2)).coerceIn(0, maxOf(0, maxAllowedY))
+        lp.y = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
         lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
         lp.x = bubbleWidthPx + gap
         try {
