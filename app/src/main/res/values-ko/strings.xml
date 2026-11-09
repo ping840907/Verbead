@@ -58,7 +58,6 @@
     <string name="toast_camera_capture_failed">현재 카메라 화면을 캡처할 수 없습니다</string>
 
     <!-- FloatingBubbleService Previews -->
-    <string name="preview_restored">실행 취소됨</string>
     <string name="preview_voice_start_failed">음성 입력을 시작하지 못했습니다: %1$s</string>
     <string name="preview_loading_dual_models">모델 두 개를 불러오는 중…</string>
     <string name="preview_loading_models">모델을 불러오는 중…</string>
@@ -69,11 +68,6 @@
     <string name="preview_transcribe_failed">변환에 실패했습니다. 다시 녹음해 주세요</string>
     <string name="preview_no_text_detected">텍스트가 감지되지 않았습니다</string>
     <string name="preview_copied">복사됨</string>
-    <string name="preview_mode_voice">음성 모드</string>
-    <string name="preview_mode_ocr">문자 인식</string>
-    <string name="preview_mode_barcode">바코드 스캔</string>
-    <string name="preview_mode_phrases">자주 쓰는 문구</string>
-    <string name="preview_inserted_phrase">문구를 입력했습니다</string>
     <string name="preview_phrase_no_focus">먼저 입력란을 누른 다음 문구를 눌러 주세요</string>
     <string name="preview_copied_barcode">바코드를 복사했습니다</string>
     <string name="preview_copied_with_text">복사됨: %1$s</string>

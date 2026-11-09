@@ -37,6 +37,7 @@ import com.google.android.material.card.MaterialCardView
 import com.ping.verbead.ImeSettingsActivity
 import com.ping.verbead.R
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.util.ToastUtil
 import com.ping.verbead.engine.lang.ZhTwRules
 import com.ping.verbead.ocr.OcrBlock
 import com.ping.verbead.ocr.OcrBoxesOverlayView
@@ -413,7 +414,7 @@ class OcrOverlayController(
 
     fun triggerSnapshot() {
         if (!ModelConfig.isOcrReady(context)) {
-            Toast.makeText(context, R.string.toast_ocr_model_not_downloaded, Toast.LENGTH_LONG).show()
+            ToastUtil.show(context, R.string.toast_ocr_model_not_downloaded)
             val intent = Intent(context, ImeSettingsActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -426,7 +427,7 @@ class OcrOverlayController(
             ?: return
 
         val rawBitmap = viewFinder.bitmap ?: run {
-            Toast.makeText(context, R.string.toast_camera_capture_failed, Toast.LENGTH_SHORT).show()
+            ToastUtil.show(context, R.string.toast_camera_capture_failed)
             return
         }
 

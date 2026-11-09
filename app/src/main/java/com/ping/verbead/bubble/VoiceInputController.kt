@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Handler
 import android.provider.Settings
 import android.util.Log
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.k2fsa.sherpa.onnx.OnlineStream
 import com.ping.verbead.R
@@ -18,6 +17,7 @@ import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.XAsrEngine
 import com.ping.verbead.engine.lang.ScriptMode
 import com.ping.verbead.engine.lang.ZhTwProfile
+import com.ping.verbead.util.ToastUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,7 +40,12 @@ class VoiceInputController(
         fun setState(state: State)
         fun showXButton()
         fun hideXButton()
-        fun showPreview(msg: String, autoHide: Boolean)
+        /** A state of the bubble (listening, loading): the card stays until the state ends */
+        fun showStatus(msg: String)
+
+        /** The live recognition text */
+        fun showLive(text: String)
+
         fun hidePreview()
         fun hidePulse()
         fun onRms(rms: Float)
@@ -95,7 +100,7 @@ class VoiceInputController(
         isAborted = false
         host.untuckAnchor()
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(context, R.string.toast_mic_permission_voice, Toast.LENGTH_LONG).show()
+            ToastUtil.show(context, R.string.toast_mic_permission_voice)
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -130,13 +135,13 @@ class VoiceInputController(
         } catch (e: Throwable) {
             Log.e(TAG, "startRecording failed: ${e.message}", e)
             host.setState(State.IDLE)
-            host.showPreview(context.getString(R.string.preview_voice_start_failed, e.localizedMessage ?: context.getString(R.string.common_unknown_error)), autoHide = true)
+            ToastUtil.show(context, context.getString(R.string.preview_voice_start_failed, e.localizedMessage ?: context.getString(R.string.common_unknown_error)))
         }
     }
 
     private fun preloadDualEngineAndStart() {
         host.setState(State.LOADING)
-        host.showPreview(context.getString(R.string.preview_loading_dual_models), autoHide = false)
+        host.showStatus(context.getString(R.string.preview_loading_dual_models))
 
         scope.launch {
             val (xOk, qOk) = withContext(Dispatchers.IO) {
@@ -148,14 +153,14 @@ class VoiceInputController(
                 startDualEngineRecording()
             } else {
                 host.setState(State.IDLE)
-                host.showPreview(context.getString(R.string.preview_model_load_failed), autoHide = true)
+                ToastUtil.show(context, R.string.preview_model_load_failed)
             }
         }
     }
 
     private fun preloadAndStart(engine: String) {
         host.setState(State.LOADING)
-        host.showPreview(context.getString(R.string.preview_loading_models), autoHide = false)
+        host.showStatus(context.getString(R.string.preview_loading_models))
 
         scope.launch {
             val success = withContext(Dispatchers.IO) {
@@ -173,7 +178,7 @@ class VoiceInputController(
                 }
             } else {
                 host.setState(State.IDLE)
-                host.showPreview(context.getString(R.string.preview_model_load_failed), autoHide = true)
+                ToastUtil.show(context, R.string.preview_model_load_failed)
             }
         }
     }
@@ -181,7 +186,7 @@ class VoiceInputController(
     // 雙引擎模式底層運作機制
     private fun startDualEngineRecording() {
         val stream = xAsr.createStream() ?: run {
-            host.showPreview(context.getString(R.string.preview_cannot_create_stream), autoHide = true)
+            ToastUtil.show(context, R.string.preview_cannot_create_stream)
             return
         }
         activeStream = stream
@@ -189,7 +194,7 @@ class VoiceInputController(
         isAborted = false
         host.setState(State.RECORDING)
         host.showXButton()
-        host.showPreview(context.getString(R.string.preview_listening), autoHide = false)
+        host.showStatus(context.getString(R.string.preview_listening))
 
         val audioBuffer = mutableListOf<FloatArray>()
         var accumulatedXAsr = ""
@@ -212,7 +217,7 @@ class VoiceInputController(
                             lastStreamingText = combined
                             mainHandler.post {
                                 if (isRecording && !isAborted) {
-                                    host.showPreview(combined, autoHide = false)
+                                    host.showLive(combined)
                                 }
                             }
                         }
@@ -244,7 +249,7 @@ class VoiceInputController(
             if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
                 host.setState(State.IDLE)
                 host.hideXButton()
-                host.showPreview(context.getString(R.string.preview_no_speech_detected), autoHide = true)
+                ToastUtil.show(context, R.string.preview_no_speech_detected)
                 return@launch
             }
 
@@ -259,7 +264,7 @@ class VoiceInputController(
             if (totalSamples == 0) {
                 host.setState(State.IDLE)
                 host.hideXButton()
-                host.showPreview(context.getString(R.string.preview_no_speech_detected), autoHide = true)
+                ToastUtil.show(context, R.string.preview_no_speech_detected)
                 return@launch
             }
             val combinedAudio = FloatArray(totalSamples)
@@ -285,12 +290,11 @@ class VoiceInputController(
                 if (fallbackText.isNotEmpty()) {
                     val processedFallback = postProcess(fallbackText)
                     host.onTranscribed(processedFallback)
-                    Toast.makeText(context, R.string.toast_offline_model_error_applied_streaming, Toast.LENGTH_SHORT).show()
+                    ToastUtil.show(context, R.string.toast_offline_model_error_applied_streaming)
                 } else {
                     host.setState(State.IDLE)
                     host.hideXButton()
-                    host.showPreview(context.getString(R.string.preview_transcribe_failed), autoHide = true)
-                    Toast.makeText(context, R.string.toast_transcribe_failed_retry, Toast.LENGTH_SHORT).show()
+                    ToastUtil.show(context, R.string.toast_transcribe_failed_retry)
                 }
             }
         }
@@ -301,7 +305,7 @@ class VoiceInputController(
         isAborted = false
         host.setState(State.RECORDING)
         host.showXButton()
-        host.showPreview(context.getString(R.string.preview_listening), autoHide = false)
+        host.showStatus(context.getString(R.string.preview_listening))
 
         recordingJob = scope.launch {
             val recording = withContext(Dispatchers.IO) {
@@ -329,12 +333,12 @@ class VoiceInputController(
                     if (ex is kotlinx.coroutines.CancellationException || isAborted) return@launch
                     host.setState(State.IDLE)
                     host.hideXButton()
-                    host.showPreview(context.getString(R.string.preview_transcribe_failed), autoHide = true)
+                    ToastUtil.show(context, R.string.toast_transcribe_failed_retry)
                 }
             } else {
                 host.setState(State.IDLE)
                 host.hideXButton()
-                host.showPreview(context.getString(R.string.preview_no_speech_detected), autoHide = true)
+                ToastUtil.show(context, R.string.preview_no_speech_detected)
             }
         }
     }
@@ -342,7 +346,7 @@ class VoiceInputController(
     private fun startStreamingRecording() {
         val engine = xAsr
         val stream = engine.createStream() ?: run {
-            host.showPreview(context.getString(R.string.preview_cannot_create_stream), autoHide = true)
+            ToastUtil.show(context, R.string.preview_cannot_create_stream)
             return
         }
         activeStream = stream
@@ -350,7 +354,7 @@ class VoiceInputController(
         isAborted = false
         host.setState(State.RECORDING)
         host.showXButton()
-        host.showPreview(context.getString(R.string.preview_listening), autoHide = false)
+        host.showStatus(context.getString(R.string.preview_listening))
 
         var accumulated = ""
         var lastShown = ""
@@ -371,7 +375,7 @@ class VoiceInputController(
                             lastShown = combined
                             mainHandler.post {
                                 if (isRecording && !isAborted) {
-                                    host.showPreview(combined, autoHide = false)
+                                    host.showLive(combined)
                                 }
                             }
                         }
@@ -402,7 +406,7 @@ class VoiceInputController(
             if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
                 host.setState(State.IDLE)
                 host.hideXButton()
-                host.showPreview(context.getString(R.string.preview_no_speech_detected), autoHide = true)
+                ToastUtil.show(context, R.string.preview_no_speech_detected)
                 return@launch
             }
 

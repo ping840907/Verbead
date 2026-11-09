@@ -46,6 +46,8 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.bubble.BubbleState as State
 import com.ping.verbead.bubble.BubbleChainFollower
 import com.ping.verbead.bubble.BubbleStateMachine
+import com.ping.verbead.bubble.PreviewKind
+import com.ping.verbead.util.ToastUtil
 import com.ping.verbead.bubble.OverlayCoordinator
 import com.ping.verbead.bubble.VoiceInputController
 import com.ping.verbead.bubble.CapsuleMenuController
@@ -168,7 +170,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             override fun setState(state: State) = this@FloatingBubbleService.setState(state)
             override fun showXButton() = this@FloatingBubbleService.showXButton()
             override fun hideXButton() = this@FloatingBubbleService.hideXButton()
-            override fun showPreview(msg: String, autoHide: Boolean) = showPreviewText(msg, autoHide)
+            override fun showStatus(msg: String) = showPreviewText(msg, PreviewKind.STATUS)
+            override fun showLive(text: String) = showPreviewText(text, PreviewKind.LIVE)
             override fun hidePreview() = hidePreviewText()
             override fun hidePulse() = hidePulseView()
             override fun onRms(rms: Float) = onAudioRmsUpdate(rms)
@@ -452,7 +455,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     if (state != State.PASTED) hideXButton()
                 }
                 override fun onRequestCameraPermission() {
-                    Toast.makeText(this@FloatingBubbleService, R.string.toast_camera_permission_scan, Toast.LENGTH_LONG).show()
+                    ToastUtil.show(this@FloatingBubbleService, R.string.toast_camera_permission_scan)
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
@@ -505,7 +508,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     captureScreenForOcr()
                 }
                 override fun onRequestCameraPermission() {
-                    Toast.makeText(this@FloatingBubbleService, R.string.toast_camera_permission_ocr, Toast.LENGTH_LONG).show()
+                    ToastUtil.show(this@FloatingBubbleService, R.string.toast_camera_permission_ocr)
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
@@ -1523,9 +1526,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (bubbleItems.size >= maxAllowed) {
             HapticUtil.tick(this)
             if (maxAllowed <= 1) {
-                Toast.makeText(this, getString(R.string.bubble_toast_one_mode_only), Toast.LENGTH_SHORT).show()
+                ToastUtil.show(this, getString(R.string.bubble_toast_one_mode_only))
             } else {
-                Toast.makeText(this, getString(R.string.bubble_toast_limit_reached, maxAllowed), Toast.LENGTH_SHORT).show()
+                ToastUtil.show(this, getString(R.string.bubble_toast_limit_reached, maxAllowed))
             }
             return false
         }
@@ -2257,10 +2260,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 isRestoringSnapshot = true
                 try {
                     // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
-                    val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
-                    if (restored) {
-                        showPreviewText(getString(R.string.preview_restored), autoHide = true)
-                    }
+                    VoiceAccessibilityService.instance?.restoreLastSnapshot()
                     setState(State.IDLE)
                     hideXButton()
                     checkAndHideBubbleIfKeyboardClosed(animate = true)
@@ -2304,10 +2304,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 hideXButton()
             }
             else -> {
-                val restored = VoiceAccessibilityService.instance?.restoreLastSnapshot() ?: false
-                if (restored) {
-                    showPreviewText(getString(R.string.preview_restored), autoHide = true)
-                }
+                VoiceAccessibilityService.instance?.restoreLastSnapshot()
                 setState(State.IDLE)
                 hideXButton()
             }
@@ -2397,14 +2394,20 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         bubblePreviewController.hide()
     }
 
-    private fun showPreviewText(msg: String, autoHide: Boolean = true) {
+    /**
+     * The card next to the bubble reports the bubble's state only. While the scanner, OCR or phrases window is open it
+     * would sit on top of that window (they open on the same side), and the window already says what is going on, so
+     * nothing is drawn then.
+     */
+    private fun showPreviewText(msg: String, kind: PreviewKind) {
         if (!::bubblePreviewController.isInitialized) return
+        if (::overlays.isInitialized && (overlays.isScannerActive || overlays.isOcrActive || overlays.isPhrasesActive)) return
         val anchor = currentAnchorBubble
         val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
         bubblePreviewController.show(
             msg = msg,
-            autoHide = autoHide,
+            kind = kind,
             anchorY = anchorY,
             isDockedOnRight = isRight,
             screenWidth = getScreenWidth(),
@@ -2503,6 +2506,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         return true
     }
 
+    /** Test hook for the debug build: shows [msg] on the card next to the bubble ([live] = live text style, otherwise status style); "-" hides it. */
+    fun debugShowPreview(msg: String, live: Boolean) {
+        mainHandler.post { if (msg.isEmpty() || msg == "-") hidePreviewText() else showPreviewText(msg, if (live) PreviewKind.LIVE else PreviewKind.STATUS) }
+    }
+
     /** Test hook (used by the debug build's receiver): behaves like a recognized result that found no text field. */
     fun debugKeepUnfilledText(text: String) { keepUnfilledText(text) }
 
@@ -2596,7 +2604,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private fun captureScreenForOcr() {
         val acc = VoiceAccessibilityService.instance
         if (acc == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            Toast.makeText(this, R.string.toast_screen_capture_failed, Toast.LENGTH_LONG).show()
+            ToastUtil.show(this, R.string.toast_screen_capture_failed)
             return
         }
         trackingWindowManager.hideAll()
@@ -2604,7 +2612,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             acc.captureScreen { bmp ->
                 trackingWindowManager.showAll()
                 if (bmp == null) {
-                    Toast.makeText(this, R.string.toast_screen_capture_failed, Toast.LENGTH_LONG).show()
+                    ToastUtil.show(this, R.string.toast_screen_capture_failed)
                 } else {
                     ocrOverlayController.showScreenSnapshot(bmp)
                 }
@@ -2617,13 +2625,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (text.isBlank()) {
             setState(State.IDLE)
             hideXButton()
-            showPreviewText(getString(R.string.preview_no_text_detected), autoHide = true)
+            ToastUtil.show(this, R.string.preview_no_text_detected)
             return
         }
 
         QuickPhrasesManager.addHistory(this, text)
 
-        deliverText(text) { showPreviewText(getString(R.string.preview_copied), autoHide = true) }
+        deliverText(text) { ToastUtil.show(this, R.string.preview_copied) }
     }
 
     /**
@@ -2852,22 +2860,18 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         when (mode) {
             MODE_VOICE -> {
                 setState(State.IDLE)
-                showPreviewText(getString(R.string.preview_mode_voice), autoHide = true)
                 overlays.closeAll()
             }
             MODE_OCR -> {
                 setState(State.IDLE)
-                showPreviewText(getString(R.string.preview_mode_ocr), autoHide = true)
                 overlays.startOcr()
             }
             MODE_BARCODE -> {
                 setState(State.IDLE)
-                showPreviewText(getString(R.string.preview_mode_barcode), autoHide = true)
                 overlays.startScanner()
             }
             MODE_PHRASES -> {
                 setState(State.IDLE)
-                showPreviewText(getString(R.string.preview_mode_phrases), autoHide = true)
                 overlays.openPhrases()
             }
         }
@@ -2893,7 +2897,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         deliverText(text, ModelConfig.isOcrAutoEnterEnabled(this)) {
             val previewMsg = if (text.length > 25) "${text.take(25)}…" else text
-            showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
+            ToastUtil.show(this, getString(R.string.preview_copied_with_text, previewMsg))
         }
     }
 
@@ -2903,7 +2907,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             QuickPhrasesManager.addHistory(this, code)
         }
         val injected = deliverText(code, ModelConfig.isOcrAutoEnterEnabled(this)) {
-            showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
+            ToastUtil.show(this, R.string.preview_copied_barcode)
         }
         overlays.stopScanner(hideX = !injected)
     }
@@ -2915,14 +2919,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         HapticUtil.click(this)
         val injected = VoiceAccessibilityService.instance?.inputText(phrase) ?: false
         if (injected) {
-            showPreviewText(getString(R.string.preview_inserted_phrase), autoHide = true)
             enterPastedState()
             overlays.closePhrases(hideX = false)
         } else {
             // nothing has focus: the drawer stays open so the user can focus a field and tap again
             setState(State.IDLE)
             if (ModelConfig.isPasteModeEnabled(this)) copyToClipboardFallback(phrase)
-            showPreviewText(getString(R.string.preview_phrase_no_focus), autoHide = true)
+            ToastUtil.show(this, R.string.preview_phrase_no_focus)
         }
     }
 

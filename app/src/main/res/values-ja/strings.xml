@@ -58,7 +58,6 @@
     <string name="toast_camera_capture_failed">現在のカメラ画像を取得できません</string>
 
     <!-- FloatingBubbleService Previews -->
-    <string name="preview_restored">元に戻しました</string>
     <string name="preview_voice_start_failed">音声入力を開始できません：%1$s</string>
     <string name="preview_loading_dual_models">2つのモデルを読み込み中…</string>
     <string name="preview_loading_models">モデルを読み込み中…</string>
@@ -69,11 +68,6 @@
     <string name="preview_transcribe_failed">文字起こしに失敗しました。もう一度録音してください</string>
     <string name="preview_no_text_detected">文字が検出されませんでした</string>
     <string name="preview_copied">コピーしました</string>
-    <string name="preview_mode_voice">音声モード</string>
-    <string name="preview_mode_ocr">文字認識</string>
-    <string name="preview_mode_barcode">バーコードスキャン</string>
-    <string name="preview_mode_phrases">定型文</string>
-    <string name="preview_inserted_phrase">定型文を入力しました</string>
     <string name="preview_phrase_no_focus">先に入力欄をタップしてから、定型文をタップしてください</string>
     <string name="preview_copied_barcode">バーコードをコピーしました</string>
     <string name="preview_copied_with_text">コピーしました：%1$s</string>

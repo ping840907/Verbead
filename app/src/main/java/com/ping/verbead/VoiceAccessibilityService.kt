@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.util.ToastUtil
 import com.ping.verbead.util.TextInsertion
 
 class VoiceAccessibilityService : AccessibilityService() {
@@ -225,6 +226,11 @@ class VoiceAccessibilityService : AccessibilityService() {
                         }
                     }
                 }.start()
+                return
+            }
+            val previewMsg = intent.getStringExtra("preview")
+            if (previewMsg != null) {
+                FloatingBubbleService.instance?.debugShowPreview(previewMsg, intent.getBooleanExtra("live", false))
                 return
             }
             if (intent.getBooleanExtra("clickX", false)) {
@@ -501,7 +507,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (target.isPassword) {
             Log.w(TAG, "Target node is a password field; rejecting automated input for privacy/security")
             mainHandler.post {
-                Toast.makeText(this, R.string.toast_password_not_supported, Toast.LENGTH_SHORT).show()
+                ToastUtil.show(this, R.string.toast_password_not_supported)
             }
             return false
         }
@@ -554,7 +560,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 Log.i(TAG, "Paste mode ACTION_PASTE result: $pasted")
                 if (!pasted) {
                     mainHandler.post {
-                        Toast.makeText(this, R.string.toast_fallback_clipboard, Toast.LENGTH_SHORT).show()
+                        ToastUtil.show(this, R.string.toast_fallback_clipboard)
                     }
                 }
                 return pasted

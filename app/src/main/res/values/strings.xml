@@ -58,7 +58,6 @@
     <string name="toast_camera_capture_failed">Couldn\'t capture the current camera frame</string>
 
     <!-- FloatingBubbleService Previews -->
-    <string name="preview_restored">Undone</string>
     <string name="preview_voice_start_failed">Couldn\'t start voice input: %1$s</string>
     <string name="preview_loading_dual_models">Loading both models…</string>
     <string name="preview_loading_models">Loading model…</string>
@@ -69,11 +68,6 @@
     <string name="preview_transcribe_failed">Transcription failed. Please record again</string>
     <string name="preview_no_text_detected">No text detected</string>
     <string name="preview_copied">Copied</string>
-    <string name="preview_mode_voice">Voice mode</string>
-    <string name="preview_mode_ocr">Text recognition</string>
-    <string name="preview_mode_barcode">Barcode scanning</string>
-    <string name="preview_mode_phrases">Quick phrases</string>
-    <string name="preview_inserted_phrase">Phrase inserted</string>
     <string name="preview_phrase_no_focus">Tap a text field first, then tap the phrase</string>
     <string name="preview_copied_barcode">Barcode copied</string>
     <string name="preview_copied_with_text">Copied: %1$s</string>

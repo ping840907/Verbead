@@ -58,7 +58,6 @@
     <string name="toast_camera_capture_failed">无法截取当前相机画面</string>
 
     <!-- FloatingBubbleService Previews -->
-    <string name="preview_restored">已恢复</string>
     <string name="preview_voice_start_failed">语音输入启动失败: %1$s</string>
     <string name="preview_loading_dual_models">加载双模型中…</string>
     <string name="preview_loading_models">加载模型中…</string>
@@ -69,11 +68,6 @@
     <string name="preview_transcribe_failed">转写失败，请重新录音</string>
     <string name="preview_no_text_detected">未检测到文字</string>
     <string name="preview_copied">已复制</string>
-    <string name="preview_mode_voice">语音模式</string>
-    <string name="preview_mode_ocr">文字识别</string>
-    <string name="preview_mode_barcode">条码扫描</string>
-    <string name="preview_mode_phrases">常用语抽屉</string>
-    <string name="preview_inserted_phrase">已填入常用语</string>
     <string name="preview_phrase_no_focus">请先点一下要填入的输入框，再点选常用语</string>
     <string name="preview_copied_barcode">已复制条码</string>
     <string name="preview_copied_with_text">已复制：%1$s</string>

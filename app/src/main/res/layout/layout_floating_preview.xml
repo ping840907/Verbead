@@ -18,20 +18,28 @@
         app:strokeColor="#33FFFFFF"
         app:strokeWidth="1dp">
 
-        <TextView
-            android:id="@+id/tv_bubble_preview"
+        <!-- clips the text while it scrolls (marquee) when a status line is wider than the card -->
+        <FrameLayout
+            android:id="@+id/fl_preview_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:maxWidth="260dp"
-            android:maxLines="3"
-            android:ellipsize="start"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:text="@string/floating_preview_recognizing"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:lineSpacingExtra="2dp" />
+            android:clipChildren="true">
+
+            <TextView
+                android:id="@+id/tv_bubble_preview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="260dp"
+                android:maxLines="3"
+                android:ellipsize="start"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:text="@string/floating_preview_recognizing"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:lineSpacingExtra="2dp" />
+        </FrameLayout>
     </com.google.android.material.card.MaterialCardView>
 </FrameLayout>
