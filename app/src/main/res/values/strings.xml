@@ -28,7 +28,7 @@
     <string name="onboarding_page1_title">Floating anywhere · Tap to speak</string>
     <string name="onboarding_page1_desc">No need to change your usual keyboard. In any app\'s input field, tap the floating bubble to start listening. The dual engine (live preview + high-accuracy offline transcription) streams recognized text next to the bubble and fills it in automatically!</string>
     <string name="onboarding_page1_tip">Tip: the bubble turns red while listening; tap again or stay silent to finish transcribing and fill in the text.</string>
-    <string name="onboarding_page2_title">Vertical capsule · Five modes at your fingertips</string>
+    <string name="onboarding_page2_title">Vertical capsule · Four modes at your fingertips</string>
     <string name="onboarding_page2_desc">Long-press the bubble to open the vertical capsule menu, then slide up or down to switch between four modes: Voice input, Barcode scanning, Text recognition (PP-OCRv6) and Quick phrases &amp; history.</string>
     <string name="onboarding_page2_tip">Tip: slide to the mode you want and lift your finger to switch and start using it right away.</string>
     <string name="onboarding_page3_title">Floating ✕ key · One-tap undo and restore</string>
@@ -346,8 +346,8 @@
     <string name="settings_bubble_accessibility_not_enabled">Accessibility service isn\'t enabled</string>
     <string name="settings_bubble_modes_summary_multi">Multiple bubbles on · Modes enabled: %1$d. Several bubbles appear on screen at once</string>
     <string name="settings_bubble_modes_summary_single">Multiple bubbles off · Single bubble mode. Long-press the bubble to open the vertical capsule menu and switch functions</string>
-    <string name="settings_bubble_paste_desc_on">After recognition, the text is filled directly into the focused text box</string>
-    <string name="settings_bubble_paste_desc_off">After recognition, the text isn\'t filled in; it is only copied to the clipboard so you can paste it whenever you like</string>
+    <string name="settings_bubble_paste_desc_on">Text is copied to the clipboard and pasted into the focused field, which works in more apps</string>
+    <string name="settings_bubble_paste_desc_off">Text is written straight into the focused field through accessibility; use this if pasting misbehaves in some apps</string>
     <string name="settings_bubble_history_desc_on">Shows recent transcription history above the quick phrases drawer</string>
     <string name="settings_bubble_history_desc_off">History is off; the quick phrases drawer shows only saved phrases</string>
     <string name="settings_bubble_restricted_dialog_title">How to allow restricted settings on Android 13+</string>
@@ -381,7 +381,7 @@
     <string name="onboarding_mode_badge">Mode %1$d/%2$d</string>
     <string name="onboarding_capsule_title">Vertical capsule · Slide to switch</string>
     <string name="onboarding_mode_voice_title">Live voice input</string>
-    <string name="onboarding_capsule_badge_default">Mode 1/5</string>
+    <string name="onboarding_capsule_badge_default">Mode 1/4</string>
     <string name="onboarding_mode_voice_desc">High-accuracy offline speech recognition: tap to start dictating and paste straight in</string>
     <string name="onboarding_capsule_tags_default">• Offline dual-model ASR transcription\n• Auto punctuation and custom vocabulary\n• Gain for headsets and external mics</string>
     <string name="onboarding_capsule_hint">Long-press the bubble to open the capsule, then slide up or down to switch modes</string>

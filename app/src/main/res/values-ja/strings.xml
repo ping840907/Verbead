@@ -28,7 +28,7 @@
     <string name="onboarding_page1_title">どこでも浮かぶ · タップして話すだけ</string>
     <string name="onboarding_page1_desc">普段お使いのキーボードを変更する必要はありません。どのアプリの入力欄でも、フローティングバブルをタップすると録音を開始します。デュアルエンジン（リアルタイムプレビュー + 高精度オフライン文字起こし）に対応し、認識したテキストがバブルの横にリアルタイムで表示され、自動で入力されます。</string>
     <string name="onboarding_page1_tip">ヒント：バブルをタップして赤くなると録音中です。もう一度タップするか無音になると、文字起こしと入力が自動で完了します。</string>
-    <string name="onboarding_page2_title">縦型カプセル · 5つのモードを自在に切り替え</string>
+    <string name="onboarding_page2_title">縦型カプセル · 4つのモードを自在に切り替え</string>
     <string name="onboarding_page2_desc">バブルを長押しすると縦型の機能カプセルが開きます。上下にスライドして、「音声入力」「バーコードスキャン」「文字認識（PP-OCRv6）」「定型文と履歴」の4つのモードを切り替えられます。</string>
     <string name="onboarding_page2_tip">ヒント：使いたいモードまでスライドして指を離すと、切り替わってすぐに使えます。</string>
     <string name="onboarding_page3_title">フローティング ✕ キー · ワンタップで取り消し・復元</string>
@@ -341,8 +341,8 @@
     <string name="settings_bubble_accessibility_not_enabled">ユーザー補助サービスが有効になっていません</string>
     <string name="settings_bubble_modes_summary_multi">複数バブルをオン · 有効なモード：%1$d。複数のバブルが同時に画面に表示されます</string>
     <string name="settings_bubble_modes_summary_single">複数バブルをオフ · 単一バブルモード。バブルを長押しして縦型カプセルメニューから機能を切り替えられます</string>
-    <string name="settings_bubble_paste_desc_on">認識が完了すると、テキストをフォーカス中の入力欄に直接入力します</string>
-    <string name="settings_bubble_paste_desc_off">認識が完了しても入力せず、テキストをクリップボードにコピーするだけです。好きなタイミングで貼り付けられます</string>
+    <string name="settings_bubble_paste_desc_on">テキストをクリップボードにコピーしてから入力欄に貼り付けます。より多くのアプリで動作します</string>
+    <string name="settings_bubble_paste_desc_off">ユーザー補助サービスで入力欄に直接書き込みます。貼り付けが不安定なアプリではこちらを使用してください</string>
     <string name="settings_bubble_history_desc_on">定型文ドロワーの上部に、最近の文字起こし履歴を表示します</string>
     <string name="settings_bubble_history_desc_off">履歴はオフです。定型文ドロワーには固定の定型文のみ表示されます</string>
     <string name="settings_bubble_restricted_dialog_title">Android 13 以降で制限付き設定を許可する方法</string>
@@ -376,7 +376,7 @@
     <string name="onboarding_mode_badge">モード %1$d/%2$d</string>
     <string name="onboarding_capsule_title">縦型カプセル · スライドで切り替え</string>
     <string name="onboarding_mode_voice_title">リアルタイム音声入力</string>
-    <string name="onboarding_capsule_badge_default">モード 1/5</string>
+    <string name="onboarding_capsule_badge_default">モード 1/4</string>
     <string name="onboarding_mode_voice_desc">高精度オフライン音声認識。タップするだけで聞き取りを開始し、そのまま貼り付けます</string>
     <string name="onboarding_capsule_tags_default">• オフライン ASR デュアルモデルでリアルタイム文字起こし\n• 自動句読点とカスタム語彙に対応\n• ヘッドセット・外付けマイクのゲイン調整</string>
     <string name="onboarding_capsule_hint">バブルを長押ししてカプセルを開き、上下にスライドしてモードを切り替えます</string>

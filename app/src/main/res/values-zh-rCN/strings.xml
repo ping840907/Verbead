@@ -28,7 +28,7 @@
     <string name="onboarding_page1_title">随处悬浮 · 点击即说</string>
     <string name="onboarding_page1_desc">无须更换您习惯的拼音或 Gboard 键盘。在任何 App 的输入框中，轻触悬浮球即可开始录音；支持双引擎“实时预览 + 离线高精度转写”，悬浮球旁会实时流式显示识别文字并自动填入！</string>
     <string name="onboarding_page1_tip">提示：点击悬浮球转为红色即开始录音，再次点击或静音即自动完成转写与填入。</string>
-    <string name="onboarding_page2_title">垂直胶囊 · 五大模式随心切换</string>
+    <string name="onboarding_page2_title">垂直胶囊 · 四大模式随心切换</string>
     <string name="onboarding_page2_desc">长按悬浮球展开垂直功能胶囊，上下滑动对齐即可切换四大模式：“语音实时输入”、“条码扫描”、“文字识别 (PP-OCRv6)”与“常用语与历史记录”。</string>
     <string name="onboarding_page2_tip">提示：滑动到想要的模式后放开手指，即可切换并立即使用。</string>
     <string name="onboarding_page3_title">悬浮 X 键 · 一键撤回与还原</string>
@@ -341,8 +341,8 @@
     <string name="settings_bubble_accessibility_not_enabled">尚未启用无障碍服务</string>
     <string name="settings_bubble_modes_summary_multi">已开启多球：已启用 %1$d 个功能模式，画面将同时呈现多颗悬浮球</string>
     <string name="settings_bubble_modes_summary_single">已关闭多球：单颗悬浮球模式，长按悬浮球可叫出垂直胶囊菜单切换功能</string>
-    <string name="settings_bubble_paste_desc_on">识别完成后自动将文字直接填入当前焦点所在的文字框</string>
-    <string name="settings_bubble_paste_desc_off">识别完成后不直接填入，仅将文字复制至系统剪贴板供您随时手动粘贴</string>
+    <string name="settings_bubble_paste_desc_on">文字会先复制到剪贴板，再粘贴到当前输入框，兼容更多应用</string>
+    <string name="settings_bubble_paste_desc_off">通过无障碍服务直接写入输入框；若某些应用粘贴异常可改用此方式</string>
     <string name="settings_bubble_history_desc_on">在快速常用语抽屉上方实时显示近期的转写历史记录</string>
     <string name="settings_bubble_history_desc_off">已关闭历史记录，常用语抽屉将仅显示固定常用语</string>
     <string name="settings_bubble_restricted_dialog_title">如何解除 Android 13+ 受限制的设置</string>
@@ -376,7 +376,7 @@
     <string name="onboarding_mode_badge">模式 %1$d/%2$d</string>
     <string name="onboarding_capsule_title">垂直胶囊 · 滑动菜单切换</string>
     <string name="onboarding_mode_voice_title">语音实时输入</string>
-    <string name="onboarding_capsule_badge_default">模式 1/5</string>
+    <string name="onboarding_capsule_badge_default">模式 1/4</string>
     <string name="onboarding_mode_voice_desc">高精准度离线语音识别，轻触即开始听写并直接粘贴</string>
     <string name="onboarding_capsule_tags_default">• 离线 ASR 双模型实时转写\n• 支持自动标点与自定义专属词汇\n• 耳机外接音频倍率增益</string>
     <string name="onboarding_capsule_hint">长按悬浮球展开胶囊，上下滑动对齐切换模式</string>

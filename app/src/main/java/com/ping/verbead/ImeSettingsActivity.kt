@@ -165,6 +165,12 @@ class ImeSettingsActivity : AppCompatActivity() {
         updateAllStatus()
         updateCategorySummaries()
         handleIntent(intent)
+
+        // First launch: show the app tour once (marked as seen immediately so back/skip never re-trigger it)
+        if (savedInstanceState == null && !ModelConfig.isOnboardingCompleted(this)) {
+            ModelConfig.setOnboardingCompleted(this, true)
+            startActivity(Intent(this, OnboardingActivity::class.java))
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {

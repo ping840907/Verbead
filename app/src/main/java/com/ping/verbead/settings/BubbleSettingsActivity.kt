@@ -9,7 +9,6 @@ import android.view.View
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -32,10 +31,8 @@ class BubbleSettingsActivity : AppCompatActivity() {
     private lateinit var tvBubbleBadge: TextView
     private lateinit var btnGrantOverlay: MaterialButton
     private lateinit var tvOverlayStatus: TextView
-    private lateinit var tvOverlayRestrictedHelp: TextView
     private lateinit var btnGrantAccessibility: MaterialButton
     private lateinit var tvAccessibilityStatus: TextView
-    private lateinit var tvRestrictedSettingsHelp: TextView
     private lateinit var dividerAppInfoRow: View
     private lateinit var layoutAppInfoRow: View
     private lateinit var btnOpenAppInfo: MaterialButton
@@ -125,10 +122,8 @@ class BubbleSettingsActivity : AppCompatActivity() {
         tvBubbleBadge = findViewById(R.id.tv_bubble_badge)
         btnGrantOverlay = findViewById(R.id.btn_grant_overlay)
         tvOverlayStatus = findViewById(R.id.tv_overlay_status)
-        tvOverlayRestrictedHelp = findViewById(R.id.tv_overlay_restricted_help)
         btnGrantAccessibility = findViewById(R.id.btn_grant_accessibility)
         tvAccessibilityStatus = findViewById(R.id.tv_accessibility_status)
-        tvRestrictedSettingsHelp = findViewById(R.id.tv_restricted_settings_help)
         dividerAppInfoRow = findViewById(R.id.divider_app_info_row)
         layoutAppInfoRow = findViewById(R.id.layout_app_info_row)
         btnOpenAppInfo = findViewById(R.id.btn_open_app_info)
@@ -176,17 +171,9 @@ class BubbleSettingsActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        tvOverlayRestrictedHelp.setOnClickListener {
-            showRestrictedSettingsDialog()
-        }
-
         btnGrantAccessibility.setOnClickListener {
             HapticUtil.click(this)
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
-
-        tvRestrictedSettingsHelp.setOnClickListener {
-            showRestrictedSettingsDialog()
         }
 
         val openAppInfo = View.OnClickListener {
@@ -355,12 +342,10 @@ class BubbleSettingsActivity : AppCompatActivity() {
             tvOverlayStatus.text = getString(R.string.settings_bubble_overlay_granted)
             btnGrantOverlay.text = getString(R.string.settings_bubble_button_granted)
             btnGrantOverlay.isEnabled = false
-            tvOverlayRestrictedHelp.visibility = View.GONE
         } else {
             tvOverlayStatus.text = getString(R.string.settings_bubble_overlay_not_granted)
             btnGrantOverlay.text = getString(R.string.settings_bubble_overlay_action)
             btnGrantOverlay.isEnabled = true
-            tvOverlayRestrictedHelp.visibility = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) View.VISIBLE else View.GONE
         }
 
         val accessibilityEnabled = isAccessibilityServiceEnabled()
@@ -368,12 +353,10 @@ class BubbleSettingsActivity : AppCompatActivity() {
             tvAccessibilityStatus.text = getString(R.string.settings_bubble_accessibility_running)
             btnGrantAccessibility.text = getString(R.string.settings_bubble_button_enabled)
             btnGrantAccessibility.isEnabled = false
-            tvRestrictedSettingsHelp.visibility = View.GONE
         } else {
             tvAccessibilityStatus.text = getString(R.string.settings_bubble_accessibility_not_enabled)
             btnGrantAccessibility.text = getString(R.string.settings_bubble_autofill_action)
             btnGrantAccessibility.isEnabled = true
-            tvRestrictedSettingsHelp.visibility = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) View.VISIBLE else View.GONE
         }
 
         val allReady = overlayGranted && accessibilityEnabled
@@ -383,14 +366,13 @@ class BubbleSettingsActivity : AppCompatActivity() {
             tvBubbleBadge.setBackgroundResource(R.drawable.bg_status_badge_success)
             layoutAppInfoRow.visibility = View.GONE
             dividerAppInfoRow.visibility = View.GONE
-            tvOverlayRestrictedHelp.visibility = View.GONE
-            tvRestrictedSettingsHelp.visibility = View.GONE
         } else {
             tvBubbleBadge.text = getString(R.string.settings_bubble_status_not_ready)
             tvBubbleBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
             tvBubbleBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
-            layoutAppInfoRow.visibility = View.VISIBLE
-            dividerAppInfoRow.visibility = View.VISIBLE
+            val showRestrictedRow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            layoutAppInfoRow.visibility = if (showRestrictedRow) View.VISIBLE else View.GONE
+            dividerAppInfoRow.visibility = if (showRestrictedRow) View.VISIBLE else View.GONE
         }
     }
 
@@ -445,21 +427,5 @@ class BubbleSettingsActivity : AppCompatActivity() {
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
         return enabledServices.split(":").any { it.equals(expected, ignoreCase = true) }
-    }
-
-    private fun showRestrictedSettingsDialog() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.settings_bubble_restricted_dialog_title)
-            .setMessage(
-                getString(R.string.settings_bubble_restricted_dialog_message)
-            )
-            .setPositiveButton(R.string.settings_bubble_restricted_dialog_action) { _, _ ->
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:$packageName")
-                }
-                startActivity(intent)
-            }
-            .setNegativeButton(R.string.settings_bubble_restricted_dialog_dismiss, null)
-            .show()
     }
 }

@@ -541,13 +541,6 @@
                         android:textColor="@color/status_warning_text" />
                 </LinearLayout>
 
-                <TextView
-                    style="@style/Verbead.Text.Body"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/settings_restore_desc_long" />
-
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_import_models"
                     android:layout_width="match_parent"

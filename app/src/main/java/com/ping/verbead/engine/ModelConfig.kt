@@ -514,6 +514,10 @@ object ModelConfig {
     private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
     private const val KEY_ONBOARDING_MODE = "onboarding_mode"
 
+    fun isOnboardingCompleted(context: Context): Boolean =
+        context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
+            .getBoolean(KEY_ONBOARDING_COMPLETED, false)
+
     fun setOnboardingCompleted(context: Context, completed: Boolean) =
         context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply()

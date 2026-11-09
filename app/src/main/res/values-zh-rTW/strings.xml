@@ -28,7 +28,7 @@
     <string name="onboarding_page1_title">隨處懸浮 · 點擊即說</string>
     <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始收音；支援雙引擎「即時預覽 + 離線高精度轉譯」，懸浮球旁會即時串流顯示辨識文字並自動填入！</string>
     <string name="onboarding_page1_tip">提示：點擊懸浮球轉為紅色即開始收音，再次點擊或靜音即自動完成轉譯與填入。</string>
-    <string name="onboarding_page2_title">垂直膠囊 · 五大模式隨心切換</string>
+    <string name="onboarding_page2_title">垂直膠囊 · 四大模式隨心切換</string>
     <string name="onboarding_page2_desc">長按懸浮球展開垂直功能膠囊，上下滑動對齊即可切換四大模式：「語音即時輸入」、「條碼掃描」、「文字辨識 (PP-OCRv6)」與「常用語與歷史紀錄」。</string>
     <string name="onboarding_page2_tip">提示：滑動到想要的模式後放開手指，即可切換並立即使用。</string>
     <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回與還原</string>
@@ -341,8 +341,8 @@
     <string name="settings_bubble_accessibility_not_enabled">尚未啟用無障礙服務</string>
     <string name="settings_bubble_modes_summary_multi">已開啟多球：已啟用 %1$d 個功能模式，畫面將同時呈現多顆懸浮球</string>
     <string name="settings_bubble_modes_summary_single">已關閉多球：單顆懸浮球模式，長按懸浮球可叫出垂直膠囊選單切換功能</string>
-    <string name="settings_bubble_paste_desc_on">辨識完成後自動將文字直接填入目前焦點所在的文字框</string>
-    <string name="settings_bubble_paste_desc_off">辨識完成後不直接填入，僅將文字複製至系統剪貼簿供您隨時手動貼上</string>
+    <string name="settings_bubble_paste_desc_on">文字會先複製到剪貼簿，再貼上到目前的輸入欄，相容更多應用程式</string>
+    <string name="settings_bubble_paste_desc_off">透過無障礙服務直接寫入輸入欄；若某些應用程式貼上異常可改用此方式</string>
     <string name="settings_bubble_history_desc_on">在快速常用語抽屜上方即時顯示近期的轉譯歷史紀錄</string>
     <string name="settings_bubble_history_desc_off">已關閉歷史紀錄，常用語抽屜將僅顯示固定常用語</string>
     <string name="settings_bubble_restricted_dialog_title">如何解除 Android 13+ 受限制的設定</string>
@@ -376,7 +376,7 @@
     <string name="onboarding_mode_badge">模式 %1$d/%2$d</string>
     <string name="onboarding_capsule_title">垂直膠囊 · 滑動選單切換</string>
     <string name="onboarding_mode_voice_title">語音即時輸入</string>
-    <string name="onboarding_capsule_badge_default">模式 1/5</string>
+    <string name="onboarding_capsule_badge_default">模式 1/4</string>
     <string name="onboarding_mode_voice_desc">高精準度離線語音辨識，輕觸即開始聽寫並直接貼上</string>
     <string name="onboarding_capsule_tags_default">• 離線 ASR 雙模型即時轉譯\n• 支援自動標點與自訂專屬詞彙\n• 耳機外接音訊倍率增益</string>
     <string name="onboarding_capsule_hint">長按懸浮球展開膠囊，上下滑動對齊切換模式</string>

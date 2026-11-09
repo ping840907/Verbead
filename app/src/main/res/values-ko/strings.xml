@@ -28,7 +28,7 @@
     <string name="onboarding_page1_title">어디서나 플로팅 · 탭하면 바로 말하기</string>
     <string name="onboarding_page1_desc">평소 쓰던 키보드를 바꿀 필요가 없습니다. 어떤 앱의 입력란에서든 플로팅 버블을 탭하면 녹음이 시작됩니다. 듀얼 엔진(실시간 미리보기 + 고정밀 오프라인 변환)을 지원하며, 인식된 텍스트가 버블 옆에 실시간으로 표시되고 자동으로 입력됩니다!</string>
     <string name="onboarding_page1_tip">팁: 버블이 빨간색으로 바뀌면 녹음 중입니다. 다시 탭하거나 말을 멈추면 변환과 입력이 자동으로 완료됩니다.</string>
-    <string name="onboarding_page2_title">세로 캡슐 · 다섯 가지 모드를 마음대로 전환</string>
+    <string name="onboarding_page2_title">세로 캡슐 · 네 가지 모드를 마음대로 전환</string>
     <string name="onboarding_page2_desc">버블을 길게 누르면 세로 기능 캡슐이 펼쳐집니다. 위아래로 밀어 \"음성 실시간 입력\", \"바코드 스캔\", \"문자 인식(PP-OCRv6)\", \"자주 쓰는 문구 및 기록\" 네 가지 모드를 전환할 수 있습니다.</string>
     <string name="onboarding_page2_tip">팁: 원하는 모드까지 밀고 손가락을 떼면 바로 전환되어 사용할 수 있습니다.</string>
     <string name="onboarding_page3_title">플로팅 ✕ 키 · 한 번에 취소 및 복원</string>
@@ -341,8 +341,8 @@
     <string name="settings_bubble_accessibility_not_enabled">접근성 서비스가 켜져 있지 않습니다</string>
     <string name="settings_bubble_modes_summary_multi">다중 버블 켜짐 · 켜진 모드: %1$d개. 여러 버블이 화면에 동시에 표시됩니다</string>
     <string name="settings_bubble_modes_summary_single">다중 버블 꺼짐 · 단일 버블 모드. 버블을 길게 누르면 세로 캡슐 메뉴에서 기능을 전환할 수 있습니다</string>
-    <string name="settings_bubble_paste_desc_on">인식이 끝나면 텍스트를 포커스된 입력란에 바로 입력합니다</string>
-    <string name="settings_bubble_paste_desc_off">인식이 끝나도 바로 입력하지 않고 텍스트를 클립보드에만 복사하므로, 원할 때 직접 붙여 넣을 수 있습니다</string>
+    <string name="settings_bubble_paste_desc_on">텍스트를 클립보드에 복사한 뒤 입력란에 붙여 넣습니다. 더 많은 앱에서 동작합니다</string>
+    <string name="settings_bubble_paste_desc_off">접근성 서비스로 입력란에 직접 입력합니다. 일부 앱에서 붙여넣기가 이상할 때 사용하세요</string>
     <string name="settings_bubble_history_desc_on">자주 쓰는 문구 서랍 위쪽에 최근 변환 기록을 바로 표시합니다</string>
     <string name="settings_bubble_history_desc_off">기록이 꺼져 있습니다. 자주 쓰는 문구 서랍에는 저장된 문구만 표시됩니다</string>
     <string name="settings_bubble_restricted_dialog_title">Android 13 이상에서 제한된 설정을 허용하는 방법</string>
@@ -376,7 +376,7 @@
     <string name="onboarding_mode_badge">모드 %1$d/%2$d</string>
     <string name="onboarding_capsule_title">세로 캡슐 · 밀어서 전환</string>
     <string name="onboarding_mode_voice_title">음성 실시간 입력</string>
-    <string name="onboarding_capsule_badge_default">모드 1/5</string>
+    <string name="onboarding_capsule_badge_default">모드 1/4</string>
     <string name="onboarding_mode_voice_desc">고정밀 오프라인 음성 인식. 탭하면 받아쓰기가 시작되고 바로 붙여 넣습니다</string>
     <string name="onboarding_capsule_tags_default">• 오프라인 ASR 듀얼 모델 실시간 변환\n• 자동 구두점 및 사용자 단어 지원\n• 이어폰·외장 마이크 게인 조절</string>
     <string name="onboarding_capsule_hint">버블을 길게 눌러 캡슐을 펼친 뒤, 위아래로 밀어 모드를 전환하세요</string>
