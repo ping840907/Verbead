@@ -274,7 +274,7 @@
     <string name="settings_about_zxing_credit">"  By zxing-cpp team / Axel Waggershauser · C++ barcode scanning"</string>
     <string name="settings_about_sherpa_credit">"  By Next-gen Kaldi (k2-fsa) · On-device speech recognition runtime"</string>
     <string name="settings_about_xasr_title">• X-ASR Traditional Chinese streaming model ↗</string>
-    <string name="settings_about_xasr_credit">"  By Luigi · Model optimized for Taiwan Mandarin and mixed Mandarin/English"</string>
+    <string name="settings_about_xasr_credit">"  By Luigi · Model fine-tuned on Taiwan Mandarin speech"</string>
     <string name="settings_about_qwen_title">• Qwen3-ASR speech model ↗</string>
     <string name="settings_about_qwen_credit">"  By Alibaba Qwen Team · High-accuracy open-source speech model"</string>
     <string name="settings_about_onnx_credit">"  By Microsoft · Cross-platform high-performance neural network inference engine"</string>

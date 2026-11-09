@@ -269,7 +269,7 @@
     <string name="settings_about_zxing_credit">"  作者：zxing-cpp 團隊 / Axel Waggershauser · C++ 條碼掃描"</string>
     <string name="settings_about_sherpa_credit">"  作者：Next-gen Kaldi (k2-fsa) · 端側語音辨識 Runtime"</string>
     <string name="settings_about_xasr_title">• X-ASR 繁中串流模型 ↗</string>
-    <string name="settings_about_xasr_credit">"  作者：Luigi · 台灣繁體中文/國台英語最佳化模型"</string>
+    <string name="settings_about_xasr_credit">"  作者：Luigi · 針對台灣中文語句微調的模型"</string>
     <string name="settings_about_qwen_title">• Qwen3-ASR 語音模型 ↗</string>
     <string name="settings_about_qwen_credit">"  作者：Alibaba Qwen Team · 高精度開源語音大模型"</string>
     <string name="settings_about_onnx_credit">"  作者：Microsoft · 跨平台高效能神經網路推論引擎"</string>

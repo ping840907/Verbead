@@ -269,7 +269,7 @@
     <string name="settings_about_zxing_credit">"  제작: zxing-cpp 팀 / Axel Waggershauser · C++ 바코드 스캔"</string>
     <string name="settings_about_sherpa_credit">"  제작: Next-gen Kaldi (k2-fsa) · 온디바이스 음성 인식 런타임"</string>
     <string name="settings_about_xasr_title">• X-ASR 번체 중국어 스트리밍 모델 ↗</string>
-    <string name="settings_about_xasr_credit">"  제작: Luigi · 대만 중국어 및 중국어·영어 혼용에 최적화된 모델"</string>
+    <string name="settings_about_xasr_credit">"  제작: Luigi · 대만 중국어 발화에 맞춰 미세 조정된 모델"</string>
     <string name="settings_about_qwen_title">• Qwen3-ASR 음성 모델 ↗</string>
     <string name="settings_about_qwen_credit">"  제작: Alibaba Qwen Team · 고정밀 오픈소스 음성 모델"</string>
     <string name="settings_about_onnx_credit">"  제작: Microsoft · 크로스 플랫폼 고성능 신경망 추론 엔진"</string>
