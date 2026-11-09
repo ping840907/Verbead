@@ -51,9 +51,7 @@ object ModelZipInstaller {
         val skippedCount: Int = 0
     )
 
-    private val MODEL_ROOT_DIRS = listOf(
-        ModelConfig.QWEN3_ASR_DIR, ModelConfig.X_ASR_DIR, ModelConfig.OCR_DIR
-    )
+    private val MODEL_ROOT_DIRS = (AsrCatalog.models.map { it.dir } + ModelConfig.OCR_DIR).distinct()
 
     /** 只解壓已知模型資料夾內的檔案，避免壓縮檔中的雜物被寫入模型目錄 */
     internal fun isModelEntry(normalizedName: String): Boolean =
@@ -227,6 +225,15 @@ object ModelZipInstaller {
             shortLabels.add("PP-OCRv5 Korean")
         }
 
+        // The other speech models of the catalog (Parakeet, Moonshine, Nemotron ...)
+        for (model in AsrCatalog.models) {
+            if (model.id == AsrCatalog.X_ASR || model.id == AsrCatalog.QWEN3) continue
+            if (extractedEntries.none { it.startsWith("${model.dir}/") }) continue
+            val dir = File(targetDir, model.dir)
+            val complete = AsrModelFiles.isComplete(model, dir)
+            if (complete) shortLabels.add(model.name)
+        }
+
         return RestoredPackageAnalysis(
             qwen3Restored = qwen3Restored,
             xAsrRestored = xAsrRestored,
@@ -296,11 +303,11 @@ object ModelZipInstaller {
 
         val analysis = analyzeRestoredPackage(report.extractedEntries, targetDir)
 
-        // Smartly activate newly restored models based on what was inside the imported package
-        if (analysis.qwen3Restored) {
-            ModelConfig.setSelectedEngine(context, ModelConfig.ENGINE_QWEN3)
-        } else if (analysis.xAsrRestored && !ModelConfig.isQwen3Ready(context)) {
-            ModelConfig.setSelectedEngine(context, ModelConfig.ENGINE_X_ASR)
+        // Activate newly restored speech models: each goes into its slot when that slot is empty
+        for (model in AsrCatalog.models) {
+            if (report.extractedEntries.any { it.startsWith("${model.dir}/") } && ModelConfig.isModelReady(context, model)) {
+                ModelConfig.useIfSlotEmpty(context, model)
+            }
         }
 
         if (analysis.ocrSmallRestored) {

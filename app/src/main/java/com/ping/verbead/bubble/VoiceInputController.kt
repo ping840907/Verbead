@@ -13,8 +13,12 @@ import com.ping.verbead.R
 import com.ping.verbead.UserDictionary
 import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.AsrMode
+import com.ping.verbead.engine.AsrModel
+import com.ping.verbead.engine.FinalEngine
 import com.ping.verbead.engine.Qwen3AsrEngine
-import com.ping.verbead.engine.XAsrEngine
+import com.ping.verbead.engine.FinalEngines
+import com.ping.verbead.engine.StreamingAsrEngine
 import com.ping.verbead.engine.lang.ScriptMode
 import com.ping.verbead.engine.lang.ZhTwProfile
 import com.ping.verbead.util.ToastUtil
@@ -55,8 +59,10 @@ class VoiceInputController(
     }
 
     private val recorder = AudioRecorder(context)
-    private val qwen3Asr by lazy { Qwen3AsrEngine(context) }
-    private val xAsr by lazy { XAsrEngine(context) }
+    /** The engines of the two slots; rebuilt when the user picks other models (see [syncEngines]). */
+    private var liveEngine: StreamingAsrEngine? = null
+    private var finalEngine: FinalEngine? = null
+    private var finalModel: AsrModel? = null
 
     private var activeStream: OnlineStream? = null
     private var recordingJob: Job? = null
@@ -90,11 +96,12 @@ class VoiceInputController(
         runCatching { recorder.stopEarly() }
         runCatching { activeStream?.release() }
         activeStream = null
-        runCatching { if (qwen3Asr.isLoaded()) qwen3Asr.release() }
-        runCatching { if (xAsr.isLoaded()) xAsr.release() }
+        runCatching { finalEngine?.release() }
+        runCatching { liveEngine?.release() }
+        finalEngine = null
+        finalModel = null
+        liveEngine = null
     }
-
-    private fun isDualEngineActive(): Boolean = ModelConfig.isDualEngineActive(context)
 
     fun start() {
         isAborted = false
@@ -109,48 +116,59 @@ class VoiceInputController(
         }
 
         try {
-            if (isDualEngineActive()) {
-                if (!xAsr.isLoaded() || !qwen3Asr.isLoaded() || qwen3NeedsReload()) {
-                    preloadDualEngineAndStart()
-                    return
-                }
-                startDualEngineRecording()
+            val liveModel = ModelConfig.readyAsrModel(context, AsrMode.LIVE)
+            // the same model in both slots would decode the audio twice for the same text: use it live only
+            val finalModel = ModelConfig.readyAsrModel(context, AsrMode.FINAL)?.takeIf { it.id != liveModel?.id }
+            if (liveModel == null && finalModel == null) {
+                host.setState(State.IDLE)
+                ToastUtil.show(context, R.string.toast_model_not_downloaded)
                 return
             }
-
-            val engine = ModelConfig.selectedEngine(context)
-            if (engine == ModelConfig.ENGINE_X_ASR) {
-                if (!xAsr.isLoaded()) {
-                    preloadAndStart(engine)
-                    return
-                }
-                startStreamingRecording()
-            } else {
-                if (!qwen3Asr.isLoaded() || qwen3NeedsReload()) {
-                    preloadAndStart(engine)
-                    return
-                }
-                startOfflineRecording()
+            syncEngines(liveModel, finalModel)
+            val needsLoad = (liveEngine?.isLoaded() == false) || finalNeedsLoad()
+            if (needsLoad) {
+                preloadAndStart(dual = liveModel != null && finalModel != null)
+                return
             }
-        } catch (e: Throwable) {
+            beginRecording()
+                } catch (e: Throwable) {
             Log.e(TAG, "startRecording failed: ${e.message}", e)
             host.setState(State.IDLE)
             ToastUtil.show(context, context.getString(R.string.preview_voice_start_failed, e.localizedMessage ?: context.getString(R.string.common_unknown_error)))
         }
     }
 
-    private fun preloadDualEngineAndStart() {
+    /** Makes the engines match the models the user picked: engines of models no longer selected are released. */
+    private fun syncEngines(liveModel: AsrModel?, finalModel: AsrModel?) {
+        if (liveEngine?.model?.id != liveModel?.id) {
+            runCatching { liveEngine?.release() }
+            liveEngine = liveModel?.let { StreamingAsrEngine(context, it) }
+        }
+        if (this.finalModel?.id != finalModel?.id) {
+            runCatching { finalEngine?.release() }
+            finalEngine = finalModel?.let { FinalEngines.create(context, it) }
+            this.finalModel = finalModel
+        }
+    }
+
+    /** The final engine is not loaded yet, or (Qwen3) its hot words changed. */
+    private fun finalNeedsLoad(): Boolean {
+        val fe = finalEngine ?: return false
+        return !fe.isLoaded() || (fe is Qwen3AsrEngine && fe.loadedHotwords != buildHotwords())
+    }
+
+    private fun preloadAndStart(dual: Boolean) {
         host.setState(State.LOADING)
-        host.showStatus(context.getString(R.string.preview_loading_dual_models))
+        host.showStatus(context.getString(if (dual) R.string.preview_loading_dual_models else R.string.preview_loading_models))
 
         scope.launch {
-            val (xOk, qOk) = withContext(Dispatchers.IO) {
-                val x = xAsr.load().success
-                val q = qwen3Asr.load(buildHotwords()).success
-                x to q
+            val success = withContext(Dispatchers.IO) {
+                val liveOk = liveEngine?.let { it.isLoaded() || it.load().success } ?: true
+                val finalOk = finalEngine?.load(buildHotwords())?.success ?: true
+                liveOk && finalOk
             }
-            if (xOk && qOk) {
-                startDualEngineRecording()
+            if (success) {
+                beginRecording()
             } else {
                 host.setState(State.IDLE)
                 ToastUtil.show(context, R.string.preview_model_load_failed)
@@ -158,33 +176,19 @@ class VoiceInputController(
         }
     }
 
-    private fun preloadAndStart(engine: String) {
-        host.setState(State.LOADING)
-        host.showStatus(context.getString(R.string.preview_loading_models))
-
-        scope.launch {
-            val success = withContext(Dispatchers.IO) {
-                if (engine == ModelConfig.ENGINE_X_ASR) {
-                    xAsr.load().success
-                } else {
-                    qwen3Asr.load(buildHotwords()).success
-                }
-            }
-            if (success) {
-                if (engine == ModelConfig.ENGINE_X_ASR) {
-                    startStreamingRecording()
-                } else {
-                    startOfflineRecording()
-                }
-            } else {
-                host.setState(State.IDLE)
-                ToastUtil.show(context, R.string.preview_model_load_failed)
-            }
+    /** Both slots filled: live text first, final model decides. Only one: that one alone. */
+    private fun beginRecording() {
+        when {
+            liveEngine != null && finalEngine != null -> startDualEngineRecording()
+            liveEngine != null -> startStreamingRecording()
+            else -> startOfflineRecording()
         }
     }
 
     // 雙引擎模式底層運作機制
     private fun startDualEngineRecording() {
+        val xAsr = liveEngine ?: return
+        val finalEngine = finalEngine ?: return
         val stream = xAsr.createStream() ?: run {
             ToastUtil.show(context, R.string.preview_cannot_create_stream)
             return
@@ -217,7 +221,7 @@ class VoiceInputController(
                             lastStreamingText = combined
                             mainHandler.post {
                                 if (isRecording && !isAborted) {
-                                    host.showLive(combined)
+                                    host.showLive(xAsrModelText(combined))
                                 }
                             }
                         }
@@ -278,18 +282,16 @@ class VoiceInputController(
             try {
                 val raw = withContext(Dispatchers.Default) {
                     if (isAborted) return@withContext ""
-                    qwen3Asr.transcribe(combinedAudio)
+                    finalEngine.transcribe(combinedAudio)
                 }
                 if (isAborted) return@launch
-                val text = if (raw.isNotBlank()) postProcess(raw) else ""
-                host.onTranscribed(text)
+                host.onTranscribed(finalizeText(raw, finalModel))
             } catch (ex: Throwable) {
                 if (ex is kotlinx.coroutines.CancellationException || isAborted) return@launch
                 Log.e(TAG, "Qwen3 batch inference failed: ${ex.message}", ex)
-                val fallbackText = lastStreamingText
+                val fallbackText = finalizeText(lastStreamingText, liveEngine?.model)
                 if (fallbackText.isNotEmpty()) {
-                    val processedFallback = postProcess(fallbackText)
-                    host.onTranscribed(processedFallback)
+                    host.onTranscribed(fallbackText)
                     ToastUtil.show(context, R.string.toast_offline_model_error_applied_streaming)
                 } else {
                     host.setState(State.IDLE)
@@ -301,6 +303,7 @@ class VoiceInputController(
     }
 
     private fun startOfflineRecording() {
+        val finalEngine = finalEngine ?: return
         isRecording = true
         isAborted = false
         host.setState(State.RECORDING)
@@ -324,11 +327,10 @@ class VoiceInputController(
                 try {
                     val raw = withContext(Dispatchers.Default) {
                         if (isAborted) return@withContext ""
-                        qwen3Asr.transcribe(recording.samples)
+                        finalEngine.transcribe(recording.samples)
                     }
                     if (isAborted) return@launch
-                    val text = if (raw.isNotBlank()) postProcess(raw) else ""
-                    host.onTranscribed(text)
+                    host.onTranscribed(finalizeText(raw, finalModel))
                 } catch (ex: Throwable) {
                     if (ex is kotlinx.coroutines.CancellationException || isAborted) return@launch
                     host.setState(State.IDLE)
@@ -344,7 +346,7 @@ class VoiceInputController(
     }
 
     private fun startStreamingRecording() {
-        val engine = xAsr
+        val engine = liveEngine ?: return
         val stream = engine.createStream() ?: run {
             ToastUtil.show(context, R.string.preview_cannot_create_stream)
             return
@@ -375,7 +377,7 @@ class VoiceInputController(
                             lastShown = combined
                             mainHandler.post {
                                 if (isRecording && !isAborted) {
-                                    host.showLive(combined)
+                                    host.showLive(xAsrModelText(combined))
                                 }
                             }
                         }
@@ -411,12 +413,21 @@ class VoiceInputController(
             }
 
             val fullText = (accumulated + finalSegment).trim()
-            host.onTranscribed(fullText)
+            host.onTranscribed(finalizeText(fullText, engine.model))
         }
     }
 
-    private fun qwen3NeedsReload(): Boolean =
-        buildHotwords() != qwen3Asr.loadedHotwords
+    /**
+     * The one way every recognized text is finished, whichever model made it and whichever way it was recorded
+     * (live only, final only, or live then final): the model's own tidying, then [postProcess].
+     */
+    private fun finalizeText(raw: String, producer: AsrModel?): String {
+        if (raw.isBlank()) return ""
+        return postProcess(producer?.normalizeText(raw) ?: raw, producer)
+    }
+
+    /** Text of the live model for the preview, tidied up if the model writes in capitals only. */
+    private fun xAsrModelText(text: String): String = liveEngine?.model?.normalizeText(text) ?: text
 
     private fun buildHotwords(): String =
         if (ModelConfig.isHotwordsEnabled(context)) {
@@ -426,10 +437,11 @@ class VoiceInputController(
         }
 
     /** 辨識後處理：依 [ZhTwProfile] 的規則依序套用。規則以字元證據逐句判斷，日韓文句子不會被動到。 */
-    private fun postProcess(raw: String): String {
+    private fun postProcess(raw: String, producer: AsrModel?): String {
         val scriptMode = when {
             !ModelConfig.isConvertToTraditionalEnabled(context) -> ScriptMode.OFF
-            ModelConfig.selectedEngine(context) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
+            // a model that writes Traditional Chinese by itself only needs the Taiwan wording rules
+            producer?.nativeTraditional == true -> ScriptMode.VARIANTS_ONLY
             else -> ScriptMode.FULL
         }
         val converted = ZhTwProfile.convertScript(raw, scriptMode)

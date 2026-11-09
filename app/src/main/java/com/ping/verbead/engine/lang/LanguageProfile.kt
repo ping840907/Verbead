@@ -35,7 +35,7 @@ object ZhTwProfile {
     /** 使用者詞彙置換之後的詞彙與異體字修正 */
     fun applyVariantRules(text: String): String = ZhTwRules.applyPostRegexReplacements(text)
 
-    fun convertSpokenNumbers(text: String): String = SpokenNumberConverter.convert(text)
+    fun convertSpokenNumbers(text: String): String = SpokenNumbers.convert(text)
 
     fun filterPunctuation(text: String): String = CjkPunctuation.filter(text)
 }

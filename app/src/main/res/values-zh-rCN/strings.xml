@@ -194,7 +194,7 @@
     <string name="settings_speech_to_traditional_title">转换为繁体中文</string>
     <string name="settings_speech_to_traditional_desc">简体转繁体；日文、韩文段落不会被转换。关闭则完全保留识别原文</string>
     <string name="settings_speech_spoken_numbers_title">口语数字转阿拉伯数字</string>
-    <string name="settings_speech_spoken_numbers_desc">把“一百二十三”转成 123，并处理加减乘除、百分比、分数、负数、根号与时间；单独的一位数（三个、一下）不会被转换</string>
+    <string name="settings_speech_spoken_numbers_desc">把中、英、日、韩的口语数字转成阿拉伯数字（“一百二十三”“twenty three”→ 123 / 23），含年份、小数、百分比；中文另支持四则运算、分数、时间。日常用语中单独的一位数（三个、一下）不会被转换</string>
     <string name="settings_speech_filter_punct_title">过滤中文标点符号</string>
     <string name="settings_speech_filter_punct_desc">自动去除逗号、句号、问号等全角符号</string>
     <string name="settings_bubble_header_title">悬浮语音泡泡</string>
@@ -464,4 +464,30 @@
     <string name="settings_ocr_korean_download_message">即将下载韩文识别模型（%1$s，PP-OCRv5 mobile）。下载完成后完全在本机运行。\n\n要继续吗？</string>
     <string name="ocr_model_name_korean">PP-OCRv5 韩文</string>
     <string name="model_label_ocr_korean_detail">PP-OCRv5 韩文文字识别</string>
+
+    <!-- Speech model catalog -->
+    <string name="asr_combo_title">使用中的语音模型</string>
+    <string name="asr_combo_format">即时：%1$s
+整句：%2$s</string>
+    <string name="asr_combo_not_set">未设置</string>
+    <string name="asr_tag_live">即时</string>
+    <string name="asr_tag_final">整句</string>
+    <string name="asr_filter_all">全部</string>
+    <string name="asr_filter_downloaded">只看已下载</string>
+    <string name="asr_filter_empty">没有符合条件的模型</string>
+    <string name="asr_language_all">所有语言</string>
+    <string name="asr_language_filter_format">语言：%1$s</string>
+    <string name="asr_language_dialog_title">按语言筛选</string>
+    <string name="asr_languages_format">支持语言：%1$s</string>
+    <string name="asr_model_size_format">下载约 %1$d MB</string>
+    <string name="asr_use_live">设为即时模型</string>
+    <string name="asr_use_final">设为整句模型</string>
+    <string name="asr_in_use">使用中・点击取消</string>
+    <string name="asr_memory_hint">两个大型模型同时使用会占用大量内存；若变慢或被系统关闭，请改选较小的模型。</string>
+    <string name="asr_custom_problems_format">custom_models.json 中有些项目被略过：\n%1$s</string>
+    <string name="asr_variant_format">版本：%1$s</string>
+    <string name="asr_variant_dialog_title">选择版本</string>
+    <string name="asr_language_search_hint">搜索语言</string>
+    <string name="asr_list_title">可用的模型</string>
+    <string name="asr_combo_clear">取消使用这个模型</string>
 </resources>

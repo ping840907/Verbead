@@ -1,0 +1,604 @@
+{
+  "models": [
+    {
+      "id": "x_asr",
+      "name": "X-ASR",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "x_asr",
+      "languages": [
+        "zh-TW",
+        "en"
+      ],
+      "nativeTraditional": true,
+      "outputsUppercase": true,
+      "providers": [
+        "nnapi",
+        "cpu"
+      ],
+      "fileNames": {
+        "encoder": "encoder.int8.onnx",
+        "decoder": "decoder.onnx",
+        "joiner": "joiner.int8.onnx",
+        "tokens": "tokens.txt"
+      },
+      "files": [
+        {
+          "url": "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/encoder.int8.onnx",
+          "path": "encoder.int8.onnx",
+          "sha256": "9a92f64387787ff47ace05edaedc1e6774b231e790e283330018b14f4a1b3e07"
+        },
+        {
+          "url": "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/decoder.onnx",
+          "path": "decoder.onnx",
+          "sha256": "0d6d200e0a3c6e70ab6bf063b174b532e638d458e74c5a406c83c1eaec993b05"
+        },
+        {
+          "url": "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/joiner.int8.onnx",
+          "path": "joiner.int8.onnx",
+          "sha256": "f8c88ae06fa13ea83335660e7235e19cb4f57aad0a82882a35126202b96c2a7d"
+        },
+        {
+          "url": "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/tokens.txt",
+          "path": "tokens.txt",
+          "sha256": "3a286a8dd2015c08d27314b1641f9be86aa3274c49fb452fbb4170bee6c22737"
+        }
+      ],
+      "description": {
+        "en": "Tuned for Taiwan Mandarin, with English mixed in. Small and fast.",
+        "zh-TW": "針對台灣中文（含英語夾雜）調校，體積小、反應快。",
+        "zh-CN": "针对台湾中文（含英语夹杂）调校，体积小、反应快。",
+        "ja": "台湾の中国語（英語混じり）向けに調整。小さくて高速です。",
+        "ko": "대만 중국어(영어 혼용 포함)에 맞춰 조정. 작고 빠릅니다."
+      }
+    },
+    {
+      "id": "nemotron35",
+      "name": "Nemotron 3.5 (560 ms)",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "nemotron35_560ms",
+      "languages": [
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt",
+        "nl",
+        "de",
+        "tr",
+        "ru",
+        "ar",
+        "hi",
+        "ja",
+        "ko",
+        "vi",
+        "uk",
+        "pl",
+        "sv",
+        "cs",
+        "nb",
+        "da",
+        "bg",
+        "fi",
+        "hr",
+        "sk",
+        "zh",
+        "hu",
+        "ro",
+        "et"
+      ],
+      "sizeMb": 453,
+      "streamOptions": {
+        "language": "auto"
+      },
+      "tailSilenceSec": 1.0,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemotron-3.5-asr-streaming-0.6b-560ms-int8-2026-06-11.tar.bz2",
+        "sha256": "c6bf5e0df765f9d5b43bc9e0536d4b4b3e7d40bdf5ecf13e45f134c51c05ae3a"
+      },
+      "description": {
+        "en": "Live text in many languages, with the spoken language detected automatically. Large.",
+        "zh-TW": "多語言即時辨識，自動判斷說的語言。體積大。",
+        "zh-CN": "多语言即时识别，自动判断所说语言。体积大。",
+        "ja": "多言語のリアルタイム認識。話している言語を自動判定します。サイズ大。",
+        "ko": "여러 언어를 실시간으로 인식하고 말하는 언어를 자동으로 감지합니다. 용량이 큽니다."
+      },
+      "group": "Nemotron 3.5 Multilingual",
+      "variant": "560 ms"
+    },
+    {
+      "id": "nemotron35_160",
+      "name": "Nemotron 3.5 (160 ms)",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "nemotron35_160ms",
+      "languages": [
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt",
+        "nl",
+        "de",
+        "tr",
+        "ru",
+        "ar",
+        "hi",
+        "ja",
+        "ko",
+        "vi",
+        "uk",
+        "pl",
+        "sv",
+        "cs",
+        "nb",
+        "da",
+        "bg",
+        "fi",
+        "hr",
+        "sk",
+        "zh",
+        "hu",
+        "ro",
+        "et"
+      ],
+      "sizeMb": 453,
+      "streamOptions": {
+        "language": "auto"
+      },
+      "tailSilenceSec": 0.3,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemotron-3.5-asr-streaming-0.6b-160ms-int8-2026-06-11.tar.bz2",
+        "sha256": "a81909a1780d84cff16d73c15e13e67d9d81d8839faf14870d507d8499f7a61a"
+      },
+      "description": {
+        "en": "Live text in many languages, with the spoken language detected automatically. Large.",
+        "zh-TW": "多語言即時辨識，自動判斷說的語言。體積大。",
+        "zh-CN": "多语言即时识别，自动判断所说语言。体积大。",
+        "ja": "多言語のリアルタイム認識。話している言語を自動判定します。サイズ大。",
+        "ko": "여러 언어를 실시간으로 인식하고 말하는 언어를 자동으로 감지합니다. 용량이 큽니다."
+      },
+      "group": "Nemotron 3.5 Multilingual",
+      "variant": "160 ms"
+    },
+    {
+      "id": "nemotron35_1120",
+      "name": "Nemotron 3.5 (1.12 s)",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "nemotron35_1120ms",
+      "languages": [
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt",
+        "nl",
+        "de",
+        "tr",
+        "ru",
+        "ar",
+        "hi",
+        "ja",
+        "ko",
+        "vi",
+        "uk",
+        "pl",
+        "sv",
+        "cs",
+        "nb",
+        "da",
+        "bg",
+        "fi",
+        "hr",
+        "sk",
+        "zh",
+        "hu",
+        "ro",
+        "et"
+      ],
+      "sizeMb": 453,
+      "streamOptions": {
+        "language": "auto"
+      },
+      "tailSilenceSec": 1.5,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemotron-3.5-asr-streaming-0.6b-1120ms-int8-2026-06-11.tar.bz2",
+        "sha256": "adbdd5e9fef87300c37cebfcfc4f1ebe56845c860c8a760af0a1dd65ce9beed3"
+      },
+      "description": {
+        "en": "Live text in many languages, with the spoken language detected automatically. Large.",
+        "zh-TW": "多語言即時辨識，自動判斷說的語言。體積大。",
+        "zh-CN": "多语言即时识别，自动判断所说语言。体积大。",
+        "ja": "多言語のリアルタイム認識。話している言語を自動判定します。サイズ大。",
+        "ko": "여러 언어를 실시간으로 인식하고 말하는 언어를 자동으로 감지합니다. 용량이 큽니다."
+      },
+      "group": "Nemotron 3.5 Multilingual",
+      "variant": "1.12 s"
+    },
+    {
+      "id": "zipformer_en_20m",
+      "name": "Zipformer 20M",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "zipformer_en_20m",
+      "languages": [
+        "en"
+      ],
+      "sizeMb": 103,
+      "outputsUppercase": true,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17-mobile.tar.bz2",
+        "sha256": "753a5362538539212442efbfb8dd5748db82e35e7deaec5330f49c56e81e40fd"
+      },
+      "description": {
+        "en": "A small English-only live model that runs light on any phone.",
+        "zh-TW": "僅限英語的小型即時模型，一般手機都跑得輕鬆。",
+        "zh-CN": "仅限英语的小型即时模型，一般手机都跑得轻松。",
+        "ja": "英語専用の小型リアルタイムモデル。どのスマホでも軽く動きます。",
+        "ko": "영어 전용 소형 실시간 모델로 어떤 휴대폰에서도 가볍게 동작합니다."
+      }
+    },
+    {
+      "id": "qwen3",
+      "name": "Qwen3-ASR",
+      "mode": "final",
+      "loader": "qwen3",
+      "dir": "qwen3_asr",
+      "languages": [
+        "zh",
+        "en",
+        "yue",
+        "ar",
+        "de",
+        "fr",
+        "es",
+        "pt",
+        "id",
+        "it",
+        "ko",
+        "ru",
+        "th",
+        "vi",
+        "ja",
+        "tr",
+        "hi",
+        "ms",
+        "nl",
+        "sv",
+        "da",
+        "fi",
+        "pl",
+        "cs",
+        "fil",
+        "fa",
+        "el",
+        "hu",
+        "mk",
+        "ro"
+      ],
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2",
+        "sha256": "393f8a14e2f5fb96746aaab342997a40641001fbd5bf9592a080a8329178ee96"
+      },
+      "description": {
+        "en": "Many languages with punctuation and fluent phrasing. The language is detected automatically.",
+        "zh-TW": "支援多種語言，標點完整、語句通順，語言自動偵測。",
+        "zh-CN": "支持多种语言，标点完整、语句通顺，语言自动检测。",
+        "ja": "多言語に対応し、句読点も自然。言語は自動で判定されます。",
+        "ko": "여러 언어를 지원하며 문장 부호가 자연스럽습니다. 언어는 자동으로 감지됩니다."
+      }
+    },
+    {
+      "id": "parakeet_v3",
+      "name": "Parakeet TDT v3",
+      "mode": "final",
+      "loader": "offline_transducer",
+      "dir": "parakeet_tdt_v3",
+      "languages": [
+        "bg",
+        "hr",
+        "cs",
+        "da",
+        "nl",
+        "en",
+        "et",
+        "fi",
+        "fr",
+        "de",
+        "el",
+        "hu",
+        "it",
+        "lv",
+        "lt",
+        "mt",
+        "pl",
+        "pt",
+        "ro",
+        "sk",
+        "sl",
+        "es",
+        "sv",
+        "ru",
+        "uk"
+      ],
+      "sizeMb": 464,
+      "offlineModelType": "nemo_transducer",
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2",
+        "sha256": "1495e91b59d7fc53ddca91f3431758ec99f8fa253fdb0e1e851be0f72b14b0f9"
+      },
+      "description": {
+        "en": "High accuracy for 25 European languages, with punctuation and capitalization. Large.",
+        "zh-TW": "涵蓋 25 種歐洲語言，準確度高，附標點與大小寫。體積大。",
+        "zh-CN": "涵盖 25 种欧洲语言，准确度高，附标点与大小写。体积大。",
+        "ja": "ヨーロッパ25言語に対応した高精度モデル。句読点と大文字小文字付き。サイズ大。",
+        "ko": "유럽 25개 언어를 지원하는 고정밀 모델로 문장 부호와 대소문자를 붙입니다. 용량이 큽니다."
+      }
+    },
+    {
+      "id": "parakeet_110m_en",
+      "name": "Parakeet TDT 110M",
+      "mode": "final",
+      "loader": "offline_transducer",
+      "dir": "parakeet_110m_en",
+      "languages": [
+        "en"
+      ],
+      "sizeMb": 103,
+      "offlineModelType": "nemo_transducer",
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet_tdt_transducer_110m-en-36000-int8.tar.bz2",
+        "sha256": "f628312e9fdf8686374cb01a69425c41732529d540860311f16f37cbc32cfe9b"
+      },
+      "description": {
+        "en": "A compact English model with good accuracy.",
+        "zh-TW": "精簡的英語模型，準確度不錯。",
+        "zh-CN": "精简的英语模型，准确度不错。",
+        "ja": "コンパクトで精度の良い英語モデル。",
+        "ko": "정확도가 좋은 소형 영어 모델입니다."
+      }
+    },
+    {
+      "id": "moonshine_tiny_en",
+      "name": "Moonshine v2 Tiny",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_tiny_en",
+      "languages": [
+        "en"
+      ],
+      "sizeMb": 28,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-en-quantized-2026-02-27.tar.bz2",
+        "sha256": "9ec31b342d8fa3240c3b81b8f82e1cf7e3ac467c93ca5a999b741d5887164f8d"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Tiny"
+    },
+    {
+      "id": "moonshine_base_en",
+      "name": "Moonshine v2 Base",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_base_en",
+      "languages": [
+        "en"
+      ],
+      "sizeMb": 106,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-en-quantized-2026-02-27.tar.bz2",
+        "sha256": "43232c1d13013d37317163baec3135bd771a186a4356f28c889bab453bb0e891"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Base"
+    },
+    {
+      "id": "moonshine_base_es",
+      "name": "Moonshine v2 Base",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_base_es",
+      "languages": [
+        "es"
+      ],
+      "sizeMb": 48,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-es-quantized-2026-02-27.tar.bz2",
+        "sha256": "850c3dcc5dfccc8b1feb10bb221b11d6039b6f5c626241729f46863771016383"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Base"
+    },
+    {
+      "id": "moonshine_tiny_ja",
+      "name": "Moonshine v2 Tiny",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_tiny_ja",
+      "languages": [
+        "ja"
+      ],
+      "sizeMb": 45,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-ja-quantized-2026-02-27.tar.bz2",
+        "sha256": "880305c9a6c33572ab269ff9731977ea42ca34c8cffcdd5d99558a9ea2b47cc2"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Tiny"
+    },
+    {
+      "id": "moonshine_base_ja",
+      "name": "Moonshine v2 Base",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_base_ja",
+      "languages": [
+        "ja"
+      ],
+      "sizeMb": 99,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-ja-quantized-2026-02-27.tar.bz2",
+        "sha256": "c66eb87d229a52d43bbe3b7c52a1d23f6208c0fd7c2e81802ecbda83b192798a"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Base"
+    },
+    {
+      "id": "moonshine_tiny_ko",
+      "name": "Moonshine v2 Tiny",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_tiny_ko",
+      "languages": [
+        "ko"
+      ],
+      "sizeMb": 46,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-tiny-ko-quantized-2026-02-27.tar.bz2",
+        "sha256": "d3b6c5390a7859c9ef20ff4f20b0766fcbad1dc06c0f509fe4840a3a302112dc"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Tiny"
+    },
+    {
+      "id": "moonshine_base_zh",
+      "name": "Moonshine v2 Base",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_base_zh",
+      "languages": [
+        "zh"
+      ],
+      "sizeMb": 95,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-zh-quantized-2026-02-27.tar.bz2",
+        "sha256": "6495d4240f66bcdd2bbbbfefaa687c463150d467854001270934e88940b733c1"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Base"
+    },
+    {
+      "id": "moonshine_base_vi",
+      "name": "Moonshine v2 Base",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_base_vi",
+      "languages": [
+        "vi"
+      ],
+      "sizeMb": 101,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-vi-quantized-2026-02-27.tar.bz2",
+        "sha256": "97b53f5fb75a2a9dd6327440a34f45fc06c927ed2fa7217e5ebe54058e269416"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Base"
+    },
+    {
+      "id": "moonshine_base_ar",
+      "name": "Moonshine v2 Base",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_base_ar",
+      "languages": [
+        "ar"
+      ],
+      "sizeMb": 113,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-ar-quantized-2026-02-27.tar.bz2",
+        "sha256": "4d3f16fe354d8536d3323d3eaf4c12fafb1976b5dc0a12862ab25934da94285b"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Base"
+    },
+    {
+      "id": "moonshine_base_uk",
+      "name": "Moonshine v2 Base",
+      "mode": "final",
+      "loader": "moonshine",
+      "dir": "moonshine_base_uk",
+      "languages": [
+        "uk"
+      ],
+      "sizeMb": 105,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-moonshine-base-uk-quantized-2026-02-27.tar.bz2",
+        "sha256": "d8489b159afabf4cfb734002ae8a5361781ff8a381fa18d284d32d1eeb1c0376"
+      },
+      "description": {
+        "en": "A small, fast model for a single language.",
+        "zh-TW": "單一語言的小型快速模型。",
+        "zh-CN": "单一语言的小型快速模型。",
+        "ja": "単一言語向けの小型で高速なモデル。",
+        "ko": "단일 언어용 소형 고속 모델입니다."
+      },
+      "group": "Moonshine v2",
+      "variant": "Base"
+    }
+  ]
+}

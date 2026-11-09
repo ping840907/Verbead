@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import com.ping.verbead.engine.AsrCatalog
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
@@ -68,11 +69,10 @@ class ModelDownloadService : Service() {
     private fun startDownload(engine: String) {
         val target = ModelDownloadSpec.forEngine(engine)
         val engineLabel = when {
-            engine == ModelConfig.ENGINE_X_ASR -> "X-ASR"
             engine == ModelConfig.OCR_MODEL_TINY -> "PP-OCRv6 Tiny"
             engine == ModelConfig.OCR_MODEL_SMALL -> "PP-OCRv6 Small"
             engine == ModelConfig.OCR_MODEL_KOREAN -> "PP-OCRv5 Korean"
-            else -> "Qwen3-ASR"
+            else -> AsrCatalog.byId(engine)?.name ?: "Qwen3-ASR"
         }
         startForeground(NOTIF_ID, buildNotification(getString(R.string.notif_download_preparing, engineLabel), -1))
         acquireWakeLock()
@@ -82,6 +82,8 @@ class ModelDownloadService : Service() {
                 ModelDownloadState.update(engine, progress)
                 notificationManager.notify(NOTIF_ID, buildNotification("$engineLabel：${progress.label(this@ModelDownloadService)}", progress.percent))
             }
+            // a freshly downloaded speech model goes into its slot when that slot is empty
+            if (result.isSuccess) AsrCatalog.byId(engine)?.let { ModelConfig.useIfSlotEmpty(this@ModelDownloadService, it) }
             ModelDownloadState.clear()
             ModelDownloadState.results.tryEmit(engine to result)
             releaseWakeLock()

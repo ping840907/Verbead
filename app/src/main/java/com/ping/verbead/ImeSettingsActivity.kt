@@ -24,6 +24,8 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.ping.verbead.engine.AsrCatalog
+import com.ping.verbead.engine.AsrMode
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelZipInstaller
 import com.ping.verbead.settings.AboutSettingsActivity
@@ -461,9 +463,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         val overlayGranted = Settings.canDrawOverlays(this)
         val accessibilityEnabled = isAccessibilityServiceEnabled()
 
-        val xAsrDownloaded = ModelConfig.isXAsrReady(this)
-        val qwen3Downloaded = ModelConfig.isQwen3Ready(this)
-        val anyModelReady = xAsrDownloaded || qwen3Downloaded
+        val anyModelReady = ModelConfig.downloadedAsrModels(this).isNotEmpty()
 
         // Auto ensure FloatingBubbleService runs when permissions are satisfied
         if (overlayGranted && accessibilityEnabled && !FloatingBubbleService.isRunning) {
@@ -572,13 +572,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvCatBubbleSummary.text = getString(R.string.settings_summary_bubble, runningStatus, bubbleModeStr, enabledModesCount)
 
         // 2. Speech
-        val dual = ModelConfig.isDualEngineEnabled(this)
         val vad = (ModelConfig.vadSilenceSeconds(this) * 1000).toInt()
-        val speechEngineStr = when {
-            dual -> getString(R.string.settings_summary_engine_dual)
-            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_QWEN3 -> getString(R.string.settings_summary_engine_qwen)
-            else -> getString(R.string.settings_summary_engine_xasr)
-        }
+        val speechEngineStr = listOfNotNull(
+            ModelConfig.selectedAsrModel(this, AsrMode.LIVE)?.name,
+            ModelConfig.selectedAsrModel(this, AsrMode.FINAL)?.name,
+        ).joinToString(" + ").ifEmpty { getString(R.string.asr_combo_not_set) }
         tvCatSpeechSummary.text = "$speechEngineStr · VAD ${vad}ms"
 
         // 3. OCR
@@ -595,10 +593,8 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvCatOcrSummary.text = "$ocrName ($ocrStatusStr) · $trad · $pangu"
 
         // 4. Offline Model Package Import (Main page inline)
-        val totalCount = 4
-        var downloadedCount = 0
-        if (ModelConfig.isXAsrReady(this)) downloadedCount++
-        if (ModelConfig.isQwen3Ready(this)) downloadedCount++
+        val totalCount = AsrCatalog.models.size + 2
+        var downloadedCount = ModelConfig.downloadedAsrModels(this).size
         if (ModelConfig.isOcrTinyReady(this)) downloadedCount++
         if (ModelConfig.isOcrSmallReady(this)) downloadedCount++
         tvCatBackupSummary.text = getString(R.string.settings_summary_backup, downloadedCount, totalCount)

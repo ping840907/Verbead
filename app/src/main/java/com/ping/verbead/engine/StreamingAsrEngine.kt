@@ -16,7 +16,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class XAsrEngine(private val context: Context) {
+/**
+ * A streaming ("live") recognizer: text appears while the user speaks. Works for every [AsrMode.LIVE] model of the
+ * catalog; the model decides where the files are and whether a language option is set on each stream.
+ */
+class StreamingAsrEngine(private val context: Context, val model: AsrModel) {
 
     @Volatile private var recognizer: OnlineRecognizer? = null
     private val loadMutex = Mutex()
@@ -30,15 +34,12 @@ class XAsrEngine(private val context: Context) {
     suspend fun load(): EngineLoadResult = loadMutex.withLock {
         if (isLoaded()) return@withLock EngineLoadResult(true, provider = activeProvider)
         withContext(Dispatchers.IO) {
-            val encoder = ModelConfig.xAsrEncoderPath(context)
-            val decoder = ModelConfig.xAsrDecoderPath(context)
-            val joiner  = ModelConfig.xAsrJoinerPath(context)
-            val tokens  = ModelConfig.xAsrTokensPath(context)
-
-            for (path in listOf(encoder, decoder, joiner, tokens)) {
-                if (!File(path).exists())
-                    return@withContext EngineLoadResult(false, error = "File not found: $path")
-            }
+            val files = filesOf()
+                ?: return@withContext EngineLoadResult(false, error = "Model files not found: ${model.dir}")
+            val encoder = files.encoder
+            val decoder = files.decoder
+            val joiner = files.joiner
+            val tokens = files.tokens
 
             // A truncated/mismatched download can leave onnxruntime able to "load" a model
             // that never produces real tokens, without ever throwing — dump file sizes and
@@ -55,7 +56,7 @@ class XAsrEngine(private val context: Context) {
             release()
 
             var lastError: Throwable? = null
-            for (provider in ModelConfig.ASR_PROVIDER_PRIORITY) {
+            for (provider in model.providers) {
                 try {
                     recognizer = OnlineRecognizer(
                         config = OnlineRecognizerConfig(
@@ -70,7 +71,7 @@ class XAsrEngine(private val context: Context) {
                                     joiner  = joiner,
                                 ),
                                 tokens     = tokens,
-                                numThreads = ModelConfig.X_ASR_THREADS,
+                                numThreads = model.threads,
                                 provider   = provider,
                             ),
                             endpointConfig = EndpointConfig(
@@ -84,7 +85,7 @@ class XAsrEngine(private val context: Context) {
                         )
                     )
                     activeProvider = provider
-                    Log.i(TAG, "Loaded — provider=$provider  threads=${ModelConfig.X_ASR_THREADS}")
+                    Log.i(TAG, "Loaded — provider=$provider  threads=${model.threads}")
                     return@withContext EngineLoadResult(true, provider = provider)
                 } catch (ex: Throwable) {
                     Log.w(TAG, "Provider '$provider' failed: ${ex.message}", ex)
@@ -101,15 +102,26 @@ class XAsrEngine(private val context: Context) {
         activeProvider = "unknown"
     }
 
-    fun createStream(): OnlineStream? = recognizer?.createStream()
+    private fun filesOf(): AsrModelFiles.Transducer? =
+        AsrModelFiles.transducer(ModelConfig.asrModelDir(context, model), model.fileNames)
 
-    /** Feed a chunk of PCM samples into an active stream. */
+    fun createStream(): OnlineStream? {
+        val stream = recognizer?.createStream() ?: return null
+        for ((key, value) in model.streamOptions) stream.setOption(key, value)
+        return stream
+    }
+
     fun acceptWaveform(stream: OnlineStream, samples: FloatArray) {
         stream.acceptWaveform(samples, ModelConfig.ASR_SAMPLE_RATE)
     }
 
     /** Signal end of audio input so the encoder can flush its state. */
     fun inputFinished(stream: OnlineStream) {
+        // A model that works in long chunks would drop the last words if the audio just ended,
+        // so a little silence is fed first to complete the final chunk.
+        if (model.tailSilenceSec > 0f) {
+            stream.acceptWaveform(FloatArray((model.tailSilenceSec * ModelConfig.ASR_SAMPLE_RATE).toInt()), ModelConfig.ASR_SAMPLE_RATE)
+        }
         stream.inputFinished()
     }
 
@@ -136,6 +148,6 @@ class XAsrEngine(private val context: Context) {
         recognizer?.isReady(stream) ?: false
 
     companion object {
-        private const val TAG = "XAsrEngine"
+        private const val TAG = "StreamingAsr"
     }
 }

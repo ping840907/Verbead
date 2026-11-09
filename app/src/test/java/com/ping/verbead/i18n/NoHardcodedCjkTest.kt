@@ -21,7 +21,10 @@ class NoHardcodedCjkTest {
 
     private val ruleFiles = setOf(
         "java/com/ping/verbead/engine/SpokenNumberConverter.kt",
-        "java/com/ping/verbead/engine/lang/ZhTwRules.kt"
+        "java/com/ping/verbead/engine/lang/ZhTwRules.kt",
+        "java/com/ping/verbead/engine/lang/JapaneseNumbers.kt",
+        "java/com/ping/verbead/engine/lang/KoreanNumbers.kt",
+        "java/com/ping/verbead/engine/lang/SpokenNumbers.kt"
     )
 
     private fun projectRoot(): File {

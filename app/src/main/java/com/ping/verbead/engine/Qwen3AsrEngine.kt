@@ -13,7 +13,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class Qwen3AsrEngine(private val context: Context) {
+class Qwen3AsrEngine(private val context: Context) : FinalEngine {
 
     companion object {
         private const val TAG        = "Qwen3AsrEngine"
@@ -22,21 +22,21 @@ class Qwen3AsrEngine(private val context: Context) {
 
     @Volatile private var recognizer: OfflineRecognizer? = null
     private val loadMutex = Mutex()
-    @Volatile var loadedHotwords: String = ""
+    @Volatile override var loadedHotwords: String = ""
         private set
 
     /** Provider that successfully initialized the recognizer, e.g. "nnapi" or "cpu". */
     var activeProvider: String = "unknown"
         private set
 
-    fun isLoaded() = recognizer != null
+    override fun isLoaded() = recognizer != null
 
     /**
      * Load (or reload) the recognizer.
      * [hotwords] is a newline-separated list of words/phrases to boost during decoding.
      * If the engine is already loaded with the same hotwords, this is a no-op.
      */
-    suspend fun load(hotwords: String = ""): EngineLoadResult = loadMutex.withLock {
+    override suspend fun load(hotwords: String): EngineLoadResult = loadMutex.withLock {
         if (isLoaded() && loadedHotwords == hotwords) return@withLock EngineLoadResult(true, provider = activeProvider)
         withContext(Dispatchers.IO) {
             val convFrontend = ModelConfig.qwen3AsrConvFrontendPath(context)
@@ -88,13 +88,13 @@ class Qwen3AsrEngine(private val context: Context) {
         }
     }
 
-    fun release() {
+    override fun release() {
         recognizer?.release()
         recognizer = null
         loadedHotwords = ""
     }
 
-    suspend fun transcribe(samples: FloatArray): String = withContext(Dispatchers.IO) {
+    override suspend fun transcribe(samples: FloatArray): String = withContext(Dispatchers.IO) {
         val r = recognizer ?: return@withContext ""
         if (samples.isEmpty()) return@withContext ""
         val t0 = System.currentTimeMillis()

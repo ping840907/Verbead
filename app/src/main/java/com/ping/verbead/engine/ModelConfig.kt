@@ -64,15 +64,15 @@ object ModelConfig {
         return context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
     }
 
+    /** A models folder that already holds at least one model (OCR or any speech model). */
+    private fun holdsModels(base: File?): Boolean =
+        base != null && (File(base, OCR_DIR).exists() || AsrCatalog.models.any { File(base, it.dir).exists() })
+
     fun modelsDir(context: Context): String {
         val primary = context.getExternalFilesDir("models")
-        if (primary != null && (File(primary, OCR_DIR).exists() || File(primary, X_ASR_DIR).exists() || File(primary, QWEN3_ASR_DIR).exists())) {
-            return primary.absolutePath
-        }
+        if (holdsModels(primary)) return primary!!.absolutePath
         val internal = File(context.filesDir, "models")
-        if (File(internal, OCR_DIR).exists() || File(internal, X_ASR_DIR).exists() || File(internal, QWEN3_ASR_DIR).exists()) {
-            return internal.absolutePath
-        }
+        if (holdsModels(internal)) return internal.absolutePath
         return primary?.absolutePath ?: internal.absolutePath
     }
 
@@ -90,33 +90,67 @@ object ModelConfig {
     fun xAsrJoinerPath(context: Context)  = "${xAsrDir(context)}/$X_ASR_JOINER"
     fun xAsrTokensPath(context: Context)  = "${xAsrDir(context)}/$X_ASR_TOKENS"
 
-    // Engine selection helpers
-    fun selectedEngine(context: Context): String =
-        context.getSharedPreferences(PREF_ENGINE, Context.MODE_PRIVATE)
-            .getString(KEY_ENGINE, ENGINE_QWEN3) ?: ENGINE_QWEN3
+    // ── Which speech models are used ───────────────────────────────────────────
+    //
+    // Two slots: a LIVE model (shows the words while the user speaks) and a FINAL model (recognizes the whole
+    // sentence after the user stops). Either one alone works; with both, the live text is shown first and
+    // replaced by the final model's result.
+    private const val PREF_ASR_MODELS = "asr_model_selection"
+    private const val KEY_LIVE_MODEL = "live_model"
+    private const val KEY_FINAL_MODEL = "final_model"
+    private const val KEY_SELECTION_MIGRATED = "migrated_from_engine"
 
-    fun setSelectedEngine(context: Context, engine: String) =
-        context.getSharedPreferences(PREF_ENGINE, Context.MODE_PRIVATE)
-            .edit().putString(KEY_ENGINE, engine).apply()
+    data class AsrSelection(val live: String?, val final: String?)
 
+    /** What the old "engine + dual-engine switch" settings meant in terms of the two slots. */
+    fun migrateLegacySelection(engine: String?, dualEnabled: Boolean): AsrSelection = when {
+        engine == ENGINE_X_ASR -> AsrSelection(live = ENGINE_X_ASR, final = null)
+        dualEnabled -> AsrSelection(live = ENGINE_X_ASR, final = ENGINE_QWEN3)
+        else -> AsrSelection(live = null, final = ENGINE_QWEN3)
+    }
 
-    // ── Dual Engine Mode ──────────────────────────────────────────────────────
-    private const val PREF_DUAL_ENGINE = "dual_engine_settings"
-    private const val KEY_DUAL_ENGINE_TOGGLE = "dual_engine_toggle"
+    fun asrSelection(context: Context): AsrSelection {
+        val prefs = context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean(KEY_SELECTION_MIGRATED, false)) {
+            val legacyEngine = context.getSharedPreferences(PREF_ENGINE, Context.MODE_PRIVATE).getString(KEY_ENGINE, ENGINE_QWEN3)
+            val legacyDual = context.getSharedPreferences("dual_engine_settings", Context.MODE_PRIVATE)
+                .getBoolean("dual_engine_toggle", false)
+            val migrated = migrateLegacySelection(legacyEngine, legacyDual)
+            prefs.edit()
+                .putString(KEY_LIVE_MODEL, migrated.live ?: "")
+                .putString(KEY_FINAL_MODEL, migrated.final ?: "")
+                .putBoolean(KEY_SELECTION_MIGRATED, true)
+                .apply()
+        }
+        fun read(key: String) = prefs.getString(key, "")?.takeIf { AsrCatalog.byId(it) != null }
+        return AsrSelection(read(KEY_LIVE_MODEL), read(KEY_FINAL_MODEL))
+    }
 
-    fun isDualEngineEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREF_DUAL_ENGINE, Context.MODE_PRIVATE)
-            .getBoolean(KEY_DUAL_ENGINE_TOGGLE, false)
+    /** Sets (or, with null, clears) the model of the slot that [mode] names. */
+    fun setAsrModel(context: Context, mode: AsrMode, modelId: String?) {
+        asrSelection(context) // make sure the old settings were migrated first
+        val key = if (mode == AsrMode.LIVE) KEY_LIVE_MODEL else KEY_FINAL_MODEL
+        context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE).edit().putString(key, modelId ?: "").apply()
+    }
 
-    fun setDualEngineEnabled(context: Context, enabled: Boolean) =
-        context.getSharedPreferences(PREF_DUAL_ENGINE, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_DUAL_ENGINE_TOGGLE, enabled).apply()
+    fun selectedAsrModel(context: Context, mode: AsrMode): AsrModel? {
+        val sel = asrSelection(context)
+        return AsrCatalog.byId(if (mode == AsrMode.LIVE) sel.live else sel.final)
+    }
 
+    /** The selected model of a slot, only if its files are all there. */
+    fun readyAsrModel(context: Context, mode: AsrMode): AsrModel? =
+        selectedAsrModel(context, mode)?.takeIf { isModelReady(context, it) }
+
+    /** Both slots are filled and downloaded: the live text is shown first, then the final model decides. */
     fun isDualEngineActive(context: Context): Boolean =
-        isXAsrReady(context) &&
-                isQwen3Ready(context) &&
-                selectedEngine(context) == ENGINE_QWEN3 &&
-                isDualEngineEnabled(context)
+        readyAsrModel(context, AsrMode.LIVE) != null && readyAsrModel(context, AsrMode.FINAL) != null
+
+    /** Puts a model that has just been downloaded into its slot when that slot is empty or its model is missing. */
+    fun useIfSlotEmpty(context: Context, model: AsrModel) {
+        val current = selectedAsrModel(context, model.mode)
+        if (current == null || !isModelReady(context, current)) setAsrModel(context, model.mode, model.id)
+    }
 
     // ── Qwen3 Punctuation Filter ──────────────────────────────────────────────
     private const val PREF_QWEN3_SETTINGS = "qwen3_settings"
@@ -532,8 +566,22 @@ object ModelConfig {
         return files.all { java.io.File(it).exists() } && java.io.File(qwen3AsrTokenizerDir(context)).isDirectory
     }
 
+    /** Folder that holds a catalog model's files. */
+    fun asrModelDir(context: Context, model: AsrModel): File = File(modelsDir(context), model.dir)
+
+    fun isModelReady(context: Context, model: AsrModel): Boolean =
+        if (model.loader == AsrLoader.QWEN3) isQwen3Ready(context) else AsrModelFiles.isComplete(model, asrModelDir(context, model))
+
+    /** Reads the optional custom_models.json from the models folders; call before the model list is used. */
+    fun reloadCustomModels(context: Context) {
+        AsrCatalog.reloadCustom(listOfNotNull(getPrimaryModelsDir(context), File(context.filesDir, "models")))
+    }
+
+    fun downloadedAsrModels(context: Context): List<AsrModel> = AsrCatalog.models.filter { isModelReady(context, it) }
+
+    /** At least one speech model can be used, and so can OCR. */
     fun areAllModelsReady(context: Context): Boolean =
-        isXAsrReady(context) && isQwen3Ready(context) && isOcrReady(context)
+        (readyAsrModel(context, AsrMode.LIVE) != null || readyAsrModel(context, AsrMode.FINAL) != null) && isOcrReady(context)
 
     // ── Onboarding / Setup Wizard ─────────────────────────────────────────────
     const val MODE_BUBBLE = "bubble"

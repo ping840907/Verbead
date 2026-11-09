@@ -56,6 +56,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)（Next-gen Kaldi） | 本機語音辨識執行環境 | Apache 2.0 |
 | [X-ASR](https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m)（Luigi） | 即時串流語音模型 | Apache 2.0 |
 | [Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR)（Alibaba Qwen Team） | 高精準度語音模型 | Apache 2.0 |
+| [Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)、[Nemotron](https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b)（NVIDIA） | 多語言語音模型（選配下載） | 見各模型頁面 |
+| [Moonshine](https://huggingface.co/UsefulSensors/moonshine-streaming-tiny)（Moonshine AI） | 輕量單語言語音模型（選配下載） | 見各模型頁面 |
 | [PP-OCRv6](https://huggingface.co/collections/PaddlePaddle/pp-ocrv6)（PaddlePaddle） | 文字偵測與辨識模型 | Apache 2.0 |
 | [Korean PP-OCRv5](https://huggingface.co/PaddlePaddle/korean_PP-OCRv5_mobile_rec)（PaddlePaddle） | 選用的韓文文字辨識模型 | Apache 2.0 |
 | [LiteRT](https://github.com/google-ai-edge/LiteRT)（Google AI Edge） | 文字辨識的推論執行層 | Apache 2.0 |

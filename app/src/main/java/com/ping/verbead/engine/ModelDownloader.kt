@@ -73,7 +73,7 @@ class ModelDownloader(private val context: Context? = null) {
                     onProgress(Progress(Stage.EXTRACTING, (fraction * 100).toInt().coerceIn(0, 100), detail = currentFile))
                 }
                 archiveFile.delete()
-                if (target.engine == ModelConfig.ENGINE_QWEN3) verifyQwen3Files(stagingDir)
+                AsrCatalog.byId(target.engine)?.let { verifyCatalogFiles(it, stagingDir) }
 
                 dir.deleteRecursively()
                 if (!stagingDir.renameTo(dir)) throw IOException("Failed to install extracted model into $dir")
@@ -121,12 +121,22 @@ class ModelDownloader(private val context: Context? = null) {
         }
     }
 
+    /** The extracted archive must hold every file the model's loader needs. */
+    private fun verifyCatalogFiles(model: AsrModel, dir: File) {
+        if (model.loader == AsrLoader.QWEN3) {
+            verifyQwen3Files(dir)
+        } else if (!AsrModelFiles.isComplete(model, dir)) {
+            throw IOException("Model files incomplete or corrupt (${model.name}); re-download required")
+        }
+    }
+
     private fun engineDir(engine: String): File {
         val ctx = context ?: throw IllegalStateException("Context is required for model installation")
+        val model = AsrCatalog.byId(engine)
         return when {
-            engine == ModelConfig.ENGINE_X_ASR -> File(ModelConfig.xAsrDir(ctx))
             engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL ||
                 engine == ModelConfig.OCR_MODEL_KOREAN -> File(ModelConfig.ocrDir(ctx))
+            model != null -> ModelConfig.asrModelDir(ctx, model)
             else -> File(ModelConfig.qwen3AsrDir(ctx))
         }
     }

@@ -11,7 +11,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloader
-import com.ping.verbead.engine.XAsrEngine
+import com.ping.verbead.engine.AsrCatalog
+import com.ping.verbead.engine.StreamingAsrEngine
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -157,7 +158,7 @@ class SherpaOnnxTest {
     fun testXAsrEngineWithRealAudio() {
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
-            val xAsr = XAsrEngine(context)
+            val xAsr = StreamingAsrEngine(context, AsrCatalog.byId(AsrCatalog.X_ASR)!!)
 
             val encoder = File(ModelConfig.xAsrEncoderPath(context))
             if (!encoder.exists()) {

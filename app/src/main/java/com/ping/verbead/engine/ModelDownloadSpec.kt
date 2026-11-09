@@ -22,41 +22,6 @@ object ModelDownloadSpec {
         val files: List<RemoteFile> = emptyList(),
     )
 
-    // Qwen3-ASR 0.6B int8 tar.bz2 released on 2026-03-25 by k2-fsa/sherpa-onnx
-    fun qwen3(): DownloadTarget = DownloadTarget(
-        engine = ModelConfig.ENGINE_QWEN3,
-        archiveUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/" +
-            "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2",
-        archiveSha256 = "393f8a14e2f5fb96746aaab342997a40641001fbd5bf9592a080a8329178ee96",
-    )
-
-    // X-ASR: locked to commit 90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b (2026-10-07)
-    fun xAsr(): DownloadTarget = DownloadTarget(
-        engine = ModelConfig.ENGINE_X_ASR,
-        files = listOf(
-            RemoteFile(
-                "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/${ModelConfig.X_ASR_ENCODER}",
-                ModelConfig.X_ASR_ENCODER,
-                "9a92f64387787ff47ace05edaedc1e6774b231e790e283330018b14f4a1b3e07",
-            ),
-            RemoteFile(
-                "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/${ModelConfig.X_ASR_DECODER}",
-                ModelConfig.X_ASR_DECODER,
-                "0d6d200e0a3c6e70ab6bf063b174b532e638d458e74c5a406c83c1eaec993b05",
-            ),
-            RemoteFile(
-                "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/${ModelConfig.X_ASR_JOINER}",
-                ModelConfig.X_ASR_JOINER,
-                "f8c88ae06fa13ea83335660e7235e19cb4f57aad0a82882a35126202b96c2a7d",
-            ),
-            RemoteFile(
-                "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m/resolve/90fe6b8a0f278886cbeabd2d41cc5402f7f90a2b/${ModelConfig.X_ASR_TOKENS}",
-                ModelConfig.X_ASR_TOKENS,
-                "3a286a8dd2015c08d27314b1641f9be86aa3274c49fb452fbb4170bee6c22737",
-            ),
-        ),
-    )
-
     // PP-OCRv6 (LiteRT): every file is an asset of the repository release OcrModelManifest.RELEASE_TAG,
     // checked against the sums recorded in OcrModelManifest.
     fun ocr(model: String = ModelConfig.OCR_MODEL_TINY): DownloadTarget = DownloadTarget(
@@ -82,10 +47,21 @@ object ModelDownloadSpec {
         }
     )
 
-    fun forEngine(engine: String): DownloadTarget = when {
-        engine == ModelConfig.OCR_MODEL_KOREAN -> ocrKorean()
-        engine == ModelConfig.ENGINE_X_ASR -> xAsr()
-        engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
-        else -> qwen3()
+    /** Where a catalog model comes from: its archive, or its list of files. */
+    fun forModel(model: AsrModel): DownloadTarget = DownloadTarget(
+        engine = model.id,
+        archiveUrl = model.archiveUrl,
+        archiveSha256 = model.archiveSha256,
+        files = if (model.archiveUrl == null) model.files else emptyList(),
+    )
+
+    fun forEngine(engine: String): DownloadTarget {
+        val model = AsrCatalog.byId(engine)
+        return when {
+            engine == ModelConfig.OCR_MODEL_KOREAN -> ocrKorean()
+            engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
+            model != null -> forModel(model)
+            else -> throw IllegalArgumentException("unknown model: $engine")
+        }
     }
 }

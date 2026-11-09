@@ -54,7 +54,7 @@ class ModelDownloaderTest {
 
     @Test
     fun testModelDownloadSpecHasValidSha256() {
-        val xAsrTarget = ModelDownloadSpec.xAsr()
+        val xAsrTarget = ModelDownloadSpec.forEngine(ModelConfig.ENGINE_X_ASR)
         assertTrue(xAsrTarget.files.isNotEmpty())
         for (f in xAsrTarget.files) {
             assertTrue("File ${f.relativePath} must have sha256", !f.sha256.isNullOrBlank())
@@ -73,7 +73,7 @@ class ModelDownloaderTest {
             assertEquals(64, f.sha256!!.length)
         }
 
-        val qwen3Target = ModelDownloadSpec.qwen3()
+        val qwen3Target = ModelDownloadSpec.forEngine(ModelConfig.ENGINE_QWEN3)
         assertTrue("Qwen3 archiveSha256 must not be null or blank", !qwen3Target.archiveSha256.isNullOrBlank())
         assertEquals(64, qwen3Target.archiveSha256!!.length)
         assertTrue("Qwen3 archiveSha256 must be valid hex", qwen3Target.archiveSha256!!.matches(Regex("^[0-9a-fA-F]{64}$")))

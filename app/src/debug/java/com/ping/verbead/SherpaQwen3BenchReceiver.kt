@@ -5,7 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.ping.verbead.engine.Qwen3AsrEngine
-import com.ping.verbead.engine.XAsrEngine
+import com.ping.verbead.engine.AsrCatalog
+import com.ping.verbead.engine.AsrMode
+import com.ping.verbead.engine.FinalEngine
+import com.ping.verbead.engine.FinalEngines
+import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.SherpaOfflineEngine
+import com.ping.verbead.engine.StreamingAsrEngine
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.ByteBuffer
@@ -26,6 +32,17 @@ class SherpaQwen3BenchReceiver : BroadcastReceiver() {
             try {
                 val dir = File(app.getExternalFilesDir(null), "litert")
                 val wavs = (intent.getStringExtra("wavs") ?: "").split(",").filter { it.isNotBlank() }
+                intent.getStringExtra("download")?.let { id ->
+                    Log.i(TAG, "start download $id")
+                    ModelDownloadService.start(app, id)
+                    return@thread
+                }
+                val modelIds = (intent.getStringExtra("models") ?: "").split(",").filter { it.isNotBlank() }
+                if (modelIds.isNotEmpty()) {
+                    catalogSmoke(app, dir, modelIds, wavs, intent.getBooleanExtra("asfinal", false))
+                    Log.i(TAG, "DONE")
+                    return@thread
+                }
 
                 val qwen = Qwen3AsrEngine(app)
                 val q = runBlocking { qwen.load() }
@@ -37,7 +54,7 @@ class SherpaQwen3BenchReceiver : BroadcastReceiver() {
                 }
                 qwen.release()
 
-                val x = XAsrEngine(app)
+                val x = StreamingAsrEngine(app, AsrCatalog.byId(AsrCatalog.X_ASR)!!)
                 val xr = runBlocking { x.load() }
                 Log.i(TAG, "X-ASR loaded ok=${xr.success} provider=${xr.provider} error=${xr.error}")
                 if (xr.success) for (w in wavs) {
@@ -59,6 +76,50 @@ class SherpaQwen3BenchReceiver : BroadcastReceiver() {
                 Log.e(TAG, "failed", t)
             } finally {
                 pending.finish()
+            }
+        }
+    }
+
+    /** Loads each catalog model (downloaded or pushed into models/<dir>) and transcribes the wav files with it. */
+    private fun catalogSmoke(app: Context, dir: File, ids: List<String>, wavs: List<String>, asFinal: Boolean = false) {
+        for (id in ids) {
+            val model = AsrCatalog.byId(id)
+            if (model == null) { Log.e(TAG, "unknown model $id"); continue }
+            Log.i(TAG, "$id ready=${ModelConfig.isModelReady(app, model)}")
+            val t0 = System.nanoTime()
+            if (model.mode == AsrMode.LIVE && !asFinal) {
+                val e = StreamingAsrEngine(app, model)
+                val r = runBlocking { e.load() }
+                Log.i(TAG, "$id load ok=${r.success} %.0fms error=${r.error}".format((System.nanoTime() - t0) / 1e6))
+                if (!r.success) continue
+                for (w in wavs) {
+                    val pcm = readWav(if (w.startsWith("/")) File(w) else File(dir, w))
+                    val stream = e.createStream() ?: continue
+                    val s = System.nanoTime()
+                    var i = 0
+                    while (i < pcm.size) {
+                        e.acceptWaveform(stream, pcm.copyOfRange(i, minOf(pcm.size, i + 1600)))
+                        while (e.isReady(stream)) e.decode(stream)
+                        i += 1600
+                    }
+                    e.inputFinished(stream)
+                    while (e.isReady(stream)) e.decode(stream)
+                    val ms = (System.nanoTime() - s) / 1e6
+                    Log.i(TAG, "$id $w audio=%.1fs took=%.0fms -> ${e.getResult(stream)}".format(pcm.size / 16000f, ms))
+                }
+                e.release()
+            } else {
+                val e: FinalEngine = FinalEngines.create(app, model)
+                val r = runBlocking { e.load("") }
+                Log.i(TAG, "$id load ok=${r.success} %.0fms error=${r.error}".format((System.nanoTime() - t0) / 1e6))
+                if (!r.success) continue
+                for (w in wavs) {
+                    val pcm = readWav(if (w.startsWith("/")) File(w) else File(dir, w))
+                    val s = System.nanoTime()
+                    val text = runBlocking { e.transcribe(pcm) }
+                    Log.i(TAG, "$id $w audio=%.1fs took=%.0fms -> $text".format(pcm.size / 16000f, (System.nanoTime() - s) / 1e6))
+                }
+                e.release()
             }
         }
     }

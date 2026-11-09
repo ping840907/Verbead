@@ -199,7 +199,7 @@
     <string name="settings_speech_to_traditional_title">Convert to Traditional Chinese</string>
     <string name="settings_speech_to_traditional_desc">Converts Simplified to Traditional Chinese; Japanese and Korean passages are left unchanged. When off, the recognized text is kept exactly as is</string>
     <string name="settings_speech_spoken_numbers_title">Convert spoken numbers to digits</string>
-    <string name="settings_speech_spoken_numbers_desc">Turns spoken Chinese numbers like \"one hundred twenty-three\" into 123, and handles arithmetic, percentages, fractions, negatives, square roots and times. Single digits in everyday phrases are not converted</string>
+    <string name="settings_speech_spoken_numbers_desc">Turns spoken numbers in Chinese, English, Japanese and Korean into digits (\"twenty three\" → 23, \"一百二十三\" → 123), including years, decimals, percentages and, in Chinese, arithmetic, fractions and times. A single digit in everyday phrases is left as a word</string>
     <string name="settings_speech_filter_punct_title">Filter Chinese punctuation</string>
     <string name="settings_speech_filter_punct_desc">Automatically removes full-width commas, periods, question marks and similar symbols</string>
     <string name="settings_bubble_header_title">Floating voice bubble</string>
@@ -469,4 +469,30 @@
     <string name="settings_ocr_korean_download_message">About to download the Korean recognition model (%1$s, PP-OCRv5 mobile). Once it finishes, it runs entirely on this device.\n\nContinue?</string>
     <string name="ocr_model_name_korean">PP-OCRv5 Korean</string>
     <string name="model_label_ocr_korean_detail">PP-OCRv5 Korean text recognition</string>
+
+    <!-- Speech model catalog -->
+    <string name="asr_combo_title">Speech models in use</string>
+    <string name="asr_combo_format">Live: %1$s
+Final: %2$s</string>
+    <string name="asr_combo_not_set">not set</string>
+    <string name="asr_tag_live">Live</string>
+    <string name="asr_tag_final">Final</string>
+    <string name="asr_filter_all">All</string>
+    <string name="asr_filter_downloaded">Downloaded only</string>
+    <string name="asr_filter_empty">No model matches this filter</string>
+    <string name="asr_language_all">All languages</string>
+    <string name="asr_language_filter_format">Language: %1$s</string>
+    <string name="asr_language_dialog_title">Filter by language</string>
+    <string name="asr_languages_format">Languages: %1$s</string>
+    <string name="asr_model_size_format">Download about %1$d MB</string>
+    <string name="asr_use_live">Use as live model</string>
+    <string name="asr_use_final">Use as final model</string>
+    <string name="asr_in_use">In use · tap to clear</string>
+    <string name="asr_memory_hint">Two large models together need a lot of memory. If the app gets slow or closes, pick a smaller one.</string>
+    <string name="asr_custom_problems_format">Some entries of custom_models.json were skipped:\n%1$s</string>
+    <string name="asr_variant_format">Variant: %1$s</string>
+    <string name="asr_variant_dialog_title">Choose a variant</string>
+    <string name="asr_language_search_hint">Search languages</string>
+    <string name="asr_list_title">Available models</string>
+    <string name="asr_combo_clear">Clear this model</string>
 </resources>
