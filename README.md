@@ -157,6 +157,7 @@ app/src/main/java/com/ping/verbead/
 | **[Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR)** | [Alibaba Qwen Team](https://github.com/QwenLM) | Apache 2.0 | 提供優異表現的開源語音辨識大模型 |
 | **[PaddleOCR (PP-OCRv6)](https://github.com/PaddlePaddle/PaddleOCR)** | [PaddlePaddle 團隊 (百度飛槳)](https://github.com/PaddlePaddle) | Apache 2.0 | 提供業界頂尖之端側輕量化 OCR 文字偵測與文字辨識模型（PP-OCRv6 Det & Rec），實現全離線文字提取 |
 | **[zxing-cpp](https://github.com/zxing-cpp/zxing-cpp)** | [zxing-cpp 團隊 / Axel Waggershauser](https://github.com/zxing-cpp) | Apache 2.0 | 高效能 C++ 一維與二維條碼 / QR Code 辨識引擎（提供 Android AAR 封裝），實現毫秒級即時掃描與解碼 |
+| **[PP-OCRv5 韓文辨識模型](https://huggingface.co/PaddlePaddle/korean_PP-OCRv5_mobile_rec)** | [PaddlePaddle 團隊 (百度飛槳)](https://github.com/PaddlePaddle) | Apache 2.0 | 選用的韓文文字辨識模型（korean_PP-OCRv5_mobile_rec），以同一套流程轉為 LiteRT，供第二次辨識使用 |
 | **[LiteRT](https://github.com/google-ai-edge/LiteRT)** | [Google AI Edge](https://github.com/google-ai-edge) | Apache 2.0 | 端側推論執行層，以 GPU 優先（CPU 備援）執行 PP-OCR 文字偵測與辨識模型 |
 | **[ONNX Runtime](https://github.com/microsoft/onnxruntime)** | [Microsoft](https://github.com/microsoft) | MIT | 內含於 sherpa-onnx 的神經網路推論引擎，供語音辨識模型使用 |
 | **[opencc4j](https://github.com/houbb/opencc4j)** | [houbb](https://github.com/houbb) | Apache 2.0 | 提供純 Java/Kotlin 高效繁簡轉換支援 |
