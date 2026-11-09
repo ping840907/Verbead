@@ -88,6 +88,11 @@ class ModelDownloadService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
+        // A progress callback that is still in flight when the job is cancelled can set the "active" state again after
+        // stopDownload() cleared it, which left the settings page stuck on "downloading". Clear it once the job is
+        // really finished (unless a newer download has already taken over).
+        val started = job
+        started?.invokeOnCompletion { if (job === started) ModelDownloadState.clear() }
     }
 
     private fun stopDownload() {
