@@ -46,6 +46,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.bubble.BubbleState as State
 import com.ping.verbead.bubble.BubbleChainFollower
 import com.ping.verbead.bubble.BubbleStateMachine
+import com.ping.verbead.bubble.OverlayCoordinator
 import com.ping.verbead.bubble.VoiceInputController
 import com.ping.verbead.bubble.CapsuleMenuController
 import com.ping.verbead.bubble.PhrasesDrawerController
@@ -233,6 +234,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
         )
     }
+    private lateinit var overlays: OverlayCoordinator
+
+    private fun repositionOverlays() {
+        if (::overlays.isInitialized) overlays.reposition()
+    }
+
     private var dragOriginX = 0f
     private var dragOriginY = 0f
     private var dragRawX = 0f
@@ -507,6 +514,23 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
         )
 
+        overlays = OverlayCoordinator(
+            scanner = scannerOverlayController,
+            ocr = ocrOverlayController,
+            phrases = phrasesDrawerController,
+            host = object : OverlayCoordinator.Host {
+                override val anchorY: Int get() = currentAnchorBubble?.windowLayoutParams?.y ?: windowLayoutParams.y
+                override val isDockedOnRight: Boolean get() = currentAnchorBubble?.isDockedOnRight ?: this@FloatingBubbleService.isDockedOnRight
+                override val screenWidth: Int get() = getScreenWidth()
+                override val safeBottom: Int get() = getSafeBottom()
+                override fun hidePreview() = hidePreviewText()
+                override fun untuckAnchor() = untuckAnchorBubble()
+                override fun onScannerStopped() {
+                    if (state != State.PASTED) setState(State.IDLE)
+                }
+            }
+        )
+
         val density = resources.displayMetrics.density
         shakeDetector = BubbleShakeDetector(
             density = density,
@@ -724,9 +748,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                             windowManager.updateViewLayout(bubbleView, windowLayoutParams)
                                             updateXButtonPosition()
                                             updatePulsePosition()
-                                            if (isOcrModeActive) updateOcrPosition()
-                                            if (isScannerModeActive) updateScannerPosition()
-                                            updatePhrasesDrawerPosition()
+                                            repositionOverlays()
                                             updatePreviewPosition()
                                         }
                                     }
@@ -734,9 +756,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                 start()
                             }
                         } else {
-                            if (isOcrModeActive) updateOcrPosition()
-                            if (isScannerModeActive) updateScannerPosition()
-                            updatePhrasesDrawerPosition()
+                            repositionOverlays()
                             updateXButtonPosition()
                             updatePreviewPosition()
                         }
@@ -927,9 +947,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 updateXButtonPosition()
                 updatePreviewPosition()
                 updatePulsePosition()
-                if (isOcrModeActive) updateOcrPosition()
-                if (isScannerModeActive) updateScannerPosition()
-                updatePhrasesDrawerPosition()
+                repositionOverlays()
             }
             if (item.id == 0) {
                 windowLayoutParams.x = targetX
@@ -960,9 +978,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updateXButtonPosition()
                             updatePreviewPosition()
                             updatePulsePosition()
-                            if (isOcrModeActive) updateOcrPosition()
-                            if (isScannerModeActive) updateScannerPosition()
-                            updatePhrasesDrawerPosition()
+                            repositionOverlays()
                         }
                         if (item.id == 0) {
                             windowLayoutParams.x = curX
@@ -982,9 +998,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updateXButtonPosition()
                             updatePreviewPosition()
                             updatePulsePosition()
-                            if (isOcrModeActive) updateOcrPosition()
-                            if (isScannerModeActive) updateScannerPosition()
-                            updatePhrasesDrawerPosition()
+                            repositionOverlays()
                         }
                         if (item.id == 0) {
                             windowLayoutParams.x = targetX
@@ -1077,9 +1091,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         isDragging = true
                         hidePreviewText()
                         hideXButtonImmediately()
-                        if (isPhrasesDrawerActive) {
-                            closePhrasesDrawer()
-                        }
                         if (bubbleItems.size > 1) {
                             val deleteZoneTargetY = getMinY() + (24 * density).toInt()
                             bubbleDeleteZoneController.show(getScreenWidth(), deleteZoneTargetY)
@@ -1244,9 +1255,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updateXButtonPosition()
                             updatePreviewPosition()
                             updatePulsePosition()
-                            if (isOcrModeActive) updateOcrPosition()
-                            if (isScannerModeActive) updateScannerPosition()
-                            updatePhrasesDrawerPosition()
+                            repositionOverlays()
                         }
                         if (item.id == 0) {
                             updatePulsePosition()
@@ -1343,13 +1352,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val fallbackMode = enabledModes.firstOrNull() ?: MODE_VOICE
 
         if (MODE_OCR !in enabledModes && isOcrModeActive) {
-            stopOcrMode()
+            overlays.stopOcr()
         }
         if (MODE_BARCODE !in enabledModes && isScannerModeActive) {
-            stopScannerMode()
+            overlays.stopScanner()
         }
         if (MODE_PHRASES !in enabledModes && isPhrasesDrawerActive) {
-            closePhrasesDrawer()
+            overlays.closePhrases()
         }
         coerceCurrentModeToEnabled(enabledModes)
 
@@ -1795,9 +1804,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         fun updateAllPopups() {
             updateXButtonPosition()
             updatePulsePosition()
-            if (isOcrModeActive) updateOcrPosition()
-            if (isScannerModeActive) updateScannerPosition()
-            updatePhrasesDrawerPosition()
+            repositionOverlays()
             updatePreviewPosition()
         }
 
@@ -1859,9 +1866,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         when (item.mode) {
             MODE_VOICE -> {
-                if (isScannerModeActive) stopScannerMode()
-                if (isOcrModeActive) stopOcrMode()
-                if (isPhrasesDrawerActive) closePhrasesDrawer()
+                overlays.closeAll()
                 when (state) {
                     State.RECORDING -> {
                         voice.stopEarly()
@@ -1875,7 +1880,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         // In progress, ignore
                     }
                     State.SCANNING -> {
-                        stopScannerMode()
+                        overlays.stopScanner()
                         voice.start()
                     }
                 }
@@ -1886,9 +1891,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     hidePreviewText()
                     setState(State.IDLE)
                 }
-                if (isScannerModeActive) stopScannerMode()
-                if (isPhrasesDrawerActive) closePhrasesDrawer()
-                toggleOcrMode()
+                overlays.toggleOcr()
             }
             MODE_BARCODE -> {
                 if (state == State.RECORDING) {
@@ -1896,9 +1899,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     hidePreviewText()
                     setState(State.IDLE)
                 }
-                if (isOcrModeActive) stopOcrMode()
-                if (isPhrasesDrawerActive) closePhrasesDrawer()
-                toggleScannerMode()
+                overlays.toggleScanner()
             }
             MODE_PHRASES -> {
                 if (state == State.RECORDING) {
@@ -1906,9 +1907,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     hidePreviewText()
                     setState(State.IDLE)
                 }
-                if (isScannerModeActive) stopScannerMode()
-                if (isOcrModeActive) stopOcrMode()
-                togglePhrasesDrawer()
+                overlays.togglePhrases()
             }
         }
     }
@@ -2105,9 +2104,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                             updateXButtonPosition()
                                             updatePreviewPosition()
                                             updatePulsePosition()
-                                            if (isOcrModeActive) updateOcrPosition()
-                                            if (isScannerModeActive) updateScannerPosition()
-                                            updatePhrasesDrawerPosition()
+                                            repositionOverlays()
                                         }
                                         if (other.id == 0) {
                                             windowLayoutParams.x = cx
@@ -2128,9 +2125,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                                             updateXButtonPosition()
                                             updatePreviewPosition()
                                             updatePulsePosition()
-                                            if (isOcrModeActive) updateOcrPosition()
-                                            if (isScannerModeActive) updateScannerPosition()
-                                            updatePhrasesDrawerPosition()
+                                            repositionOverlays()
                                         }
                                         if (other.id == 0) {
                                             windowLayoutParams.x = endOtherX
@@ -2201,9 +2196,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             updateXButtonPosition()
                             updatePreviewPosition()
                             updatePulsePosition()
-                            if (isOcrModeActive) updateOcrPosition()
-                            if (isScannerModeActive) updateScannerPosition()
-                            updatePhrasesDrawerPosition()
+                            repositionOverlays()
                         }
                         if (item.id == 0) {
                             windowLayoutParams.x = newX
@@ -2230,9 +2223,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         updateXButtonPosition()
                         updatePreviewPosition()
                         updatePulsePosition()
-                        if (isOcrModeActive) updateOcrPosition()
-                        if (isScannerModeActive) updateScannerPosition()
-                        updatePhrasesDrawerPosition()
+                        repositionOverlays()
                     }
                     if (item.id == 0) {
                         isDockedOnRight = targetOnRight
@@ -2279,23 +2270,23 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             isPhrasesDrawerActive -> {
                 // 關閉常用語抽屜視窗
-                closePhrasesDrawer()
+                overlays.closePhrases()
                 hideXButton()
             }
             isOcrSnapshotActive -> {
                 // 關閉文字辨識快照與視窗
                 dismissOcrSnapshot()
-                stopOcrMode()
+                overlays.stopOcr()
                 hideXButton()
             }
             isOcrModeActive -> {
                 // 關閉文字辨識相機視窗
-                stopOcrMode()
+                overlays.stopOcr()
                 hideXButton()
             }
             isScannerModeActive -> {
                 // 關閉條碼掃描相機視窗
-                stopScannerMode()
+                overlays.stopScanner()
                 hideXButton()
             }
             state == State.RECORDING -> {
@@ -2523,7 +2514,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         val bubble = bubbleItems.firstOrNull { it.mode == MODE_PHRASES } ?: spawnPhrasesBubble()
         if (bubble != null) activeAnchorBubble = bubble
-        openPhrasesDrawer()
+        overlays.openPhrases()
     }
 
     /**
@@ -2862,30 +2853,22 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             MODE_VOICE -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_voice), autoHide = true)
-                stopScannerMode()
-                stopOcrMode()
-                closePhrasesDrawer()
+                overlays.closeAll()
             }
             MODE_OCR -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_ocr), autoHide = true)
-                stopScannerMode()
-                closePhrasesDrawer()
-                startOcrMode()
+                overlays.startOcr()
             }
             MODE_BARCODE -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_barcode), autoHide = true)
-                stopOcrMode()
-                closePhrasesDrawer()
-                startScannerMode()
+                overlays.startScanner()
             }
             MODE_PHRASES -> {
                 setState(State.IDLE)
                 showPreviewText(getString(R.string.preview_mode_phrases), autoHide = true)
-                stopScannerMode()
-                stopOcrMode()
-                openPhrasesDrawer()
+                overlays.openPhrases()
             }
         }
     }
@@ -2893,136 +2876,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // ══════════════════════════════════════════════════════════════════
     // Scanner Mode Methods
     // ══════════════════════════════════════════════════════════════════
-        private fun toggleScannerMode() {
-        if (isScannerModeActive) {
-            stopScannerMode()
-        } else {
-            startScannerMode()
-        }
-    }
-
-    private fun startScannerMode() {
-        if (isScannerModeActive) return
-        hidePreviewText()
-        val anchor = currentAnchorBubble
-        untuckAnchorBubble()
-        if (isOcrModeActive) {
-            stopOcrMode()
-        }
-        if (isPhrasesDrawerActive) {
-            closePhrasesDrawer()
-        }
-
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        scannerOverlayController.start(
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
-    private fun setScannerEnlarged(enlarged: Boolean) {
-        val anchor = currentAnchorBubble
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        scannerOverlayController.setEnlarged(
-            enlarged = enlarged,
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
-    private fun updateScannerPosition() {
-        if (!isScannerModeActive) return
-        val anchor = currentAnchorBubble
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        scannerOverlayController.updatePosition(
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
-    private fun stopScannerMode(hideX: Boolean = true) {
-        if (!isScannerModeActive) return
-        val isRight = currentAnchorBubble?.isDockedOnRight ?: isDockedOnRight
-        scannerOverlayController.stop(hideX = hideX, isDockedOnRight = isRight)
-        if (state != State.PASTED) {
-            setState(State.IDLE)
-        }
-    }
-
     // ══════════════════════════════════════════════════════════════════
     // Dedicated OCR Mode Window Methods
     // ══════════════════════════════════════════════════════════════════
-        private fun toggleOcrMode() {
-        if (isOcrModeActive) {
-            stopOcrMode()
-        } else {
-            startOcrMode()
-        }
-    }
-
-    private fun startOcrMode() {
-        if (isOcrModeActive) return
-        hidePreviewText()
-        val anchor = currentAnchorBubble
-        untuckAnchorBubble()
-        if (isScannerModeActive) {
-            stopScannerMode()
-        }
-        if (isPhrasesDrawerActive) {
-            closePhrasesDrawer()
-        }
-
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        ocrOverlayController.start(
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
-    private fun setOcrEnlarged(enlarged: Boolean) {
-        val anchor = currentAnchorBubble
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        ocrOverlayController.setEnlarged(
-            enlarged = enlarged,
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
-    private fun updateOcrPosition() {
-        if (!isOcrModeActive) return
-        val anchor = currentAnchorBubble
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        ocrOverlayController.updatePosition(
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
-    private fun stopOcrMode(hideX: Boolean = true) {
-        if (!isOcrModeActive) return
-        val isRight = currentAnchorBubble?.isDockedOnRight ?: isDockedOnRight
-        ocrOverlayController.stop(hideX = hideX, isDockedOnRight = isRight)
-    }
-
     private fun dismissOcrSnapshot(hideX: Boolean = true) {
         ocrOverlayController.dismissSnapshot(hideX = hideX)
     }
@@ -3032,8 +2888,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             QuickPhrasesManager.addHistory(this, text)
         }
         dismissOcrSnapshot(hideX = false)
-        stopOcrMode(hideX = false)
-        stopScannerMode(hideX = false)
+        overlays.stopOcr(hideX = false)
+        overlays.stopScanner(hideX = false)
 
         deliverText(text, ModelConfig.isOcrAutoEnterEnabled(this)) {
             val previewMsg = if (text.length > 25) "${text.take(25)}…" else text
@@ -3049,69 +2905,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val injected = deliverText(code, ModelConfig.isOcrAutoEnterEnabled(this)) {
             showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
         }
-        stopScannerMode(hideX = !injected)
+        overlays.stopScanner(hideX = !injected)
     }
 
     // ══════════════════════════════════════════════════════════════════
     // Quick Phrases Drawer Methods
     // ══════════════════════════════════════════════════════════════════
-    private fun togglePhrasesDrawer() {
-        if (isPhrasesDrawerActive) {
-            closePhrasesDrawer()
-        } else {
-            openPhrasesDrawer()
-        }
-    }
-
-        private fun openPhrasesDrawer() {
-        if (isPhrasesDrawerActive) return
-        hidePreviewText()
-        val anchor = currentAnchorBubble
-        untuckAnchorBubble()
-        if (isScannerModeActive) {
-            stopScannerMode()
-        }
-        if (isOcrModeActive) {
-            stopOcrMode()
-        }
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        phrasesDrawerController.open(
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
-    private fun closePhrasesDrawer(hideX: Boolean = true) {
-        if (!isPhrasesDrawerActive) return
-        val anchor = currentAnchorBubble
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        phrasesDrawerController.close(hideX = hideX, anchorY = anchorY, isDockedOnRight = isRight)
-    }
-
-    private fun updatePhrasesDrawerPosition() {
-        if (!isPhrasesDrawerActive) return
-        val anchor = currentAnchorBubble
-        val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        val isRight = anchor?.isDockedOnRight ?: isDockedOnRight
-        phrasesDrawerController.updatePosition(
-            anchorY = anchorY,
-            isDockedOnRight = isRight,
-            screenWidth = getScreenWidth(),
-            safeBottom = getSafeBottom()
-        )
-    }
-
     private fun insertQuickPhrase(phrase: String) {
         HapticUtil.click(this)
         val injected = VoiceAccessibilityService.instance?.inputText(phrase) ?: false
         if (injected) {
             showPreviewText(getString(R.string.preview_inserted_phrase), autoHide = true)
             enterPastedState()
-            closePhrasesDrawer(hideX = false)
+            overlays.closePhrases(hideX = false)
         } else {
             // nothing has focus: the drawer stays open so the user can focus a field and tap again
             setState(State.IDLE)
@@ -3152,12 +2958,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             updateSystemGestureExclusion()
         }
         if (isScannerModeActive) {
-            setScannerEnlarged(isScannerEnlarged)
+            overlays.setScannerEnlarged(isScannerEnlarged)
         }
         if (isOcrModeActive) {
-            setOcrEnlarged(isOcrEnlarged)
+            overlays.setOcrEnlarged(isOcrEnlarged)
         }
-        updatePhrasesDrawerPosition()
+        repositionOverlays()
     }
 
     override fun onDestroy() {
