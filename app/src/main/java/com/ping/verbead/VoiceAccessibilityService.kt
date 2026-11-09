@@ -44,6 +44,10 @@ class VoiceAccessibilityService : AccessibilityService() {
         val originalText: String,
         val selectionStart: Int,
         val selectionEnd: Int,
+        /** 是否以 IME 通道插入（還原時只需刪除剛插入的字元） */
+        val viaIme: Boolean = false,
+        /** 本次插入的文字（IME 還原用） */
+        val injectedText: String = "",
         val capturedAtMs: Long = System.currentTimeMillis()
     )
 
@@ -78,7 +82,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         private set
     private var lastInjectedText: String? = null
     private var lastInjectedCursorPos: Int = -1
-    private var lastInjectedViaIme: Boolean = false
 
     fun hasValidSnapshot(): Boolean {
         val snap = lastSnapshot ?: return false
@@ -412,75 +415,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         return null
     }
 
-    private fun isUndoButton(node: AccessibilityNodeInfo): Boolean {
-        if (!node.isEnabled) return false
-        return TextInsertion.isUndoCandidate(
-            nodePackageName = node.packageName,
-            servicePackageName = packageName,
-            viewId = node.viewIdResourceName,
-            contentDescription = node.contentDescription,
-            text = node.text
-        )
-    }
-
-    private fun searchUndoButton(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
-        if (node == null) return null
-        if (node.packageName == packageName) return null
-        if (isUndoButton(node)) {
-            if (node.isClickable) return node
-            var parent = node.parent
-            while (parent != null) {
-                if (parent.packageName == packageName) return null
-                if (parent.isClickable) return parent
-                parent = parent.parent
-            }
-            return node
-        }
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val found = searchUndoButton(child)
-            if (found != null) return found
-        }
-        return null
-    }
-
-    private fun findNativeUndoButton(target: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
-        val targetPkg = target?.packageName?.toString()
-
-        // 1. Check parent tree of target node first
-        var targetRoot: AccessibilityNodeInfo? = target
-        while (targetRoot?.parent != null) {
-            targetRoot = targetRoot.parent
-        }
-        targetRoot?.let { root ->
-            if (root.packageName != packageName) {
-                val found = searchUndoButton(root)
-                if (found != null) return found
-            }
-        }
-
-        // 2. Check rootInActiveWindow
-        rootInActiveWindow?.let { root ->
-            if (root.packageName != packageName && (targetPkg == null || root.packageName == targetPkg)) {
-                val found = searchUndoButton(root)
-                if (found != null) return found
-            }
-        }
-
-        // 3. Search other windows (strictly ignoring overlays, IME, and non-target packages)
-        val windowList = runCatching { windows }.getOrNull() ?: emptyList()
-        for (window in windowList) {
-            if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION) continue
-            val root = window.root ?: continue
-            if (root.packageName == packageName) continue
-            if (targetPkg != null && root.packageName != targetPkg) continue
-            val found = searchUndoButton(root)
-            if (found != null) return found
-        }
-
-        return null
-    }
-
     /**
      * 互動式判斷 target 節點當前文字是否為佔位文字（Placeholder / Hint）。
      *
@@ -624,11 +558,12 @@ class VoiceAccessibilityService : AccessibilityService() {
                     node = target,
                     originalText = if (showingHint) "" else (target?.text?.toString() ?: ""),
                     selectionStart = target?.textSelectionStart ?: -1,
-                    selectionEnd = target?.textSelectionEnd ?: -1
+                    selectionEnd = target?.textSelectionEnd ?: -1,
+                    viaIme = true,
+                    injectedText = text
                 )
                 lastInjectedText = text
                 lastInjectedCursorPos = -1
-                lastInjectedViaIme = true
             }
             ic.commitText(text, 1, null)
             Log.i(TAG, "inputText: committed ${text.length} chars via accessibility IME channel")
@@ -641,12 +576,19 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun tryUndoViaIme(snapshot: EditorSnapshot, injected: String?): Boolean {
-        if (injected.isNullOrEmpty()) return false
-        // 原本若選取了一段文字被取代，無法只靠刪除還原，交給 SET_TEXT 路徑
-        if (snapshot.selectionStart != snapshot.selectionEnd && snapshot.selectionStart >= 0) return false
+    /** IME 插入的精確反操作：刪掉剛插入的字元，若當時取代了選取文字則補回。 */
+    private fun undoViaIme(snapshot: EditorSnapshot): Boolean {
+        if (snapshot.injectedText.isEmpty()) return false
         val ic = imeConnection() ?: return false
-        return runCatching { ic.deleteSurroundingText(injected.length, 0); true }.getOrDefault(false)
+        return runCatching {
+            ic.deleteSurroundingText(snapshot.injectedText.length, 0)
+            val s = snapshot.selectionStart
+            val e = snapshot.selectionEnd
+            if (s in 0 until e && e <= snapshot.originalText.length) {
+                ic.commitText(snapshot.originalText.substring(s, e), 1, null)
+            }
+            true
+        }.getOrDefault(false)
     }
 
     /**
@@ -662,7 +604,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (!ModelConfig.isPasteModeEnabled(this) && tryInputViaIme(text, createSnapshot)) {
             return true
         }
-        lastInjectedViaIme = false
 
         val target = findActiveEditableNode()
         if (target == null) {
@@ -700,7 +641,8 @@ class VoiceAccessibilityService : AccessibilityService() {
                 // 不執行強制全選，不執行字串拼接與游標計算，
                 // 直接透過剪貼簿以原生效能與原生游標狀態貼上！
                 if (createSnapshot) {
-                    val initialText = target.text?.toString() ?: ""
+                    val showingHint = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && target.isShowingHintText
+                    val initialText = if (showingHint) "" else (target.text?.toString() ?: "")
                     val rawSelStart = target.textSelectionStart
                     val rawSelEnd = target.textSelectionEnd
                     lastSnapshot = EditorSnapshot(
@@ -791,7 +733,10 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * §6.1 Undo the last paste using the captured snapshot.
+     * §6.1 還原最近一次填入。原則：做了什麼就反做什麼。
+     * - IME 通道插入：刪掉剛插入的字元（必要時補回被取代的選取文字）。
+     * - 其餘（SetText／貼上）：以 ACTION_SET_TEXT 寫回原始文字並還原游標。
+     * 不再搜尋目標應用程式自己的「復原」按鈕：那會依語系關鍵字猜測，且可能連使用者先前的輸入一起復原。
      */
     fun restoreLastSnapshot(): Boolean {
         if (isAutomatedActionInProgress) {
@@ -802,128 +747,49 @@ class VoiceAccessibilityService : AccessibilityService() {
             Log.w(TAG, "restoreLastSnapshot: lastSnapshot is null")
             return false
         }
-        val injectedForUndo = lastInjectedText
-        val injectedViaIme = lastInjectedViaIme
-        // Consume snapshot immediately to prevent any re-entrant or recursive calls
+        // 立即取走快照，避免重入
         lastSnapshot = null
-        lastInjectedViaIme = false
         lastInjectedText = null
         lastInjectedCursorPos = -1
 
         isAutomatedActionInProgress = true
         try {
-            Log.i(TAG, "restoreLastSnapshot called: originalText='${snapshot.originalText}', sel=${snapshot.selectionStart}..${snapshot.selectionEnd}")
-
-            var target = findActiveEditableNode()
-            if (target == null) {
-                val cachedNode = snapshot.node
-                if (cachedNode != null) {
-                    val refreshed = runCatching { cachedNode.refresh() }.getOrDefault(false)
-                    if (refreshed && isEditableNode(cachedNode)) {
-                        target = cachedNode
-                    } else if (isEditableNode(cachedNode)) {
-                        target = cachedNode
-                    }
-                }
-            }
-            if (target == null) {
-                if (injectedViaIme && tryUndoViaIme(snapshot, injectedForUndo)) {
-                    Log.i(TAG, "restoreLastSnapshot: undone via accessibility IME channel (no node)")
-                    return true
-                }
-                Log.w(TAG, "restoreLastSnapshot: failed to find active or cached editable node, attempting native undo fallback")
-                val nativeUndoBtn = findNativeUndoButton(null)
-                if (nativeUndoBtn != null) {
-                    val restored = runCatching {
-                        nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    }.getOrDefault(false)
-                    Log.i(TAG, "restoreLastSnapshot: native undo button clicked without active target: result=$restored")
-                    return restored
-                }
-                return false
-            }
-
-            runCatching { target.refresh() }
-            if (!target.isFocused) {
-                runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }
-                runCatching { target.refresh() }
-            }
-
-            var restored = false
-            var wasNativeUndo = false
-
-            // 1. 若目標應用程式有原生 Undo 按鈕（如 Google Docs、Word 等自繪/辦公室編輯器）：
-            // 原生 Undo 按鈕是最乾淨的復原方式，由應用程式自身的 Edit Stack 完整管理文字與游標位置。
-            val nativeUndoBtn = findNativeUndoButton(target)
-            if (nativeUndoBtn != null) {
-                restored = runCatching {
-                    nativeUndoBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                }.getOrDefault(false)
-                if (restored) {
-                    wasNativeUndo = true
-                    Log.i(TAG, "restoreLastSnapshot: native undo button clicked successfully: desc='${nativeUndoBtn.contentDescription}'")
-                }
-            }
-
-            // 1.5 以 IME 通道插入的文字：刪除剛插入的字元即可還原（不會整段覆寫欄位）
-            if (!restored && injectedViaIme && tryUndoViaIme(snapshot, injectedForUndo)) {
-                restored = true
-                wasNativeUndo = true
+            if (snapshot.viaIme && undoViaIme(snapshot)) {
                 Log.i(TAG, "restoreLastSnapshot: undone via accessibility IME channel")
+                return true
             }
-
-            // 2. 若無原生 Undo 按鈕，嘗試透過 ACTION_SET_TEXT 還原原始文字
-            if (!restored) {
-                val args = Bundle().apply {
-                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
-                }
-                restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
-                Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
-
-                // 3. 備援：若節點不支援 SET_TEXT，但支援選取，透過全選進行 CUT 或 PASTE 還原
-                if (!restored) {
-                    val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
-                    if (supportsSelection) {
-                        val currentLen = target.text?.length ?: 10000
-                        val selAll = Bundle().apply {
-                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, currentLen)
-                        }
-                        val canSelect = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAll) }.getOrDefault(false)
-                        if (canSelect) {
-                            if (snapshot.originalText.isEmpty()) {
-                                restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_CUT) }.getOrDefault(false)
-                            } else {
-                                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("restore", snapshot.originalText).apply {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        description.extras = PersistableBundle().apply {
-                                            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                                        }
-                                    }
-                                }
-                                clipboard.setPrimaryClip(clip)
-                                restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_PASTE) }.getOrDefault(false)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 關鍵修復：只有在「非原生 Undo」且原始游標有效時，才還原游標！
-            // 若為原生 Undo（如 Google Docs），應用程式內部已經維護好正確的游標位置；
-            // 若在此時呼叫 ACTION_SET_SELECTION，會因為 Docs 回報 selectionStart=0 而將游標強行重設至文件開頭 (0)！
-            if (restored && !wasNativeUndo && snapshot.selectionStart >= 0 && snapshot.selectionEnd >= 0) {
-                val selArgs = Bundle().apply {
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, snapshot.selectionStart)
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, snapshot.selectionEnd)
-                }
-                runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs) }
-            }
-            return restored
+            return restoreViaSetText(snapshot)
         } finally {
             mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
         }
+    }
+
+    private fun restoreViaSetText(snapshot: EditorSnapshot): Boolean {
+        val target = findActiveEditableNode()
+            ?: snapshot.node?.takeIf { runCatching { it.refresh() }.getOrDefault(false) || isEditableNode(it) }
+        if (target == null) {
+            Log.w(TAG, "restoreLastSnapshot: no editable node to restore into")
+            return false
+        }
+        runCatching { target.refresh() }
+        if (!target.isFocused) {
+            runCatching { target.performAction(AccessibilityNodeInfo.ACTION_FOCUS) }
+        }
+
+        val args = Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, snapshot.originalText)
+        }
+        val restored = runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) }.getOrDefault(false)
+        Log.i(TAG, "restoreLastSnapshot: ACTION_SET_TEXT result: $restored")
+
+        if (restored && snapshot.selectionStart >= 0 && snapshot.selectionEnd >= 0) {
+            val selArgs = Bundle().apply {
+                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, snapshot.selectionStart)
+                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, snapshot.selectionEnd)
+            }
+            runCatching { target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs) }
+        }
+        return restored
     }
 
     /**

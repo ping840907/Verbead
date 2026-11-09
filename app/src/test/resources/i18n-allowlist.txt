@@ -2,4 +2,3 @@
 # 違規減少後請手動調降（NoHardcodedCjkTest 的 allowlistIsNotStale 會提醒）。SpokenNumberConverter 為語言規則檔，永久例外。
 java/com/ping/verbead/UserDictionary.kt 3
 java/com/ping/verbead/ocr/TextStitcher.kt 2
-java/com/ping/verbead/util/TextInsertion.kt 2
