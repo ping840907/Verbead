@@ -468,4 +468,11 @@
     <string name="language_tag_multilingual">Multilingual</string>
     <string name="floating_screen_ocr_desc">Screen OCR</string>
     <string name="toast_screen_capture_failed">Screen capture failed. Enable the Verbead accessibility service (Android 11+)</string>
+    <string name="settings_ocr_korean_title">Korean text recognition</string>
+    <string name="settings_ocr_korean_desc">The main model cannot read Hangul. With this optional Korean model, text it cannot read is recognized a second time. It only runs when needed, so Chinese and English recognition is not slowed down</string>
+    <string name="settings_ocr_korean_switch_title">Use the Korean model</string>
+    <string name="settings_ocr_korean_switch_desc">When off, the Korean model is never loaded</string>
+    <string name="settings_ocr_korean_download_message">About to download the Korean recognition model (%1$s, PP-OCRv5 mobile). Once it finishes, it runs entirely on this device.\n\nContinue?</string>
+    <string name="ocr_model_name_korean">PP-OCRv5 Korean</string>
+    <string name="model_label_ocr_korean_detail">PP-OCRv5 Korean text recognition</string>
 </resources>

@@ -3,6 +3,7 @@ package com.ping.verbead.engine
 /**
  * Where the PP-OCRv6 LiteRT models are downloaded from, and their SHA-256 sums.
  *
+ * The optional Korean recognizer (korean_PP-OCRv5_mobile_rec, converted with the same recipe) lives in the same release.
  * The converted files are attached to the GitHub release
  * [RELEASE_TAG] of this repository under exactly these names. To publish a new set, upload the new files to a new
  * release, bump [RELEASE_TAG] and replace the sums below (the release also carries a SHA256SUMS.txt with them).
@@ -12,6 +13,11 @@ object OcrModelManifest {
     const val BASE_URL = "https://github.com/ping840907/Verbead/releases/download/$RELEASE_TAG/"
 
     val sha256: Map<String, String> = mapOf(
+        "pp_ocrv5_korean_dict.txt" to "f757fa1c40e99edcf27e9cce879b93eb2a51fa46f5ef39095689b8c37dd75998",
+        "pp_ocrv5_korean_rec_1280.tflite" to "a26292ddf3e532d6b70b2f8b313f0ba420e79c0f9b4337a3d8d37ac05454c0df",
+        "pp_ocrv5_korean_rec_160.tflite" to "ce3acd0f04e709e43c4e9155b1ab6123b9f19cd1331f6793380153be4a05b84b",
+        "pp_ocrv5_korean_rec_320.tflite" to "3da993c55dc0c80832059a0de9697d40159dc4af6afa6138b543a344164ae0e1",
+        "pp_ocrv5_korean_rec_640.tflite" to "067b8a256d6378ed419cd78ecd20888f995e1cc85501835d3ec1a66518dfa47c",
         "pp_ocrv6_small_det_480x960.tflite" to "15161e23eca5c986e2cb306eb008e54961e1230615b45485e418694526e2275a",
         "pp_ocrv6_small_det_640x640.tflite" to "08c31369d4c96d34ee45068c9f2a1c979ddff60767cc261a8483dcd9fc55629b",
         "pp_ocrv6_small_det_960x480.tflite" to "87ae196ee6770d98fb9ea2362add78f87def5572c84b0fd722bcbde0ef2b826b",

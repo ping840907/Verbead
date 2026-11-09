@@ -463,4 +463,11 @@
     <string name="language_tag_multilingual">多語言</string>
     <string name="floating_screen_ocr_desc">螢幕文字辨識</string>
     <string name="toast_screen_capture_failed">螢幕擷取失敗，請啟用珠璣無障礙服務（需 Android 11 以上）</string>
+    <string name="settings_ocr_korean_title">韓文文字辨識</string>
+    <string name="settings_ocr_korean_desc">主模型無法辨識韓文。安裝這個選用的韓文模型後，主模型讀不懂的文字會再辨識一次。只在需要時才執行，不會拖慢中文與英文的辨識速度</string>
+    <string name="settings_ocr_korean_switch_title">使用韓文模型</string>
+    <string name="settings_ocr_korean_switch_desc">關閉時不會載入韓文模型</string>
+    <string name="settings_ocr_korean_download_message">即將下載韓文辨識模型（%1$s，PP-OCRv5 mobile）。下載完成後完全在本機執行。\n\n要繼續嗎？</string>
+    <string name="ocr_model_name_korean">PP-OCRv5 韓文</string>
+    <string name="model_label_ocr_korean_detail">PP-OCRv5 韓文文字辨識</string>
 </resources>

@@ -127,6 +127,15 @@ class PpOcrEngine(private val context: Context) {
     private val detNets = HashMap<String, Net>()
     private val recNets = HashMap<Int, Net>()
 
+    // Optional Korean recognizer (second pass, see KoreanFallback). Its dictionary is read on first use.
+    private var koreanDir: File? = null
+    private var koreanDict: List<String>? = null
+    private var koreanBroken = false
+    private val koreanNets = HashMap<Int, Net>()
+
+    /** Set once Korean was adopted on this page: following strips try Korean first (reset on each detection). */
+    private var koreanFirst = false
+
     var lastLoadError: String? = null
         private set
 
@@ -224,7 +233,9 @@ class PpOcrEngine(private val context: Context) {
             modelName = paths.model
             modelDir = File(paths.dir)
             loadedModel = paths.model
-            Log.i(TAG, "PP-OCR (LiteRT, ${paths.model}) ready from ${paths.dir}, dictionary size=${charDict.size}")
+            koreanDir = if (ModelConfig.isOcrKoreanEnabled(context)) ModelConfig.findOcrKoreanDir(context) else null
+            koreanBroken = false
+            Log.i(TAG, "PP-OCR (LiteRT, ${paths.model}) ready from ${paths.dir}, dictionary size=${charDict.size}, korean=${koreanDir != null}")
             true
         } catch (e: Throwable) {
             val causeMsg = e.cause?.let { " [cause: ${it.javaClass.simpleName}: ${it.message}]" } ?: ""
@@ -238,20 +249,23 @@ class PpOcrEngine(private val context: Context) {
     /** Parses the Paddle inference.yml (character_dict list) or a plain one-character-per-line dictionary. */
     private fun loadDictionary(lines: List<String>) {
         charDict.clear()
-        val isYaml = lines.take(40).any { it.contains("character_dict:") || it.contains("Global:") || it.contains("PostProcess:") }
-        if (isYaml) {
-            parseYmlDict(lines)
-        } else {
-            lines.forEach { line ->
-                val trimmed = line.trimEnd('\r', '\n')
-                if (trimmed.isNotEmpty()) charDict.add(trimmed)
-            }
-            if (!charDict.contains(" ")) charDict.add(" ")
-        }
+        charDict.addAll(parseDictionary(lines))
     }
 
-    private fun parseYmlDict(lines: List<String>) {
-        charDict.clear()
+    private fun parseDictionary(lines: List<String>): List<String> {
+        val isYaml = lines.take(40).any { it.contains("character_dict:") || it.contains("Global:") || it.contains("PostProcess:") }
+        if (isYaml) return parseYmlDict(lines)
+        val dict = mutableListOf<String>()
+        lines.forEach { line ->
+            val trimmed = line.trimEnd('\r', '\n')
+            if (trimmed.isNotEmpty()) dict.add(trimmed)
+        }
+        if (!dict.contains(" ")) dict.add(" ")
+        return dict
+    }
+
+    private fun parseYmlDict(lines: List<String>): List<String> {
+        val dict = mutableListOf<String>()
         var inDict = false
         lines.forEach { line ->
             val lineClean = line.trimEnd('\r', '\n')
@@ -271,13 +285,14 @@ class PpOcrEngine(private val context: Context) {
                     } else {
                         raw
                     }
-                    charDict.add(char)
+                    dict.add(char)
                 } else if (trimmed.isNotEmpty() && !trimmed.startsWith("#")) {
                     inDict = false
                 }
             }
         }
-        if (!charDict.contains(" ")) charDict.add(" ")
+        if (!dict.contains(" ")) dict.add(" ")
+        return dict
     }
 
     /**
@@ -285,6 +300,7 @@ class PpOcrEngine(private val context: Context) {
      * Returns a list of detected bounding boxes mapped back to original bitmap coordinates.
      */
     suspend fun detectText(bitmap: Bitmap): List<RectF> = withContext(Dispatchers.Default) {
+        koreanFirst = false
         detMutex.withLock {
             if (!isReady) return@withLock emptyList()
             try {
@@ -416,14 +432,14 @@ class PpOcrEngine(private val context: Context) {
                     val matrix180 = Matrix().apply { postRotate(180f) }
                     val rot180 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix180, true)
                     val cand180 = if (origH <= origW * 1.55f) {
-                        recognizeHorizontalStrip(rot180)
+                        recognizeHorizontalStrip(rot180, allowKorean = false)
                     } else {
                         "" to 0f
                     }
 
                     // Candidate 6: Upside-down vertical text unrolled into horizontal strip
                     val unrolled180 = unrollVerticalToHorizontal(rot180)
-                    val candUnroll180 = if (unrolled180 != null) recognizeHorizontalStrip(unrolled180) else ("" to 0f)
+                    val candUnroll180 = if (unrolled180 != null) recognizeHorizontalStrip(unrolled180, allowKorean = false) else ("" to 0f)
                     if (unrolled180 != null && unrolled180 != rot180) {
                         unrolled180.recycle()
                     }
@@ -521,7 +537,7 @@ class PpOcrEngine(private val context: Context) {
         return try {
             val matrix180 = Matrix().apply { postRotate(180f) }
             rot180 = Bitmap.createBitmap(crop, 0, 0, origW, origH, matrix180, true)
-            val cand180 = recognizeHorizontalStrip(rot180)
+            val cand180 = recognizeHorizontalStrip(rot180, allowKorean = false)
             val text180 = cand180.first.trim()
             val conf180 = cand180.second
             val validChars180 = text180.count { it in '\u4e00'..'\u9fa5' || it.isLetterOrDigit() }
@@ -669,10 +685,19 @@ class PpOcrEngine(private val context: Context) {
         return outBitmap
     }
 
+    /** A strip scaled to the recognizer height, as ARGB pixels; each model builds its own padded input from it. */
+    private class StripPixels(val pixels: IntArray, val width: Int, val height: Int)
+
     /**
      * Recognizes a single horizontal image strip and returns (decodedText, avgConfidence).
+     *
+     * The PP-OCRv6 recognizer runs on every strip. Only when its result looks like text it cannot read (see
+     * [KoreanFallback.primaryLooksUnsupported]) is the optional Korean recognizer run as well, and its result is
+     * adopted only if it really contains Hangul. After a Korean strip on the same page, later strips try Korean first
+     * and skip the first model when it is confident, so a Korean page costs about one model per strip. The first
+     * strip that turns out not to be Korean ends that, so mixed pages do not pay for a model that never helps.
      */
-    private fun recognizeHorizontalStrip(strip: Bitmap): Pair<String, Float> {
+    private fun recognizeHorizontalStrip(strip: Bitmap, allowKorean: Boolean = true): Pair<String, Float> {
         if (!isReady) return "" to 0f
 
         val curW = strip.width
@@ -681,78 +706,123 @@ class PpOcrEngine(private val context: Context) {
 
         val targetH = OcrShapes.REC_HEIGHT
         val targetW = OcrShapes.recStripWidth(curW, curH)
-        val bucket = OcrShapes.recBucket(targetW, tiny = modelName == ModelConfig.OCR_MODEL_TINY)
-
         val scaledBitmap = Bitmap.createScaledBitmap(strip, targetW, targetH, true)
         val pixels = IntArray(targetW * targetH)
         scaledBitmap.getPixels(pixels, 0, targetW, 0, 0, targetW, targetH)
-
-        // NHWC, (v/255 - 0.5)/0.5. The model only exists at fixed widths, so the strip is padded on the right with
-        // normalized zero (the array default), the padding PaddleOCR itself uses. Measured against the variable-width
-        // model: 14/14 of Google's recognizer fixtures and 24/24 of our own strips decode identically (edge-repeat
-        // padding dropped a space in one fixture, white padding too).
-        val input = FloatArray(targetH * bucket * 3)
-        for (y in 0 until targetH) {
-            var o = y * bucket * 3
-            val row = y * targetW
-            for (x in 0 until targetW) {
-                val c = pixels[row + x]
-                input[o++] = (Color.red(c) / 255.0f - 0.5f) / 0.5f
-                input[o++] = (Color.green(c) / 255.0f - 0.5f) / 0.5f
-                input[o++] = (Color.blue(c) / 255.0f - 0.5f) / 0.5f
-            }
-        }
         if (scaledBitmap != strip) scaledBitmap.recycle()
+        val prepared = StripPixels(pixels, targetW, targetH)
 
-        val out = recNet(bucket).run(input) // [bucket/8 x vocab] probabilities
-        val steps = bucket / 8
-        if (steps == 0 || out.size % steps != 0) return "" to 0f
-        return ctcGreedyDecode(out, steps, out.size / steps)
+        var korean: RecResult? = null
+        val useKorean = allowKorean && koreanAvailable()
+        if (koreanFirst && useKorean) {
+            korean = runRec(prepared, korean = true)
+            if (korean != null && KoreanFallback.trustKoreanFirst(korean)) return korean.pair
+            // not Korean after all: stop trying it first until Korean is adopted again (keeps mixed pages cheap)
+            koreanFirst = false
+        }
+
+        val primary = runRec(prepared, korean = false) ?: return (korean?.pair ?: ("" to 0f))
+        if (!useKorean) return primary.pair
+        Log.d(TAG, "primary '${primary.text}' conf=${primary.conf} inner=${primary.innerGapSteps} lead=${primary.leadGapSteps} trail=${primary.trailGapSteps} unsupported=${KoreanFallback.primaryLooksUnsupported(primary)}")
+        if (!KoreanFallback.primaryLooksUnsupported(primary)) return primary.pair
+
+        Log.d(TAG, "Korean second pass: primary='${primary.text}' conf=${primary.conf} emitted=${primary.emitted} inner=${primary.innerGapSteps} lead=${primary.leadGapSteps} trail=${primary.trailGapSteps}")
+        if (korean == null) korean = runRec(prepared, korean = true)
+        if (korean != null && KoreanFallback.shouldAdoptKorean(primary, korean)) {
+            koreanFirst = true
+            Log.d(TAG, "Korean recognizer adopted: '${primary.text}' (conf=${primary.conf}, gap=${primary.maxGapSteps}) -> '${korean.text}' (conf=${korean.conf})")
+            return korean.pair
+        }
+        return primary.pair
     }
 
-    private fun ctcGreedyDecode(probs: FloatArray, steps: Int, vocab: Int): Pair<String, Float> {
-        val sb = StringBuilder()
-        var lastIndex = -1
-        var totalScore = 0f
-        var emittedCount = 0
+    private fun koreanAvailable(): Boolean = koreanDir != null && !koreanBroken
 
-        for (t in 0 until steps) {
-            val base = t * vocab
-            var maxIndex = 0
-            var maxVal = probs[base]
-            for (c in 1 until vocab) {
-                if (probs[base + c] > maxVal) {
-                    maxVal = probs[base + c]
-                    maxIndex = c
+    private fun koreanNet(width: Int): Net =
+        koreanNets.getOrPut(width) { Net(File(koreanDir!!, "${ModelConfig.OCR_MODEL_KOREAN}_rec_${width}.tflite")) }
+
+    private fun koreanDictionary(): List<String>? {
+        koreanDict?.let { return it }
+        val dir = koreanDir ?: return null
+        val dict = parseDictionary(File(dir, "${ModelConfig.OCR_MODEL_KOREAN}_dict.txt").readLines())
+        if (dict.isEmpty()) return null
+        koreanDict = dict
+        return dict
+    }
+
+    /** Runs one recognizer on a prepared strip. Returns null if the Korean model is unusable (then it is switched off for this session). */
+    private fun runRec(p: StripPixels, korean: Boolean): RecResult? {
+        try {
+            val widths = if (korean) OcrShapes.REC_WIDTHS_KOREAN else OcrShapes.recWidths(modelName == ModelConfig.OCR_MODEL_TINY)
+            val bucket = OcrShapes.recBucket(p.width, widths)
+            val dict = if (korean) koreanDictionary() ?: return null else charDict
+            val net = if (korean) koreanNet(bucket) else recNet(bucket)
+
+            // NHWC, (v/255 - 0.5)/0.5. The model only exists at fixed widths, so the strip is padded on the right with
+            // normalized zero (the array default), the padding PaddleOCR itself uses. Measured against the variable-width
+            // model: 14/14 of Google's recognizer fixtures and 24/24 of our own strips decode identically (edge-repeat
+            // padding dropped a space in one fixture, white padding too).
+            val input = FloatArray(p.height * bucket * 3)
+            for (y in 0 until p.height) {
+                var o = y * bucket * 3
+                val row = y * p.width
+                for (x in 0 until p.width) {
+                    val c = p.pixels[row + x]
+                    input[o++] = (Color.red(c) / 255.0f - 0.5f) / 0.5f
+                    input[o++] = (Color.green(c) / 255.0f - 0.5f) / 0.5f
+                    input[o++] = (Color.blue(c) / 255.0f - 0.5f) / 0.5f
                 }
             }
 
-            if (maxIndex != 0 && maxIndex != lastIndex) {
-                // Character index in dict is (maxIndex - 1)
-                val dictIdx = maxIndex - 1
-                if (dictIdx in charDict.indices) {
-                    sb.append(charDict[dictIdx])
-                    totalScore += maxVal
-                    emittedCount++
+            if (korean && bucket > p.width) {
+                // The PP-OCRv5 Korean model hallucinates punctuation and misreads syllables when the padding differs from
+                // the strip's own background (measured on rendered strips: 130/168 exact with zero padding, 161/168 when
+                // the last column is repeated). The v6 models are the other way round, so only Korean gets this.
+                for (y in 0 until p.height) {
+                    val rowStart = y * bucket * 3
+                    val last = rowStart + (p.width - 1) * 3
+                    var o = rowStart + p.width * 3
+                    while (o < rowStart + bucket * 3) {
+                        input[o++] = input[last]; input[o++] = input[last + 1]; input[o++] = input[last + 2]
+                    }
                 }
             }
-            lastIndex = maxIndex
+
+            val out = net.run(input) // [bucket/8 x vocab] probabilities
+            val steps = bucket / 8
+            if (steps == 0 || out.size % steps != 0) return null
+            return if (korean) {
+                CtcDecoder.decode(
+                    out, steps, out.size / steps, dict, usableSteps = p.width / 8,
+                    edgeMinProb = KoreanFallback.EDGE_MIN_PROB,
+                    isProtected = { c -> c.any { KoreanFallback.isHangul(it) } }
+                )
+            } else {
+                CtcDecoder.decode(out, steps, out.size / steps, dict, usableSteps = p.width / 8)
+            }
+        } catch (t: Throwable) {
+            if (!korean) throw t
+            Log.w(TAG, "Korean recognizer failed, switching it off: ${t.message}", t)
+            koreanBroken = true
+            return null
         }
-        val text = sb.toString()
-        val avgScore = if (emittedCount > 0) totalScore / emittedCount else 0f
-        return text to avgScore
     }
 
     fun release() {
         try {
             detNets.values.forEach { it.close() }
             recNets.values.forEach { it.close() }
+            koreanNets.values.forEach { it.close() }
             litertEnv?.close()
         } catch (e: Exception) {
             Log.w(TAG, "Error closing PP-OCR engine resources", e)
         }
         detNets.clear()
         recNets.clear()
+        koreanNets.clear()
+        koreanDict = null
+        koreanDir = null
+        koreanFirst = false
         litertEnv = null
         charDict.clear()
         modelDir = null

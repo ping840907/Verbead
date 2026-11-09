@@ -40,15 +40,17 @@ class ModelConfigOcrTest {
 
     @Test
     fun testEveryRequiredFileHasADownloadChecksum() {
-        for (model in listOf(ModelConfig.OCR_MODEL_SMALL, ModelConfig.OCR_MODEL_TINY)) {
-            for (name in ModelConfig.requiredOcrFiles(model)) {
+        val requiredByModel = listOf(ModelConfig.OCR_MODEL_SMALL, ModelConfig.OCR_MODEL_TINY).map { ModelConfig.requiredOcrFiles(it) } +
+            listOf(ModelConfig.requiredOcrKoreanFiles())
+        for (files in requiredByModel) {
+            for (name in files) {
                 val sum = OcrModelManifest.sha256[name]
                 assertNotNull("no checksum for $name", sum)
                 assertTrue("bad checksum for $name", sum!!.matches(Regex("^[0-9a-f]{64}$")))
             }
         }
         // and the manifest lists nothing else
-        val all = (ModelConfig.requiredOcrFiles(ModelConfig.OCR_MODEL_SMALL) + ModelConfig.requiredOcrFiles(ModelConfig.OCR_MODEL_TINY)).toSet()
+        val all = requiredByModel.flatten().toSet()
         assertEquals(all, OcrModelManifest.sha256.keys)
     }
 

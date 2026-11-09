@@ -147,7 +147,9 @@ object ModelZipInstaller {
 
         val fileName = entryName.substringAfterLast('/')
         // Smartly map flat PP-OCRv6 files into ocr/ directory
-        if (!entryName.contains('/') && fileName.startsWith("pp_ocrv6_", ignoreCase = true)) {
+        if (!entryName.contains('/') &&
+            (fileName.startsWith("pp_ocrv6_", ignoreCase = true) || fileName.startsWith("pp_ocrv5_", ignoreCase = true))
+        ) {
             return "ocr/$fileName"
         }
 
@@ -196,6 +198,10 @@ object ModelZipInstaller {
         val ocrTinyRestored = hasOcrTinyEntry &&
             ModelConfig.requiredOcrFiles(ModelConfig.OCR_MODEL_TINY).all { File(ocrDir, it).exists() }
 
+        val hasOcrKoreanEntry = extractedEntries.any { it.startsWith("ocr/${ModelConfig.OCR_MODEL_KOREAN}_") }
+        val ocrKoreanRestored = hasOcrKoreanEntry &&
+            ModelConfig.requiredOcrKoreanFiles().all { File(ocrDir, it).exists() }
+
         val detailedLabels = mutableListOf<Int>()
         val shortLabels = mutableListOf<String>()
 
@@ -216,11 +222,17 @@ object ModelZipInstaller {
             shortLabels.add("PP-OCRv6 Tiny")
         }
 
+        if (ocrKoreanRestored) {
+            detailedLabels.add(R.string.model_label_ocr_korean_detail)
+            shortLabels.add("PP-OCRv5 Korean")
+        }
+
         return RestoredPackageAnalysis(
             qwen3Restored = qwen3Restored,
             xAsrRestored = xAsrRestored,
             ocrSmallRestored = ocrSmallRestored,
             ocrTinyRestored = ocrTinyRestored,
+            ocrKoreanRestored = ocrKoreanRestored,
             detailedLabels = detailedLabels,
             shortLabels = shortLabels
         )
@@ -231,6 +243,7 @@ object ModelZipInstaller {
         val xAsrRestored: Boolean,
         val ocrSmallRestored: Boolean,
         val ocrTinyRestored: Boolean,
+        val ocrKoreanRestored: Boolean = false,
         val detailedLabels: List<Int>, // 字串資源 ID
         val shortLabels: List<String>
     )

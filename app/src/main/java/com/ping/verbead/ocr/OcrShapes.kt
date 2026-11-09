@@ -21,6 +21,9 @@ object OcrShapes {
     val REC_WIDTHS_SMALL = listOf(160, 320, 640, 1280)
     val REC_WIDTHS_TINY = listOf(64, 96, 128, 160, 192, 224, 256, 320, 384, 448, 512, 640, 768, 896, 1024, 1280)
 
+    /** The optional Korean recognizer (PP-OCRv5 mobile) uses the same ladder as Small. */
+    val REC_WIDTHS_KOREAN = REC_WIDTHS_SMALL
+
     fun recWidths(tiny: Boolean): List<Int> = if (tiny) REC_WIDTHS_TINY else REC_WIDTHS_SMALL
     const val REC_HEIGHT = 48
     const val REC_MIN_WIDTH = 32
@@ -52,8 +55,8 @@ object OcrShapes {
     }
 
     /** Smallest exported width of the model's ladder that fits [stripWidth]. */
-    fun recBucket(stripWidth: Int, tiny: Boolean = false): Int {
-        val widths = recWidths(tiny)
-        return widths.firstOrNull { it >= stripWidth } ?: widths.last()
-    }
+    fun recBucket(stripWidth: Int, tiny: Boolean = false): Int = recBucket(stripWidth, recWidths(tiny))
+
+    fun recBucket(stripWidth: Int, widths: List<Int>): Int =
+        widths.firstOrNull { it >= stripWidth } ?: widths.last()
 }

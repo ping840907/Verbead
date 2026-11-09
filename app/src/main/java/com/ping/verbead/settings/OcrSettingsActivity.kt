@@ -38,6 +38,13 @@ class OcrSettingsActivity : AppCompatActivity() {
     private lateinit var progressOcr: LinearProgressIndicator
     private lateinit var tvOcrProgress: TextView
 
+    private lateinit var tvKoreanStatus: TextView
+    private lateinit var btnDownloadKorean: MaterialButton
+    private lateinit var progressKorean: LinearProgressIndicator
+    private lateinit var tvKoreanProgress: TextView
+    private lateinit var layoutKoreanToggle: View
+    private lateinit var switchKorean: MaterialSwitch
+
     private lateinit var btnSelectOcrTiny: MaterialButton
     private lateinit var btnSelectOcrSmall: MaterialButton
 
@@ -61,12 +68,13 @@ class OcrSettingsActivity : AppCompatActivity() {
 
     private val downloader by lazy { ModelDownloader(this) }
     private var isDownloading = false
+    private var pendingEngine: String? = null
 
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
         if (isDownloading) {
-            beginDownload()
+            beginDownload(pendingEngine ?: ModelConfig.selectedOcrModel(this))
         }
     }
 
@@ -92,6 +100,13 @@ class OcrSettingsActivity : AppCompatActivity() {
         btnDownloadOcr = findViewById(R.id.btn_download_ocr)
         progressOcr = findViewById(R.id.progress_download_ocr)
         tvOcrProgress = findViewById(R.id.tv_download_status_ocr)
+
+        tvKoreanStatus = findViewById(R.id.tv_ocr_korean_status)
+        btnDownloadKorean = findViewById(R.id.btn_download_ocr_korean)
+        progressKorean = findViewById(R.id.progress_download_ocr_korean)
+        tvKoreanProgress = findViewById(R.id.tv_download_status_ocr_korean)
+        layoutKoreanToggle = findViewById(R.id.layout_ocr_korean_toggle)
+        switchKorean = findViewById(R.id.switch_ocr_korean)
 
         btnSelectOcrTiny = findViewById(R.id.btn_select_ocr_tiny)
         btnSelectOcrSmall = findViewById(R.id.btn_select_ocr_small)
@@ -144,41 +159,24 @@ class OcrSettingsActivity : AppCompatActivity() {
 
         btnDownloadOcr.setOnClickListener {
             val selectedModel = ModelConfig.selectedOcrModel(this)
-            val active = ModelDownloadState.active.value
-            if (active != null && (active.engine == ModelConfig.ENGINE_PP_OCR_TINY || active.engine == ModelConfig.ENGINE_PP_OCR_SMALL)) {
-                ModelDownloadService.cancel(this)
-                hideDownloadProgress()
-                updateAllStatus()
-                return@setOnClickListener
-            }
-
-            val target = ModelDownloadSpec.forEngine(selectedModel)
             val modelName = getString(if (selectedModel == ModelConfig.ENGINE_PP_OCR_SMALL) R.string.ocr_model_name_small else R.string.ocr_model_name_tiny)
-            btnDownloadOcr.isEnabled = false
-            btnDownloadOcr.text = getString(R.string.settings_ocr_checking_size)
+            onDownloadButton(selectedModel, modelName, R.string.settings_ocr_download_message, btnDownloadOcr) { isModelReady(selectedModel) }
+        }
 
-            lifecycleScope.launch {
-                val bytes = withContext(Dispatchers.IO) { downloader.estimateTotalBytes(target) }
-                btnDownloadOcr.isEnabled = true
-                val ready = isSelectedModelReady()
-                btnDownloadOcr.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
+        btnDownloadKorean.setOnClickListener {
+            onDownloadButton(
+                ModelConfig.OCR_MODEL_KOREAN,
+                getString(R.string.ocr_model_name_korean),
+                R.string.settings_ocr_korean_download_message,
+                btnDownloadKorean
+            ) { ModelConfig.isOcrKoreanReady(this) }
+        }
 
-                AlertDialog.Builder(this@OcrSettingsActivity)
-                    .setTitle(getString(R.string.settings_speech_download_title, modelName))
-                    .setMessage(getString(R.string.settings_ocr_download_message, if (bytes < 0) getString(R.string.common_size_unknown) else ModelDownloader.formatBytes(bytes)))
-                    .setPositiveButton(R.string.settings_ocr_download_start) { _, _ ->
-                        HapticUtil.click(this@OcrSettingsActivity)
-                        isDownloading = true
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            ContextCompat.checkSelfPermission(this@OcrSettingsActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            beginDownload()
-                        }
-                    }
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .show()
-            }
+        layoutKoreanToggle.setOnClickListener { switchKorean.toggle() }
+        switchKorean.isChecked = ModelConfig.isOcrKoreanEnabled(this)
+        switchKorean.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setOcrKoreanEnabled(this, isChecked)
         }
 
         fun updateSep(sep: String) {
@@ -231,30 +229,82 @@ class OcrSettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun isSelectedModelReady(): Boolean {
-        val selected = ModelConfig.selectedOcrModel(this)
-        return if (selected == ModelConfig.ENGINE_PP_OCR_SMALL) {
-            ModelConfig.isOcrSmallReady(this)
-        } else {
-            ModelConfig.isOcrTinyReady(this)
+    private fun isModelReady(model: String): Boolean = when (model) {
+        ModelConfig.ENGINE_PP_OCR_SMALL -> ModelConfig.isOcrSmallReady(this)
+        ModelConfig.OCR_MODEL_KOREAN -> ModelConfig.isOcrKoreanReady(this)
+        else -> ModelConfig.isOcrTinyReady(this)
+    }
+
+    private fun isSelectedModelReady(): Boolean = isModelReady(ModelConfig.selectedOcrModel(this))
+
+    private fun isOcrEngine(engine: String) =
+        engine == ModelConfig.ENGINE_PP_OCR_TINY || engine == ModelConfig.ENGINE_PP_OCR_SMALL || engine == ModelConfig.OCR_MODEL_KOREAN
+
+    /** Shared by the main OCR model and the Korean model: cancel a running download, or size it up and ask before starting. */
+    private fun onDownloadButton(
+        engine: String,
+        modelName: String,
+        messageRes: Int,
+        button: MaterialButton,
+        isReady: () -> Boolean
+    ) {
+        val active = ModelDownloadState.active.value
+        if (active != null && active.engine == engine) {
+            ModelDownloadService.cancel(this)
+            hideDownloadProgress()
+            updateAllStatus()
+            return
+        }
+
+        val target = ModelDownloadSpec.forEngine(engine)
+        button.isEnabled = false
+        button.text = getString(R.string.settings_ocr_checking_size)
+
+        lifecycleScope.launch {
+            val bytes = withContext(Dispatchers.IO) { downloader.estimateTotalBytes(target) }
+            button.isEnabled = true
+            button.text = getString(if (isReady()) R.string.common_redownload else R.string.common_download_model)
+
+            AlertDialog.Builder(this@OcrSettingsActivity)
+                .setTitle(getString(R.string.settings_speech_download_title, modelName))
+                .setMessage(getString(messageRes, if (bytes < 0) getString(R.string.common_size_unknown) else ModelDownloader.formatBytes(bytes)))
+                .setPositiveButton(R.string.settings_ocr_download_start) { _, _ ->
+                    HapticUtil.click(this@OcrSettingsActivity)
+                    isDownloading = true
+                    pendingEngine = engine
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(this@OcrSettingsActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        beginDownload(engine)
+                    }
+                }
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show()
         }
     }
 
-    private fun beginDownload() {
-        val selectedModel = ModelConfig.selectedOcrModel(this)
-        ModelDownloadService.start(this, selectedModel)
-        btnDownloadOcr.text = getString(R.string.common_cancel_download)
-        progressOcr.visibility = View.VISIBLE
-        progressOcr.isIndeterminate = true
-        tvOcrProgress.visibility = View.VISIBLE
-        tvOcrProgress.text = getString(R.string.common_connecting)
+    private fun beginDownload(engine: String) {
+        ModelDownloadService.start(this, engine)
+        val (button, progress, text) = if (engine == ModelConfig.OCR_MODEL_KOREAN) {
+            Triple(btnDownloadKorean, progressKorean, tvKoreanProgress)
+        } else {
+            Triple(btnDownloadOcr, progressOcr, tvOcrProgress)
+        }
+        button.text = getString(R.string.common_cancel_download)
+        progress.visibility = View.VISIBLE
+        progress.isIndeterminate = true
+        text.visibility = View.VISIBLE
+        text.text = getString(R.string.common_connecting)
     }
 
     private fun hideDownloadProgress() {
         progressOcr.visibility = View.GONE
         tvOcrProgress.visibility = View.GONE
-        val ready = isSelectedModelReady()
-        btnDownloadOcr.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
+        btnDownloadOcr.text = getString(if (isSelectedModelReady()) R.string.common_redownload else R.string.common_download_model)
+        progressKorean.visibility = View.GONE
+        tvKoreanProgress.visibility = View.GONE
+        btnDownloadKorean.text = getString(if (ModelConfig.isOcrKoreanReady(this)) R.string.common_redownload else R.string.common_download_model)
     }
 
     private fun updateAllStatus() {
@@ -266,6 +316,10 @@ class OcrSettingsActivity : AppCompatActivity() {
         tvOcrStatusBadge.text = getString(if (ready) R.string.common_ready else R.string.common_not_downloaded)
         btnDownloadOcr.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
         updateSepButtons()
+
+        val koreanReady = ModelConfig.isOcrKoreanReady(this)
+        tvKoreanStatus.text = getString(if (koreanReady) R.string.common_ready else R.string.common_not_downloaded)
+        btnDownloadKorean.text = getString(if (koreanReady) R.string.common_redownload else R.string.common_download_model)
 
         updateSmartStitchUI(switchOcrSmartStitch.isChecked)
     }
@@ -286,13 +340,17 @@ class OcrSettingsActivity : AppCompatActivity() {
     private fun observeDownloadState() {
         lifecycleScope.launch {
             ModelDownloadState.active.collect { active ->
-                if (active != null && (active.engine == ModelConfig.ENGINE_PP_OCR_TINY || active.engine == ModelConfig.ENGINE_PP_OCR_SMALL)) {
-                    btnDownloadOcr.text = getString(R.string.common_cancel_download)
-                    progressOcr.visibility = View.VISIBLE
-                    tvOcrProgress.visibility = View.VISIBLE
-                    progressOcr.isIndeterminate = active.progress.percent < 0
-                    if (active.progress.percent >= 0) progressOcr.progress = active.progress.percent
-                    tvOcrProgress.text = "${active.progress.label(this@OcrSettingsActivity)} (${active.progress.percent}%)"
+                if (active != null && isOcrEngine(active.engine)) {
+                    val korean = active.engine == ModelConfig.OCR_MODEL_KOREAN
+                    val button = if (korean) btnDownloadKorean else btnDownloadOcr
+                    val progress = if (korean) progressKorean else progressOcr
+                    val text = if (korean) tvKoreanProgress else tvOcrProgress
+                    button.text = getString(R.string.common_cancel_download)
+                    progress.visibility = View.VISIBLE
+                    text.visibility = View.VISIBLE
+                    progress.isIndeterminate = active.progress.percent < 0
+                    if (active.progress.percent >= 0) progress.progress = active.progress.percent
+                    text.text = "${active.progress.label(this@OcrSettingsActivity)} (${active.progress.percent}%)"
                 } else {
                     if (ModelDownloadState.active.value == null) {
                         hideDownloadProgress()
@@ -302,8 +360,8 @@ class OcrSettingsActivity : AppCompatActivity() {
             }
         }
         lifecycleScope.launch {
-            ModelDownloadState.results.collect { (engine, result) ->
-                if (engine == ModelConfig.ENGINE_PP_OCR_TINY || engine == ModelConfig.ENGINE_PP_OCR_SMALL) {
+            ModelDownloadState.results.collect { (engine, _) ->
+                if (isOcrEngine(engine)) {
                     hideDownloadProgress()
                     updateAllStatus()
                 }

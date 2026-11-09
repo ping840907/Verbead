@@ -125,7 +125,8 @@ class ModelDownloader(private val context: Context? = null) {
         val ctx = context ?: throw IllegalStateException("Context is required for model installation")
         return when {
             engine == ModelConfig.ENGINE_X_ASR -> File(ModelConfig.xAsrDir(ctx))
-            engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> File(ModelConfig.ocrDir(ctx))
+            engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL ||
+                engine == ModelConfig.OCR_MODEL_KOREAN -> File(ModelConfig.ocrDir(ctx))
             else -> File(ModelConfig.qwen3AsrDir(ctx))
         }
     }

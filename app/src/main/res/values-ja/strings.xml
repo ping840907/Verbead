@@ -463,4 +463,11 @@
     <string name="language_tag_multilingual">多言語</string>
     <string name="floating_screen_ocr_desc">画面のOCR</string>
     <string name="toast_screen_capture_failed">画面のキャプチャに失敗しました。Verbead のユーザー補助サービスを有効にしてください（Android 11 以上）</string>
+    <string name="settings_ocr_korean_title">韓国語の文字認識</string>
+    <string name="settings_ocr_korean_desc">メインモデルはハングルを読み取れません。この任意の韓国語モデルを入れると、読み取れなかった文字をもう一度認識します。必要なときだけ動作するので、中国語や英語の認識は遅くなりません</string>
+    <string name="settings_ocr_korean_switch_title">韓国語モデルを使う</string>
+    <string name="settings_ocr_korean_switch_desc">オフにすると韓国語モデルは読み込まれません</string>
+    <string name="settings_ocr_korean_download_message">韓国語認識モデル（%1$s、PP-OCRv5 mobile）をダウンロードします。完了後はすべてこの端末内で動作します。\n\n続行しますか？</string>
+    <string name="ocr_model_name_korean">PP-OCRv5 韓国語</string>
+    <string name="model_label_ocr_korean_detail">PP-OCRv5 韓国語文字認識</string>
 </resources>

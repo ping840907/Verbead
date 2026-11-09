@@ -190,6 +190,40 @@ class VoiceAccessibilityService : AccessibilityService() {
                 }
                 return
             }
+            val ocrImage = intent.getStringExtra("ocrImage")
+            if (ocrImage != null) {
+                // Debug only: run the OCR engine on an image file and log every box (adb shell am broadcast ... --es ocrImage <path>)
+                Thread {
+                    kotlinx.coroutines.runBlocking {
+                        val engine = com.ping.verbead.ocr.PpOcrEngine(applicationContext)
+                        try {
+                            if (!engine.load()) {
+                                Log.e(TAG, "OCR_TEST load failed: ${engine.lastLoadError}")
+                                return@runBlocking
+                            }
+                            val bmp = android.graphics.BitmapFactory.decodeFile(ocrImage)
+                            if (bmp == null) {
+                                Log.e(TAG, "OCR_TEST cannot decode $ocrImage")
+                                return@runBlocking
+                            }
+                            val t0 = android.os.SystemClock.elapsedRealtime()
+                            val boxes = engine.detectText(bmp).sortedBy { it.top }
+                            Log.i(TAG, "OCR_TEST boxes=${boxes.size} detect=${android.os.SystemClock.elapsedRealtime() - t0}ms")
+                            for (b in boxes) {
+                                val t1 = android.os.SystemClock.elapsedRealtime()
+                                val text = engine.recognizeBox(bmp, b)
+                                Log.i(TAG, "OCR_TEST box=${b.left.toInt()},${b.top.toInt()},${b.right.toInt()},${b.bottom.toInt()} ${android.os.SystemClock.elapsedRealtime() - t1}ms: $text")
+                            }
+                            Log.i(TAG, "OCR_TEST done")
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "OCR_TEST failed: ${t.message}", t)
+                        } finally {
+                            engine.release()
+                        }
+                    }
+                }.start()
+                return
+            }
             if (intent.getBooleanExtra("clickX", false)) {
                 Log.d(TAG, "TestReceiver received clickX request")
                 FloatingBubbleService.instance?.onXButtonClick()

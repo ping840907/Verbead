@@ -202,6 +202,8 @@ object ModelConfig {
     const val OCR_DIR = "ocr"
     const val OCR_MODEL_TINY = "pp_ocrv6_tiny"
     const val OCR_MODEL_SMALL = "pp_ocrv6_small"
+    /** Optional second-pass recognizer for Korean (PP-OCRv5 mobile korean rec); has no detector of its own. */
+    const val OCR_MODEL_KOREAN = "pp_ocrv5_korean"
     const val ENGINE_PP_OCR_TINY = OCR_MODEL_TINY
     const val ENGINE_PP_OCR_SMALL = OCR_MODEL_SMALL
 
@@ -210,6 +212,16 @@ object ModelConfig {
     const val KEY_OCR_AUTO_ENTER = "ocr_auto_enter"
     const val KEY_OCR_SEPARATOR = "ocr_separator"
     const val KEY_OCR_SMART_STITCH = "ocr_smart_stitch"
+    const val KEY_OCR_KOREAN_ENABLED = "ocr_korean_enabled"
+
+    /** Use the Korean recognizer (when downloaded) for text the main recognizer cannot read. */
+    fun isOcrKoreanEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .getBoolean(KEY_OCR_KOREAN_ENABLED, true)
+
+    fun setOcrKoreanEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_OCR_KOREAN_ENABLED, enabled).apply()
 
     fun selectedOcrModel(context: Context): String {
         val pref = context.getSharedPreferences(PREF_OCR, Context.MODE_PRIVATE)
@@ -332,6 +344,22 @@ object ModelConfig {
             add("${model}_dict.txt")
         }
     }
+
+    /** The Korean recognizer needs no detector: just its recognizer widths and dictionary. */
+    fun requiredOcrKoreanFiles(): List<String> = buildList {
+        for (w in OcrShapes.REC_WIDTHS_KOREAN) add("${OCR_MODEL_KOREAN}_rec_${w}.tflite")
+        add("${OCR_MODEL_KOREAN}_dict.txt")
+    }
+
+    /** Folder that holds every file of the Korean recognizer, or null when it is not (completely) downloaded. */
+    fun findOcrKoreanDir(context: Context): File? {
+        val required = requiredOcrKoreanFiles()
+        return getOcrSearchDirs(context).firstOrNull { dir ->
+            dir.isDirectory && required.all { name -> File(dir, name).let { it.isFile && it.length() > 0L } }
+        }
+    }
+
+    fun isOcrKoreanReady(context: Context): Boolean = findOcrKoreanDir(context) != null
 
     /**
      * 嚴格尋找指定 OCR 模型（Tiny 或 Small）：同一個資料夾內必須備齊 [requiredOcrFiles] 的每個檔案，絕不跨模型回退。

@@ -71,6 +71,7 @@ class ModelDownloadService : Service() {
             engine == ModelConfig.ENGINE_X_ASR -> "X-ASR"
             engine == ModelConfig.OCR_MODEL_TINY -> "PP-OCRv6 Tiny"
             engine == ModelConfig.OCR_MODEL_SMALL -> "PP-OCRv6 Small"
+            engine == ModelConfig.OCR_MODEL_KOREAN -> "PP-OCRv5 Korean"
             else -> "Qwen3-ASR"
         }
         startForeground(NOTIF_ID, buildNotification(getString(R.string.notif_download_preparing, engineLabel), -1))

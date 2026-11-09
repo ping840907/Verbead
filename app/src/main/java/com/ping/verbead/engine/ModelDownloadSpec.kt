@@ -70,7 +70,20 @@ object ModelDownloadSpec {
         }
     )
 
+    /** The optional Korean recognizer (same release as the other OCR files). */
+    fun ocrKorean(): DownloadTarget = DownloadTarget(
+        engine = ModelConfig.OCR_MODEL_KOREAN,
+        files = ModelConfig.requiredOcrKoreanFiles().map { name ->
+            RemoteFile(
+                OcrModelManifest.BASE_URL + name,
+                name,
+                requireNotNull(OcrModelManifest.sha256[name]) { "no checksum recorded for $name" }
+            )
+        }
+    )
+
     fun forEngine(engine: String): DownloadTarget = when {
+        engine == ModelConfig.OCR_MODEL_KOREAN -> ocrKorean()
         engine == ModelConfig.ENGINE_X_ASR -> xAsr()
         engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL -> ocr(engine)
         else -> qwen3()
