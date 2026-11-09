@@ -109,4 +109,26 @@ class KoreanFallbackTest {
         assertEquals(1, trimmed.emitted)
         assertEquals(0.5f, trimmed.conf, 0.001f)
     }
+
+    @Test
+    fun ctcDecoderReportsPeakProbabilityAndRunnerUps() {
+        // dict: a(1) b(2) c(3); one character spread over steps 1..2: step 1 a=0.5 b=0.3, step 2 a=0.8 b=0.1 c=0.05
+        val vocab = 4
+        val steps = 4
+        val probs = FloatArray(steps * vocab)
+        for (t in 0 until steps) probs[t * vocab] = 1f
+        fun set(t: Int, a: Float, b: Float, c: Float) {
+            probs[t * vocab] = 0f
+            probs[t * vocab + 1] = a; probs[t * vocab + 2] = b; probs[t * vocab + 3] = c
+        }
+        set(1, 0.5f, 0.3f, 0.0f)
+        set(2, 0.8f, 0.1f, 0.05f)
+        val r = CtcDecoder.decode(probs, steps, vocab, listOf("a", "b", "c"), topK = 2)
+        assertEquals("a", r.text)
+        assertEquals(0.5f, r.charProbs[0], 0.001f) // first step: what conf averages
+        assertEquals(0.8f, r.peakProbs[0], 0.001f) // peak of the run
+        assertEquals(listOf("b" to 0.1f, "c" to 0.05f), r.alternatives[0])
+        // not asked for -> no runner-ups computed
+        assertTrue(CtcDecoder.decode(probs, steps, vocab, listOf("a", "b", "c")).alternatives.isEmpty())
+    }
 }

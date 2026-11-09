@@ -103,14 +103,14 @@ object TextStitcher {
      * 會把正常的自然折行全部切開（實測：框高 33 px、行距 62 px、倍率 1.9）。因此改成：
      * - 整頁有足夠的行可以量時，以「典型行距」（相鄰兩行上緣距離的中位數）為準，只有超過它的 [PITCH_BREAK_RATIO] 倍才算段落間距；
      * - 量不到時（只有兩三行），退回較寬鬆的固定倍率 [FALLBACK_MAX_GAP]。
-     * 超過舊上限（1.2 倍框高）的寬鬆放行，還要求前一行夠長（[WRAP_MIN_WIDTH_RATIO]），避免把短行的選單、列表接在一起。
+     * 超過舊上限（1.2 倍框高）的寬鬆放行，還要求前一行夠長（至少最寬行的 80%，[WRAP_MIN_WIDTH_RATIO]），避免把短行的選單、列表接在一起。
      */
     private const val STRICT_MAX_GAP = 1.2f
     private const val FALLBACK_MAX_GAP = 2.2f
     private const val COMMA_FALLBACK_MAX_GAP = 2.6f
     private const val PITCH_BREAK_RATIO = 1.5f
     private const val COMMA_PITCH_BREAK_RATIO = 2.0f
-    private const val WRAP_MIN_WIDTH_RATIO = 0.6f
+    private const val WRAP_MIN_WIDTH_RATIO = 0.8f
     private const val MAX_NATURAL_PITCH_IN_HEIGHTS = 3.3f
     private const val MIN_PITCH_SAMPLES = 3
 

@@ -358,9 +358,15 @@ class PpOcrEngine(private val context: Context) {
      */
     suspend fun recognizeBox(source: Bitmap, box: RectF): String = withContext(Dispatchers.Default) {
         try {
-            // Expand box slightly with contextual padding so outer stroke curves are not clipped
-            val padX = max(3, (box.width() * 0.08f).roundToInt())
-            val padY = max(3, (box.height() * 0.04f).roundToInt())
+            // The detector boxes are tighter than the glyphs: measured on a phone screenshot the box was 33 px high for ~46 px
+            // characters (about 8 px of the top and 11 px of the bottom cut off). The recognizer then sees clipped strokes and
+            // can be confidently wrong (a clipped 乎 was read as 平 with 0.99). Padding the thin side of the box by 40% of its
+            // size fixed that line and kept 17 of 17 lines of the page (and a 13-line synthetic page) exact; the old 4% did not.
+            // The side along the reading direction keeps the small padding it always had.
+            val horizontal = box.height() <= box.width() * 1.15f
+            val crossRatio = 0.4f
+            val padX = if (horizontal) max(3, (box.width() * 0.08f).roundToInt()) else max(3, (box.width() * crossRatio).roundToInt())
+            val padY = if (horizontal) max(3, (box.height() * crossRatio).roundToInt()) else max(3, (box.height() * 0.04f).roundToInt())
             val left = (box.left - padX).toInt().coerceIn(0, source.width - 1)
             val top = (box.top - padY).toInt().coerceIn(0, source.height - 1)
             val right = (box.right + padX).toInt().coerceIn(left + 1, source.width)

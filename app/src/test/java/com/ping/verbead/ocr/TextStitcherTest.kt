@@ -567,4 +567,16 @@ class TextStitcherTest {
         }
         assertEquals(items.joinToString("\n") { it.text }, TextStitcher.stitch(items))
     }
+
+    @Test
+    fun testUnrelatedLinesOfDifferentLengthAreNotJoinedByGenerousSpacing() {
+        // three settings-style lines, ~3x pitch, no punctuation, previous lines only 60-70% of the widest: not a wrapped paragraph
+        val lines = listOf(
+            OcrBlock("今天天氣很好我們去公園散步吧", 69f, 47f, 651f, 74f),
+            OcrBlock("設定與隱私權帳號安全", 67f, 143f, 490f, 170f),
+            OcrBlock("這是一段比較長的中文句子用來測試文字條的寬度", 67f, 239f, 969f, 266f),
+            OcrBlock("登入帳號密碼", 64f, 335f, 313f, 362f)
+        )
+        assertEquals(lines.joinToString("\n") { it.text }, TextStitcher.stitch(lines))
+    }
 }
