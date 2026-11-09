@@ -324,79 +324,25 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Finds the currently active editable text node across foreground applications,
-     * skipping soft keyboard (TYPE_INPUT_METHOD) and overlay windows.
+     * 找出目前取得輸入焦點的可編輯節點（僅供 Android 13 以下的備援路徑與還原使用）。
+     * 只認「有焦點」的欄位，不再猜測畫面上任意一個可編輯欄位，避免填錯地方。
      */
     fun findActiveEditableNode(): AccessibilityNodeInfo? {
-        // 1. Global input focus check across all windows
-        runCatching { findFocus(AccessibilityNodeInfo.FOCUS_INPUT) }.getOrNull()?.let { globalFocus ->
-            if (isEditableNode(globalFocus)) {
-                Log.d(TAG, "findActiveEditableNode: matched via service.findFocus(FOCUS_INPUT)")
-                return globalFocus
-            }
-        }
+        runCatching { findFocus(AccessibilityNodeInfo.FOCUS_INPUT) }.getOrNull()
+            ?.takeIf { isEditableNode(it) }?.let { return it }
 
-        val windowList = runCatching { windows }.getOrNull() ?: emptyList()
-
-        // 2. Prioritize TYPE_APPLICATION windows (the active app underneath the keyboard/bubble)
-        val appWindows = windowList.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+        val appWindows = runCatching { windows }.getOrNull().orEmpty()
+            .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
         for (window in appWindows) {
             val root = window.root ?: continue
-            root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.let { focused ->
-                if (isEditableNode(focused)) {
-                    Log.d(TAG, "findActiveEditableNode: matched via appWindow.findFocus(FOCUS_INPUT)")
-                    return focused
-                }
-            }
-            searchFocusedEditable(root)?.let { focusedEditable ->
-                Log.d(TAG, "findActiveEditableNode: matched via appWindow searchFocusedEditable")
-                return focusedEditable
-            }
-            searchAnyEditable(root)?.let { anyEditable ->
-                Log.d(TAG, "findActiveEditableNode: matched via appWindow searchAnyEditable")
-                return anyEditable
-            }
-        }
-
-        // 3. Search rootInActiveWindow
-        rootInActiveWindow?.let { root ->
-            root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.let { focused ->
-                if (isEditableNode(focused)) {
-                    Log.d(TAG, "findActiveEditableNode: matched via rootInActiveWindow.findFocus(FOCUS_INPUT)")
-                    return focused
-                }
-            }
-            searchFocusedEditable(root)?.let { focusedEditable ->
-                Log.d(TAG, "findActiveEditableNode: matched via rootInActiveWindow searchFocusedEditable")
-                return focusedEditable
-            }
-            searchAnyEditable(root)?.let { anyEditable ->
-                Log.d(TAG, "findActiveEditableNode: matched via rootInActiveWindow searchAnyEditable")
-                return anyEditable
-            }
-        }
-
-        // 4. Search any remaining windows (explicitly skipping TYPE_INPUT_METHOD)
-        for (window in windowList) {
-            if (window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD) continue
-            val root = window.root ?: continue
+            root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.takeIf { isEditableNode(it) }?.let { return it }
             searchFocusedEditable(root)?.let { return it }
-            searchAnyEditable(root)?.let { return it }
         }
 
-        // 5. Fallback to cached lastFocusedNode
         lastFocusedNode?.let { last ->
-            val refreshed = runCatching { last.refresh() }.getOrDefault(false)
-            if (refreshed && isEditableNode(last)) {
-                Log.d(TAG, "findActiveEditableNode: matched via refreshed lastFocusedNode")
-                return last
-            }
-            if (isEditableNode(last)) {
-                Log.d(TAG, "findActiveEditableNode: matched via lastFocusedNode fallback")
-                return last
-            }
+            runCatching { last.refresh() }
+            if (isEditableNode(last)) return last
         }
-
         return null
     }
 
@@ -409,110 +355,6 @@ class VoiceAccessibilityService : AccessibilityService() {
             if (found != null) return found
         }
         return null
-    }
-
-    private fun searchAnyEditable(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
-        if (node == null) return null
-        if (isEditableNode(node)) return node
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val found = searchAnyEditable(child)
-            if (found != null) return found
-        }
-        return null
-    }
-
-    /**
-     * 互動式判斷 target 節點當前文字是否為佔位文字（Placeholder / Hint）。
-     *
-     * 判定邏輯：
-     * 1. 游標判定：若游標位置大於 0（rawSelStart > 0 || rawSelEnd > 0），空欄位在 Android 中游標必為 0 或 -1，
-     *    因此有正數游標代表使用者已實際輸入內容，直接判定為非佔位符。
-     * 2. 官方屬性判定：檢查 Android 8.0+ isShowingHintText 與 hintText 特徵。
-     * 3. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）：
-     *    - 僅在節點支援 ACTION_SET_SELECTION 時執行，避免自繪引擎（如 Google Docs）因不支援選取而被誤判為佔位符。
-     * 4. 備援機制：若選取探測未執行或發生例外，退回 TextInsertion.isHintText 作為備援保護。
-     */
-    private fun isNodeTextPlaceholder(
-        target: AccessibilityNodeInfo,
-        initialText: String,
-        rawSelStart: Int,
-        rawSelEnd: Int
-    ): Boolean {
-        if (initialText.isEmpty()) return false
-
-        // 1. 若游標位置大於 0，空欄位不可有正數游標，必為真實輸入內容
-        if (rawSelStart > 0 || rawSelEnd > 0) {
-            return false
-        }
-
-        // 2. 官方屬性快速判定：系統明確標記正在顯示提示文字
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (target.isShowingHintText) return true
-        }
-
-        val hint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.hintText else null
-        val hintNorm = TextInsertion.normalizeHint(hint)
-        val origNorm = TextInsertion.normalizeHint(initialText)
-
-        // 3. 防禦性過濾：若節點有定義提示文字（如 Google Keep 裡的「記事」），且目前文字（如「ABC」）與提示文字完全不相符，
-        // 代表該欄位已包含使用者輸入的內容，絕非佔位符。立即返回 false，避免執行選取探測干擾游標與 Spannable 狀態。
-        if (hintNorm.isNotEmpty() && !origNorm.equals(hintNorm, ignoreCase = true)) {
-            return false
-        }
-
-        // 4. 欄位選取能力探測（Selection Capability Probe - 解決手打文字與佔位符同字的極端邊界條件）
-        val len = initialText.length
-        Log.d(TAG, "isNodeTextPlaceholder: pkg=${target.packageName}, cls=${target.className}, text='$initialText', rawSelStart=$rawSelStart, rawSelEnd=$rawSelEnd, hint='$hint', isShowingHint=${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false}, actions=${target.actionList.map { it.id }}")
-        val supportsSelection = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_SELECTION }
-        if (supportsSelection) {
-            try {
-                val selArgs = Bundle().apply {
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
-                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, len)
-                }
-                val canSelect = target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
-                val isPlaceholder = TextInsertion.evaluateSelectionProbe(len, canSelect)
-                Log.d(TAG, "Selection capability probe: initial='$initialText', len=$len, canSelect=$canSelect, isPlaceholder=$isPlaceholder")
-
-                if (!isPlaceholder && rawSelStart >= 0) {
-                    // 若判定為真實手打文字，將游標還原為原先位置
-                    val restoreArgs = Bundle().apply {
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, rawSelStart)
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, rawSelEnd)
-                    }
-                    target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, restoreArgs)
-                }
-                return isPlaceholder
-            } catch (e: Exception) {
-                Log.w(TAG, "Selection probe exception: ${e.message}")
-            }
-        } else {
-            // 節點不包含 ACTION_SET_SELECTION。
-            // 在 Telegram 等通訊軟體中，當輸入框為空時，底層文字緩衝區長度為 0，TextView 不會將 ACTION_SET_SELECTION 加入 actions。
-            // 但若使用者手動輸入了與佔位文字相同的文字（如手打「輸入訊息」），文字緩衝區長度 > 0，ACTION_SET_SELECTION 就會存在。
-            // 因此當 supportsSelection 為 false 且游標 <= 0 時：
-            // 若為 Telegram，或支援 ACTION_SET_TEXT 且游標未初始化（rawSelStart < 0），判定為動態佔位文字！
-            val isTelegram = target.packageName?.contains("telegram", ignoreCase = true) == true
-            val supportsSetText = target.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_TEXT }
-            if (isTelegram && supportsSetText && rawSelStart <= 0 && rawSelEnd <= 0) {
-                Log.d(TAG, "isNodeTextPlaceholder: Telegram empty input detected without ACTION_SET_SELECTION ('$initialText')")
-                return true
-            }
-            if (rawSelStart < 0 && rawSelEnd < 0 && supportsSetText) {
-                Log.d(TAG, "isNodeTextPlaceholder: uninitialized cursor node without ACTION_SET_SELECTION detected as placeholder ('$initialText')")
-                return true
-            }
-            Log.d(TAG, "Node does not support ACTION_SET_SELECTION, skipping selection probe")
-        }
-
-        // 5. 備援機制
-        return TextInsertion.isHintText(
-            originalText = initialText,
-            hintText = hint,
-            isShowingHintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) target.isShowingHintText else false,
-            contentDescription = target.contentDescription
-        )
     }
 
     // ── Accessibility IME channel (Android 13+) ─────────────────────────────────────────
@@ -552,7 +394,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         val info = runCatching { inputMethod?.currentInputEditorInfo }.getOrNull()
         if (info != null && isPasswordInputType(info.inputType)) return false
 
-        val target = runCatching { findActiveEditableNode() }.getOrNull()
+        val target = runCatching { findFocus(AccessibilityNodeInfo.FOCUS_INPUT) }.getOrNull()
         if (target?.isPassword == true) return false
 
         isAutomatedActionInProgress = true
@@ -643,10 +485,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
             if (isPasteMode) {
                 // ── 模式 2: 剪貼簿貼上 (Text Paste) ──
-                // 完全 bypass 所有為了解決 SET_TEXT 而設置的迂迴解方：
-                // 不執行 isNodeTextPlaceholder 佔位符探測與選取干擾，
-                // 不執行強制全選，不執行字串拼接與游標計算，
-                // 直接透過剪貼簿以原生效能與原生游標狀態貼上！
+                // 直接透過剪貼簿貼上（僅 Android 13 以下使用；13 以上一律走 IME 通道）
                 if (createSnapshot) {
                     val showingHint = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && target.isShowingHintText
                     val initialText = if (showingHint) "" else (target.text?.toString() ?: "")
@@ -689,8 +528,8 @@ class VoiceAccessibilityService : AccessibilityService() {
             val rawSelStart = target.textSelectionStart
             val rawSelEnd = target.textSelectionEnd
 
-            // 採用互動判斷邏輯（Interactive Probing）比對輸入反應，動態決定是否移除佔位文字
-            val isHint = isNodeTextPlaceholder(target, initialText, rawSelStart, rawSelEnd)
+            // 備援路徑（Android 13 以下）：只相信系統明確標示的提示文字旗標
+            val isHint = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && target.isShowingHintText
             val insertion = TextInsertion.insert(
                 originalText = initialText,
                 rawSelStart = rawSelStart,

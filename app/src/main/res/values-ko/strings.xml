@@ -107,8 +107,6 @@
     <string name="settings_cat_ocr_desc">PP-OCR 오프라인 모델, 글자 간격, 바코드 스캔</string>
 
 
-    <string name="settings_cat_backup_title">오프라인 모델 백업 및 가져오기</string>
-    <string name="settings_cat_backup_desc">ZIP에서 오프라인 모델을 스마트하게 검증하고 복원합니다</string>
 
     <string name="settings_cat_about_title">정보 및 오픈소스 감사</string>
     <string name="settings_cat_about_desc">버전 정보, 오픈소스 감사의 글, GitHub 프로젝트</string>
@@ -147,9 +145,6 @@
     <string name="ocr_snapshot_recognize_and_input">인식 후 입력</string>
     <string name="settings_backup_restore_title">오프라인 모델 한 번에 복원</string>
     <string name="settings_backup_status_not_ready">완전히 준비되지 않음</string>
-    <string name="settings_backup_restore_desc">Qwen3-ASR, X-ASR, PP-OCRv6 오프라인 모델을 지원합니다. 모델 패키지(.zip)를 불러오면 내용을 자동으로 판별해 포함된 모델을 압축 해제하고 복원하므로 하나씩 다운로드할 필요가 없습니다.</string>
-    <string name="settings_backup_pick_package">가져올 모델 패키지 선택</string>
-    <string name="settings_backup_load_internal">내부 모델 패키지 빠르게 불러오기</string>
     <string name="bubble_mode_drag_handle_desc">길게 눌러 끌어서 순서 변경</string>
     <string name="bubble_mode_voice_title">음성 입력</string>
     <string name="bubble_mode_voice_desc">버블을 탭하거나 메뉴를 길게 눌러 음성 텍스트 변환을 시작합니다</string>
@@ -213,11 +208,9 @@
     <string name="settings_bubble_status_not_ready">준비 안 됨</string>
     <string name="settings_bubble_overlay_title">다른 앱 위에 표시</string>
     <string name="settings_bubble_overlay_desc">다른 앱 위에 표시하도록 허용합니다</string>
-    <string name="settings_bubble_overlay_help">\"다른 앱 위에 표시\"를 켤 수 없나요? 제한된 설정 해제 방법 보기</string>
     <string name="settings_bubble_overlay_action">허용하기</string>
     <string name="settings_bubble_autofill_title">자동 입력 (접근성)</string>
     <string name="settings_bubble_autofill_desc">인식된 텍스트를 포커스된 입력란에 바로 입력합니다</string>
-    <string name="settings_bubble_autofill_help">자동 입력을 켤 수 없나요? 제한된 설정 해제 방법 보기</string>
     <string name="settings_bubble_autofill_action">켜기</string>
     <string name="settings_bubble_restricted_title">제한된 설정 허용</string>
     <string name="settings_bubble_restricted_desc">\"다른 앱 위에 표시\" 또는 \"자동 입력\" 스위치가 시스템에서 회색으로 잠겨 있다면, 여기를 눌러 앱 정보 화면으로 이동한 뒤 오른쪽 위의 \"⋮\"(점 3개 메뉴)에서 \"제한된 설정 허용\"을 선택해 잠금을 해제하세요</string>
@@ -253,9 +246,7 @@
     <string name="settings_tour_button">사용 시연 및 기능 안내</string>
     <string name="settings_categories_title">기능 설정</string>
     <string name="settings_restore_desc_short">X-ASR, Qwen3, PP-OCR 모델 패키지 ZIP으로 자동 복원</string>
-    <string name="settings_restore_desc_long">오프라인 모델 패키지(.zip)를 가져오면 모델 파일을 자동으로 판별해 압축을 풀고 복원하므로, 하나씩 다운로드할 필요가 없습니다.</string>
     <string name="settings_restore_pick_zip">모델 패키지(.zip) 선택</string>
-    <string name="settings_restore_load_internal">내부 저장소의 모델 패키지 빠르게 불러오기</string>
     <string name="settings_footer_title">Verbead</string>
     <string name="settings_footer_tagline">말이 옥이 되어, 글자마다 구슬처럼</string>
     <string name="settings_ocr_header_title">PP-OCRv6 온디바이스 문자 인식</string>
@@ -295,7 +286,6 @@
     <string name="ocr_model_name_small">PP-OCRv6 표준</string>
     <string name="ocr_model_name_tiny">PP-OCRv6 경량</string>
     <string name="settings_toast_camera_permission">시스템 설정에서 카메라 권한을 켜 주세요</string>
-    <string name="settings_toast_quick_zip_not_found">Download 폴더에서 기본 모델 ZIP 패키지를 찾을 수 없습니다</string>
     <string name="settings_import_preparing">모델 패키지 압축 해제를 준비하는 중…</string>
     <string name="settings_import_extracting">압축 해제 중: %1$s (%2$d%%)</string>
     <string name="settings_import_invalid_source">잘못된 파일 출처입니다</string>
@@ -323,7 +313,6 @@
     <string name="settings_summary_ocr_original">원문 그대로</string>
     <string name="settings_summary_backup">다운로드된 오프라인 모델: %1$d/%2$d개 · ZIP 가져오기 지원</string>
     <string name="settings_all_models_ready">모든 모델 준비됨</string>
-    <string name="settings_restore_load_internal_size">내부 저장소의 모델 패키지 빠르게 불러오기 (%1$dMB)</string>
     <string name="settings_summary_about">버전 %1$s · 감사의 글 및 라이선스</string>
     <string name="dict_dialog_delete_title">단어 삭제</string>
     <string name="dict_dialog_delete_message">\"%1$s\"을(를) 삭제할까요?</string>
@@ -345,10 +334,6 @@
     <string name="settings_bubble_paste_desc_off">접근성 서비스로 입력란에 직접 입력합니다. 일부 앱에서 붙여넣기가 이상할 때 사용하세요</string>
     <string name="settings_bubble_history_desc_on">자주 쓰는 문구 서랍 위쪽에 최근 변환 기록을 바로 표시합니다</string>
     <string name="settings_bubble_history_desc_off">기록이 꺼져 있습니다. 자주 쓰는 문구 서랍에는 저장된 문구만 표시됩니다</string>
-    <string name="settings_bubble_restricted_dialog_title">Android 13 이상에서 제한된 설정을 허용하는 방법</string>
-    <string name="settings_bubble_restricted_dialog_message">Android 13 이상에서는 외부에서 설치한 앱의 \"접근성 서비스\"와 \"다른 앱 위에 표시\"가 기본적으로 제한됩니다.\n\n다음 순서로 제한을 해제하세요:\n1. 아래의 \"앱 정보 열기\"를 탭합니다\n2. 앱 정보 화면에서 오른쪽 위의 \"⋮\"(점 3개 메뉴)를 탭합니다\n3. \"제한된 설정 허용\"을 탭합니다\n4. 지문이나 잠금 비밀번호로 인증한 뒤 이 화면으로 돌아와 권한을 켜세요!</string>
-    <string name="settings_bubble_restricted_dialog_action">앱 정보 열기</string>
-    <string name="settings_bubble_restricted_dialog_dismiss">확인</string>
     <string name="settings_speech_toast_bluetooth_denied">블루투스 연결 권한이 허용되지 않아 블루투스 이어폰으로 자동 전환되지 않을 수 있습니다</string>
     <string name="settings_speech_gain_original">1.0x (원음)</string>
     <string name="settings_speech_gain_format">게인 %1$.1fx</string>

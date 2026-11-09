@@ -51,6 +51,7 @@ class BubbleSettingsActivity : AppCompatActivity() {
     private lateinit var tvBubbleModesSummary: TextView
 
     private lateinit var layoutPasteModeToggle: View
+    private lateinit var dividerPasteMode: View
     private lateinit var switchPasteMode: MaterialSwitch
     private lateinit var tvPasteModeDesc: TextView
 
@@ -142,6 +143,12 @@ class BubbleSettingsActivity : AppCompatActivity() {
         tvBubbleModesSummary = findViewById(R.id.tv_bubble_modes_summary)
 
         layoutPasteModeToggle = findViewById(R.id.layout_paste_mode_toggle)
+        dividerPasteMode = findViewById(R.id.divider_paste_mode)
+        // Android 13+ 直接以 IME 通道填入，不需要（也不提供）剪貼簿貼上模式
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            layoutPasteModeToggle.visibility = View.GONE
+            dividerPasteMode.visibility = View.GONE
+        }
         switchPasteMode = findViewById(R.id.switch_paste_mode)
         tvPasteModeDesc = findViewById(R.id.tv_injection_method_desc)
 

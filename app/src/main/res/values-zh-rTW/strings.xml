@@ -107,8 +107,6 @@
     <string name="settings_cat_ocr_desc">PP-OCR 繁中離線模型、盤古排版間距、條碼掃描</string>
 
 
-    <string name="settings_cat_backup_title">離線模型包備份與導入</string>
-    <string name="settings_cat_backup_desc">一鍵匯出離線模型包、智慧校驗與還原 ZIP</string>
 
     <string name="settings_cat_about_title">關於與授權致謝</string>
     <string name="settings_cat_about_desc">版本資訊、開源核心技術致謝與 GitHub 專案</string>
@@ -147,9 +145,6 @@
     <string name="ocr_snapshot_recognize_and_input">辨識並輸入</string>
     <string name="settings_backup_restore_title">離線模型一鍵復原</string>
     <string name="settings_backup_status_not_ready">未完全就緒</string>
-    <string name="settings_backup_restore_desc">支援 Qwen3-ASR、X-ASR 與 PP-OCRv6 離線模型。載入模型包 (.zip) 將智慧辨識內容並自動解壓復原所含模型，免去逐一下載。</string>
-    <string name="settings_backup_pick_package">選擇模型包匯入</string>
-    <string name="settings_backup_load_internal">快速載入內部模型包</string>
     <string name="bubble_mode_drag_handle_desc">按住拖曳排序</string>
     <string name="bubble_mode_voice_title">語音輸入</string>
     <string name="bubble_mode_voice_desc">單擊氣泡或長按選單啟動語音轉文字</string>
@@ -213,11 +208,9 @@
     <string name="settings_bubble_status_not_ready">未就緒</string>
     <string name="settings_bubble_overlay_title">顯示在上層</string>
     <string name="settings_bubble_overlay_desc">允許顯示在其他應用程式上層</string>
-    <string name="settings_bubble_overlay_help">無法開啟顯示在上層？點此查看解除受限制設定指引</string>
     <string name="settings_bubble_overlay_action">前往授權</string>
     <string name="settings_bubble_autofill_title">自動填入（無障礙）</string>
     <string name="settings_bubble_autofill_desc">將辨識文字直接填入焦點欄位</string>
-    <string name="settings_bubble_autofill_help">無法開啟自動填入？點此查看解除受限制設定指引</string>
     <string name="settings_bubble_autofill_action">前往開啟</string>
     <string name="settings_bubble_restricted_title">解除受限制的設定</string>
     <string name="settings_bubble_restricted_desc">若「顯示在上層」或「自動填入」開關被系統反灰鎖定，請點此前往應用程式資訊頁面，點選畫面右上角「︙」（三點選單）並選擇「解除受限制的設定」即可解除鎖定</string>
@@ -253,9 +246,7 @@
     <string name="settings_tour_button">操作示範與功能導覽</string>
     <string name="settings_categories_title">功能設置分類</string>
     <string name="settings_restore_desc_short">支援 X-ASR、Qwen3 與 PP-OCR 模型包 ZIP 自動復原</string>
-    <string name="settings_restore_desc_long">匯入離線模型包 (.zip) 將自動辨識並解壓復原模型檔案，免去手動逐一下載。</string>
     <string name="settings_restore_pick_zip">選擇模型包匯入 (.zip)</string>
-    <string name="settings_restore_load_internal">快速載入內部儲存模型包</string>
     <string name="settings_footer_title">珠璣</string>
     <string name="settings_footer_tagline">落辭成玉，字字珠璣</string>
     <string name="settings_ocr_header_title">PP-OCRv6 端側文字辨識</string>
@@ -295,7 +286,6 @@
     <string name="ocr_model_name_small">PP-OCRv6 標準版</string>
     <string name="ocr_model_name_tiny">PP-OCRv6 輕量版</string>
     <string name="settings_toast_camera_permission">請在系統設定中開啟相機權限</string>
-    <string name="settings_toast_quick_zip_not_found">未在 Download 目錄中找到預設模型 ZIP 包</string>
     <string name="settings_import_preparing">正在準備解壓模型包…</string>
     <string name="settings_import_extracting">解壓中：%1$s (%2$d%%)</string>
     <string name="settings_import_invalid_source">無效的檔案來源</string>
@@ -323,7 +313,6 @@
     <string name="settings_summary_ocr_original">原字</string>
     <string name="settings_summary_backup">已下載 %1$d/%2$d 個離線模型 · 支援 ZIP 導入</string>
     <string name="settings_all_models_ready">全部模型已就緒</string>
-    <string name="settings_restore_load_internal_size">快速載入內部儲存模型包 (%1$dMB)</string>
     <string name="settings_summary_about">版本 %1$s · 開源技術致謝與授權</string>
     <string name="dict_dialog_delete_title">刪除專屬詞彙</string>
     <string name="dict_dialog_delete_message">確定要刪除「%1$s」嗎？</string>
@@ -345,10 +334,6 @@
     <string name="settings_bubble_paste_desc_off">透過無障礙服務直接寫入輸入欄；若某些應用程式貼上異常可改用此方式</string>
     <string name="settings_bubble_history_desc_on">在快速常用語抽屜上方即時顯示近期的轉譯歷史紀錄</string>
     <string name="settings_bubble_history_desc_off">已關閉歷史紀錄，常用語抽屜將僅顯示固定常用語</string>
-    <string name="settings_bubble_restricted_dialog_title">如何解除 Android 13+ 受限制的設定</string>
-    <string name="settings_bubble_restricted_dialog_message">在 Android 13 及以上版本中，自外部安裝的應用程式，系統會預設限制「無障礙服務」與「懸浮窗權限」的開啟。\n\n請依照以下步驟解除限制：\n1. 點擊下方「前往應用程式資訊」\n2. 在應用程式詳細資訊頁面中，點擊右上角的「︙」（三點選單）\n3. 點選「解除受限制的設定」\n4. 通過指紋或鎖定密碼驗證後返回本頁，即可順利開啟權限！</string>
-    <string name="settings_bubble_restricted_dialog_action">前往應用程式資訊</string>
-    <string name="settings_bubble_restricted_dialog_dismiss">知道了</string>
     <string name="settings_speech_toast_bluetooth_denied">未授予藍牙連線權限，可能無法自動切換至藍牙耳機</string>
     <string name="settings_speech_gain_original">1.0x (原音)</string>
     <string name="settings_speech_gain_format">%1$.1fx 增益</string>

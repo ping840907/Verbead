@@ -570,15 +570,6 @@
                     android:text="@string/settings_restore_pick_zip"
                     app:icon="@drawable/ic_archive"
                     app:iconGravity="textStart" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_quick_import_download"
-                    style="@style/Verbead.Button.Tonal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/settings_restore_load_internal"
-                    android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

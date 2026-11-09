@@ -24,7 +24,6 @@ import java.util.zip.ZipInputStream
 object ModelZipInstaller {
 
     private const val TAG = "Verbead_Zip"
-    const val DEFAULT_ZIP_FILENAME = "verbead_models.zip"
 
     /** 解壓完成時回報的檔名（空字串），由介面層顯示「復原完成」 */
     const val PROGRESS_COMPLETE = ""
@@ -68,30 +67,6 @@ object ModelZipInstaller {
         runCatching {
             dir.walkTopDown().filter { it.isFile && it.name.endsWith(".tmp") }.forEach { it.delete() }
         }
-    }
-
-    /**
-     * Checks if default preloaded package exists in App private directories.
-     */
-    fun findDefaultZipPackage(context: Context? = null): File? {
-        if (context == null) return null
-        val candidates = mutableListOf<File>()
-        context.getExternalFilesDir(null)?.let {
-            candidates.add(File(it, DEFAULT_ZIP_FILENAME))
-        }
-        candidates.add(File(context.filesDir, DEFAULT_ZIP_FILENAME))
-        candidates.add(File(context.cacheDir, DEFAULT_ZIP_FILENAME))
-        context.getExternalFilesDir("models")?.parentFile?.let {
-            candidates.add(File(it, DEFAULT_ZIP_FILENAME))
-        }
-
-        for (c in candidates) {
-            val exists = try { c.exists() } catch (e: Exception) { Log.w(TAG, "exists check failed for ${c.absolutePath}", e); false }
-            val canRead = try { c.canRead() } catch (e: Exception) { Log.w(TAG, "canRead check failed for ${c.absolutePath}", e); false }
-            Log.d(TAG, "Candidate: ${c.absolutePath}, exists=$exists, canRead=$canRead")
-            if (exists && canRead) return c
-        }
-        return null
     }
 
     /**

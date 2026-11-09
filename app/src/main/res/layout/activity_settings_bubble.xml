@@ -471,6 +471,7 @@
                 </LinearLayout>
 
                 <View
+                    android:id="@+id/divider_paste_mode"
                     style="@style/Verbead.Divider"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"

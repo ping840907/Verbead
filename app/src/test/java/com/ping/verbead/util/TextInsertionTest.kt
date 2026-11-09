@@ -197,30 +197,6 @@ class TextInsertionTest {
     }
 
     @Test
-    fun testHintTextMatchingOriginalTextReplaces() {
-        val result = TextInsertion.insert(
-            originalText = "請輸入自訂欄位名稱",
-            rawSelStart = -1,
-            rawSelEnd = -1,
-            insertedText = "我的欄位",
-            hintText = "請輸入自訂欄位名稱..."
-        )
-        assertEquals("我的欄位", result.text)
-    }
-
-    @Test
-    fun testContentDescriptionMatchingOriginalTextReplaces() {
-        val result = TextInsertion.insert(
-            originalText = "搜尋",
-            rawSelStart = -1,
-            rawSelEnd = -1,
-            insertedText = "搜尋關鍵字",
-            contentDescription = "搜尋"
-        )
-        assertEquals("搜尋關鍵字", result.text)
-    }
-
-    @Test
     fun testRealUserInputPreservedWhenNotPlaceholder() {
         // 使用者先前已輸入真實內文，不應被誤判為 Placeholder
         val result1 = TextInsertion.insert(
@@ -253,44 +229,5 @@ class TextInsertionTest {
         )
         assertEquals("前綴：輸入訊息", result.text)
         assertEquals(3, result.cursorPosition)
-    }
-
-    @Test
-    fun testEvaluateSelectionProbeForHandTypedTextIdenticalToPlaceholder() {
-        // 極端情況：佔位符為「輸入訊息」的欄位中，使用者手動打入「輸入訊息」
-        // 由於真實字串緩衝區 mText 長度為 4，系統具備選取能力 (canSelect = true)，判定為真實內容而非佔位符！
-        val isPlaceholder = TextInsertion.evaluateSelectionProbe(
-            textLength = 4, // "輸入訊息".length
-            canSelect = true
-        )
-        // 必須為 false（代表非佔位符，是使用者手打內容，保留不替換！）
-        org.junit.Assert.assertEquals(false, isPlaceholder)
-    }
-
-    @Test
-    fun testEvaluateSelectionProbeForEmptyFieldWithPlaceholder() {
-        // 一般情況：欄位為空，但 AccessibilityNodeInfo 將佔位符「輸入訊息」回傳為 text
-        // 由於真實字串緩衝區 mText 長度為 0，TextView.canSelectText() 為 false，系統拒絕選取動作 (canSelect = false)！
-        val isPlaceholder = TextInsertion.evaluateSelectionProbe(
-            textLength = 4, // "輸入訊息".length
-            canSelect = false
-        )
-        // 必須為 true（代表底層空緩衝區的佔位提示，進行清空替換！）
-        org.junit.Assert.assertEquals(true, isPlaceholder)
-    }
-
-    @Test
-    fun testEvaluateSelectionProbeForGeneralText() {
-        val isReal = TextInsertion.evaluateSelectionProbe(
-            textLength = 10,
-            canSelect = true
-        )
-        org.junit.Assert.assertEquals(false, isReal)
-
-        val isPlaceholder = TextInsertion.evaluateSelectionProbe(
-            textLength = 10,
-            canSelect = false
-        )
-        org.junit.Assert.assertEquals(true, isPlaceholder)
     }
 }

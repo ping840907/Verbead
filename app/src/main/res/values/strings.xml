@@ -107,8 +107,6 @@
     <string name="settings_cat_ocr_desc">PP-OCR offline model, text spacing, barcode scanning</string>
 
 
-    <string name="settings_cat_backup_title">Offline model backup &amp; import</string>
-    <string name="settings_cat_backup_desc">Restore offline models from a ZIP package with smart validation</string>
 
     <string name="settings_cat_about_title">About &amp; credits</string>
     <string name="settings_cat_about_desc">Version info, open-source credits and the GitHub project</string>
@@ -152,9 +150,6 @@
     <string name="ocr_snapshot_recognize_and_input">Recognize &amp; insert</string>
     <string name="settings_backup_restore_title">Restore offline models</string>
     <string name="settings_backup_status_not_ready">Not fully ready</string>
-    <string name="settings_backup_restore_desc">Supports Qwen3-ASR, X-ASR and PP-OCRv6 offline models. Loading a model package (.zip) detects its contents and restores the included models automatically, so you don\'t have to download them one by one.</string>
-    <string name="settings_backup_pick_package">Choose a model package to import</string>
-    <string name="settings_backup_load_internal">Quick-load internal model package</string>
     <string name="bubble_mode_drag_handle_desc">Press and drag to reorder</string>
     <string name="bubble_mode_voice_title">Voice input</string>
     <string name="bubble_mode_voice_desc">Tap the bubble or long-press the menu to start speech-to-text</string>
@@ -218,11 +213,9 @@
     <string name="settings_bubble_status_not_ready">Not ready</string>
     <string name="settings_bubble_overlay_title">Display over other apps</string>
     <string name="settings_bubble_overlay_desc">Allow drawing on top of other apps</string>
-    <string name="settings_bubble_overlay_help">Can\'t turn on display over other apps? Tap here for the restricted-settings guide</string>
     <string name="settings_bubble_overlay_action">Grant</string>
     <string name="settings_bubble_autofill_title">Auto-fill (accessibility)</string>
     <string name="settings_bubble_autofill_desc">Fill recognized text directly into the focused field</string>
-    <string name="settings_bubble_autofill_help">Can\'t turn on auto-fill? Tap here for the restricted-settings guide</string>
     <string name="settings_bubble_autofill_action">Enable</string>
     <string name="settings_bubble_restricted_title">Allow restricted settings</string>
     <string name="settings_bubble_restricted_desc">If the \"Display over other apps\" or \"Auto-fill\" switch is greyed out by the system, tap here to open the app info page, tap the \"⋮\" (three-dot menu) at the top right and choose \"Allow restricted settings\"</string>
@@ -258,9 +251,7 @@
     <string name="settings_tour_button">Demo &amp; feature tour</string>
     <string name="settings_categories_title">Settings</string>
     <string name="settings_restore_desc_short">Restore X-ASR, Qwen3 and PP-OCR models from a ZIP package</string>
-    <string name="settings_restore_desc_long">Importing an offline model package (.zip) detects and extracts the model files automatically, so you don\'t have to download them one by one.</string>
     <string name="settings_restore_pick_zip">Choose model package (.zip)</string>
-    <string name="settings_restore_load_internal">Quick-load internal storage model package</string>
     <string name="settings_footer_title">Verbead</string>
     <string name="settings_footer_tagline">Every word a pearl</string>
     <string name="settings_ocr_header_title">PP-OCRv6 on-device text recognition</string>
@@ -300,7 +291,6 @@
     <string name="ocr_model_name_small">PP-OCRv6 Standard</string>
     <string name="ocr_model_name_tiny">PP-OCRv6 Lite</string>
     <string name="settings_toast_camera_permission">Please turn on camera permission in system settings</string>
-    <string name="settings_toast_quick_zip_not_found">No default model ZIP package found in the Download folder</string>
     <string name="settings_import_preparing">Preparing to extract the model package…</string>
     <string name="settings_import_extracting">Extracting: %1$s (%2$d%%)</string>
     <string name="settings_import_invalid_source">Invalid file source</string>
@@ -328,7 +318,6 @@
     <string name="settings_summary_ocr_original">Original</string>
     <string name="settings_summary_backup">Downloaded: %1$d/%2$d · ZIP import supported</string>
     <string name="settings_all_models_ready">All models ready</string>
-    <string name="settings_restore_load_internal_size">Quick-load internal storage model package (%1$dMB)</string>
     <string name="settings_summary_about">Version %1$s · Credits and licenses</string>
     <string name="dict_dialog_delete_title">Delete vocabulary entry</string>
     <string name="dict_dialog_delete_message">Delete \"%1$s\"?</string>
@@ -350,10 +339,6 @@
     <string name="settings_bubble_paste_desc_off">Text is written straight into the focused field through accessibility; use this if pasting misbehaves in some apps</string>
     <string name="settings_bubble_history_desc_on">Shows recent transcription history above the quick phrases drawer</string>
     <string name="settings_bubble_history_desc_off">History is off; the quick phrases drawer shows only saved phrases</string>
-    <string name="settings_bubble_restricted_dialog_title">How to allow restricted settings on Android 13+</string>
-    <string name="settings_bubble_restricted_dialog_message">On Android 13 and later, apps installed from outside the Play Store have \"Accessibility service\" and \"Display over other apps\" restricted by default.\n\nFollow these steps to lift the restriction:\n1. Tap \"Open app info\" below\n2. On the app info page, tap the \"⋮\" (three-dot menu) at the top right\n3. Tap \"Allow restricted settings\"\n4. Verify with your fingerprint or lock screen, then come back here to turn the permissions on!</string>
-    <string name="settings_bubble_restricted_dialog_action">Open app info</string>
-    <string name="settings_bubble_restricted_dialog_dismiss">Got it</string>
     <string name="settings_speech_toast_bluetooth_denied">Bluetooth permission not granted; automatic switching to a Bluetooth headset may not work</string>
     <string name="settings_speech_gain_original">1.0x (original)</string>
     <string name="settings_speech_gain_format">%1$.1fx gain</string>

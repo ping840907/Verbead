@@ -105,7 +105,6 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var progressImportModels: LinearProgressIndicator
     private lateinit var tvImportModelsStatus: TextView
     private lateinit var btnImportModelsZip: MaterialButton
-    private lateinit var btnQuickImportDownload: MaterialButton
 
     private lateinit var cardCatAbout: MaterialCardView
     private lateinit var tvCatAboutSummary: TextView
@@ -204,12 +203,7 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
-        if (intent.getBooleanExtra("auto_import_default_zip", false)) {
-            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
-            if (quickFile != null) {
-                runModelPackageImport(file = quickFile)
-            }
-        } else if (intent.hasExtra("import_zip_path")) {
+        if (intent.hasExtra("import_zip_path")) {
             val path = intent.getStringExtra("import_zip_path")
             if (!path.isNullOrEmpty()) {
                 val f = File(path)
@@ -262,7 +256,6 @@ class ImeSettingsActivity : AppCompatActivity() {
         progressImportModels = findViewById(R.id.progress_import_models)
         tvImportModelsStatus = findViewById(R.id.tv_import_models_status)
         btnImportModelsZip = findViewById(R.id.btn_import_models_zip)
-        btnQuickImportDownload = findViewById(R.id.btn_quick_import_download)
 
         cardCatAbout = findViewById(R.id.card_cat_about)
         tvCatAboutSummary = findViewById(R.id.tv_cat_about_summary)
@@ -330,13 +323,7 @@ class ImeSettingsActivity : AppCompatActivity() {
 
         itemStatusModel.setOnClickListener {
             HapticUtil.click(this)
-            val anyModelReady = ModelConfig.isXAsrReady(this) || ModelConfig.isQwen3Ready(this)
-            if (!anyModelReady) {
-                // Focus on inline model package import or open speech settings
-                startActivity(Intent(this, SpeechSettingsActivity::class.java))
-            } else {
-                startActivity(Intent(this, SpeechSettingsActivity::class.java))
-            }
+            startActivity(Intent(this, SpeechSettingsActivity::class.java))
         }
 
         // Category Cards Clicks
@@ -371,16 +358,6 @@ class ImeSettingsActivity : AppCompatActivity() {
             }
         }
 
-        btnQuickImportDownload.setOnClickListener {
-            HapticUtil.click(this)
-            val quickFile = ModelZipInstaller.findDefaultZipPackage(this)
-            if (quickFile != null) {
-                runModelPackageImport(file = quickFile)
-            } else {
-                Toast.makeText(this, getString(R.string.settings_toast_quick_zip_not_found), Toast.LENGTH_SHORT).show()
-            }
-        }
-
         cardCatAbout.setOnClickListener {
             HapticUtil.click(this)
             startActivity(Intent(this, AboutSettingsActivity::class.java))
@@ -389,7 +366,6 @@ class ImeSettingsActivity : AppCompatActivity() {
 
     private fun runModelPackageImport(file: File? = null, uri: Uri? = null) {
         btnImportModelsZip.isEnabled = false
-        btnQuickImportDownload.isEnabled = false
         progressImportModels.visibility = View.VISIBLE
         progressImportModels.progress = 0
         tvImportModelsStatus.visibility = View.VISIBLE
@@ -426,7 +402,6 @@ class ImeSettingsActivity : AppCompatActivity() {
 
             window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             btnImportModelsZip.isEnabled = true
-            btnQuickImportDownload.isEnabled = true
             progressImportModels.visibility = View.GONE
 
             if (result.isSuccess) {
@@ -637,15 +612,6 @@ class ImeSettingsActivity : AppCompatActivity() {
             tvAllModelsBadge.text = getString(R.string.settings_backup_status_not_ready)
             tvAllModelsBadge.setTextColor(ContextCompat.getColor(this, R.color.status_warning_text))
             tvAllModelsBadge.setBackgroundResource(R.drawable.bg_status_badge_warning)
-        }
-
-        val quickZip = ModelZipInstaller.findDefaultZipPackage(this)
-        if (quickZip != null) {
-            btnQuickImportDownload.visibility = View.VISIBLE
-            val sizeMb = quickZip.length() / (1024 * 1024)
-            btnQuickImportDownload.text = getString(R.string.settings_restore_load_internal_size, sizeMb)
-        } else {
-            btnQuickImportDownload.visibility = View.GONE
         }
 
         // 6. About

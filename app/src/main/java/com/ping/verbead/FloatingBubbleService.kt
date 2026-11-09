@@ -3060,19 +3060,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
         QuickPhrasesManager.addHistory(this, text)
 
-        // 透過無障礙服務安全直接填入（避免污染剪貼簿）
-        val accService = VoiceAccessibilityService.instance
-        val injected = accService?.inputText(text) ?: false
+        deliverText(text) { showPreviewText(getString(R.string.preview_copied), autoHide = true) }
+    }
 
+    /**
+     * 把 [text] 透過無障礙服務填入焦點欄位（不動剪貼簿）。
+     * 成功：（可選）送出 Enter，並進入 PASTED 狀態顯示 ✕ 供 10 秒內還原。
+     * 失敗（沒有焦點輸入框或服務不可用）：保留文字到常用語清單；若沒有彈出清單則呼叫 [onCopiedNotice] 顯示「已複製」類提示。
+     * @return 是否填入成功
+     */
+    private fun deliverText(text: String, autoEnter: Boolean = false, onCopiedNotice: () -> Unit): Boolean {
+        val injected = VoiceAccessibilityService.instance?.inputText(text) ?: false
         if (injected) {
-            // §6 貼上完成後進入 PASTED 狀態，顯示 X 鍵供 10 秒內 Undo
+            if (autoEnter) {
+                mainHandler.postDelayed({ VoiceAccessibilityService.instance?.sendEnterKey() }, 100)
+            }
             enterPastedState()
         } else {
-            // 若未找到焦點輸入框或無障礙服務不可用，備援複製至剪貼簿（具備 EXTRA_IS_SENSITIVE 隱私標記）
             setState(State.IDLE)
             hideXButton()
-            if (!keepUnfilledText(text)) showPreviewText(getString(R.string.preview_copied), autoHide = true)
+            if (!keepUnfilledText(text)) onCopiedNotice()
         }
+        return injected
     }
 
     internal fun setState(s: State) {
@@ -3491,21 +3500,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         stopOcrMode(hideX = false)
         stopScannerMode(hideX = false)
 
-        val injected = VoiceAccessibilityService.instance?.inputText(text) ?: false
-        if (injected) {
-            if (ModelConfig.isOcrAutoEnterEnabled(this)) {
-                mainHandler.postDelayed({
-                    VoiceAccessibilityService.instance?.sendEnterKey()
-                }, 100)
-            }
-            enterPastedState()
-        } else {
-            setState(State.IDLE)
-            hideXButton()
-            if (!keepUnfilledText(text)) {
-                val previewMsg = if (text.length > 25) "${text.take(25)}…" else text
-                showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
-            }
+        deliverText(text, ModelConfig.isOcrAutoEnterEnabled(this)) {
+            val previewMsg = if (text.length > 25) "${text.take(25)}…" else text
+            showPreviewText(getString(R.string.preview_copied_with_text, previewMsg), autoHide = true)
         }
     }
 
@@ -3514,18 +3511,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (code.isNotBlank()) {
             QuickPhrasesManager.addHistory(this, code)
         }
-        val injected = VoiceAccessibilityService.instance?.inputText(code) ?: false
-        if (injected) {
-            if (ModelConfig.isOcrAutoEnterEnabled(this)) {
-                mainHandler.postDelayed({
-                    VoiceAccessibilityService.instance?.sendEnterKey()
-                }, 100)
-            }
-            enterPastedState()
-        } else {
-            setState(State.IDLE)
-            hideXButton()
-            if (!keepUnfilledText(code)) showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
+        val injected = deliverText(code, ModelConfig.isOcrAutoEnterEnabled(this)) {
+            showPreviewText(getString(R.string.preview_copied_barcode), autoHide = true)
         }
         stopScannerMode(hideX = !injected)
     }

@@ -753,8 +753,10 @@ object ModelConfig {
         context.getSharedPreferences(PREF_INJECTION_SETTINGS, Context.MODE_PRIVATE)
             .edit().putString(KEY_TEXT_INJECTION_METHOD, method).apply()
 
+    /** Android 13+ 一律走無障礙 IME 通道填入，剪貼簿貼上只保留給舊版系統。 */
     fun isPasteModeEnabled(context: Context): Boolean =
-        getTextInjectionMethod(context) == INJECTION_PASTE
+        android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU &&
+            getTextInjectionMethod(context) == INJECTION_PASTE
 
     fun setPasteModeEnabled(context: Context, enabled: Boolean) =
         setTextInjectionMethod(context, if (enabled) INJECTION_PASTE else INJECTION_SET_TEXT)

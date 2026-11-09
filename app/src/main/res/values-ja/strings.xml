@@ -107,8 +107,6 @@
     <string name="settings_cat_ocr_desc">PP-OCR オフラインモデル、文字間隔、バーコードスキャン</string>
 
 
-    <string name="settings_cat_backup_title">オフラインモデルのバックアップとインポート</string>
-    <string name="settings_cat_backup_desc">ZIP からオフラインモデルをスマートに検証して復元</string>
 
     <string name="settings_cat_about_title">アプリについてとクレジット</string>
     <string name="settings_cat_about_desc">バージョン情報、オープンソースへの謝辞、GitHub プロジェクト</string>
@@ -147,9 +145,6 @@
     <string name="ocr_snapshot_recognize_and_input">認識して入力</string>
     <string name="settings_backup_restore_title">オフラインモデルの一括復元</string>
     <string name="settings_backup_status_not_ready">準備が不完全です</string>
-    <string name="settings_backup_restore_desc">Qwen3-ASR、X-ASR、PP-OCRv6 のオフラインモデルに対応しています。モデルパッケージ（.zip）を読み込むと内容を判別し、含まれるモデルを自動で展開・復元するので、一つずつダウンロードする必要はありません。</string>
-    <string name="settings_backup_pick_package">インポートするモデルパッケージを選択</string>
-    <string name="settings_backup_load_internal">内部のモデルパッケージをすばやく読み込む</string>
     <string name="bubble_mode_drag_handle_desc">長押ししてドラッグで並べ替え</string>
     <string name="bubble_mode_voice_title">音声入力</string>
     <string name="bubble_mode_voice_desc">バブルのタップまたはメニューの長押しで音声文字入力を開始します</string>
@@ -213,11 +208,9 @@
     <string name="settings_bubble_status_not_ready">未準備</string>
     <string name="settings_bubble_overlay_title">他のアプリの上に重ねて表示</string>
     <string name="settings_bubble_overlay_desc">他のアプリの上に表示することを許可します</string>
-    <string name="settings_bubble_overlay_help">「他のアプリの上に重ねて表示」をオンにできませんか？制限付き設定の解除手順を見る</string>
     <string name="settings_bubble_overlay_action">許可する</string>
     <string name="settings_bubble_autofill_title">自動入力（ユーザー補助）</string>
     <string name="settings_bubble_autofill_desc">認識したテキストをフォーカス中の入力欄に直接入力します</string>
-    <string name="settings_bubble_autofill_help">自動入力をオンにできませんか？制限付き設定の解除手順を見る</string>
     <string name="settings_bubble_autofill_action">オンにする</string>
     <string name="settings_bubble_restricted_title">制限付き設定を許可</string>
     <string name="settings_bubble_restricted_desc">「他のアプリの上に重ねて表示」または「自動入力」のスイッチがシステムによりグレーアウトされている場合は、ここからアプリ情報画面を開き、右上の「︙」（3 点メニュー）で「制限付き設定を許可」を選ぶと解除できます</string>
@@ -253,9 +246,7 @@
     <string name="settings_tour_button">操作デモと機能ガイド</string>
     <string name="settings_categories_title">機能設定</string>
     <string name="settings_restore_desc_short">X-ASR、Qwen3、PP-OCR のモデルパッケージ ZIP から自動復元</string>
-    <string name="settings_restore_desc_long">オフラインモデルパッケージ（.zip）をインポートすると、モデルファイルを自動で判別して展開・復元するので、一つずつダウンロードする必要はありません。</string>
     <string name="settings_restore_pick_zip">モデルパッケージ（.zip）を選択</string>
-    <string name="settings_restore_load_internal">内部ストレージのモデルパッケージをすばやく読み込む</string>
     <string name="settings_footer_title">Verbead</string>
     <string name="settings_footer_tagline">言葉は玉となり、一字一字が珠玉に</string>
     <string name="settings_ocr_header_title">PP-OCRv6 オンデバイス文字認識</string>
@@ -295,7 +286,6 @@
     <string name="ocr_model_name_small">PP-OCRv6 標準版</string>
     <string name="ocr_model_name_tiny">PP-OCRv6 軽量版</string>
     <string name="settings_toast_camera_permission">システム設定でカメラの権限をオンにしてください</string>
-    <string name="settings_toast_quick_zip_not_found">Download フォルダにデフォルトのモデル ZIP パッケージが見つかりません</string>
     <string name="settings_import_preparing">モデルパッケージの展開を準備中…</string>
     <string name="settings_import_extracting">展開中：%1$s (%2$d%%)</string>
     <string name="settings_import_invalid_source">無効なファイルの取得元です</string>
@@ -323,7 +313,6 @@
     <string name="settings_summary_ocr_original">原文のまま</string>
     <string name="settings_summary_backup">取得済みモデル：%1$d/%2$d · ZIP インポート対応</string>
     <string name="settings_all_models_ready">すべて準備完了</string>
-    <string name="settings_restore_load_internal_size">内部ストレージのモデルパッケージをすばやく読み込む (%1$dMB)</string>
     <string name="settings_summary_about">バージョン %1$s · 謝辞とライセンス</string>
     <string name="dict_dialog_delete_title">語彙を削除</string>
     <string name="dict_dialog_delete_message">「%1$s」を削除しますか？</string>
@@ -345,10 +334,6 @@
     <string name="settings_bubble_paste_desc_off">ユーザー補助サービスで入力欄に直接書き込みます。貼り付けが不安定なアプリではこちらを使用してください</string>
     <string name="settings_bubble_history_desc_on">定型文ドロワーの上部に、最近の文字起こし履歴を表示します</string>
     <string name="settings_bubble_history_desc_off">履歴はオフです。定型文ドロワーには固定の定型文のみ表示されます</string>
-    <string name="settings_bubble_restricted_dialog_title">Android 13 以降で制限付き設定を許可する方法</string>
-    <string name="settings_bubble_restricted_dialog_message">Android 13 以降では、外部からインストールしたアプリは、既定で「ユーザー補助サービス」と「他のアプリの上に重ねて表示」をオンにできないよう制限されています。\n\n次の手順で制限を解除してください：\n1. 下の「アプリ情報を開く」をタップ\n2. アプリ情報画面で、右上の「︙」（3 点メニュー）をタップ\n3. 「制限付き設定を許可」をタップ\n4. 指紋またはロック解除で認証し、この画面に戻って権限をオンにしてください。</string>
-    <string name="settings_bubble_restricted_dialog_action">アプリ情報を開く</string>
-    <string name="settings_bubble_restricted_dialog_dismiss">OK</string>
     <string name="settings_speech_toast_bluetooth_denied">Bluetooth の権限が許可されていないため、Bluetooth ヘッドセットへの自動切り替えができない場合があります</string>
     <string name="settings_speech_gain_original">1.0x（そのまま）</string>
     <string name="settings_speech_gain_format">ゲイン %1$.1fx</string>
