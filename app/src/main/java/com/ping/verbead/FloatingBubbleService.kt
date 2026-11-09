@@ -44,6 +44,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.bubble.BubbleState as State
+import com.ping.verbead.bubble.BubbleChainFollower
 import com.ping.verbead.bubble.BubbleStateMachine
 import com.ping.verbead.bubble.VoiceInputController
 import com.ping.verbead.bubble.CapsuleMenuController
@@ -124,15 +125,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         private const val ACTION_STOP = "com.ping.verbead.ACTION_STOP_BUBBLE"
         const val MODE_VOICE = 0
         const val MODE_OCR = 1
-        /** Centre-to-centre distance of bubbles linked by shaking while the dragged bubble moves: the 60dp bubble plus a small gap, so they never overlap. */
-        const val CHAIN_SPACING_DP = 68f
-        /**
-         * Linked bubbles are masses on a spring-damper rope: stiffness in 1/s^2 (about 3.5 Hz). The damping acts on the speed
-         * *relative to the bubble in front* and its ratio is below 1: a flick of the front bubble carries this one along instead
-         * of leaving it behind, and it swings a little past its spot when the front one stops (inertia).
-         */
-        const val CHAIN_STIFFNESS = 520f
-        const val CHAIN_DAMPING_RATIO = 0.6f
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
@@ -226,27 +218,20 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private var shakeRecoilUntilUptime = 0L
 
     /**
-     * Bubbles cloned by shaking stay linked behind the bubble being dragged (nearest first) for the rest of the
-     * gesture: each one trails the one in front of it at a fixed distance. Cleared when a new touch starts or the
-     * drag ends, after which the normal edge snapping takes over.
+     * 搖晃複製出的球會串在被拖曳的球後面，直到手勢結束（見 [BubbleChainFollower]）。
      */
-    private val shakeChain = ArrayList<FloatingBubbleItem>()
-    private var shakeChainLeader: FloatingBubbleItem? = null
-    private var chainLastFrameNs = 0L
-
-    /** id -> [x, y, vx, vy] in px and px/s for the leader and every linked bubble (positions kept as floats). */
-    private val chainState = HashMap<Int, FloatArray>()
-    private val chainFrameCallback = object : android.view.Choreographer.FrameCallback {
-        override fun doFrame(frameTimeNanos: Long) {
-            if (shakeChain.isEmpty()) {
-                chainLastFrameNs = 0L
-                return
+    private val shakeChain by lazy {
+        BubbleChainFollower(
+            windowManager = windowManager,
+            density = resources.displayMetrics.density,
+            bounds = {
+                BubbleChainFollower.Bounds(
+                    maxX = (getScreenWidth() - (60 * resources.displayMetrics.density).toInt()).toFloat(),
+                    minY = getMinY().toFloat(),
+                    maxY = getMaxY().toFloat()
+                )
             }
-            val dtMs = if (chainLastFrameNs == 0L) 16f else ((frameTimeNanos - chainLastFrameNs) / 1e6f).coerceIn(1f, 50f)
-            chainLastFrameNs = frameTimeNanos
-            stepShakeChain(dtMs)
-            android.view.Choreographer.getInstance().postFrameCallback(this)
-        }
+        )
     }
     private var dragOriginX = 0f
     private var dragOriginY = 0f
@@ -1043,7 +1028,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     currentlyDraggedBubble = item
-                    endShakeChain()
+                    shakeChain.end()
                     shakeDetector?.reset()
                     Looper.myQueue().addIdleHandler {
                         if (currentlyDraggedBubble != null) prewarmForShake()
@@ -1280,7 +1265,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         item.view.setLayerType(View.LAYER_TYPE_NONE, null)
                     } else {
                         currentlyDraggedBubble = null
-                        endShakeChain()
+                        shakeChain.end()
                         shakeDetector?.reset()
 
                         if (isDragging && bubbleDeleteZoneController.isShowing && bubbleDeleteZoneController.isAttracted) {
@@ -1315,7 +1300,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     bubbleDeleteZoneController.discardPrewarm()
                     item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
                     currentlyDraggedBubble = null
-                    endShakeChain()
+                    shakeChain.end()
                     shakeDetector?.reset()
                     if (bubbleDeleteZoneController.isShowing) {
                         bubbleDeleteZoneController.hide(animated = true)
@@ -1562,7 +1547,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         iv.contentDescription = desc
 
         // the new bubble links in behind the last bubble of the chain (or behind the dragged bubble itself)
-        val tail = shakeChain.lastOrNull()?.takeIf { it.view.isAttachedToWindow } ?: parent
+        val tail = shakeChain.attachedTail() ?: parent
         val initialX = tail.windowLayoutParams.x
         val initialY = tail.windowLayoutParams.y
 
@@ -1633,7 +1618,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val safeMax = getMaxY().toFloat()
         val screenWidth = getScreenWidth()
         val maxX = (screenWidth - bubbleWidthPx).toFloat()
-        val spacing = CHAIN_SPACING_DP * density
+        val spacing = BubbleChainFollower.SPACING_DP * density
         val x0 = initialX.toFloat()
         val y0 = initialY.toFloat()
 
@@ -1677,11 +1662,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         lp.x = (x0 + bx / bl).toInt()
         lp.y = (y0 + by / bl).toInt()
         windowManager.updateViewLayout(v, lp)
-        if (shakeChain.isEmpty()) shakeChainLeader = parent
-        shakeChain.add(newItem)
-        chainLastFrameNs = 0L
-        android.view.Choreographer.getInstance().removeFrameCallback(chainFrameCallback)
-        android.view.Choreographer.getInstance().postFrameCallback(chainFrameCallback)
+        shakeChain.link(parent, newItem)
 
         // 刪除區視窗已在按下時預先建好，這裡只播進場動畫；沒備好時才會當場建立
         if (bubbleItems.size > 1 && !bubbleDeleteZoneController.isShowing) {
@@ -1696,86 +1677,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 "addView=${tAdded - tBeforeAdd}ms mainThread=${SystemClock.elapsedRealtime() - tStart}ms"
         )
         return true
-    }
-
-    /** The gesture is over: unlink the bubbles (normal edge snapping, with collisions, takes over from here). */
-    private fun endShakeChain() {
-        if (shakeChain.isEmpty()) return
-        shakeChain.clear()
-        shakeChainLeader = null
-        chainState.clear()
-        android.view.Choreographer.getInstance().removeFrameCallback(chainFrameCallback)
-        chainLastFrameNs = 0L
-    }
-
-    /**
-     * One animation frame of the chain linked behind the dragged bubble. Each linked bubble is pulled toward the circle of
-     * radius [CHAIN_SPACING_DP] around the bubble in front of it (along the line between them, like a rope), and
-     * has inertia (see [CHAIN_STIFFNESS]). Linked bubbles are left out of the collision physics while the finger is down.
-     */
-    private fun stepShakeChain(dtMs: Float) {
-        val leader = shakeChainLeader ?: return
-        val density = resources.displayMetrics.density
-        val maxX = (getScreenWidth() - (60 * density).toInt()).toFloat()
-        val minY = getMinY().toFloat()
-        val maxY = getMaxY().toFloat()
-        val dt = (dtMs / 1000f).coerceIn(0.001f, 0.05f)
-
-        // the dragged bubble is moved by the finger; only its position and speed are tracked
-        val lead = chainState.getOrPut(leader.id) {
-            floatArrayOf(leader.windowLayoutParams.x.toFloat(), leader.windowLayoutParams.y.toFloat(), 0f, 0f)
-        }
-        val lx = leader.windowLayoutParams.x.toFloat()
-        val ly = leader.windowLayoutParams.y.toFloat()
-        // touch events do not arrive every frame, so smooth the measured speed
-        lead[2] += ((lx - lead[0]) / dt - lead[2]) * 0.5f
-        lead[3] += ((ly - lead[1]) / dt - lead[3]) * 0.5f
-        lead[0] = lx
-        lead[1] = ly
-
-        val spacing = CHAIN_SPACING_DP * density
-
-        val k = CHAIN_STIFFNESS
-        val c = 2f * CHAIN_DAMPING_RATIO * kotlin.math.sqrt(k)
-        var front = lead
-        var frontView = leader
-        for (f in shakeChain) {
-            val st = chainState.getOrPut(f.id) {
-                floatArrayOf(f.windowLayoutParams.x.toFloat(), f.windowLayoutParams.y.toFloat(), 0f, 0f)
-            }
-            if (!f.view.isAttachedToWindow || !frontView.view.isAttachedToWindow) { front = st; frontView = f; continue }
-            f.snapAnimator?.cancel()
-
-            var dx = st[0] - front[0]
-            var dy = st[1] - front[1]
-            var d = hypot(dx, dy)
-            if (d < 0.5f) { dx = 0f; dy = 1f; d = 1f } // exactly under the bubble in front: come out below it
-            // rest point: on the circle of radius spacing around the bubble in front, on the side where this one already is
-            val goalX = front[0] + dx / d * spacing
-            val goalY = front[1] + dy / d * spacing
-
-            // spring toward the rest point, damping relative to the bubble in front (semi-implicit Euler, one short step per frame)
-            st[2] += (k * (goalX - st[0]) - c * (st[2] - front[2])) * dt
-            st[3] += (k * (goalY - st[1]) - c * (st[3] - front[3])) * dt
-            st[0] += st[2] * dt
-            st[1] += st[3] * dt
-
-            // keep it on screen; a wall absorbs the speed in that direction
-            if (st[0] < 0f) { st[0] = 0f; if (st[2] < 0f) st[2] = 0f }
-            if (st[0] > maxX) { st[0] = maxX; if (st[2] > 0f) st[2] = 0f }
-            if (st[1] < minY) { st[1] = minY; if (st[3] < 0f) st[3] = 0f }
-            if (st[1] > maxY) { st[1] = maxY; if (st[3] > 0f) st[3] = 0f }
-
-            val nx = st[0].toInt()
-            val ny = st[1].toInt()
-            if (nx != f.windowLayoutParams.x || ny != f.windowLayoutParams.y) {
-                f.windowLayoutParams.x = nx
-                f.windowLayoutParams.y = ny
-                windowManager.updateViewLayout(f.view, f.windowLayoutParams)
-            }
-            front = st
-            frontView = f
-        }
     }
 
     private fun handleDeleteBubble(bubbleToDelete: FloatingBubbleItem) {
@@ -2577,7 +2478,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 addListener(object : android.animation.AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: android.animation.Animator) {
-                        endShakeChain()
+                        shakeChain.end()
                         snapBubbleToSafeBoundsWithInertia(leader, 0f, 0f)
                     }
                 })
