@@ -82,6 +82,13 @@ class VoiceAccessibilityService : AccessibilityService() {
         private set
     private var lastInjectedText: String? = null
     private var lastInjectedCursorPos: Int = -1
+    private val releaseGuardRunnable = Runnable { isAutomatedActionInProgress = false }
+
+    /** 自動操作結束後延遲解除「忽略自身事件」旗標；重複呼叫會重新計時，避免較早的計時器提前解除。 */
+    private fun releaseAutomationGuardLater() {
+        mainHandler.removeCallbacks(releaseGuardRunnable)
+        mainHandler.postDelayed(releaseGuardRunnable, 800)
+    }
 
     fun hasValidSnapshot(): Boolean {
         val snap = lastSnapshot ?: return false
@@ -572,7 +579,7 @@ class VoiceAccessibilityService : AccessibilityService() {
             Log.w(TAG, "IME commitText failed: ${e.message}")
             return false
         } finally {
-            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
+            releaseAutomationGuardLater()
         }
     }
 
@@ -728,7 +735,7 @@ class VoiceAccessibilityService : AccessibilityService() {
             Log.w(TAG, "ACTION_SET_TEXT failed; not touching the clipboard outside clipboard-paste mode")
             return false
         } finally {
-            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
+            releaseAutomationGuardLater()
         }
     }
 
@@ -739,10 +746,7 @@ class VoiceAccessibilityService : AccessibilityService() {
      * 不再搜尋目標應用程式自己的「復原」按鈕：那會依語系關鍵字猜測，且可能連使用者先前的輸入一起復原。
      */
     fun restoreLastSnapshot(): Boolean {
-        if (isAutomatedActionInProgress) {
-            Log.w(TAG, "restoreLastSnapshot: automated action already in progress, ignoring")
-            return false
-        }
+        // 使用者可能在填入後不到 1 秒就點 ✕：不可因防干擾旗標而忽略，快照被取走後本身就不會重入
         val snapshot = lastSnapshot ?: run {
             Log.w(TAG, "restoreLastSnapshot: lastSnapshot is null")
             return false
@@ -760,7 +764,7 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
             return restoreViaSetText(snapshot)
         } finally {
-            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
+            releaseAutomationGuardLater()
         }
     }
 
