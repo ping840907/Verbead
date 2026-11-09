@@ -43,9 +43,9 @@ import androidx.core.app.NotificationCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.k2fsa.sherpa.onnx.OnlineStream
 import com.ping.verbead.bubble.BubbleState as State
 import com.ping.verbead.bubble.BubbleStateMachine
+import com.ping.verbead.bubble.VoiceInputController
 import com.ping.verbead.bubble.CapsuleMenuController
 import com.ping.verbead.bubble.PhrasesDrawerController
 import com.ping.verbead.bubble.ScannerOverlayController
@@ -58,14 +58,9 @@ import com.ping.verbead.bubble.BubblePosition
 import com.ping.verbead.bubble.BubbleDeleteZoneController
 import com.ping.verbead.bubble.BubbleShakeDetector
 import com.ping.verbead.bubble.FloatingBubbleItem
-import com.ping.verbead.engine.AudioRecorder
 import com.ping.verbead.engine.ModelConfig
 
-import com.ping.verbead.engine.lang.ScriptMode
-import com.ping.verbead.engine.lang.ZhTwProfile
 import com.ping.verbead.engine.ModelDownloadState
-import com.ping.verbead.engine.Qwen3AsrEngine
-import com.ping.verbead.engine.XAsrEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -73,7 +68,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 
@@ -176,9 +170,19 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private val themedCtx by lazy { ContextThemeWrapper(this, R.style.Theme_Verbead) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val qwen3Asr by lazy { Qwen3AsrEngine(this) }
-    private val xAsr by lazy { XAsrEngine(this) }
-    private val recorder = AudioRecorder(this)
+    private val voice by lazy {
+        VoiceInputController(this, scope, mainHandler, object : VoiceInputController.Host {
+            override fun setState(state: State) = this@FloatingBubbleService.setState(state)
+            override fun showXButton() = this@FloatingBubbleService.showXButton()
+            override fun hideXButton() = this@FloatingBubbleService.hideXButton()
+            override fun showPreview(msg: String, autoHide: Boolean) = showPreviewText(msg, autoHide)
+            override fun hidePreview() = hidePreviewText()
+            override fun hidePulse() = hidePulseView()
+            override fun onRms(rms: Float) = onAudioRmsUpdate(rms)
+            override fun onTranscribed(text: String) = onTranscriptionDone(text)
+            override fun untuckAnchor() = untuckAnchorBubble()
+        })
+    }
     private val routingManager by lazy { AudioRoutingManager.getInstance(this) }
 
     private lateinit var windowManager: WindowManager
@@ -345,11 +349,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
     }
 
-    private var activeStream: OnlineStream? = null
-    private var recordingJob: Job? = null
-    private var isRecording = false
-    private var isAborted = false
-    private var lastStreamingText = ""
     private var autoHidePreviewJob: Job? = null
     private var xButtonAutoHideJob: Job? = null
     private var snapAnimator: ValueAnimator? = null
@@ -1964,25 +1963,25 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (isPhrasesDrawerActive) closePhrasesDrawer()
                 when (state) {
                     State.RECORDING -> {
-                        recorder.stopEarly()
+                        voice.stopEarly()
                         hidePreviewText()
                         setState(State.TRANSCRIBING)
                     }
                     State.IDLE, State.PASTED -> {
-                        startRecording()
+                        voice.start()
                     }
                     State.LOADING, State.TRANSCRIBING -> {
                         // In progress, ignore
                     }
                     State.SCANNING -> {
                         stopScannerMode()
-                        startRecording()
+                        voice.start()
                     }
                 }
             }
             MODE_OCR -> {
                 if (state == State.RECORDING) {
-                    recorder.stopEarly()
+                    voice.stopEarly()
                     hidePreviewText()
                     setState(State.IDLE)
                 }
@@ -1992,7 +1991,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             MODE_BARCODE -> {
                 if (state == State.RECORDING) {
-                    recorder.stopEarly()
+                    voice.stopEarly()
                     hidePreviewText()
                     setState(State.IDLE)
                 }
@@ -2002,7 +2001,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             MODE_PHRASES -> {
                 if (state == State.RECORDING) {
-                    recorder.stopEarly()
+                    voice.stopEarly()
                     hidePreviewText()
                     setState(State.IDLE)
                 }
@@ -2400,20 +2399,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             state == State.RECORDING -> {
                 // 中止錄音：停止 AudioRecord、丟棄音訊 buffer、關閉預覽氣泡、state → IDLE
-                isAborted = true
-                isRecording = false
-                recordingJob?.cancel()
-                recorder.stopEarly()
-                activeStream?.let { runCatching { it.release() } }
-                activeStream = null
+                voice.abortRecording()
                 hidePreviewText()
                 setState(State.IDLE)
                 hideXButton()
             }
             state == State.TRANSCRIBING -> {
                 // 中斷模型推論 (Abort)：Cancel 背景轉譯協程、設置 isAborted 旗標阻止後續貼上、state → IDLE
-                isAborted = true
-                recordingJob?.cancel()
+                voice.abortTranscribing()
                 hidePreviewText()
                 setState(State.IDLE)
                 hideXButton()
@@ -2491,7 +2484,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     private fun onAudioRmsUpdate(rms: Float) {
         if (!::bubblePulseController.isInitialized) return
-        bubblePulseController.onAudioRmsUpdate(rms, isRecording)
+        bubblePulseController.onAudioRmsUpdate(rms, voice.isRecording)
     }
 
     private fun updatePreviewPosition() {
@@ -2529,328 +2522,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     }
 
     private fun getInitialListeningPreviewText(): String = getString(R.string.preview_listening)
-
-    private fun isDualEngineActive(): Boolean = ModelConfig.isDualEngineActive(this)
-
-    private fun startRecording() {
-        isAborted = false
-        untuckAnchorBubble()
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, R.string.toast_mic_permission_voice, Toast.LENGTH_LONG).show()
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            startActivity(intent)
-            return
-        }
-
-        try {
-            if (isDualEngineActive()) {
-                if (!xAsr.isLoaded() || !qwen3Asr.isLoaded() || qwen3NeedsReload()) {
-                    preloadDualEngineAndStart()
-                    return
-                }
-                startDualEngineRecording()
-                return
-            }
-
-            val engine = ModelConfig.selectedEngine(this)
-            if (engine == ModelConfig.ENGINE_X_ASR) {
-                if (!xAsr.isLoaded()) {
-                    preloadAndStart(engine)
-                    return
-                }
-                startStreamingRecording()
-            } else {
-                if (!qwen3Asr.isLoaded() || qwen3NeedsReload()) {
-                    preloadAndStart(engine)
-                    return
-                }
-                startOfflineRecording()
-            }
-        } catch (e: Throwable) {
-            Log.e(TAG, "startRecording failed: ${e.message}", e)
-            setState(State.IDLE)
-            showPreviewText(getString(R.string.preview_voice_start_failed, e.localizedMessage ?: getString(R.string.common_unknown_error)), autoHide = true)
-        }
-    }
-
-    private fun preloadDualEngineAndStart() {
-        setState(State.LOADING)
-        showPreviewText(getString(R.string.preview_loading_dual_models), autoHide = false)
-
-        scope.launch {
-            val (xOk, qOk) = withContext(Dispatchers.IO) {
-                val x = xAsr.load().success
-                val q = qwen3Asr.load(buildHotwords()).success
-                x to q
-            }
-            if (xOk && qOk) {
-                startDualEngineRecording()
-            } else {
-                setState(State.IDLE)
-                showPreviewText(getString(R.string.preview_model_load_failed), autoHide = true)
-            }
-        }
-    }
-
-    private fun preloadAndStart(engine: String) {
-        setState(State.LOADING)
-        showPreviewText(getString(R.string.preview_loading_models), autoHide = false)
-
-        scope.launch {
-            val success = withContext(Dispatchers.IO) {
-                if (engine == ModelConfig.ENGINE_X_ASR) {
-                    xAsr.load().success
-                } else {
-                    qwen3Asr.load(buildHotwords()).success
-                }
-            }
-            if (success) {
-                if (engine == ModelConfig.ENGINE_X_ASR) {
-                    startStreamingRecording()
-                } else {
-                    startOfflineRecording()
-                }
-            } else {
-                setState(State.IDLE)
-                showPreviewText(getString(R.string.preview_model_load_failed), autoHide = true)
-            }
-        }
-    }
-
-    // 雙引擎模式底層運作機制
-    private fun startDualEngineRecording() {
-        val stream = xAsr.createStream() ?: run {
-            showPreviewText(getString(R.string.preview_cannot_create_stream), autoHide = true)
-            return
-        }
-        activeStream = stream
-        isRecording = true
-        isAborted = false
-        setState(State.RECORDING)
-        showXButton()
-        showPreviewText(getInitialListeningPreviewText(), autoHide = false)
-
-        val audioBuffer = mutableListOf<FloatArray>()
-        var accumulatedXAsr = ""
-        lastStreamingText = ""
-
-        recordingJob = scope.launch {
-            val stopReason = withContext(Dispatchers.IO) {
-                recorder.recordStreaming(
-                    silenceSeconds = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService),
-                    onChunk = { chunk ->
-                        if (isAborted) return@recordStreaming
-                        audioBuffer.add(chunk.copyOf())
-                        xAsr.acceptWaveform(stream, chunk)
-                        while (xAsr.isReady(stream)) {
-                            xAsr.decode(stream)
-                        }
-                        val partial = xAsr.getResult(stream)
-                        val combined = accumulatedXAsr + partial
-                        if (combined.isNotBlank() && combined != lastStreamingText) {
-                            lastStreamingText = combined
-                            mainHandler.post {
-                                if (isRecording && !isAborted) {
-                                    showPreviewText(combined, autoHide = false)
-                                }
-                            }
-                        }
-                        if (xAsr.isEndpoint(stream)) {
-                            if (partial.isNotBlank()) accumulatedXAsr += partial
-                            xAsr.reset(stream)
-                        }
-                    },
-                    onRmsUpdate = { rms -> onAudioRmsUpdate(rms) }
-                )
-            }
-
-            isRecording = false
-            hidePulseView()
-            activeStream = null
-            runCatching { xAsr.inputFinished(stream) }
-            runCatching {
-                while (xAsr.isReady(stream)) {
-                    xAsr.decode(stream)
-                }
-            }
-            val finalPartial = xAsr.getResult(stream).trim()
-            val totalXAsrText = (accumulatedXAsr + finalPartial).trim()
-            lastStreamingText = totalXAsrText
-            runCatching { stream.release() }
-
-            if (isAborted) return@launch
-
-            if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
-                setState(State.IDLE)
-                hideXButton()
-                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
-                return@launch
-            }
-
-            // 錄音結束，預覽氣泡淡出，維持目標框純淨
-            mainHandler.post {
-                hidePreviewText()
-                setState(State.TRANSCRIBING)
-            }
-
-            // 合併完整的音訊 buffer
-            val totalSamples = audioBuffer.sumOf { it.size }
-            if (totalSamples == 0) {
-                setState(State.IDLE)
-                hideXButton()
-                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
-                return@launch
-            }
-            val combinedAudio = FloatArray(totalSamples)
-            var offset = 0
-            for (chunk in audioBuffer) {
-                System.arraycopy(chunk, 0, combinedAudio, offset, chunk.size)
-                offset += chunk.size
-            }
-
-            // §2.4 Qwen3 轉譯與降級防護 (Fallback)
-            try {
-                val raw = withContext(Dispatchers.Default) {
-                    if (isAborted) return@withContext ""
-                    qwen3Asr.transcribe(combinedAudio)
-                }
-                if (isAborted) return@launch
-                val text = if (raw.isNotBlank()) postProcess(raw) else ""
-                onTranscriptionDone(text)
-            } catch (ex: Throwable) {
-                if (ex is kotlinx.coroutines.CancellationException || isAborted) return@launch
-                Log.e(TAG, "Qwen3 batch inference failed: ${ex.message}", ex)
-                val fallbackText = lastStreamingText
-                if (fallbackText.isNotEmpty()) {
-                    val processedFallback = postProcess(fallbackText)
-                    onTranscriptionDone(processedFallback)
-                    Toast.makeText(this@FloatingBubbleService, R.string.toast_offline_model_error_applied_streaming, Toast.LENGTH_SHORT).show()
-                } else {
-                    setState(State.IDLE)
-                    hideXButton()
-                    showPreviewText(getString(R.string.preview_transcribe_failed), autoHide = true)
-                    Toast.makeText(this@FloatingBubbleService, R.string.toast_transcribe_failed_retry, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun startOfflineRecording() {
-        isRecording = true
-        isAborted = false
-        setState(State.RECORDING)
-        showXButton()
-        showPreviewText(getInitialListeningPreviewText(), autoHide = false)
-
-        recordingJob = scope.launch {
-            val recording = withContext(Dispatchers.IO) {
-                recorder.recordUntilSilence(
-                    silenceSeconds = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService),
-                    onRmsUpdate = { rms -> onAudioRmsUpdate(rms) }
-                )
-            }
-            isRecording = false
-            hidePulseView()
-            if (isAborted) return@launch
-
-            if (recording.samples.isNotEmpty()) {
-                setState(State.TRANSCRIBING)
-                hidePreviewText()
-                try {
-                    val raw = withContext(Dispatchers.Default) {
-                        if (isAborted) return@withContext ""
-                        qwen3Asr.transcribe(recording.samples)
-                    }
-                    if (isAborted) return@launch
-                    val text = if (raw.isNotBlank()) postProcess(raw) else ""
-                    onTranscriptionDone(text)
-                } catch (ex: Throwable) {
-                    if (ex is kotlinx.coroutines.CancellationException || isAborted) return@launch
-                    setState(State.IDLE)
-                    hideXButton()
-                    showPreviewText(getString(R.string.preview_transcribe_failed), autoHide = true)
-                }
-            } else {
-                setState(State.IDLE)
-                hideXButton()
-                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
-            }
-        }
-    }
-
-    private fun startStreamingRecording() {
-        val engine = xAsr
-        val stream = engine.createStream() ?: run {
-            showPreviewText(getString(R.string.preview_cannot_create_stream), autoHide = true)
-            return
-        }
-        activeStream = stream
-        isRecording = true
-        isAborted = false
-        setState(State.RECORDING)
-        showXButton()
-        showPreviewText(getInitialListeningPreviewText(), autoHide = false)
-
-        var accumulated = ""
-        var lastShown = ""
-
-        recordingJob = scope.launch {
-            val stopReason = withContext(Dispatchers.IO) {
-                recorder.recordStreaming(
-                    silenceSeconds = ModelConfig.vadSilenceSeconds(this@FloatingBubbleService),
-                    onChunk = { chunk ->
-                        if (isAborted) return@recordStreaming
-                        engine.acceptWaveform(stream, chunk)
-                        while (engine.isReady(stream)) {
-                            engine.decode(stream)
-                        }
-                        val partial = engine.getResult(stream)
-                        val combined = accumulated + partial
-                        if (combined.isNotBlank() && combined != lastShown) {
-                            lastShown = combined
-                            mainHandler.post {
-                                if (isRecording && !isAborted) {
-                                    showPreviewText(combined, autoHide = false)
-                                }
-                            }
-                        }
-                        if (engine.isEndpoint(stream)) {
-                            if (partial.isNotBlank()) accumulated += partial
-                            engine.reset(stream)
-                        }
-                    },
-                    onRmsUpdate = { rms -> onAudioRmsUpdate(rms) }
-                )
-            }
-
-            isRecording = false
-            hidePulseView()
-            activeStream = null
-
-            runCatching { engine.inputFinished(stream) }
-            runCatching {
-                while (engine.isReady(stream)) {
-                    engine.decode(stream)
-                }
-            }
-            val finalSegment = engine.getResult(stream).trim()
-            runCatching { stream.release() }
-
-            if (isAborted) return@launch
-
-            if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
-                setState(State.IDLE)
-                hideXButton()
-                showPreviewText(getString(R.string.preview_no_speech_detected), autoHide = true)
-                return@launch
-            }
-
-            val fullText = (accumulated + finalSegment).trim()
-            onTranscriptionDone(fullText)
-        }
-    }
 
     /**
      * Copies text to system clipboard with sensitive flag as fallback when direct injection is unavailable.
@@ -3217,43 +2888,6 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     .start()
             }
             .start()
-    }
-
-    private fun qwen3NeedsReload(): Boolean =
-        buildHotwords() != qwen3Asr.loadedHotwords
-
-    private fun buildHotwords(): String =
-        if (ModelConfig.isHotwordsEnabled(this)) {
-            UserDictionary.load(this).values.distinct().sorted().joinToString("\n")
-        } else {
-            ""
-        }
-
-    /** 辨識後處理：依 [ZhTwProfile] 的規則依序套用。規則以字元證據逐句判斷，日韓文句子不會被動到。 */
-    private fun postProcess(raw: String): String {
-        val scriptMode = when {
-            !ModelConfig.isConvertToTraditionalEnabled(this) -> ScriptMode.OFF
-            ModelConfig.selectedEngine(this) == ModelConfig.ENGINE_X_ASR && !isDualEngineActive() -> ScriptMode.VARIANTS_ONLY
-            else -> ScriptMode.FULL
-        }
-        val converted = ZhTwProfile.convertScript(raw, scriptMode)
-        val userReplaced = UserDictionary.apply(converted, UserDictionary.load(this))
-        val postReplaced = if (userReplaced == converted || scriptMode == ScriptMode.OFF) {
-            userReplaced
-        } else {
-            ZhTwProfile.applyVariantRules(userReplaced)
-        }
-        // 數字轉換要在標點過濾之前：它依標點切小句，且不能被過濾後的文字影響
-        val numbered = if (ModelConfig.isSpokenNumbersEnabled(this)) {
-            ZhTwProfile.convertSpokenNumbers(postReplaced)
-        } else {
-            postReplaced
-        }
-        return if (ModelConfig.isFilterPunctuationEnabled(this)) {
-            ZhTwProfile.filterPunctuation(numbered)
-        } else {
-            numbered
-        }
     }
 
     private fun dpToPx(dp: Float): Float = dp * resources.displayMetrics.density
@@ -3644,15 +3278,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             spareBubbleView = null
             safely("jobs") {
                 snapAnimator?.cancel()
-                recordingJob?.cancel()
                 autoHidePreviewJob?.cancel()
                 xButtonAutoHideJob?.cancel()
             }
-            safely("recorder") { recorder.stopEarly() }
-            safely("stream") { activeStream?.release() }
-            activeStream = null
-            safely("qwen3") { if (qwen3Asr.isLoaded()) qwen3Asr.release() }
-            safely("xAsr") { if (xAsr.isLoaded()) xAsr.release() }
+            safely("voice") { voice.release() }
 
             for (item in bubbleItems) {
                 if (item.id != 0 && item.view.isAttachedToWindow) {
