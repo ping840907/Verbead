@@ -35,7 +35,7 @@
     <string name="onboarding_page3_desc">If a voice or OCR result isn\'t what you wanted, there\'s no need to fix it character by character. Within 10 seconds after filling in, tap the small ✕ key above the bubble to instantly undo and restore your original text.</string>
     <string name="onboarding_page3_tip">Tip: after input completes, a ✕ key appears above the bubble; tap it for a lossless undo.</string>
     <string name="onboarding_page4_title">Edge tuck · Keyboard link · Shake to duplicate</string>
-    <string name="onboarding_page4_desc" formatted="false">Drag the bubble to the screen edge to tuck it 70% out of view, or enable \"Show only when the on-screen keyboard appears\". You can also shake the bubble left and right while dragging to \"split off a copy\" (up to 5), keeping voice, OCR and AI rewriting bubbles ready on screen at once!</string>
+    <string name="onboarding_page4_desc" formatted="false">Drag the bubble to the screen edge to tuck it 70% out of view, or enable \"Show only when the on-screen keyboard appears\". You can also shake the bubble left and right while dragging to \"split off a copy\" (up to 4), keeping voice, OCR and AI rewriting bubbles ready on screen at once!</string>
     <string name="onboarding_page4_tip">Tip: each copy remembers its own mode; to remove extras, drag them to the delete zone at the top of the screen.</string>
     <string name="onboarding_page5_title" formatted="false">100% on-device · All-in-one settings</string>
     <string name="onboarding_page5_desc">From dual-engine voice to PP-OCRv6 text recognition, everything runs locally on your phone: no cloud uploads, no privacy leaks. Permissions, model management and offline model package import are all in the main settings page!</string>
@@ -387,7 +387,7 @@
     <string name="onboarding_gesture_keyboard_title">2. Keyboard link: appears only when typing</string>
     <string name="onboarding_gesture_keyboard_desc">Turn on \"Show only when keyboard is open\" in settings and the bubble fades in as the keyboard rises</string>
     <string name="onboarding_gesture_shake_title">3. Shake to duplicate: many bubbles at once</string>
-    <string name="onboarding_gesture_shake_desc">Shake the bubble left and right while dragging to split off a new one (up to 5), each remembering its own mode</string>
+    <string name="onboarding_gesture_shake_desc">Shake the bubble left and right while dragging to split off a new one (up to 4), each remembering its own mode</string>
     <string name="onboarding_gestures_title">Tuck · Link · Shake to duplicate</string>
     <string name="onboarding_gestures_mock_keyboard">System keyboard (Gboard)</string>
     <string name="onboarding_privacy_title" formatted="false">Private · 100% on-device processing</string>

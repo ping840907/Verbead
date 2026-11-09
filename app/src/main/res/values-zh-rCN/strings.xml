@@ -35,7 +35,7 @@
     <string name="onboarding_page3_desc">无论是语音输入或 OCR 截取，若结果不如预期，无需手动逐字修改！填入后 10 秒内点击悬浮球上方的小型 ✕ 键，即可瞬间撤回并完整还原原本的文字内容。</string>
     <string name="onboarding_page3_tip">提示：完成输入后，悬浮球上方会浮现 ✕ 键，轻点即可执行 Undo 无损恢复。</string>
     <string name="onboarding_page4_title">贴边收纳 · 键盘联动 · 摇晃分身</string>
-    <string name="onboarding_page4_desc" formatted="false">拖至屏幕边缘自动贴边收纳 70%，也可开启“仅软键盘出现时显示”。此外，拖动悬浮球时快速左右摇晃即可“分裂添加分身”（最多 5 颗），让语音、OCR 与 AI 改写多球同屏待命！</string>
+    <string name="onboarding_page4_desc" formatted="false">拖至屏幕边缘自动贴边收纳 70%，也可开启“仅软键盘出现时显示”。此外，拖动悬浮球时快速左右摇晃即可“分裂添加分身”（最多 4 颗），让语音、OCR 与 AI 改写多球同屏待命！</string>
     <string name="onboarding_page4_tip">提示：分身悬浮球各自记忆独立模式；若要移除多余分身，拖动至屏幕顶部删除区即可。</string>
     <string name="onboarding_page5_title" formatted="false">100% 离线端侧 · 一站式主设置</string>
     <string name="onboarding_page5_desc">从双引擎语音到 PP-OCRv6 文字识别，全程在手机本机推理，零云端上传、零隐私外泄。所有权限、模型管理与离线模型包导入皆整合于主设置页面！</string>
@@ -382,7 +382,7 @@
     <string name="onboarding_gesture_keyboard_title">2. 键盘联动：仅打字时现身</string>
     <string name="onboarding_gesture_keyboard_desc">主设置开启“仅软键盘出现时显示”，伴随键盘升起淡入出现</string>
     <string name="onboarding_gesture_shake_title">3. 摇晃分身：多颗悬浮球并行</string>
-    <string name="onboarding_gesture_shake_desc">拖动悬浮球时快速左右摇晃即可分裂新球（最多 5 颗），各自独立记忆模式</string>
+    <string name="onboarding_gesture_shake_desc">拖动悬浮球时快速左右摇晃即可分裂新球（最多 4 颗），各自独立记忆模式</string>
     <string name="onboarding_gestures_title">收纳 · 联动 · 摇晃分裂多球</string>
     <string name="onboarding_gestures_mock_keyboard">系统软键盘 (Gboard / 拼音)</string>
     <string name="onboarding_privacy_title">隐私安全 · 100% 离线端侧运算</string>

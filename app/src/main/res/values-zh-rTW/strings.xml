@@ -35,7 +35,7 @@
     <string name="onboarding_page3_desc">無論是語音輸入或 OCR 擷取，若結果不如預期，無需手動逐字修改！填入後 10 秒內點擊懸浮球上方的小型 ✕ 鍵，即可瞬間撤回並完整還原原本的文字內容。</string>
     <string name="onboarding_page3_tip">提示：完成輸入後，懸浮球上方會浮現 ✕ 鍵，輕點即可執行 Undo 無損復原。</string>
     <string name="onboarding_page4_title">貼邊收納 · 鍵盤聯動 · 搖晃分身</string>
-    <string name="onboarding_page4_desc" formatted="false">拖至螢幕邊緣自動貼邊收納 70%，也可開啟「僅軟體鍵盤出現時顯示」。此外，拖曳懸浮球時快速左右搖晃即可「分裂新增分身」（最多 5 顆），讓語音、OCR 與 AI 改寫多球同屏待命！</string>
+    <string name="onboarding_page4_desc" formatted="false">拖至螢幕邊緣自動貼邊收納 70%，也可開啟「僅軟體鍵盤出現時顯示」。此外，拖曳懸浮球時快速左右搖晃即可「分裂新增分身」（最多 4 顆），讓語音、OCR 與 AI 改寫多球同屏待命！</string>
     <string name="onboarding_page4_tip">提示：分身懸浮球各自記憶獨立模式；若要移除多餘分身，拖曳至螢幕頂部刪除區即可。</string>
     <string name="onboarding_page5_title" formatted="false">100% 離線端側 · 一站式主設定</string>
     <string name="onboarding_page5_desc">從雙引擎語音到 PP-OCRv6 文字辨識，全程在手機本機推論，零雲端上傳、零隱私外洩。所有權限、模型管理與離線模型包匯入皆整合於主設定頁面！</string>
@@ -382,7 +382,7 @@
     <string name="onboarding_gesture_keyboard_title">2. 鍵盤聯動：僅打字時現身</string>
     <string name="onboarding_gesture_keyboard_desc">主設定開啟「僅軟體鍵盤出現時顯示」，伴隨鍵盤升起淡入出現</string>
     <string name="onboarding_gesture_shake_title">3. 搖晃分身：多顆懸浮球並行</string>
-    <string name="onboarding_gesture_shake_desc">拖曳懸浮球時快速左右搖晃即可分裂新球（最多 5 顆），各自獨立記憶模式</string>
+    <string name="onboarding_gesture_shake_desc">拖曳懸浮球時快速左右搖晃即可分裂新球（最多 4 顆），各自獨立記憶模式</string>
     <string name="onboarding_gestures_title">收納 · 聯動 · 搖晃分裂多球</string>
     <string name="onboarding_gestures_mock_keyboard">系統軟體鍵盤 (Gboard / 注音)</string>
     <string name="onboarding_privacy_title">隱私安全 · 100% 離線端側運算</string>

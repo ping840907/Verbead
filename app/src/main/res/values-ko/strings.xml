@@ -35,7 +35,7 @@
     <string name="onboarding_page3_desc">음성 입력이나 OCR 결과가 마음에 들지 않아도 글자를 하나하나 고칠 필요가 없습니다. 입력 후 10초 이내에 버블 위의 작은 ✕ 키를 탭하면 원래 텍스트를 즉시 그대로 복원합니다.</string>
     <string name="onboarding_page3_tip">팁: 입력이 끝나면 버블 위에 ✕ 키가 나타납니다. 탭하면 손실 없이 실행 취소할 수 있습니다.</string>
     <string name="onboarding_page4_title">가장자리 수납 · 키보드 연동 · 흔들어 복제</string>
-    <string name="onboarding_page4_desc" formatted="false">화면 가장자리로 끌면 70%가 가려지며 수납됩니다. \"소프트웨어 키보드가 나타날 때만 표시\"를 켤 수도 있습니다. 또한 버블을 끌면서 좌우로 빠르게 흔들면 \"분신을 추가\"할 수 있어(최대 5개), 음성, OCR, AI 다시 쓰기 버블을 한 화면에 함께 둘 수 있습니다!</string>
+    <string name="onboarding_page4_desc" formatted="false">화면 가장자리로 끌면 70%가 가려지며 수납됩니다. \"소프트웨어 키보드가 나타날 때만 표시\"를 켤 수도 있습니다. 또한 버블을 끌면서 좌우로 빠르게 흔들면 \"분신을 추가\"할 수 있어(최대 4개), 음성, OCR, AI 다시 쓰기 버블을 한 화면에 함께 둘 수 있습니다!</string>
     <string name="onboarding_page4_tip">팁: 분신 버블은 각자 다른 모드를 기억합니다. 불필요한 분신은 화면 위쪽 삭제 영역으로 끌어 제거하세요.</string>
     <string name="onboarding_page5_title" formatted="false">100% 온디바이스 · 올인원 기본 설정</string>
     <string name="onboarding_page5_desc">듀얼 엔진 음성 인식부터 PP-OCRv6 문자 인식까지 모든 처리가 휴대폰 안에서 이루어집니다. 클라우드 업로드도, 개인정보 유출도 없습니다. 권한, 모델 관리, 오프라인 모델 패키지 가져오기가 모두 기본 설정 화면에 모여 있습니다!</string>
@@ -382,7 +382,7 @@
     <string name="onboarding_gesture_keyboard_title">2. 키보드 연동: 입력할 때만 표시</string>
     <string name="onboarding_gesture_keyboard_desc">설정에서 \"키보드가 나타날 때만 표시\"를 켜면 키보드가 올라올 때 버블이 서서히 나타납니다</string>
     <string name="onboarding_gesture_shake_title">3. 흔들어 복제: 여러 버블 동시 사용</string>
-    <string name="onboarding_gesture_shake_desc">버블을 끌면서 좌우로 빠르게 흔들면 새 버블이 생깁니다(최대 5개). 각각 독립적으로 모드를 기억합니다</string>
+    <string name="onboarding_gesture_shake_desc">버블을 끌면서 좌우로 빠르게 흔들면 새 버블이 생깁니다(최대 4개). 각각 독립적으로 모드를 기억합니다</string>
     <string name="onboarding_gestures_title">수납 · 연동 · 흔들어 복제</string>
     <string name="onboarding_gestures_mock_keyboard">시스템 키보드 (Gboard)</string>
     <string name="onboarding_privacy_title" formatted="false">개인정보 보호 · 100% 온디바이스 처리</string>

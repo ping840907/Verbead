@@ -35,7 +35,7 @@
     <string name="onboarding_page3_desc">音声入力や OCR の結果が期待どおりでなくても、一文字ずつ直す必要はありません。入力後 10 秒以内にバブルの上にある小さな ✕ キーをタップすると、元のテキストをそのまま復元できます。</string>
     <string name="onboarding_page3_tip">ヒント：入力が完了するとバブルの上に ✕ キーが現れます。タップすると元に戻す操作を実行できます。</string>
     <string name="onboarding_page4_title">端に収納 · キーボード連動 · シェイクで複製</string>
-    <string name="onboarding_page4_desc" formatted="false">画面の端までドラッグすると 70% が隠れて収納されます。「ソフトウェアキーボード表示時のみ表示」をオンにすることもできます。また、ドラッグ中にバブルを左右に素早く振ると「分身を追加」できます（最大 5 個）。音声、OCR、AI 書き換えのバブルを同時に待機させられます。</string>
+    <string name="onboarding_page4_desc" formatted="false">画面の端までドラッグすると 70% が隠れて収納されます。「ソフトウェアキーボード表示時のみ表示」をオンにすることもできます。また、ドラッグ中にバブルを左右に素早く振ると「分身を追加」できます（最大 4 個）。音声、OCR、AI 書き換えのバブルを同時に待機させられます。</string>
     <string name="onboarding_page4_tip">ヒント：分身はそれぞれ別のモードを記憶します。不要な分身は画面上部の削除ゾーンにドラッグすると削除できます。</string>
     <string name="onboarding_page5_title" formatted="false">100% オフライン · オールインワン設定</string>
     <string name="onboarding_page5_desc">デュアルエンジンの音声認識から PP-OCRv6 の文字認識まで、すべて端末内で処理します。クラウドへの送信はなく、プライバシーが漏れる心配もありません。権限、モデル管理、オフラインモデルパッケージのインポートもすべてメイン設定にまとまっています。</string>
@@ -382,7 +382,7 @@
     <string name="onboarding_gesture_keyboard_title">2. キーボード連動：入力時だけ表示</string>
     <string name="onboarding_gesture_keyboard_desc">設定で「キーボード表示時のみ表示」をオンにすると、キーボードの表示に合わせてバブルがフェードインします</string>
     <string name="onboarding_gesture_shake_title">3. シェイクで複製：複数のバブルを並行利用</string>
-    <string name="onboarding_gesture_shake_desc">ドラッグ中にバブルを左右に素早く振ると新しいバブルを追加できます（最大 5 個）。それぞれ独立してモードを記憶します</string>
+    <string name="onboarding_gesture_shake_desc">ドラッグ中にバブルを左右に素早く振ると新しいバブルを追加できます（最大 4 個）。それぞれ独立してモードを記憶します</string>
     <string name="onboarding_gestures_title">収納 · 連動 · シェイクで複製</string>
     <string name="onboarding_gestures_mock_keyboard">システムキーボード（Gboard）</string>
     <string name="onboarding_privacy_title" formatted="false">プライバシー重視 · 100% オンデバイス処理</string>
