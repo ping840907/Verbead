@@ -78,6 +78,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         private set
     private var lastInjectedText: String? = null
     private var lastInjectedCursorPos: Int = -1
+    private var lastInjectedViaIme: Boolean = false
 
     fun hasValidSnapshot(): Boolean {
         val snap = lastSnapshot ?: return false
@@ -573,6 +574,81 @@ class VoiceAccessibilityService : AccessibilityService() {
         )
     }
 
+    // ── Accessibility IME channel (Android 13+) ─────────────────────────────────────────
+    // ACTION_SET_TEXT 會「整段取代」欄位內容，Google Keep 這類自管編輯狀態的欄位事後會與內部模型脫節
+    // （按換行鍵游標逐字亂跳、最後閃退）；Google Docs 這類自繪編輯器則根本不支援 SET_TEXT。
+    // 透過 InputMethod 通道（等同鍵盤的 commitText）插入，欄位會把它當成一般打字，行為最接近原生輸入。
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    override fun onCreateInputMethod(): android.accessibilityservice.InputMethod =
+        android.accessibilityservice.InputMethod(this)
+
+    private fun imeConnection(): android.accessibilityservice.InputMethod.AccessibilityInputConnection? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
+        return runCatching {
+            val im = inputMethod
+            if (im == null || !im.currentInputStarted) null else im.currentInputConnection
+        }.getOrNull()
+    }
+
+    private fun isPasswordInputType(inputType: Int): Boolean {
+        val cls = inputType and android.text.InputType.TYPE_MASK_CLASS
+        val variation = inputType and android.text.InputType.TYPE_MASK_VARIATION
+        return when (cls) {
+            android.text.InputType.TYPE_CLASS_TEXT ->
+                variation == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                    variation == android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+                    variation == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            android.text.InputType.TYPE_CLASS_NUMBER ->
+                variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            else -> false
+        }
+    }
+
+    /** 以 IME 通道插入文字；通道不可用或為密碼欄位時回傳 false，由呼叫端退回其他方式。 */
+    private fun tryInputViaIme(text: String, createSnapshot: Boolean): Boolean {
+        val ic = imeConnection() ?: return false
+        val info = runCatching { inputMethod?.currentInputEditorInfo }.getOrNull()
+        if (info != null && isPasswordInputType(info.inputType)) return false
+
+        val target = runCatching { findActiveEditableNode() }.getOrNull()
+        if (target?.isPassword == true) return false
+
+        isAutomatedActionInProgress = true
+        try {
+            if (createSnapshot) {
+                // 不做選取探測（避免干擾游標），僅採用系統明確標示的提示文字旗標
+                val showingHint = target != null &&
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && target.isShowingHintText
+                lastSnapshot = EditorSnapshot(
+                    node = target,
+                    originalText = if (showingHint) "" else (target?.text?.toString() ?: ""),
+                    selectionStart = target?.textSelectionStart ?: -1,
+                    selectionEnd = target?.textSelectionEnd ?: -1
+                )
+                lastInjectedText = text
+                lastInjectedCursorPos = -1
+                lastInjectedViaIme = true
+            }
+            ic.commitText(text, 1, null)
+            Log.i(TAG, "inputText: committed ${text.length} chars via accessibility IME channel")
+            return true
+        } catch (e: Exception) {
+            Log.w(TAG, "IME commitText failed: ${e.message}")
+            return false
+        } finally {
+            mainHandler.postDelayed({ isAutomatedActionInProgress = false }, 800)
+        }
+    }
+
+    private fun tryUndoViaIme(snapshot: EditorSnapshot, injected: String?): Boolean {
+        if (injected.isNullOrEmpty()) return false
+        // 原本若選取了一段文字被取代，無法只靠刪除還原，交給 SET_TEXT 路徑
+        if (snapshot.selectionStart != snapshot.selectionEnd && snapshot.selectionStart >= 0) return false
+        val ic = imeConnection() ?: return false
+        return runCatching { ic.deleteSurroundingText(injected.length, 0); true }.getOrDefault(false)
+    }
+
     /**
      * Injects [text] into the currently focused editable node in the active foreground window.
      * Uses ACTION_SET_TEXT combined with cursor calculation to insert text at current cursor without
@@ -581,6 +657,12 @@ class VoiceAccessibilityService : AccessibilityService() {
      */
     fun inputText(text: String, createSnapshot: Boolean = true): Boolean {
         if (text.isEmpty()) return false
+
+        // 直接填入模式：優先走 IME 通道（Keep、Docs 等無法可靠使用 SET_TEXT 的應用）
+        if (!ModelConfig.isPasteModeEnabled(this) && tryInputViaIme(text, createSnapshot)) {
+            return true
+        }
+        lastInjectedViaIme = false
 
         val target = findActiveEditableNode()
         if (target == null) {
@@ -720,8 +802,11 @@ class VoiceAccessibilityService : AccessibilityService() {
             Log.w(TAG, "restoreLastSnapshot: lastSnapshot is null")
             return false
         }
+        val injectedForUndo = lastInjectedText
+        val injectedViaIme = lastInjectedViaIme
         // Consume snapshot immediately to prevent any re-entrant or recursive calls
         lastSnapshot = null
+        lastInjectedViaIme = false
         lastInjectedText = null
         lastInjectedCursorPos = -1
 
@@ -742,6 +827,10 @@ class VoiceAccessibilityService : AccessibilityService() {
                 }
             }
             if (target == null) {
+                if (injectedViaIme && tryUndoViaIme(snapshot, injectedForUndo)) {
+                    Log.i(TAG, "restoreLastSnapshot: undone via accessibility IME channel (no node)")
+                    return true
+                }
                 Log.w(TAG, "restoreLastSnapshot: failed to find active or cached editable node, attempting native undo fallback")
                 val nativeUndoBtn = findNativeUndoButton(null)
                 if (nativeUndoBtn != null) {
@@ -774,6 +863,13 @@ class VoiceAccessibilityService : AccessibilityService() {
                     wasNativeUndo = true
                     Log.i(TAG, "restoreLastSnapshot: native undo button clicked successfully: desc='${nativeUndoBtn.contentDescription}'")
                 }
+            }
+
+            // 1.5 以 IME 通道插入的文字：刪除剛插入的字元即可還原（不會整段覆寫欄位）
+            if (!restored && injectedViaIme && tryUndoViaIme(snapshot, injectedForUndo)) {
+                restored = true
+                wasNativeUndo = true
+                Log.i(TAG, "restoreLastSnapshot: undone via accessibility IME channel")
             }
 
             // 2. 若無原生 Undo 按鈕，嘗試透過 ACTION_SET_TEXT 還原原始文字
@@ -834,7 +930,21 @@ class VoiceAccessibilityService : AccessibilityService() {
      * Dispatches Enter / IME Action to the active editable field.
      */
     fun sendEnterKey(): Boolean {
-        val target = findActiveEditableNode() ?: return false
+        val target = findActiveEditableNode()
+        if (target == null || target.isMultiLine) {
+            // 多行欄位／自繪編輯器：送出真正的 Enter 按鍵事件，與實體鍵盤行為一致
+            val ic = imeConnection()
+            if (ic != null) {
+                val ok = runCatching {
+                    val now = android.os.SystemClock.uptimeMillis()
+                    ic.sendKeyEvent(android.view.KeyEvent(now, now, android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER, 0))
+                    ic.sendKeyEvent(android.view.KeyEvent(now, now, android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER, 0))
+                    true
+                }.getOrDefault(false)
+                if (ok) return true
+            }
+        }
+        if (target == null) return false
         // 多行文字框（例如 Google Keep 筆記區、各類多行備忘錄與自繪文件）：
         // Enter 鍵在多行編輯器中代表換行（\n），若送出 ACTION_IME_ENTER 會觸發 IME_ACTION_NEXT（跳至下一個欄位/字元）而無法換行。
         // 故在 isMultiLine 為 true 時直接注入換行字元 \n；僅單行文字框（搜尋列、網址列等）才觸發 ACTION_IME_ENTER。
