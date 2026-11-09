@@ -200,7 +200,7 @@
     <string name="settings_speech_to_traditional_desc">Converts Simplified to Traditional Chinese; Japanese and Korean passages are left unchanged. When off, the recognized text is kept exactly as is</string>
     <string name="settings_speech_spoken_numbers_title">Convert spoken numbers to digits</string>
     <string name="settings_speech_spoken_numbers_desc">Turns spoken numbers in Chinese, English, Japanese and Korean into digits (\"twenty three\" → 23, \"一百二十三\" → 123), including years, decimals, percentages and, in Chinese, arithmetic, fractions and times. A single digit in everyday phrases is left as a word</string>
-    <string name="settings_speech_filter_punct_title">Filter Chinese punctuation</string>
+    <string name="settings_speech_filter_punct_title">Filter full-width punctuation</string>
     <string name="settings_speech_filter_punct_desc">Automatically removes full-width commas, periods, question marks and similar symbols</string>
     <string name="settings_bubble_header_title">Floating voice bubble</string>
     <string name="settings_bubble_header_desc">Docks to the edge; one tap for voice, barcode and text recognition</string>
@@ -493,6 +493,22 @@ Final: %2$s</string>
     <string name="asr_variant_format">Variant: %1$s</string>
     <string name="asr_variant_dialog_title">Choose a variant</string>
     <string name="asr_language_search_hint">Search languages</string>
-    <string name="asr_list_title">Available models</string>
     <string name="asr_combo_clear">Clear this model</string>
+    <string name="asr_simple_title">Quick setup</string>
+    <string name="asr_simple_language_format">I mainly speak: %1$s</string>
+    <string name="asr_profile_light">Light</string>
+    <string name="asr_profile_balanced">Balanced</string>
+    <string name="asr_profile_best">Most accurate</string>
+    <string name="asr_rec_title">Recommended for you</string>
+    <string name="asr_rec_none">No recommended model for this language yet. Open the full list below to choose one yourself.</string>
+    <string name="asr_rec_download_use">Download and use</string>
+    <string name="asr_rec_use">Use</string>
+    <string name="asr_rec_in_use">In use</string>
+    <string name="asr_preview_switch">Show text while I speak (optional)</string>
+    <string name="asr_preview_hint">Uses extra memory and battery. Most people don\'t need it.</string>
+    <string name="asr_advanced_title">Choose models yourself</string>
+    <string name="settings_speech_filter_half_punct_title">Filter half-width punctuation</string>
+    <string name="settings_speech_filter_half_punct_desc">Removes commas, periods, question marks, quotes and similar symbols. Decimal points and times such as 10:30 are kept</string>
+    <string name="asr_mode_live_chip">Live · text while speaking</string>
+    <string name="asr_mode_final_chip">Final · after you stop</string>
 </resources>

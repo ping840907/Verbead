@@ -142,6 +142,24 @@ object ModelConfig {
     fun readyAsrModel(context: Context, mode: AsrMode): AsrModel? =
         selectedAsrModel(context, mode)?.takeIf { isModelReady(context, it) }
 
+    // ── Quick setup: the user's language and how heavy the model may be ─────────
+    private const val KEY_PRIMARY_LANGUAGE = "primary_language"
+    private const val KEY_PROFILE = "profile"
+
+    fun asrPrimaryLanguage(context: Context): String =
+        context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE).getString(KEY_PRIMARY_LANGUAGE, null)
+            ?: AsrRecommender.defaultLanguage(context.resources.configuration.locales[0])
+
+    fun setAsrPrimaryLanguage(context: Context, tag: String) =
+        context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE).edit().putString(KEY_PRIMARY_LANGUAGE, tag).apply()
+
+    fun asrProfile(context: Context): AsrTier =
+        AsrTier.parse(context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE).getString(KEY_PROFILE, "") ?: "")
+            ?: AsrTier.BALANCED
+
+    fun setAsrProfile(context: Context, tier: AsrTier) =
+        context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE).edit().putString(KEY_PROFILE, tier.key).apply()
+
     /** Both slots are filled and downloaded: the live text is shown first, then the final model decides. */
     fun isDualEngineActive(context: Context): Boolean =
         readyAsrModel(context, AsrMode.LIVE) != null && readyAsrModel(context, AsrMode.FINAL) != null
@@ -163,6 +181,16 @@ object ModelConfig {
     fun setFilterPunctuationEnabled(context: Context, enabled: Boolean) =
         context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_FILTER_PUNCTUATION, enabled).apply()
+
+    private const val KEY_FILTER_HALF_PUNCTUATION = "filter_half_width_punctuation"
+
+    fun isFilterHalfWidthPunctuationEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_FILTER_HALF_PUNCTUATION, false)
+
+    fun setFilterHalfWidthPunctuationEnabled(context: Context, enabled: Boolean) =
+        context.getSharedPreferences(PREF_QWEN3_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_FILTER_HALF_PUNCTUATION, enabled).apply()
 
     // ── Hotwords switch ───────────────────────────────────────────────────────
     private const val KEY_HOTWORDS_ENABLED = "hotwords_enabled"

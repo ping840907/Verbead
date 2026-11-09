@@ -230,3 +230,47 @@ class AsrGroupingTest {
         assertEquals(listOf("moonshine_tiny_ja", "moonshine_base_ja"), moonshineJa.map { it.id }.sorted().reversed().sortedBy { it.contains("base") })
     }
 }
+
+class AsrRecommenderTest {
+    private fun pick(lang: String, mode: AsrMode, tier: AsrTier) =
+        AsrRecommender.pick(AsrCatalog.models, lang, mode, tier)?.id
+
+    @Test fun taiwaneseChinese() {
+        assertEquals("qwen3", pick("zh-TW", AsrMode.FINAL, AsrTier.BEST))
+        assertEquals("qwen3", pick("zh-TW", AsrMode.FINAL, AsrTier.BALANCED))
+        assertEquals("moonshine_base_zh", pick("zh-TW", AsrMode.FINAL, AsrTier.LIGHT))
+        assertEquals("x_asr", pick("zh-TW", AsrMode.LIVE, AsrTier.BALANCED))
+    }
+
+    @Test fun english() {
+        assertEquals("moonshine_tiny_en", pick("en", AsrMode.FINAL, AsrTier.LIGHT))
+        assertEquals("parakeet_110m_en", pick("en", AsrMode.FINAL, AsrTier.BALANCED))
+        assertEquals("parakeet_v3", pick("en", AsrMode.FINAL, AsrTier.BEST))
+        assertEquals("zipformer_en_20m", pick("en", AsrMode.LIVE, AsrTier.LIGHT))
+    }
+
+    @Test fun japaneseKoreanVietnameseThai() {
+        assertEquals("moonshine_tiny_ja", pick("ja", AsrMode.FINAL, AsrTier.LIGHT))
+        assertEquals("moonshine_base_ja", pick("ja", AsrMode.FINAL, AsrTier.BALANCED))
+        assertEquals("qwen3", pick("ja", AsrMode.FINAL, AsrTier.BEST))
+        assertEquals("moonshine_tiny_ko", pick("ko", AsrMode.FINAL, AsrTier.LIGHT))
+        assertEquals("qwen3", pick("ko", AsrMode.FINAL, AsrTier.BALANCED))
+        assertEquals("moonshine_base_vi", pick("vi", AsrMode.FINAL, AsrTier.BALANCED))
+        assertEquals("qwen3", pick("th", AsrMode.FINAL, AsrTier.LIGHT))
+    }
+
+    @Test fun onlyTheMainNemotronIsRecommended() {
+        assertEquals("nemotron35", pick("ja", AsrMode.LIVE, AsrTier.BEST))
+    }
+
+    @Test fun noModelForAnUnknownLanguage() {
+        assertNull(pick("xx", AsrMode.FINAL, AsrTier.BALANCED))
+    }
+
+    @Test fun defaultLanguageFollowsThePhone() {
+        assertEquals("zh-TW", AsrRecommender.defaultLanguage(Locale.TRADITIONAL_CHINESE))
+        assertEquals("zh-CN", AsrRecommender.defaultLanguage(Locale.SIMPLIFIED_CHINESE))
+        assertEquals("ja", AsrRecommender.defaultLanguage(Locale.JAPAN))
+        assertEquals("en", AsrRecommender.defaultLanguage(Locale.US))
+    }
+}

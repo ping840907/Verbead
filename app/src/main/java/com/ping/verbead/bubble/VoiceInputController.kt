@@ -457,10 +457,15 @@ class VoiceInputController(
         } else {
             postReplaced
         }
-        return if (ModelConfig.isFilterPunctuationEnabled(context)) {
+        val noFullWidth = if (ModelConfig.isFilterPunctuationEnabled(context)) {
             ZhTwProfile.filterPunctuation(numbered)
         } else {
             numbered
+        }
+        return if (ModelConfig.isFilterHalfWidthPunctuationEnabled(context)) {
+            ZhTwProfile.filterHalfWidthPunctuation(noFullWidth)
+        } else {
+            noFullWidth
         }
     }
 

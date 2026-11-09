@@ -30,6 +30,8 @@ import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.AsrCatalog
 import com.ping.verbead.engine.AsrMode
 import com.ping.verbead.engine.AsrModel
+import com.ping.verbead.engine.AsrRecommender
+import com.ping.verbead.engine.AsrTier
 import java.util.Locale
 import com.ping.verbead.util.LanguageSection
 import com.ping.verbead.util.label
@@ -59,6 +61,37 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var tvEmpty: TextView
     private lateinit var tvCustomProblems: TextView
 
+    // Quick setup
+    private lateinit var btnPrimaryLanguage: MaterialButton
+    private lateinit var chipsProfile: ChipGroup
+    private lateinit var switchPreview: MaterialSwitch
+    private lateinit var layoutPreviewToggle: View
+    private lateinit var tvRecNone: TextView
+    private lateinit var layoutAdvanced: View
+    private lateinit var ivAdvancedArrow: android.widget.ImageView
+    private lateinit var quickMain: QuickRow
+    private lateinit var quickPreview: QuickRow
+    private var previewWanted = false
+    private var renderingQuick = false
+    private lateinit var chipsMode: ChipGroup
+
+    /** The kind of model the quick setup recommends as the main one; null = follow what is selected now. */
+    private var quickMode: AsrMode? = null
+
+    /** Models the user asked to use right after their download finishes (from the quick setup). */
+    private val pendingUse = HashMap<String, Boolean>() // model id -> used as the extra live preview
+
+    private class QuickRow(
+        val root: View,
+        val name: TextView,
+        val info: TextView,
+        val action: MaterialButton,
+        val progress: LinearProgressIndicator,
+        val progressText: TextView,
+    ) {
+        var modelId: String? = null
+    }
+
     private var filterMode: AsrMode? = null
     private var filterLanguage: String? = null
 
@@ -86,6 +119,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var switchConvertTraditional: MaterialSwitch
     private lateinit var layoutFilterPunctuationToggle: View
     private lateinit var switchFilterPunctuation: MaterialSwitch
+    private lateinit var layoutFilterHalfPunctToggle: View
+    private lateinit var switchFilterHalfPunct: MaterialSwitch
 
 
     // Custom dictionary option card
@@ -147,6 +182,55 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvEmpty = findViewById(R.id.tv_asr_empty)
         tvCustomProblems = findViewById(R.id.tv_asr_custom_problems)
 
+        btnPrimaryLanguage = findViewById(R.id.btn_asr_primary_language)
+        chipsProfile = findViewById(R.id.chips_asr_profile)
+        chipsMode = findViewById(R.id.chips_asr_mode)
+        chipsMode.setOnCheckedStateChangeListener { _, ids ->
+            if (renderingQuick) return@setOnCheckedStateChangeListener
+            quickMode = if (ids.firstOrNull() == R.id.chip_mode_live) AsrMode.LIVE else AsrMode.FINAL
+            renderQuick()
+        }
+        switchPreview = findViewById(R.id.switch_asr_preview)
+        layoutPreviewToggle = findViewById(R.id.layout_preview_toggle)
+        tvRecNone = findViewById(R.id.tv_rec_none)
+        layoutAdvanced = findViewById(R.id.layout_asr_advanced)
+        ivAdvancedArrow = findViewById(R.id.iv_advanced_arrow)
+        quickMain = inflateQuickRow(findViewById(R.id.layout_quick_main))
+        quickPreview = inflateQuickRow(findViewById(R.id.layout_quick_preview))
+        previewWanted = ModelConfig.selectedAsrModel(this, AsrMode.LIVE) != null && ModelConfig.selectedAsrModel(this, AsrMode.FINAL) != null
+
+        btnPrimaryLanguage.setOnClickListener {
+            showLanguagePicker(ModelConfig.asrPrimaryLanguage(this), withAll = false) { tag ->
+                if (tag != null) ModelConfig.setAsrPrimaryLanguage(this, tag)
+                renderQuick()
+            }
+        }
+        chipsProfile.setOnCheckedStateChangeListener { _, ids ->
+            if (renderingQuick) return@setOnCheckedStateChangeListener
+            val tier = when (ids.firstOrNull()) {
+                R.id.chip_profile_light -> AsrTier.LIGHT
+                R.id.chip_profile_best -> AsrTier.BEST
+                else -> AsrTier.BALANCED
+            }
+            ModelConfig.setAsrProfile(this, tier)
+            renderQuick()
+        }
+        layoutPreviewToggle.setOnClickListener { switchPreview.toggle() }
+        switchPreview.setOnCheckedChangeListener { _, checked ->
+            if (renderingQuick) return@setOnCheckedChangeListener
+            previewWanted = checked
+            // turning it off puts the live model away, as long as a final model remains to record with
+            if (!checked && ModelConfig.selectedAsrModel(this, AsrMode.FINAL) != null) {
+                ModelConfig.setAsrModel(this, AsrMode.LIVE, null)
+            }
+            updateAllStatus()
+        }
+        findViewById<View>(R.id.layout_advanced_header).setOnClickListener {
+            val show = layoutAdvanced.visibility != View.VISIBLE
+            layoutAdvanced.visibility = if (show) View.VISIBLE else View.GONE
+            ivAdvancedArrow.setImageResource(if (show) R.drawable.ic_arrow_up else R.drawable.ic_arrow_down)
+        }
+
         layoutPreferExternalAudioToggle = findViewById(R.id.layout_prefer_external_audio_toggle)
         switchPreferExternalAudio = findViewById(R.id.switch_prefer_external_audio)
         layoutAudioGain = findViewById(R.id.layout_audio_gain)
@@ -160,6 +244,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
         switchConvertTraditional = findViewById(R.id.switch_convert_traditional)
         layoutFilterPunctuationToggle = findViewById(R.id.layout_filter_punctuation_toggle)
         switchFilterPunctuation = findViewById(R.id.switch_filter_punctuation)
+        layoutFilterHalfPunctToggle = findViewById(R.id.layout_filter_half_punct_toggle)
+        switchFilterHalfPunct = findViewById(R.id.switch_filter_half_punct)
 
 
         cardCustomDict = findViewById(R.id.card_custom_dict)
@@ -272,6 +358,16 @@ class SpeechSettingsActivity : AppCompatActivity() {
             ModelConfig.setFilterPunctuationEnabled(this, isChecked)
         }
 
+        // Filter half-width punctuation
+        layoutFilterHalfPunctToggle.setOnClickListener {
+            switchFilterHalfPunct.toggle()
+        }
+        switchFilterHalfPunct.isChecked = ModelConfig.isFilterHalfWidthPunctuationEnabled(this)
+        switchFilterHalfPunct.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setFilterHalfWidthPunctuationEnabled(this, isChecked)
+        }
+
 
         // Custom vocabulary option card navigation
         val openDictAction = {
@@ -297,6 +393,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private fun vadLabel(sec: Float) = getString(R.string.settings_speech_vad_format, sec)
 
     private fun updateAllStatus() {
+        renderQuick()
         renderModels()
 
         // Custom Dictionary word count
@@ -325,6 +422,96 @@ class SpeechSettingsActivity : AppCompatActivity() {
         HapticUtil.click(this)
         ModelConfig.setAsrModel(this, mode, null)
         updateAllStatus()
+    }
+
+    // ── Quick setup ───────────────────────────────────────────────────────────
+
+    private fun inflateQuickRow(container: android.widget.LinearLayout): QuickRow {
+        val v = layoutInflater.inflate(R.layout.item_asr_quick_row, container, false)
+        container.addView(v)
+        return QuickRow(
+            container, v.findViewById(R.id.tv_quick_name), v.findViewById(R.id.tv_quick_info),
+            v.findViewById(R.id.btn_quick_action), v.findViewById(R.id.progress_quick), v.findViewById(R.id.tv_quick_progress),
+        )
+    }
+
+    /**
+     * Puts a recommended model to use. The quick setup describes the whole choice, so a live model used as the main
+     * model stands alone, and a final model has the live preview only when the preview switch is on.
+     */
+    private fun applyQuickModel(model: AsrModel, asPreview: Boolean) {
+        ModelConfig.setAsrModel(this, model.mode, model.id)
+        if (asPreview) return
+        if (model.mode == AsrMode.LIVE) {
+            ModelConfig.setAsrModel(this, AsrMode.FINAL, null)
+        } else if (!previewWanted) {
+            ModelConfig.setAsrModel(this, AsrMode.LIVE, null)
+        }
+    }
+
+    /** Fills one recommendation row: the model, what it costs, and a single button that does the right thing. */
+    private fun bindQuickRow(row: QuickRow, model: AsrModel, asPreview: Boolean) {
+        row.modelId = model.id
+        val ready = ModelConfig.isModelReady(this, model)
+        val inSlot = ModelConfig.selectedAsrModel(this, model.mode)?.id == model.id
+        // a live model as the main one is in use only when it is the only one
+        val inUse = inSlot && (asPreview || model.mode == AsrMode.FINAL || ModelConfig.selectedAsrModel(this, AsrMode.FINAL) == null)
+        row.name.text = model.name
+        val desc = model.descriptionFor(resources.configuration.locales[0])
+        row.info.text = if (!ready && model.sizeMb > 0) desc + "\n" + getString(R.string.asr_model_size_format, model.sizeMb) else desc
+        row.action.text = when {
+            inUse -> getString(R.string.asr_rec_in_use)
+            ready -> getString(R.string.asr_rec_use)
+            else -> getString(R.string.asr_rec_download_use)
+        }
+        row.action.isEnabled = !inUse
+        ChoiceButtonUtil.applyChoiceState(row.action, inUse)
+        row.action.setOnClickListener {
+            HapticUtil.click(this)
+            if (ready) {
+                applyQuickModel(model, asPreview)
+                updateAllStatus()
+            } else {
+                handleDownloadButtonClick(model.id, useAfter = true, asPreview = asPreview)
+            }
+        }
+    }
+
+    /** The quick-setup card: a recommendation for the user's language and profile, and the optional live preview. */
+    private fun renderQuick() {
+        renderingQuick = true
+        try {
+            val lang = ModelConfig.asrPrimaryLanguage(this)
+            val tier = ModelConfig.asrProfile(this)
+            btnPrimaryLanguage.text = getString(R.string.asr_simple_language_format, AsrCatalog.languageName(lang, Locale.getDefault()))
+            chipsProfile.check(when (tier) {
+                AsrTier.LIGHT -> R.id.chip_profile_light
+                AsrTier.BEST -> R.id.chip_profile_best
+                else -> R.id.chip_profile_balanced
+            })
+
+            val models = AsrCatalog.models
+            // what the user wants as the main model: the chosen kind, else what is in use now (live only, or final)
+            val mode = quickMode
+                ?: if (ModelConfig.selectedAsrModel(this, AsrMode.FINAL) == null && ModelConfig.selectedAsrModel(this, AsrMode.LIVE) != null) AsrMode.LIVE else AsrMode.FINAL
+            chipsMode.check(if (mode == AsrMode.LIVE) R.id.chip_mode_live else R.id.chip_mode_final)
+            val other = if (mode == AsrMode.LIVE) AsrMode.FINAL else AsrMode.LIVE
+            val main = AsrRecommender.pick(models, lang, mode, tier) ?: AsrRecommender.pick(models, lang, other, tier)
+            quickMain.root.visibility = if (main != null) View.VISIBLE else View.GONE
+            tvRecNone.visibility = if (main == null) View.VISIBLE else View.GONE
+            if (main != null) bindQuickRow(quickMain, main, asPreview = false) else quickMain.modelId = null
+
+            // The live preview is only an extra next to a final model; a live model chosen as the main one stands alone.
+            val preview = if (main?.mode == AsrMode.FINAL) AsrRecommender.pick(models, lang, AsrMode.LIVE, tier) else null
+            layoutPreviewToggle.visibility = if (preview != null) View.VISIBLE else View.GONE
+            switchPreview.isChecked = previewWanted && preview != null
+            val showPreview = previewWanted && preview != null
+            quickPreview.root.visibility = if (showPreview) View.VISIBLE else View.GONE
+            if (showPreview) bindQuickRow(quickPreview, preview!!, asPreview = true) else quickPreview.modelId = null
+        } finally {
+            renderingQuick = false
+        }
+        applyActiveDownload()
     }
 
     /** The big card at the top: which model each slot uses (dimmed "not set" when empty). */
@@ -490,16 +677,23 @@ class SpeechSettingsActivity : AppCompatActivity() {
         updateAllStatus()
     }
 
-    /** A dropdown with a search box and the list of languages; typing narrows the list. */
     private fun showLanguageFilterDialog() {
+        showLanguagePicker(filterLanguage, withAll = true) { tag ->
+            filterLanguage = tag
+            renderModels()
+        }
+    }
+
+    /** A dropdown with a search box and the list of languages; typing narrows the list. */
+    private fun showLanguagePicker(current: String?, withAll: Boolean, onPick: (String?) -> Unit) {
         val locale = Locale.getDefault()
         val all = AsrCatalog.allLanguages(locale)
         val allLabel = getString(R.string.asr_language_all)
         val dp = resources.displayMetrics.density
 
         class Row(val tag: String?, val label: String)
-        val rows = listOf(Row(null, allLabel)) + all.map { Row(it, AsrCatalog.languageName(it, locale)) }
-        fun text(r: Row) = if (r.tag == filterLanguage) "\u2713  ${r.label}" else r.label
+        val rows = (if (withAll) listOf(Row(null, allLabel)) else emptyList()) + all.map { Row(it, AsrCatalog.languageName(it, locale)) }
+        fun text(r: Row) = if (r.tag == current) "\u2713  ${r.label}" else r.label
 
         val shown = ArrayList(rows)
         val adapter = object : android.widget.ArrayAdapter<Row>(this, android.R.layout.simple_list_item_1, shown) {
@@ -541,9 +735,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
         })
         list.setOnItemClickListener { _, _, position, _ ->
-            filterLanguage = shown[position].tag
             dialog.dismiss()
-            renderModels()
+            onPick(shown[position].tag)
         }
         dialog.show()
     }
@@ -568,7 +761,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         seekAudioGain.isEnabled = enabled
     }
 
-    private fun handleDownloadButtonClick(engine: String) {
+    private fun handleDownloadButtonClick(engine: String, useAfter: Boolean = false, asPreview: Boolean = false) {
         val active = ModelDownloadState.active.value
         if (active != null && active.engine == engine) {
             ModelDownloadService.cancel(this)
@@ -587,6 +780,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
                 .setMessage(getString(R.string.settings_speech_download_message, totalMb))
                 .setPositiveButton(action) { _, _ ->
                     HapticUtil.click(this@SpeechSettingsActivity)
+                    if (useAfter) pendingUse[engine] = asPreview
                     requestNotifAndStartDownload(engine)
                 }
                 .setNegativeButton(R.string.btn_cancel, null)
@@ -618,6 +812,17 @@ class SpeechSettingsActivity : AppCompatActivity() {
     /** Draws the running download (if any) into the card of that model. */
     private fun applyActiveDownload() {
         val active = ModelDownloadState.active.value ?: return
+        for (row in listOf(quickMain, quickPreview)) {
+            if (row.modelId != active.engine) continue
+            row.action.text = getString(R.string.common_cancel_download)
+            row.action.isEnabled = true
+            row.action.setOnClickListener { handleDownloadButtonClick(active.engine) }
+            row.progress.visibility = View.VISIBLE
+            row.progressText.visibility = View.VISIBLE
+            row.progress.isIndeterminate = active.progress.percent < 0
+            if (active.progress.percent >= 0) row.progress.progress = active.progress.percent
+            row.progressText.text = "${active.progress.label(this)} (${active.progress.percent}%)"
+        }
         val views = cards[active.engine] ?: return
         views.download.text = getString(R.string.common_cancel_download)
         views.progress.visibility = View.VISIBLE
@@ -640,7 +845,13 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             ModelDownloadState.results.collect { (engine, _) ->
-                if (AsrCatalog.byId(engine) != null) updateAllStatus()
+                val model = AsrCatalog.byId(engine) ?: return@collect
+                // a model fetched from the quick setup is put to use once it has arrived
+                val asPreview = pendingUse.remove(engine)
+                if (asPreview != null && ModelConfig.isModelReady(this@SpeechSettingsActivity, model)) {
+                    applyQuickModel(model, asPreview)
+                }
+                updateAllStatus()
             }
         }
     }

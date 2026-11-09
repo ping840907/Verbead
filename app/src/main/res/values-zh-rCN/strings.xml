@@ -195,7 +195,7 @@
     <string name="settings_speech_to_traditional_desc">简体转繁体；日文、韩文段落不会被转换。关闭则完全保留识别原文</string>
     <string name="settings_speech_spoken_numbers_title">口语数字转阿拉伯数字</string>
     <string name="settings_speech_spoken_numbers_desc">把中、英、日、韩的口语数字转成阿拉伯数字（“一百二十三”“twenty three”→ 123 / 23），含年份、小数、百分比；中文另支持四则运算、分数、时间。日常用语中单独的一位数（三个、一下）不会被转换</string>
-    <string name="settings_speech_filter_punct_title">过滤中文标点符号</string>
+    <string name="settings_speech_filter_punct_title">过滤全角标点符号</string>
     <string name="settings_speech_filter_punct_desc">自动去除逗号、句号、问号等全角符号</string>
     <string name="settings_bubble_header_title">悬浮语音泡泡</string>
     <string name="settings_bubble_header_desc">贴边常驻，一键语音、条码与文字识别</string>
@@ -488,6 +488,22 @@
     <string name="asr_variant_format">版本：%1$s</string>
     <string name="asr_variant_dialog_title">选择版本</string>
     <string name="asr_language_search_hint">搜索语言</string>
-    <string name="asr_list_title">可用的模型</string>
     <string name="asr_combo_clear">取消使用这个模型</string>
+    <string name="asr_simple_title">快速设置</string>
+    <string name="asr_simple_language_format">我主要说：%1$s</string>
+    <string name="asr_profile_light">轻量</string>
+    <string name="asr_profile_balanced">均衡</string>
+    <string name="asr_profile_best">最准</string>
+    <string name="asr_rec_title">为你推荐</string>
+    <string name="asr_rec_none">这个语言还没有推荐的模型，请展开下方的完整列表自行选择。</string>
+    <string name="asr_rec_download_use">下载并使用</string>
+    <string name="asr_rec_use">使用</string>
+    <string name="asr_rec_in_use">使用中</string>
+    <string name="asr_preview_switch">边说边显示文字（选配）</string>
+    <string name="asr_preview_hint">会多用内存与电量，多数人不需要。</string>
+    <string name="asr_advanced_title">自行选择模型</string>
+    <string name="settings_speech_filter_half_punct_title">过滤半角标点符号</string>
+    <string name="settings_speech_filter_half_punct_desc">自动去除英文逗号、句点、问号、引号等半角符号；小数点与 10:30 这类时间会保留</string>
+    <string name="asr_mode_live_chip">即时・边说边显示</string>
+    <string name="asr_mode_final_chip">整句・说完再识别</string>
 </resources>

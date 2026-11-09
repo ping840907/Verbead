@@ -195,7 +195,7 @@
     <string name="settings_speech_to_traditional_desc">簡體轉繁體；日文、韓文段落不會被轉換。關閉則完全保留辨識原文</string>
     <string name="settings_speech_spoken_numbers_title">口語數字轉阿拉伯數字</string>
     <string name="settings_speech_spoken_numbers_desc">把中、英、日、韓的口語數字轉成阿拉伯數字（「一百二十三」「twenty three」→ 123 / 23），含年份、小數、百分比；中文另支援四則運算、分數、時間。日常用語中單獨的一位數（三個、一下）不會被轉換</string>
-    <string name="settings_speech_filter_punct_title">過濾中文標點符號</string>
+    <string name="settings_speech_filter_punct_title">過濾全形標點符號</string>
     <string name="settings_speech_filter_punct_desc">自動去除逗號、句號、問號等全形符號</string>
     <string name="settings_bubble_header_title">懸浮語音泡泡</string>
     <string name="settings_bubble_header_desc">貼邊常駐，一鍵語音、條碼與文字辨識</string>
@@ -488,6 +488,22 @@
     <string name="asr_variant_format">版本：%1$s</string>
     <string name="asr_variant_dialog_title">選擇版本</string>
     <string name="asr_language_search_hint">搜尋語言</string>
-    <string name="asr_list_title">可用的模型</string>
     <string name="asr_combo_clear">取消使用這個模型</string>
+    <string name="asr_simple_title">快速設定</string>
+    <string name="asr_simple_language_format">我主要說：%1$s</string>
+    <string name="asr_profile_light">輕量</string>
+    <string name="asr_profile_balanced">均衡</string>
+    <string name="asr_profile_best">最準</string>
+    <string name="asr_rec_title">為你推薦</string>
+    <string name="asr_rec_none">這個語言還沒有推薦的模型，請展開下方的完整清單自行選擇。</string>
+    <string name="asr_rec_download_use">下載並使用</string>
+    <string name="asr_rec_use">使用</string>
+    <string name="asr_rec_in_use">使用中</string>
+    <string name="asr_preview_switch">邊說邊顯示文字（選配）</string>
+    <string name="asr_preview_hint">會多用記憶體與電量，多數人不需要。</string>
+    <string name="asr_advanced_title">自行選擇模型</string>
+    <string name="settings_speech_filter_half_punct_title">過濾半形標點符號</string>
+    <string name="settings_speech_filter_half_punct_desc">自動去除英文逗號、句點、問號、引號等半形符號；小數點與 10:30 這類時間會保留</string>
+    <string name="asr_mode_live_chip">即時・邊說邊顯示</string>
+    <string name="asr_mode_final_chip">整句・說完再辨識</string>
 </resources>

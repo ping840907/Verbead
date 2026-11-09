@@ -195,7 +195,7 @@
     <string name="settings_speech_to_traditional_desc">簡体字を繁体字に変換します。日本語・韓国語の部分は変換されません。オフにすると認識結果をそのまま保持します</string>
     <string name="settings_speech_spoken_numbers_title">話し言葉の数字を算用数字に変換</string>
     <string name="settings_speech_spoken_numbers_desc">中国語・英語・日本語・韓国語の話し言葉の数字を算用数字に変換します（「二千二十五年」→ 2025年、「twenty three」→ 23）。年、小数、パーセントに対応し、中国語では四則演算・分数・時刻も扱います。日常表現の 1 桁の数字は変換されません</string>
-    <string name="settings_speech_filter_punct_title">中国語の句読点を除去</string>
+    <string name="settings_speech_filter_punct_title">全角の句読点を除去</string>
     <string name="settings_speech_filter_punct_desc">全角のコンマ、句点、疑問符などの記号を自動で取り除きます</string>
     <string name="settings_bubble_header_title">フローティング音声バブル</string>
     <string name="settings_bubble_header_desc">端に常駐し、ワンタップで音声・バーコード・文字認識を使えます</string>
@@ -488,6 +488,22 @@
     <string name="asr_variant_format">バリアント：%1$s</string>
     <string name="asr_variant_dialog_title">バリアントを選ぶ</string>
     <string name="asr_language_search_hint">言語を検索</string>
-    <string name="asr_list_title">利用できるモデル</string>
     <string name="asr_combo_clear">このモデルの使用を解除</string>
+    <string name="asr_simple_title">クイック設定</string>
+    <string name="asr_simple_language_format">主に話す言語：%1$s</string>
+    <string name="asr_profile_light">軽量</string>
+    <string name="asr_profile_balanced">バランス</string>
+    <string name="asr_profile_best">高精度</string>
+    <string name="asr_rec_title">おすすめ</string>
+    <string name="asr_rec_none">この言語のおすすめモデルはまだありません。下の一覧から自分で選んでください。</string>
+    <string name="asr_rec_download_use">ダウンロードして使う</string>
+    <string name="asr_rec_use">使う</string>
+    <string name="asr_rec_in_use">使用中</string>
+    <string name="asr_preview_switch">話している間に文字を表示（任意）</string>
+    <string name="asr_preview_hint">メモリとバッテリーを余分に使います。多くの方には不要です。</string>
+    <string name="asr_advanced_title">モデルを自分で選ぶ</string>
+    <string name="settings_speech_filter_half_punct_title">半角の句読点を除去</string>
+    <string name="settings_speech_filter_half_punct_desc">半角のコンマ、ピリオド、疑問符、引用符などを自動で除去します。小数点や 10:30 のような時刻は残ります</string>
+    <string name="asr_mode_live_chip">リアルタイム・話しながら表示</string>
+    <string name="asr_mode_final_chip">確定・話し終えてから</string>
 </resources>

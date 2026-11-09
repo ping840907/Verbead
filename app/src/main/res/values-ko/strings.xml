@@ -195,7 +195,7 @@
     <string name="settings_speech_to_traditional_desc">간체를 번체로 변환합니다. 일본어와 한국어 구간은 변환되지 않습니다. 끄면 인식 원문을 그대로 유지합니다</string>
     <string name="settings_speech_spoken_numbers_title">구어체 숫자를 아라비아 숫자로 변환</string>
     <string name="settings_speech_spoken_numbers_desc">중국어·영어·일본어·한국어의 구어체 숫자를 아라비아 숫자로 바꿉니다(\"이천이십오 년\" → 2025년, \"twenty three\" → 23). 연도, 소수, 백분율을 처리하며 중국어는 사칙연산·분수·시각도 지원합니다. 일상 표현 속의 한 자릿수는 변환되지 않습니다</string>
-    <string name="settings_speech_filter_punct_title">중국어 문장부호 제거</string>
+    <string name="settings_speech_filter_punct_title">전각 문장부호 제거</string>
     <string name="settings_speech_filter_punct_desc">전각 쉼표, 마침표, 물음표 등의 기호를 자동으로 없앱니다</string>
     <string name="settings_bubble_header_title">플로팅 음성 버블</string>
     <string name="settings_bubble_header_desc">가장자리에 상주하며, 한 번에 음성·바코드·문자 인식을 사용합니다</string>
@@ -488,6 +488,22 @@
     <string name="asr_variant_format">버전: %1$s</string>
     <string name="asr_variant_dialog_title">버전 선택</string>
     <string name="asr_language_search_hint">언어 검색</string>
-    <string name="asr_list_title">사용 가능한 모델</string>
     <string name="asr_combo_clear">이 모델 사용 해제</string>
+    <string name="asr_simple_title">빠른 설정</string>
+    <string name="asr_simple_language_format">주로 쓰는 언어: %1$s</string>
+    <string name="asr_profile_light">가벼움</string>
+    <string name="asr_profile_balanced">균형</string>
+    <string name="asr_profile_best">최고 정확도</string>
+    <string name="asr_rec_title">추천</string>
+    <string name="asr_rec_none">이 언어에 추천 모델이 아직 없습니다. 아래 전체 목록에서 직접 선택하세요.</string>
+    <string name="asr_rec_download_use">다운로드 후 사용</string>
+    <string name="asr_rec_use">사용</string>
+    <string name="asr_rec_in_use">사용 중</string>
+    <string name="asr_preview_switch">말하는 동안 글자 표시(선택)</string>
+    <string name="asr_preview_hint">메모리와 배터리를 더 사용합니다. 대부분은 필요하지 않습니다.</string>
+    <string name="asr_advanced_title">모델 직접 선택</string>
+    <string name="settings_speech_filter_half_punct_title">반각 문장부호 제거</string>
+    <string name="settings_speech_filter_half_punct_desc">반각 쉼표, 마침표, 물음표, 따옴표 등을 자동으로 제거합니다. 소수점과 10:30 같은 시각은 유지됩니다</string>
+    <string name="asr_mode_live_chip">실시간 · 말하며 표시</string>
+    <string name="asr_mode_final_chip">확정 · 말을 마친 뒤</string>
 </resources>

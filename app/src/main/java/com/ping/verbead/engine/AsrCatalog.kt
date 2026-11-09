@@ -40,6 +40,15 @@ enum class AsrLoader(val key: String) {
     }
 }
 
+/** How heavy a model is for the phone, and how accurate it tends to be: the recommender picks by this. */
+enum class AsrTier(val key: String) {
+    LIGHT("light"), BALANCED("balanced"), BEST("best");
+
+    companion object {
+        fun parse(key: String): AsrTier? = entries.firstOrNull { it.key == key.lowercase() }
+    }
+}
+
 /**
  * One downloadable speech model, as described by an entry of the manifest (see `asr_models.json`).
  *
@@ -83,6 +92,8 @@ data class AsrModel(
     val group: String? = null,
     /** What tells this model apart inside its group besides the language, e.g. Tiny or Base */
     val variant: String? = null,
+    /** The tiers this model is a good pick for; empty = never recommended automatically (still in the advanced list) */
+    val tiers: List<AsrTier> = emptyList(),
 ) {
     fun supportsLanguage(tag: String): Boolean = languages.any { languageMatches(it, tag) }
 
@@ -224,6 +235,8 @@ object AsrCatalog {
             description = stringMap(o.optJSONObject("description")),
             group = o.optString("group").ifBlank { null },
             variant = o.optString("variant").ifBlank { null },
+            tiers = (o.optJSONArray("tier")?.let { strings(it) } ?: listOfNotNull(o.optString("tier").ifBlank { null }))
+                .mapNotNull { AsrTier.parse(it) },
         )
     }
 
@@ -319,5 +332,31 @@ object AsrModelFiles {
         AsrLoader.ONLINE_TRANSDUCER, AsrLoader.OFFLINE_TRANSDUCER -> transducer(dir, model.fileNames) != null
         AsrLoader.MOONSHINE -> moonshine(dir) != null
         AsrLoader.QWEN3 -> true
+    }
+}
+
+
+/** Picks the model to suggest for a language and a profile, so the user does not have to compare models. */
+object AsrRecommender {
+    /**
+     * Among the models of [mode] that claim [language] and have a tier, the one whose tier is closest to [tier];
+     * ties go to the more specialized model (fewer languages), then the smaller download.
+     */
+    fun pick(models: List<AsrModel>, language: String, mode: AsrMode, tier: AsrTier): AsrModel? =
+        models.filter { it.mode == mode && it.tiers.isNotEmpty() && it.supportsLanguage(language) }
+            .minWithOrNull(
+                compareBy<AsrModel>(
+                    { m -> m.tiers.minOf { kotlin.math.abs(it.ordinal - tier.ordinal) } },
+                    { it.languages.size },
+                    { it.sizeMb },
+                )
+            )
+
+    /** The language tag to start from, given the phone's language: Chinese keeps its script (Taiwan, Hong Kong, Macau use Traditional). */
+    fun defaultLanguage(systemTag: java.util.Locale): String {
+        if (systemTag.language == "zh") {
+            return if (systemTag.country in setOf("TW", "HK", "MO") || systemTag.script == "Hant") "zh-TW" else "zh-CN"
+        }
+        return systemTag.language.ifBlank { "en" }
     }
 }

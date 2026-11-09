@@ -50,7 +50,8 @@
         "zh-CN": "针对台湾中文（含英语夹杂）调校，体积小、反应快。",
         "ja": "台湾の中国語（英語混じり）向けに調整。小さくて高速です。",
         "ko": "대만 중국어(영어 혼용 포함)에 맞춰 조정. 작고 빠릅니다."
-      }
+      },
+      "tier": "balanced"
     },
     {
       "id": "nemotron35",
@@ -105,7 +106,8 @@
         "ko": "여러 언어를 실시간으로 인식하고 말하는 언어를 자동으로 감지합니다. 용량이 큽니다."
       },
       "group": "Nemotron 3.5 Multilingual",
-      "variant": "560 ms"
+      "variant": "560 ms",
+      "tier": "best"
     },
     {
       "id": "nemotron35_160",
@@ -238,7 +240,8 @@
         "zh-CN": "仅限英语的小型即时模型，一般手机都跑得轻松。",
         "ja": "英語専用の小型リアルタイムモデル。どのスマホでも軽く動きます。",
         "ko": "영어 전용 소형 실시간 모델로 어떤 휴대폰에서도 가볍게 동작합니다."
-      }
+      },
+      "tier": "light"
     },
     {
       "id": "qwen3",
@@ -288,7 +291,11 @@
         "zh-CN": "支持多种语言，标点完整、语句通顺，语言自动检测。",
         "ja": "多言語に対応し、句読点も自然。言語は自動で判定されます。",
         "ko": "여러 언어를 지원하며 문장 부호가 자연스럽습니다. 언어는 자동으로 감지됩니다."
-      }
+      },
+      "tier": [
+        "balanced",
+        "best"
+      ]
     },
     {
       "id": "parakeet_v3",
@@ -335,7 +342,8 @@
         "zh-CN": "涵盖 25 种欧洲语言，准确度高，附标点与大小写。体积大。",
         "ja": "ヨーロッパ25言語に対応した高精度モデル。句読点と大文字小文字付き。サイズ大。",
         "ko": "유럽 25개 언어를 지원하는 고정밀 모델로 문장 부호와 대소문자를 붙입니다. 용량이 큽니다."
-      }
+      },
+      "tier": "best"
     },
     {
       "id": "parakeet_110m_en",
@@ -358,7 +366,8 @@
         "zh-CN": "精简的英语模型，准确度不错。",
         "ja": "コンパクトで精度の良い英語モデル。",
         "ko": "정확도가 좋은 소형 영어 모델입니다."
-      }
+      },
+      "tier": "balanced"
     },
     {
       "id": "moonshine_tiny_en",
@@ -382,7 +391,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Tiny"
+      "variant": "Tiny",
+      "tier": "light"
     },
     {
       "id": "moonshine_base_en",
@@ -406,7 +416,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Base"
+      "variant": "Base",
+      "tier": "balanced"
     },
     {
       "id": "moonshine_base_es",
@@ -430,7 +441,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Base"
+      "variant": "Base",
+      "tier": "balanced"
     },
     {
       "id": "moonshine_tiny_ja",
@@ -454,7 +466,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Tiny"
+      "variant": "Tiny",
+      "tier": "light"
     },
     {
       "id": "moonshine_base_ja",
@@ -478,7 +491,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Base"
+      "variant": "Base",
+      "tier": "balanced"
     },
     {
       "id": "moonshine_tiny_ko",
@@ -502,7 +516,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Tiny"
+      "variant": "Tiny",
+      "tier": "light"
     },
     {
       "id": "moonshine_base_zh",
@@ -526,7 +541,10 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Base"
+      "variant": "Base",
+      "tier": [
+        "light"
+      ]
     },
     {
       "id": "moonshine_base_vi",
@@ -550,7 +568,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Base"
+      "variant": "Base",
+      "tier": "balanced"
     },
     {
       "id": "moonshine_base_ar",
@@ -574,7 +593,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Base"
+      "variant": "Base",
+      "tier": "balanced"
     },
     {
       "id": "moonshine_base_uk",
@@ -598,7 +618,8 @@
         "ko": "단일 언어용 소형 고속 모델입니다."
       },
       "group": "Moonshine v2",
-      "variant": "Base"
+      "variant": "Base",
+      "tier": "balanced"
     }
   ]
 }
