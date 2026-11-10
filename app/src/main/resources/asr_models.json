@@ -51,7 +51,8 @@
         "ja": "台湾の中国語（英語混じり）向けに調整。小さくて高速です。",
         "ko": "대만 중국어(영어 혼용 포함)에 맞춰 조정. 작고 빠릅니다."
       },
-      "tier": "balanced"
+      "tier": "balanced",
+      "sizeMb": 131
     },
     {
       "id": "nemotron35",
@@ -437,7 +438,8 @@
       "tier": [
         "balanced",
         "best"
-      ]
+      ],
+      "sizeMb": 837
     },
     {
       "id": "parakeet_v3",

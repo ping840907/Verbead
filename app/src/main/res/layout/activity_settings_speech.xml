@@ -279,15 +279,6 @@
                     </LinearLayout>
 
                     <TextView
-                        android:id="@+id/tv_asr_ram_total"
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:textColor="@color/md_theme_light_onPrimaryContainer"
-                        android:visibility="gone" />
-
-                    <TextView
                         android:id="@+id/tv_asr_memory_hint"
                         style="@style/Verbead.Text.Caption"
                         android:layout_width="match_parent"

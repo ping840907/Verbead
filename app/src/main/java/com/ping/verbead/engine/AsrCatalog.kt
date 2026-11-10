@@ -100,8 +100,6 @@ data class AsrModel(
     val variant: String? = null,
     /** The tiers this model is a good pick for; empty = never recommended automatically (still in the advanced list) */
     val tiers: List<AsrTier> = emptyList(),
-    /** Memory the model takes while it works, in MB, measured on a phone; 0 = not measured */
-    val ramMb: Int = 0,
     /** The languages the model is recommended for; empty = every language it lists (a model can list languages it handles poorly) */
     val recommendFor: List<String> = emptyList(),
     /** Loader-specific options (SenseVoice: language, itn) */
@@ -249,7 +247,6 @@ object AsrCatalog {
             variant = o.optString("variant").ifBlank { null },
             tiers = (o.optJSONArray("tier")?.let { strings(it) } ?: listOfNotNull(o.optString("tier").ifBlank { null }))
                 .mapNotNull { AsrTier.parse(it) },
-            ramMb = o.optInt("ramMb", 0),
             recommendFor = strings(o.optJSONArray("recommendFor")),
             options = stringMap(o.optJSONObject("options")),
         )
@@ -284,16 +281,13 @@ object AsrCatalog {
     fun <T> sortForDisplay(items: List<T>, inUse: (T) -> Boolean, downloaded: (T) -> Boolean): List<T> =
         items.sortedBy { if (inUse(it)) 0 else if (downloaded(it)) 1 else 2 }
 
-    /** A memory amount for display: "420 MB" (rounded to 10) below 1000 MB, "1.4 GB" above. */
-    fun formatMb(mb: Int): String =
-        if (mb >= 1000) String.format(Locale.US, "%.1f GB", mb / 1000.0) else "${(mb + 5) / 10 * 10} MB"
-
     /**
-     * Whether the selected models together are heavy for this phone: more than a quarter of its memory.
-     * Models without a measurement are not counted.
+     * Whether the selected models together are a large download (more than [HEAVY_MB] MB), so the speech settings
+     * can warn that running them together may be slow on a small phone.
      */
-    fun isHeavyFor(deviceRamMb: Long, models: List<AsrModel>): Boolean =
-        deviceRamMb > 0 && models.sumOf { it.ramMb } > deviceRamMb / 4
+    fun isHeavy(models: List<AsrModel>): Boolean = models.sumOf { it.sizeMb } > HEAVY_MB
+
+    const val HEAVY_MB = 800
 
     fun byId(id: String?): AsrModel? = models.firstOrNull { it.id == id }
 
@@ -401,7 +395,7 @@ object AsrRecommender {
                     { m -> m.tiers.minOf { kotlin.math.abs(it.ordinal - tier.ordinal) } },
                     { m -> if (recommendedLanguages(m).any { it.equals(language, ignoreCase = true) }) 0 else 1 },
                     { m -> recommendedLanguages(m).size },
-                    { m -> if (m.ramMb > 0) m.ramMb else m.sizeMb },
+                    { m -> m.sizeMb },
                 )
             )
 

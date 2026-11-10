@@ -511,6 +511,5 @@
     <string name="asr_delete_title">删除 %1$s？</string>
     <string name="asr_delete_message">会移除手机上的模型文件。之后要再使用，需要重新下载。</string>
     <string name="asr_keep_one">至少要保留一个使用中的模型</string>
-    <string name="asr_ram_format">内存约 %1$s</string>
-    <string name="asr_ram_total_format">合计占用内存约 %1$s</string>
+    <string name="asr_size_format">约 %1$d MB</string>
 </resources>

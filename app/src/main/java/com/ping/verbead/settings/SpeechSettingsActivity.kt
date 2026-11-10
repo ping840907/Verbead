@@ -54,7 +54,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var btnClearLive: View
     private lateinit var btnClearFinal: View
     private lateinit var tvAsrMemoryHint: TextView
-    private lateinit var tvAsrRamTotal: TextView
     private lateinit var chipsKind: ChipGroup
     private lateinit var chipDownloadedOnly: Chip
     private lateinit var btnLanguageFilter: MaterialButton
@@ -175,7 +174,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
         btnClearLive.setOnClickListener { clearSlot(AsrMode.LIVE) }
         btnClearFinal.setOnClickListener { clearSlot(AsrMode.FINAL) }
         tvAsrMemoryHint = findViewById(R.id.tv_asr_memory_hint)
-        tvAsrRamTotal = findViewById(R.id.tv_asr_ram_total)
         chipsKind = findViewById(R.id.chips_asr_kind)
         chipDownloadedOnly = findViewById(R.id.chip_downloaded_only)
         btnLanguageFilter = findViewById(R.id.btn_asr_language_filter)
@@ -452,11 +450,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val inUse = inSlot && (asPreview || model.mode == AsrMode.FINAL || ModelConfig.selectedAsrModel(this, AsrMode.FINAL) == null)
         row.name.text = model.name
         val desc = model.descriptionFor(resources.configuration.locales[0])
-        val cost = listOfNotNull(
-            if (!ready && model.sizeMb > 0) getString(R.string.asr_model_size_format, model.sizeMb) else null,
-            if (model.ramMb > 0) getString(R.string.asr_ram_format, AsrCatalog.formatMb(model.ramMb)) else null,
-        ).joinToString("\u30FB")
-        row.info.text = if (cost.isEmpty()) desc else desc + "\n" + cost
+        row.info.text = if (model.sizeMb > 0) desc + "\n" + getString(R.string.asr_size_format, model.sizeMb) else desc
         row.action.text = when {
             inUse -> getString(R.string.asr_rec_in_use)
             ready -> getString(R.string.asr_rec_use)
@@ -512,13 +506,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
         applyActiveDownload()
     }
 
-    /** Memory of this phone in MB (0 when it cannot be read). */
-    private fun deviceRamMb(): Long {
-        val info = android.app.ActivityManager.MemoryInfo()
-        getSystemService(android.app.ActivityManager::class.java)?.getMemoryInfo(info) ?: return 0
-        return info.totalMem / (1024 * 1024)
-    }
-
     /** The big card at the top: which model each slot uses (dimmed "not set" when empty). */
     private fun showCombo(live: AsrModel?, fin: AsrModel?) {
         val none = getString(R.string.asr_combo_not_set)
@@ -536,11 +523,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val live = ModelConfig.selectedAsrModel(this, AsrMode.LIVE)
         val fin = ModelConfig.selectedAsrModel(this, AsrMode.FINAL)
         showCombo(live, fin)
-        val inUse = listOfNotNull(live, fin)
-        val totalRam = inUse.sumOf { it.ramMb }
-        tvAsrRamTotal.visibility = if (totalRam > 0) View.VISIBLE else View.GONE
-        tvAsrRamTotal.text = getString(R.string.asr_ram_total_format, AsrCatalog.formatMb(totalRam))
-        tvAsrMemoryHint.visibility = if (AsrCatalog.isHeavyFor(deviceRamMb(), inUse)) View.VISIBLE else View.GONE
+        tvAsrMemoryHint.visibility = if (AsrCatalog.isHeavy(listOfNotNull(live, fin))) View.VISIBLE else View.GONE
 
         btnLanguageFilter.text = getString(
             R.string.asr_language_filter_format,
@@ -672,9 +655,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
             }
         }
         bindLanguages(card.findViewById(R.id.tv_model_languages), model)
-        card.findViewById<TextView>(R.id.tv_model_ram).apply {
-            visibility = if (model.ramMb > 0) View.VISIBLE else View.GONE
-            text = getString(R.string.asr_ram_format, AsrCatalog.formatMb(model.ramMb))
+        card.findViewById<TextView>(R.id.tv_model_size).apply {
+            visibility = if (model.sizeMb > 0) View.VISIBLE else View.GONE
+            text = getString(R.string.asr_size_format, model.sizeMb)
         }
 
         val action = card.findViewById<MaterialButton>(R.id.btn_model_action)

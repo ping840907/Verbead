@@ -516,6 +516,5 @@ Final: %2$s</string>
     <string name="asr_delete_title">Delete %1$s?</string>
     <string name="asr_delete_message">Its files are removed from this phone. To use it again you will have to download it again.</string>
     <string name="asr_keep_one">At least one model has to stay in use</string>
-    <string name="asr_ram_format">Memory about %1$s</string>
-    <string name="asr_ram_total_format">Memory in use: about %1$s</string>
+    <string name="asr_size_format">About %1$d MB</string>
 </resources>

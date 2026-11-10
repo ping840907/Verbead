@@ -511,6 +511,5 @@
     <string name="asr_delete_title">%1$s을(를) 삭제할까요?</string>
     <string name="asr_delete_message">이 휴대폰에서 모델 파일을 삭제합니다. 다시 사용하려면 다시 다운로드해야 합니다.</string>
     <string name="asr_keep_one">모델을 하나 이상 사용 중으로 두어야 합니다</string>
-    <string name="asr_ram_format">메모리 약 %1$s</string>
-    <string name="asr_ram_total_format">총 메모리 사용량: 약 %1$s</string>
+    <string name="asr_size_format">약 %1$d MB</string>
 </resources>

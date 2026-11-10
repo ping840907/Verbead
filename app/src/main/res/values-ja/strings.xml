@@ -511,6 +511,5 @@
     <string name="asr_delete_title">%1$s を削除しますか？</string>
     <string name="asr_delete_message">この端末からモデルのファイルを削除します。もう一度使うには再ダウンロードが必要です。</string>
     <string name="asr_keep_one">少なくとも 1 つのモデルを使用中にしておく必要があります</string>
-    <string name="asr_ram_format">メモリ約 %1$s</string>
-    <string name="asr_ram_total_format">合計メモリ使用量：約 %1$s</string>
+    <string name="asr_size_format">約 %1$d MB</string>
 </resources>
