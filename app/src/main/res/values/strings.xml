@@ -485,10 +485,8 @@ Final: %2$s</string>
     <string name="asr_language_dialog_title">Filter by language</string>
     <string name="asr_languages_format">Languages: %1$s</string>
     <string name="asr_model_size_format">Download about %1$d MB</string>
-    <string name="asr_use_live">Use as live model</string>
-    <string name="asr_use_final">Use as final model</string>
     <string name="asr_in_use">In use · tap to clear</string>
-    <string name="asr_memory_hint">Two large models together need a lot of memory. If the app gets slow or closes, pick a smaller one.</string>
+    <string name="asr_memory_hint">These models take a large share of this phone\'s memory. If the app gets slow or closes, pick lighter ones.</string>
     <string name="asr_custom_problems_format">Some entries of custom_models.json were skipped:\n%1$s</string>
     <string name="asr_variant_format">Variant: %1$s</string>
     <string name="asr_variant_dialog_title">Choose a variant</string>
@@ -511,4 +509,13 @@ Final: %2$s</string>
     <string name="settings_speech_filter_half_punct_desc">Removes commas, periods, question marks, quotes and similar symbols. Decimal points and times such as 10:30 are kept</string>
     <string name="asr_mode_live_chip">Live · text while speaking</string>
     <string name="asr_mode_final_chip">Final · after you stop</string>
+    <string name="asr_action_download_format">Download · %1$d MB</string>
+    <string name="asr_languages_count_format">%1$d languages</string>
+    <string name="asr_more_actions">More actions</string>
+    <string name="asr_menu_delete">Delete model</string>
+    <string name="asr_delete_title">Delete %1$s?</string>
+    <string name="asr_delete_message">Its files are removed from this phone. To use it again you will have to download it again.</string>
+    <string name="asr_keep_one">At least one model has to stay in use</string>
+    <string name="asr_ram_format">Memory about %1$s</string>
+    <string name="asr_ram_total_format">Memory in use: about %1$s</string>
 </resources>

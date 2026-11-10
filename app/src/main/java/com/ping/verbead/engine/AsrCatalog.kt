@@ -32,6 +32,12 @@ enum class AsrLoader(val key: String) {
     /** Moonshine v2: encoder + merged decoder, tokens */
     MOONSHINE("moonshine"),
 
+    /** SenseVoice: one model file + tokens; options: language (default auto), itn (default true) */
+    SENSE_VOICE("sense_voice"),
+
+    /** Dolphin CTC: one model file + tokens */
+    DOLPHIN("dolphin"),
+
     /** Qwen3-ASR: has its own loader (conv frontend, tokenizer folder, hot words) */
     QWEN3("qwen3");
 
@@ -94,6 +100,12 @@ data class AsrModel(
     val variant: String? = null,
     /** The tiers this model is a good pick for; empty = never recommended automatically (still in the advanced list) */
     val tiers: List<AsrTier> = emptyList(),
+    /** Memory the model takes while it works, in MB, measured on a phone; 0 = not measured */
+    val ramMb: Int = 0,
+    /** The languages the model is recommended for; empty = every language it lists (a model can list languages it handles poorly) */
+    val recommendFor: List<String> = emptyList(),
+    /** Loader-specific options (SenseVoice: language, itn) */
+    val options: Map<String, String> = emptyMap(),
 ) {
     fun supportsLanguage(tag: String): Boolean = languages.any { languageMatches(it, tag) }
 
@@ -237,6 +249,9 @@ object AsrCatalog {
             variant = o.optString("variant").ifBlank { null },
             tiers = (o.optJSONArray("tier")?.let { strings(it) } ?: listOfNotNull(o.optString("tier").ifBlank { null }))
                 .mapNotNull { AsrTier.parse(it) },
+            ramMb = o.optInt("ramMb", 0),
+            recommendFor = strings(o.optJSONArray("recommendFor")),
+            options = stringMap(o.optJSONObject("options")),
         )
     }
 
@@ -264,6 +279,21 @@ object AsrCatalog {
     /** The models of a filtered list, in order, gathered by group: a model without a group is a group of its own. */
     fun grouped(list: List<AsrModel>): List<List<AsrModel>> =
         list.groupBy { it.group ?: it.id }.values.toList()
+
+    /** Display order of the cards: the ones in use first, then the downloaded ones, then the rest (catalog order within each). */
+    fun <T> sortForDisplay(items: List<T>, inUse: (T) -> Boolean, downloaded: (T) -> Boolean): List<T> =
+        items.sortedBy { if (inUse(it)) 0 else if (downloaded(it)) 1 else 2 }
+
+    /** A memory amount for display: "420 MB" (rounded to 10) below 1000 MB, "1.4 GB" above. */
+    fun formatMb(mb: Int): String =
+        if (mb >= 1000) String.format(Locale.US, "%.1f GB", mb / 1000.0) else "${(mb + 5) / 10 * 10} MB"
+
+    /**
+     * Whether the selected models together are heavy for this phone: more than a quarter of its memory.
+     * Models without a measurement are not counted.
+     */
+    fun isHeavyFor(deviceRamMb: Long, models: List<AsrModel>): Boolean =
+        deviceRamMb > 0 && models.sumOf { it.ramMb } > deviceRamMb / 4
 
     fun byId(id: String?): AsrModel? = models.firstOrNull { it.id == id }
 
@@ -298,6 +328,9 @@ object AsrModelFiles {
 
     data class Moonshine(val encoder: String, val mergedDecoder: String, val tokens: String)
 
+    /** A model that is one file plus its tokens (SenseVoice, Dolphin) */
+    data class Single(val model: String, val tokens: String)
+
     private fun pick(dir: File, prefix: String, exts: List<String>, mustContain: String? = null): File? {
         val files = dir.listFiles()?.filter { f ->
             f.isFile && f.length() > 0 && f.name.startsWith(prefix) &&
@@ -327,10 +360,18 @@ object AsrModelFiles {
         return Moonshine(enc.absolutePath, dec.absolutePath, tokens.absolutePath)
     }
 
+    fun single(dir: File, names: Map<String, String> = emptyMap()): Single? {
+        if (!dir.isDirectory) return null
+        val model = (if ("model" in names) named(dir, names["model"]) else pick(dir, "model", listOf(".onnx"))) ?: return null
+        val tokens = named(dir, names["tokens"] ?: "tokens.txt") ?: return null
+        return Single(model.absolutePath, tokens.absolutePath)
+    }
+
     /** Whether the folder holds everything the model's loader needs (Qwen3 has its own check in [ModelConfig]). */
     fun isComplete(model: AsrModel, dir: File): Boolean = when (model.loader) {
         AsrLoader.ONLINE_TRANSDUCER, AsrLoader.OFFLINE_TRANSDUCER -> transducer(dir, model.fileNames) != null
         AsrLoader.MOONSHINE -> moonshine(dir) != null
+        AsrLoader.SENSE_VOICE, AsrLoader.DOLPHIN -> single(dir, model.fileNames) != null
         AsrLoader.QWEN3 -> true
     }
 }
@@ -339,16 +380,28 @@ object AsrModelFiles {
 /** Picks the model to suggest for a language and a profile, so the user does not have to compare models. */
 object AsrRecommender {
     /**
-     * Among the models of [mode] that claim [language] and have a tier, the one whose tier is closest to [tier];
-     * ties go to the more specialized model (fewer languages), then the smaller download.
+     * Whether a model tag serves the language the user picked. Besides the usual rule ("zh" serves "zh-TW"), a user
+     * who picked a language without a region ("zh") is also served by a regional model ("zh-TW").
+     */
+    fun serves(modelTag: String, wanted: String): Boolean =
+        AsrModel.languageMatches(modelTag, wanted) ||
+            (!wanted.contains('-') && modelTag.substringBefore('-').equals(wanted, ignoreCase = true))
+
+    private fun recommendedLanguages(m: AsrModel): List<String> = m.recommendFor.ifEmpty { m.languages }
+
+    /**
+     * Among the models of [mode] that are recommended for [language] and have a tier, the one whose tier is closest
+     * to [tier]. Ties go to the model made for exactly that language and region, then to the more specialized model
+     * (fewer languages), then to the one that takes less memory.
      */
     fun pick(models: List<AsrModel>, language: String, mode: AsrMode, tier: AsrTier): AsrModel? =
-        models.filter { it.mode == mode && it.tiers.isNotEmpty() && it.supportsLanguage(language) }
+        models.filter { m -> m.mode == mode && m.tiers.isNotEmpty() && recommendedLanguages(m).any { serves(it, language) } }
             .minWithOrNull(
                 compareBy<AsrModel>(
                     { m -> m.tiers.minOf { kotlin.math.abs(it.ordinal - tier.ordinal) } },
-                    { it.languages.size },
-                    { it.sizeMb },
+                    { m -> if (recommendedLanguages(m).any { it.equals(language, ignoreCase = true) }) 0 else 1 },
+                    { m -> recommendedLanguages(m).size },
+                    { m -> if (m.ramMb > 0) m.ramMb else m.sizeMb },
                 )
             )
 

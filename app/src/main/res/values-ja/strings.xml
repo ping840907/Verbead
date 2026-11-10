@@ -480,10 +480,8 @@
     <string name="asr_language_dialog_title">言語で絞り込む</string>
     <string name="asr_languages_format">対応言語：%1$s</string>
     <string name="asr_model_size_format">ダウンロード約 %1$d MB</string>
-    <string name="asr_use_live">リアルタイムに使う</string>
-    <string name="asr_use_final">確定に使う</string>
     <string name="asr_in_use">使用中・タップで解除</string>
-    <string name="asr_memory_hint">大きなモデルを2つ同時に使うと多くのメモリを使います。動作が遅くなったり終了したりする場合は、小さいモデルを選んでください。</string>
+    <string name="asr_memory_hint">この組み合わせは、この端末のメモリを多く使います。動作が遅くなったり終了したりする場合は、軽いモデルを選んでください。</string>
     <string name="asr_custom_problems_format">custom_models.json の一部の項目はスキップされました：\n%1$s</string>
     <string name="asr_variant_format">バリアント：%1$s</string>
     <string name="asr_variant_dialog_title">バリアントを選ぶ</string>
@@ -506,4 +504,13 @@
     <string name="settings_speech_filter_half_punct_desc">半角のコンマ、ピリオド、疑問符、引用符などを自動で除去します。小数点や 10:30 のような時刻は残ります</string>
     <string name="asr_mode_live_chip">リアルタイム・話しながら表示</string>
     <string name="asr_mode_final_chip">確定・話し終えてから</string>
+    <string name="asr_action_download_format">ダウンロード・%1$d MB</string>
+    <string name="asr_languages_count_format">%1$d 言語に対応</string>
+    <string name="asr_more_actions">その他の操作</string>
+    <string name="asr_menu_delete">モデルを削除</string>
+    <string name="asr_delete_title">%1$s を削除しますか？</string>
+    <string name="asr_delete_message">この端末からモデルのファイルを削除します。もう一度使うには再ダウンロードが必要です。</string>
+    <string name="asr_keep_one">少なくとも 1 つのモデルを使用中にしておく必要があります</string>
+    <string name="asr_ram_format">メモリ約 %1$s</string>
+    <string name="asr_ram_total_format">合計メモリ使用量：約 %1$s</string>
 </resources>

@@ -53,16 +53,17 @@ class OnboardingActivity : AppCompatActivity() {
         initViews()
         setupViewPager()
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (vpOnboarding.currentItem > 0) {
-                    vpOnboarding.currentItem = vpOnboarding.currentItem - 1
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                }
-            }
-        })
+        onBackPressedDispatcher.addCallback(this, backToPreviousPage)
+    }
+
+    /**
+     * Back goes to the previous slide. It is only enabled past the first slide, so on the first slide the system
+     * handles back itself and can show its predictive "peek at where you are going" animation.
+     */
+    private val backToPreviousPage = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            if (vpOnboarding.currentItem > 0) vpOnboarding.currentItem = vpOnboarding.currentItem - 1
+        }
     }
 
     private fun initViews() {
@@ -108,6 +109,7 @@ class OnboardingActivity : AppCompatActivity() {
         vpOnboarding.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
+                backToPreviousPage.isEnabled = position > 0
                 updateNavigationUI(position)
                 playPageAnimation(position)
             }

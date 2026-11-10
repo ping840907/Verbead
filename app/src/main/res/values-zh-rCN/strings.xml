@@ -480,10 +480,8 @@
     <string name="asr_language_dialog_title">按语言筛选</string>
     <string name="asr_languages_format">支持语言：%1$s</string>
     <string name="asr_model_size_format">下载约 %1$d MB</string>
-    <string name="asr_use_live">设为即时模型</string>
-    <string name="asr_use_final">设为整句模型</string>
     <string name="asr_in_use">使用中・点击取消</string>
-    <string name="asr_memory_hint">两个大型模型同时使用会占用大量内存；若变慢或被系统关闭，请改选较小的模型。</string>
+    <string name="asr_memory_hint">这个组合占用的内存对这部手机偏多；若变慢或被系统关闭，请改选较轻的模型。</string>
     <string name="asr_custom_problems_format">custom_models.json 中有些项目被略过：\n%1$s</string>
     <string name="asr_variant_format">版本：%1$s</string>
     <string name="asr_variant_dialog_title">选择版本</string>
@@ -506,4 +504,13 @@
     <string name="settings_speech_filter_half_punct_desc">自动去除英文逗号、句点、问号、引号等半角符号；小数点与 10:30 这类时间会保留</string>
     <string name="asr_mode_live_chip">即时・边说边显示</string>
     <string name="asr_mode_final_chip">整句・说完再识别</string>
+    <string name="asr_action_download_format">下载・%1$d MB</string>
+    <string name="asr_languages_count_format">支持 %1$d 种语言</string>
+    <string name="asr_more_actions">更多操作</string>
+    <string name="asr_menu_delete">删除模型</string>
+    <string name="asr_delete_title">删除 %1$s？</string>
+    <string name="asr_delete_message">会移除手机上的模型文件。之后要再使用，需要重新下载。</string>
+    <string name="asr_keep_one">至少要保留一个使用中的模型</string>
+    <string name="asr_ram_format">内存约 %1$s</string>
+    <string name="asr_ram_total_format">合计占用内存约 %1$s</string>
 </resources>

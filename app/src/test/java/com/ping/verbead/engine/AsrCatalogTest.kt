@@ -53,7 +53,7 @@ class AsrCatalogTest {
     @Test fun filterByKindAndLanguage() {
         val none = { _: AsrModel -> false }
         val liveJa = AsrCatalog.filter(AsrMode.LIVE, "ja", none)
-        assertEquals(setOf("nemotron35", "nemotron35_160", "nemotron35_1120"), liveJa.map { it.id }.toSet())
+        assertEquals(setOf("nemotron35", "nemotron35_160", "nemotron35_1120", "zipformer_multi8"), liveJa.map { it.id }.toSet())
         val finalVi = AsrCatalog.filter(AsrMode.FINAL, "vi", none).map { it.id }
         assertTrue("moonshine_base_vi" in finalVi)
         assertTrue(AsrCatalog.QWEN3 in finalVi)
@@ -272,5 +272,13 @@ class AsrRecommenderTest {
         assertEquals("zh-CN", AsrRecommender.defaultLanguage(Locale.SIMPLIFIED_CHINESE))
         assertEquals("ja", AsrRecommender.defaultLanguage(Locale.JAPAN))
         assertEquals("en", AsrRecommender.defaultLanguage(Locale.US))
+    }
+}
+
+class AsrDisplayOrderTest {
+    @Test fun inUseFirstThenDownloadedThenTheRestKeepingCatalogOrder() {
+        val items = listOf("a", "b", "c", "d", "e")
+        val sorted = AsrCatalog.sortForDisplay(items, inUse = { it == "d" }, downloaded = { it == "c" || it == "e" || it == "d" })
+        assertEquals(listOf("d", "c", "e", "a", "b"), sorted)
     }
 }

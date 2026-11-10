@@ -4,7 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.k2fsa.sherpa.onnx.FeatureConfig
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
+import com.k2fsa.sherpa.onnx.OfflineDolphinModelConfig
 import com.k2fsa.sherpa.onnx.OfflineMoonshineModelConfig
+import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineTransducerModelConfig
@@ -65,6 +67,29 @@ class SherpaOfflineEngine(private val context: Context, val model: AsrModel) : F
                 numThreads = model.threads,
                 provider = provider,
                 modelType = model.offlineModelType ?: "",
+            )
+        }
+        AsrLoader.SENSE_VOICE -> {
+            val f = AsrModelFiles.single(dir, model.fileNames) ?: error("Model files not found: ${model.dir}")
+            OfflineModelConfig(
+                senseVoice = OfflineSenseVoiceModelConfig(
+                    model = f.model,
+                    language = model.options["language"] ?: "auto",
+                    // inverse text normalization is what gives SenseVoice its punctuation
+                    useInverseTextNormalization = (model.options["itn"] ?: "true").toBoolean(),
+                ),
+                tokens = f.tokens,
+                numThreads = model.threads,
+                provider = provider,
+            )
+        }
+        AsrLoader.DOLPHIN -> {
+            val f = AsrModelFiles.single(dir, model.fileNames) ?: error("Model files not found: ${model.dir}")
+            OfflineModelConfig(
+                dolphin = OfflineDolphinModelConfig(model = f.model),
+                tokens = f.tokens,
+                numThreads = model.threads,
+                provider = provider,
             )
         }
         else -> error("${model.loader} is not handled by this engine")

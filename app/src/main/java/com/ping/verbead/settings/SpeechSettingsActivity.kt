@@ -54,6 +54,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var btnClearLive: View
     private lateinit var btnClearFinal: View
     private lateinit var tvAsrMemoryHint: TextView
+    private lateinit var tvAsrRamTotal: TextView
     private lateinit var chipsKind: ChipGroup
     private lateinit var chipDownloadedOnly: Chip
     private lateinit var btnLanguageFilter: MaterialButton
@@ -98,8 +99,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     /** The views of each model card currently shown, by model id (the download progress is drawn into them). */
     private class CardViews(
         val card: MaterialCardView,
-        val use: MaterialButton,
-        val download: MaterialButton,
+        val action: MaterialButton,
         val progress: LinearProgressIndicator,
         val progressText: TextView,
     )
@@ -175,6 +175,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         btnClearLive.setOnClickListener { clearSlot(AsrMode.LIVE) }
         btnClearFinal.setOnClickListener { clearSlot(AsrMode.FINAL) }
         tvAsrMemoryHint = findViewById(R.id.tv_asr_memory_hint)
+        tvAsrRamTotal = findViewById(R.id.tv_asr_ram_total)
         chipsKind = findViewById(R.id.chips_asr_kind)
         chipDownloadedOnly = findViewById(R.id.chip_downloaded_only)
         btnLanguageFilter = findViewById(R.id.btn_asr_language_filter)
@@ -411,13 +412,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
     // ── Speech model list ─────────────────────────────────────────────────────
 
-    private fun languageSummary(model: AsrModel): String {
-        val locale = Locale.getDefault()
-        val names = model.languages.map { AsrCatalog.languageName(it, locale) }
-        val shown = if (names.size > 6) names.take(6).joinToString(", ") + " … +" + (names.size - 6) else names.joinToString(", ")
-        return getString(R.string.asr_languages_format, shown)
-    }
-
     private fun clearSlot(mode: AsrMode) {
         HapticUtil.click(this)
         ModelConfig.setAsrModel(this, mode, null)
@@ -458,7 +452,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val inUse = inSlot && (asPreview || model.mode == AsrMode.FINAL || ModelConfig.selectedAsrModel(this, AsrMode.FINAL) == null)
         row.name.text = model.name
         val desc = model.descriptionFor(resources.configuration.locales[0])
-        row.info.text = if (!ready && model.sizeMb > 0) desc + "\n" + getString(R.string.asr_model_size_format, model.sizeMb) else desc
+        val cost = listOfNotNull(
+            if (!ready && model.sizeMb > 0) getString(R.string.asr_model_size_format, model.sizeMb) else null,
+            if (model.ramMb > 0) getString(R.string.asr_ram_format, AsrCatalog.formatMb(model.ramMb)) else null,
+        ).joinToString("\u30FB")
+        row.info.text = if (cost.isEmpty()) desc else desc + "\n" + cost
         row.action.text = when {
             inUse -> getString(R.string.asr_rec_in_use)
             ready -> getString(R.string.asr_rec_use)
@@ -514,6 +512,13 @@ class SpeechSettingsActivity : AppCompatActivity() {
         applyActiveDownload()
     }
 
+    /** Memory of this phone in MB (0 when it cannot be read). */
+    private fun deviceRamMb(): Long {
+        val info = android.app.ActivityManager.MemoryInfo()
+        getSystemService(android.app.ActivityManager::class.java)?.getMemoryInfo(info) ?: return 0
+        return info.totalMem / (1024 * 1024)
+    }
+
     /** The big card at the top: which model each slot uses (dimmed "not set" when empty). */
     private fun showCombo(live: AsrModel?, fin: AsrModel?) {
         val none = getString(R.string.asr_combo_not_set)
@@ -531,8 +536,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val live = ModelConfig.selectedAsrModel(this, AsrMode.LIVE)
         val fin = ModelConfig.selectedAsrModel(this, AsrMode.FINAL)
         showCombo(live, fin)
-        tvAsrMemoryHint.visibility =
-            if (live != null && fin != null && live.sizeMb + fin.sizeMb > MEMORY_HINT_MB) View.VISIBLE else View.GONE
+        val inUse = listOfNotNull(live, fin)
+        val totalRam = inUse.sumOf { it.ramMb }
+        tvAsrRamTotal.visibility = if (totalRam > 0) View.VISIBLE else View.GONE
+        tvAsrRamTotal.text = getString(R.string.asr_ram_total_format, AsrCatalog.formatMb(totalRam))
+        tvAsrMemoryHint.visibility = if (AsrCatalog.isHeavyFor(deviceRamMb(), inUse)) View.VISIBLE else View.GONE
 
         btnLanguageFilter.text = getString(
             R.string.asr_language_filter_format,
@@ -551,11 +559,21 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvCustomProblems.visibility = if (problems.isEmpty()) View.GONE else View.VISIBLE
         tvCustomProblems.text = getString(R.string.asr_custom_problems_format, problems.joinToString("\n"))
         val inflater = layoutInflater
-        for (variants in AsrCatalog.grouped(shown)) {
-            val model = chooseVariant(variants)
-            val view = inflater.inflate(R.layout.item_asr_model, layoutModels, false) as MaterialCardView
-            bindModelCard(view, model, variants)
-            layoutModels.addView(view)
+        val groups = AsrCatalog.grouped(shown)
+        for (mode in listOf(AsrMode.LIVE, AsrMode.FINAL)) {
+            val ofMode = AsrCatalog.sortForDisplay(
+                groups.filter { it.first().mode == mode },
+                inUse = { g -> g.any { ModelConfig.selectedAsrModel(this, it.mode)?.id == it.id } },
+                downloaded = { g -> g.any { ModelConfig.isModelReady(this, it) } },
+            )
+            if (ofMode.isEmpty()) continue
+            layoutModels.addView(sectionHeader(if (mode == AsrMode.LIVE) R.string.asr_mode_live_chip else R.string.asr_mode_final_chip))
+            for (variants in ofMode) {
+                val model = chooseVariant(variants)
+                val view = inflater.inflate(R.layout.item_asr_model, layoutModels, false) as MaterialCardView
+                bindModelCard(view, model, variants)
+                layoutModels.addView(view)
+            }
         }
         applyActiveDownload()
     }
@@ -596,11 +614,54 @@ class SpeechSettingsActivity : AppCompatActivity() {
             .show()
     }
 
+    /** A small heading above the cards of one kind (live / final). */
+    private fun sectionHeader(textRes: Int): TextView =
+        TextView(this, null, 0, R.style.Verbead_Text_Section).apply {
+            setText(textRes)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dpToPx(6f)
+                bottomMargin = dpToPx(8f)
+                marginStart = dpToPx(4f)
+            }
+        }
+
+    /** The languages line: names when they are few, a count that unfolds into the names when they are many. */
+    private fun bindLanguages(view: TextView, model: AsrModel) {
+        val locale = Locale.getDefault()
+        val names = model.languages.map { AsrCatalog.languageName(it, locale) }
+        if (names.size <= FEW_LANGUAGES) {
+            view.text = getString(R.string.asr_languages_format, names.joinToString(", "))
+            view.setOnClickListener(null)
+            view.isClickable = false
+            return
+        }
+        var expanded = false
+        fun show() {
+            view.text = if (expanded) {
+                getString(R.string.asr_languages_format, names.joinToString(", ")) + "  \u25B4"
+            } else {
+                getString(R.string.asr_languages_count_format, names.size) + "  \u25BE"
+            }
+        }
+        show()
+        view.setOnClickListener {
+            expanded = !expanded
+            show()
+        }
+    }
+
+    /**
+     * One card, one main button. The button does the next sensible thing for the model's state:
+     * download it, use it, or (when it is in use) stop using it. Re-downloading and deleting live in the menu.
+     */
     private fun bindModelCard(card: MaterialCardView, model: AsrModel, variants: List<AsrModel>) {
         val ready = ModelConfig.isModelReady(this, model)
         val inUse = ModelConfig.selectedAsrModel(this, model.mode)?.id == model.id
 
         card.findViewById<TextView>(R.id.tv_model_name).text = model.group ?: model.name
+        card.findViewById<TextView>(R.id.tv_model_desc).text = model.descriptionFor(resources.configuration.locales[0])
         card.findViewById<MaterialButton>(R.id.btn_model_variant).apply {
             if (variants.size > 1) {
                 visibility = View.VISIBLE
@@ -610,55 +671,65 @@ class SpeechSettingsActivity : AppCompatActivity() {
                 visibility = View.GONE
             }
         }
-        card.findViewById<TextView>(R.id.tv_model_tag).apply {
-            val live = model.mode == AsrMode.LIVE
-            text = getString(if (live) R.string.asr_tag_live else R.string.asr_tag_final)
-            setBackgroundResource(if (live) R.drawable.bg_status_badge_recommend else R.drawable.bg_status_badge_success)
-            setTextColor(ContextCompat.getColor(context, if (live) R.color.tag_recommend else R.color.status_success_text))
-        }
-        card.findViewById<TextView>(R.id.tv_model_desc).text = model.descriptionFor(resources.configuration.locales[0])
-
-        val langs = card.findViewById<TextView>(R.id.tv_model_languages)
-        langs.text = languageSummary(model)
-        langs.setOnClickListener {
-            // a tap shows the whole list of languages, a second tap folds it again
-            val expanded = langs.maxLines > 2
-            langs.maxLines = if (expanded) 2 else Int.MAX_VALUE
-            langs.text = if (expanded) languageSummary(model) else getString(
-                R.string.asr_languages_format,
-                model.languages.joinToString(", ") { AsrCatalog.languageName(it, Locale.getDefault()) }
-            )
+        bindLanguages(card.findViewById(R.id.tv_model_languages), model)
+        card.findViewById<TextView>(R.id.tv_model_ram).apply {
+            visibility = if (model.ramMb > 0) View.VISIBLE else View.GONE
+            text = getString(R.string.asr_ram_format, AsrCatalog.formatMb(model.ramMb))
         }
 
-        val status = card.findViewById<TextView>(R.id.tv_model_status)
-        status.text = when {
-            ready -> getString(R.string.common_ready)
-            model.sizeMb > 0 -> getString(R.string.common_not_downloaded) + " · " + getString(R.string.asr_model_size_format, model.sizeMb)
-            else -> getString(R.string.common_not_downloaded)
+        val action = card.findViewById<MaterialButton>(R.id.btn_model_action)
+        action.text = when {
+            inUse -> getString(R.string.asr_in_use)
+            ready -> getString(R.string.asr_rec_use)
+            model.sizeMb > 0 -> getString(R.string.asr_action_download_format, model.sizeMb)
+            else -> getString(R.string.common_download)
+        }
+        ChoiceButtonUtil.applyChoiceState(action, inUse)
+        action.setOnClickListener {
+            if (ready) onUseClick(model) else handleDownloadButtonClick(model.id)
         }
 
-        val use = card.findViewById<MaterialButton>(R.id.btn_model_use)
-        use.text = getString(
-            when {
-                inUse -> R.string.asr_in_use
-                model.mode == AsrMode.LIVE -> R.string.asr_use_live
-                else -> R.string.asr_use_final
-            }
-        )
-        use.isEnabled = ready
-        ChoiceButtonUtil.applyChoiceState(use, inUse)
-        use.setOnClickListener { onUseClick(model) }
-
-        val download = card.findViewById<MaterialButton>(R.id.btn_model_download)
-        download.text = getString(if (ready) R.string.common_redownload else R.string.common_download_model)
-        download.setOnClickListener { handleDownloadButtonClick(model.id) }
+        // rare actions, only for a model that is on the phone
+        card.findViewById<View>(R.id.btn_model_more).apply {
+            visibility = if (ready) View.VISIBLE else View.GONE
+            setOnClickListener { showModelMenu(it, model) }
+        }
 
         updateModelCardSelection(card, inUse)
         cards[model.id] = CardViews(
-            card, use, download,
+            card, action,
             card.findViewById(R.id.progress_model_download),
             card.findViewById(R.id.tv_model_download_status),
         )
+    }
+
+    private fun showModelMenu(anchor: View, model: AsrModel) {
+        androidx.appcompat.widget.PopupMenu(this, anchor).apply {
+            menu.add(0, MENU_REDOWNLOAD, 0, R.string.common_redownload)
+            menu.add(0, MENU_DELETE, 1, R.string.asr_menu_delete)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    MENU_REDOWNLOAD -> handleDownloadButtonClick(model.id)
+                    MENU_DELETE -> confirmDelete(model)
+                }
+                true
+            }
+        }.show()
+    }
+
+    private fun confirmDelete(model: AsrModel) {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.asr_delete_title, model.name))
+            .setMessage(R.string.asr_delete_message)
+            .setPositiveButton(R.string.asr_menu_delete) { _, _ ->
+                HapticUtil.click(this)
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) { ModelConfig.deleteAsrModel(this@SpeechSettingsActivity, model) }
+                    updateAllStatus()
+                }
+            }
+            .setNegativeButton(R.string.btn_cancel, null)
+            .show()
     }
 
     /** Puts the model into its slot, or takes it out again when it is already there. */
@@ -673,6 +744,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         // at least one slot must stay filled, or there is nothing to record with
         if (ModelConfig.selectedAsrModel(this, AsrMode.LIVE) == null && ModelConfig.selectedAsrModel(this, AsrMode.FINAL) == null) {
             ModelConfig.setAsrModel(this, model.mode, model.id)
+            Toast.makeText(this, R.string.asr_keep_one, Toast.LENGTH_SHORT).show()
         }
         updateAllStatus()
     }
@@ -802,7 +874,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private fun beginDownload(engine: String) {
         ModelDownloadService.start(this, engine)
         val views = cards[engine] ?: return
-        views.download.text = getString(R.string.common_cancel_download)
+        views.action.text = getString(R.string.common_cancel_download)
+        views.action.setOnClickListener { handleDownloadButtonClick(engine) }
         views.progress.visibility = View.VISIBLE
         views.progress.isIndeterminate = true
         views.progressText.visibility = View.VISIBLE
@@ -824,7 +897,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
             row.progressText.text = "${active.progress.label(this)} (${active.progress.percent}%)"
         }
         val views = cards[active.engine] ?: return
-        views.download.text = getString(R.string.common_cancel_download)
+        views.action.text = getString(R.string.common_cancel_download)
+        views.action.setOnClickListener { handleDownloadButtonClick(active.engine) }
+        ChoiceButtonUtil.applyChoiceState(views.action, false)
         views.progress.visibility = View.VISIBLE
         views.progressText.visibility = View.VISIBLE
         views.progress.isIndeterminate = active.progress.percent < 0
@@ -857,7 +932,10 @@ class SpeechSettingsActivity : AppCompatActivity() {
     }
 
     private companion object {
-        /** Two selected models that together download more than this are likely to be heavy on memory. */
-        const val MEMORY_HINT_MB = 800
+        /** Up to this many languages are written out on a card; more are shown as a count that unfolds. */
+        const val FEW_LANGUAGES = 4
+
+        const val MENU_REDOWNLOAD = 1
+        const val MENU_DELETE = 2
     }
 }

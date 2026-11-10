@@ -244,6 +244,148 @@
       "tier": "light"
     },
     {
+      "id": "zipformer_multi8",
+      "name": "Zipformer Multilingual",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "zipformer_multi8",
+      "languages": [
+        "ar",
+        "en",
+        "id",
+        "ja",
+        "ru",
+        "th",
+        "vi",
+        "zh"
+      ],
+      "sizeMb": 247,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10.tar.bz2",
+        "sha256": "28044b67324f7f831689f0a3761473dd2ade380e93aa53f1dbcd479ef71c40d4"
+      },
+      "description": {
+        "en": "Live text for eight languages in one mid-sized model, including Thai and Indonesian.",
+        "zh-TW": "一個中型模型涵蓋八種語言的即時辨識，包含泰語與印尼語。",
+        "zh-CN": "一个中型模型涵盖八种语言的即时识别，包含泰语与印尼语。",
+        "ja": "タイ語・インドネシア語を含む 8 言語のリアルタイム認識を 1 つの中型モデルで。",
+        "ko": "태국어·인도네시아어를 포함한 8개 언어 실시간 인식을 중형 모델 하나로."
+      }
+    },
+    {
+      "id": "zipformer_zh",
+      "name": "Zipformer Chinese",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "zipformer_zh",
+      "languages": [
+        "zh"
+      ],
+      "sizeMb": 126,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30.tar.bz2",
+        "sha256": "5a2832047ea1f97dd0dc595b816c230c4bafad65cfc0341fa57517cadc50afd0"
+      },
+      "description": {
+        "en": "Live text for Mandarin Chinese.",
+        "zh-TW": "中文（普通話）即時辨識。",
+        "zh-CN": "中文（普通话）即时识别。",
+        "ja": "中国語（標準語）のリアルタイム認識。",
+        "ko": "중국어(표준어) 실시간 인식."
+      }
+    },
+    {
+      "id": "zipformer_ru_small",
+      "name": "Zipformer Russian Small",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "zipformer_ru_small",
+      "languages": [
+        "ru"
+      ],
+      "sizeMb": 23,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-small-ru-vosk-int8-2025-08-16.tar.bz2",
+        "sha256": "6ba68a01ff3c5445aaf2d61e9b97b026f1149dcc9049d11af3f44f55176341d8"
+      },
+      "description": {
+        "en": "A very small live model for Russian.",
+        "zh-TW": "極小的俄語即時模型。",
+        "zh-CN": "极小的俄语即时模型。",
+        "ja": "ロシア語向けのごく小さなリアルタイムモデル。",
+        "ko": "러시아어용 초소형 실시간 모델."
+      }
+    },
+    {
+      "id": "kroko_de",
+      "name": "Kroko Zipformer",
+      "group": "Kroko Zipformer",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "kroko_de",
+      "languages": [
+        "de"
+      ],
+      "sizeMb": 55,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-de-kroko-2025-08-06.tar.bz2",
+        "sha256": "9e27b783c20e67b0d0f13a258c1861fce199917c969d9176a438bee38df64962"
+      },
+      "description": {
+        "en": "A small live model for a single language.",
+        "zh-TW": "單一語言的小型即時模型。",
+        "zh-CN": "单一语言的小型即时模型。",
+        "ja": "単一言語向けの小型リアルタイムモデル。",
+        "ko": "단일 언어용 소형 실시간 모델."
+      }
+    },
+    {
+      "id": "kroko_fr",
+      "name": "Kroko Zipformer",
+      "group": "Kroko Zipformer",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "kroko_fr",
+      "languages": [
+        "fr"
+      ],
+      "sizeMb": 55,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-fr-kroko-2025-08-06.tar.bz2",
+        "sha256": "e6ffd3dc43725cd6c8137b05c739f15607d0df946b9b90eb141e10059efca024"
+      },
+      "description": {
+        "en": "A small live model for a single language.",
+        "zh-TW": "單一語言的小型即時模型。",
+        "zh-CN": "单一语言的小型即时模型。",
+        "ja": "単一言語向けの小型リアルタイムモデル。",
+        "ko": "단일 언어용 소형 실시간 모델."
+      }
+    },
+    {
+      "id": "kroko_es",
+      "name": "Kroko Zipformer",
+      "group": "Kroko Zipformer",
+      "mode": "live",
+      "loader": "online_transducer",
+      "dir": "kroko_es",
+      "languages": [
+        "es"
+      ],
+      "sizeMb": 119,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-es-kroko-2025-08-06.tar.bz2",
+        "sha256": "31b2230a95d23290b308b393da930015a4b2105cb3abb9367aed35f7fcf29cf1"
+      },
+      "description": {
+        "en": "A small live model for a single language.",
+        "zh-TW": "單一語言的小型即時模型。",
+        "zh-CN": "单一语言的小型即时模型。",
+        "ja": "単一言語向けの小型リアルタイムモデル。",
+        "ko": "단일 언어용 소형 실시간 모델."
+      }
+    },
+    {
       "id": "qwen3",
       "name": "Qwen3-ASR",
       "mode": "final",
@@ -620,6 +762,137 @@
       "group": "Moonshine v2",
       "variant": "Base",
       "tier": "balanced"
+    },
+    {
+      "id": "sense_voice",
+      "name": "SenseVoice Small",
+      "mode": "final",
+      "loader": "sense_voice",
+      "dir": "sense_voice",
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko"
+      ],
+      "sizeMb": 158,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09.tar.bz2",
+        "sha256": "7305f7905bfcf77fa0b39388a313f3da35c68d971661a65475b56fb2162c8e63"
+      },
+      "description": {
+        "en": "Chinese, Cantonese, English, Japanese and Korean with punctuation; fast, and the language is detected automatically.",
+        "zh-TW": "中文、粵語、英語、日語、韓語，附標點；速度快，語言自動偵測。",
+        "zh-CN": "中文、粤语、英语、日语、韩语，附标点；速度快，语言自动检测。",
+        "ja": "中国語・広東語・英語・日本語・韓国語に対応し、句読点付き。高速で、言語は自動判定。",
+        "ko": "중국어·광둥어·영어·일본어·한국어를 문장 부호와 함께 인식합니다. 빠르고 언어는 자동 감지됩니다."
+      }
+    },
+    {
+      "id": "zipformer_vi_30m",
+      "name": "Zipformer Vietnamese 30M",
+      "mode": "final",
+      "loader": "offline_transducer",
+      "dir": "zipformer_vi_30m",
+      "languages": [
+        "vi"
+      ],
+      "sizeMb": 25,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-zipformer-vi-30M-int8-2026-02-09.tar.bz2",
+        "sha256": "da8b637947091829d7ee9eda23da2a4ec7caa399233a3f4e34eb719fb2ea6b9b"
+      },
+      "description": {
+        "en": "A very small model for Vietnamese.",
+        "zh-TW": "極小的越南語模型。",
+        "zh-CN": "极小的越南语模型。",
+        "ja": "ベトナム語向けのごく小さなモデル。",
+        "ko": "베트남어용 초소형 모델."
+      }
+    },
+    {
+      "id": "zipformer_ru",
+      "name": "Zipformer Russian",
+      "mode": "final",
+      "loader": "offline_transducer",
+      "dir": "zipformer_ru",
+      "languages": [
+        "ru"
+      ],
+      "sizeMb": 57,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-zipformer-ru-int8-2025-04-20.tar.bz2",
+        "sha256": "d6a651569aacc9a177259fa54705dd76acae23f6a4d62ea6797bd220d4b57163"
+      },
+      "description": {
+        "en": "A small model for Russian.",
+        "zh-TW": "小型的俄語模型。",
+        "zh-CN": "小型的俄语模型。",
+        "ja": "ロシア語向けの小型モデル。",
+        "ko": "러시아어용 소형 모델."
+      }
+    },
+    {
+      "id": "dolphin_base",
+      "name": "Dolphin Base",
+      "mode": "final",
+      "loader": "dolphin",
+      "dir": "dolphin_base",
+      "languages": [
+        "zh",
+        "ja",
+        "th",
+        "ru",
+        "ko",
+        "id",
+        "vi",
+        "hi",
+        "ur",
+        "ms",
+        "uz",
+        "ar",
+        "fa",
+        "bn",
+        "ta",
+        "te",
+        "ug",
+        "gu",
+        "my",
+        "tl",
+        "kk",
+        "or",
+        "ne",
+        "mn",
+        "km",
+        "jv",
+        "lo",
+        "si",
+        "fil",
+        "ps",
+        "pa",
+        "kab",
+        "ba",
+        "ks",
+        "tg",
+        "su",
+        "mr",
+        "ky",
+        "az",
+        "yue"
+      ],
+      "sizeMb": 77,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02.tar.bz2",
+        "sha256": "6f23da2303c3c2e5fa6445c450fa2a7133cd57e3da070ae5f97ab9e0dfbb4a54"
+      },
+      "description": {
+        "en": "40 Asian languages in one small model, including Thai, Indonesian, Malay, Burmese, Khmer and Lao. No punctuation.",
+        "zh-TW": "一個小模型涵蓋 40 種亞洲語言，包含泰、印尼、馬來、緬甸、高棉、寮語。不含標點。",
+        "zh-CN": "一个小模型涵盖 40 种亚洲语言，包含泰、印尼、马来、缅甸、高棉、老挝语。不含标点。",
+        "ja": "タイ語・インドネシア語・マレー語・ビルマ語・クメール語・ラオ語など、アジア 40 言語を 1 つの小型モデルで。句読点なし。",
+        "ko": "태국어·인도네시아어·말레이어·버마어·크메르어·라오어 등 아시아 40개 언어를 소형 모델 하나로. 문장 부호 없음."
+      }
     }
   ]
 }

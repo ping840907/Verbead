@@ -5,6 +5,11 @@
         <receiver
             android:name=".SherpaQwen3BenchReceiver"
             android:exported="true" />
+        <!-- Debug only: memory use of one speech model, measured in a process of its own -->
+        <receiver
+            android:name=".AsrMemoryBenchReceiver"
+            android:exported="true"
+            android:process=":membench" />
         <receiver
             android:name=".OcrSmokeReceiver"
             android:exported="true" />

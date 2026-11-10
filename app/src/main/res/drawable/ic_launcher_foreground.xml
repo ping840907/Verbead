@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    珠璣 (Verbead) App 標誌：V 弦托珠 (V-Wave Crest)
-    - 單一明珠 (The Single Pearl)：象徵「端側智慧運算核心」與「字字珠璣」
-    - 流動 V 弦 (Flowing V-Wave)：聲波音訊與文字資訊流動之羽翼浪潮，象徵「隨說隨出、流暢如詩」
-    - 幾何線條嚴格落於 66dp 安全視圖區內，適配任意桌面遮罩。
+    珠璣 (Verbead) app icon: "pearl in the voice"
+    - A sound waveform (four rounded bars) with a pearl where its peak would be:
+      speech goes in, a polished word comes out.
+    - Everything sits inside the 66dp safe zone, so any launcher mask fits.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -11,29 +11,28 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 主流帶：動態揚起之 V 浪羽翼 (Voice Flow & Verbead Ribbon) -->
+    <!-- outer bars (quieter) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 27,42 C 25,56 30,70 43,77 C 55,82 69,74 78,54 C 82,44 84,33 85,27 C 82,34 77,47 69,59 C 61,70 51,72 44,69 C 37,66 33,55 33,45 C 33,42 29,41 27,42 Z" />
+        android:fillAlpha="0.72"
+        android:pathData="M24,50 a3,3 0 0 1 6,0 v8 a3,3 0 0 1 -6,0 Z M78,50 a3,3 0 0 1 6,0 v8 a3,3 0 0 1 -6,0 Z" />
 
-    <!-- 伴隨聲波諧振流 (Harmonic Acoustic Stream) -->
+    <!-- inner bars -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillAlpha="0.6"
-        android:pathData="M 33,34 C 36,45 42,56 52,60 C 60,62 70,56 77,42 C 80,35 82,29 83,23 C 82,27 78,36 72,46 C 65,56 57,60 50,58 C 43,55 38,45 35,34 C 35,32 33,32 33,34 Z" />
+        android:pathData="M34,43 a3,3 0 0 1 6,0 v22 a3,3 0 0 1 -6,0 Z M68,43 a3,3 0 0 1 6,0 v22 a3,3 0 0 1 -6,0 Z" />
 
-    <!-- 實心凝結明珠 (Single Luminous Pearl) -->
+    <!-- the pearl -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 35,53 a 10.5,10.5 0 1,0 21,0 a 10.5,10.5 0 1,0 -21,0 Z" />
+        android:pathData="M44,54 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 Z" />
 
-    <!-- 明珠高光 (Pearl Specular Highlights for dimensional luster) -->
+    <!-- its lustre -->
     <path
         android:fillColor="@color/md_theme_light_primary"
-        android:fillAlpha="0.3"
-        android:pathData="M 41,48.5 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0 Z" />
-
+        android:fillAlpha="0.28"
+        android:pathData="M47.6,50.4 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 41.8,49 a 1.2,1.2 0 1,0 2.4,0 a 1.2,1.2 0 1,0 -2.4,0 Z" />
+        android:pathData="M48.6,50.6 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0 Z" />
 </vector>

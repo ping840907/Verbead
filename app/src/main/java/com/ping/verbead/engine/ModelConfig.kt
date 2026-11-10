@@ -605,6 +605,20 @@ object ModelConfig {
         AsrCatalog.reloadCustom(listOfNotNull(getPrimaryModelsDir(context), File(context.filesDir, "models")))
     }
 
+    /**
+     * Deletes a model's files and takes it out of its slot. If that leaves no model selected at all,
+     * another downloaded model steps in so that recording keeps working.
+     */
+    fun deleteAsrModel(context: Context, model: AsrModel): Boolean {
+        val deleted = asrModelDir(context, model).deleteRecursively()
+        if (selectedAsrModel(context, model.mode)?.id == model.id) setAsrModel(context, model.mode, null)
+        val selection = asrSelection(context)
+        if (selection.live == null && selection.final == null) {
+            downloadedAsrModels(context).firstOrNull()?.let { setAsrModel(context, it.mode, it.id) }
+        }
+        return deleted
+    }
+
     fun downloadedAsrModels(context: Context): List<AsrModel> = AsrCatalog.models.filter { isModelReady(context, it) }
 
     /** At least one speech model can be used, and so can OCR. */
