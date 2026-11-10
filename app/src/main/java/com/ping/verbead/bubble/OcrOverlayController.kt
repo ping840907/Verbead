@@ -7,8 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.net.Uri
 import android.provider.Settings
 import android.util.Log
@@ -16,6 +18,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ScaleGestureDetector
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
@@ -101,6 +104,11 @@ class OcrOverlayController(
     var isEnlarged: Boolean = false
         private set
 
+    private var currentAnchorY: Int = 0
+    private var currentIsDockedOnRight: Boolean = false
+    private var currentScreenWidth: Int = 0
+    private var currentSafeBottom: Int = 0
+
     private var isFlashOn: Boolean = false
 
     private var cameraExecutor: ExecutorService? = null
@@ -125,20 +133,27 @@ class OcrOverlayController(
         }
         val ocr = ocrWindowView ?: return
 
+        currentAnchorY = anchorY
+        currentIsDockedOnRight = isDockedOnRight
+        currentScreenWidth = screenWidth
+        currentSafeBottom = safeBottom
+
         val density = context.resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
 
-        isEnlarged = ModelConfig.isCameraEnlarged(context, MODE_OCR)
+        isEnlarged = false
         val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val maxWindowWidth = (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
         val ocrWidth = if (isEnlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+            maxWindowWidth
         } else {
             (250 * density).toInt().coerceAtMost(maxAvailableWidth)
         }
 
         val cardSize = ocrWidth - (16 * density).toInt()
-        val estimatedHeight = cardSize + (120 * density).toInt()
+        val maxCardSize = maxWindowWidth - (16 * density).toInt()
+        val estimatedHeight = maxCardSize + (120 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         // top edge level with the bubble's top edge, like the quick phrases drawer
         val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
@@ -156,6 +171,7 @@ class OcrOverlayController(
             y = targetY
         }
 
+        val rootPanel = ocr.findViewById<View>(R.id.layout_ocr_root)
         val btnClose = ocr.findViewById<ImageButton>(R.id.btn_close_ocr)
         val btnScale = ocr.findViewById<ImageButton>(R.id.btn_ocr_scale)
         val btnFlash = ocr.findViewById<ImageButton>(R.id.btn_ocr_flash)
@@ -166,6 +182,9 @@ class OcrOverlayController(
         val viewFinder = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
         val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
 
+        rootPanel?.layoutParams = (rootPanel?.layoutParams as? FrameLayout.LayoutParams)?.apply {
+            width = ocrWidth
+        }
         btnScale.setImageResource(if (isEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
         cardPreview.layoutParams = cardPreview.layoutParams.apply {
             width = cardSize
@@ -188,7 +207,7 @@ class OcrOverlayController(
 
         btnScale.setOnClickListener {
             HapticUtil.click(context)
-            setEnlarged(!isEnlarged, anchorY, isDockedOnRight, screenWidth, safeBottom)
+            setEnlarged(!isEnlarged, currentAnchorY, currentIsDockedOnRight, currentScreenWidth, currentSafeBottom)
         }
 
         btnFlash.setOnClickListener {
@@ -225,9 +244,6 @@ class OcrOverlayController(
 
         btnShutter.setOnClickListener {
             HapticUtil.heavyClick(context)
-            if (!isEnlarged) {
-                setEnlarged(true, anchorY, isDockedOnRight, screenWidth, safeBottom)
-            }
             triggerSnapshot()
         }
 
@@ -325,6 +341,11 @@ class OcrOverlayController(
         screenWidth: Int,
         safeBottom: Int
     ) {
+        currentAnchorY = anchorY
+        currentIsDockedOnRight = isDockedOnRight
+        currentScreenWidth = screenWidth
+        currentSafeBottom = safeBottom
+
         isEnlarged = enlarged
         ModelConfig.setCameraEnlarged(context, MODE_OCR, enlarged)
         val ocr = ocrWindowView ?: return
@@ -334,37 +355,120 @@ class OcrOverlayController(
         val gap = (10 * density).toInt()
 
         val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val targetWidth = if (enlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
-        } else {
-            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
-        }
+        val maxWindowWidth = (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+        val smallWidth = (250 * density).toInt().coerceAtMost(maxAvailableWidth)
+        val targetWidth = if (enlarged) maxWindowWidth else smallWidth
 
+        val rootPanel = ocr.findViewById<View>(R.id.layout_ocr_root) ?: return
         val cardSize = targetWidth - (16 * density).toInt()
         val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
+        val btnScale = ocr.findViewById<ImageButton>(R.id.btn_ocr_scale)
+
+        val maxCardSize = maxWindowWidth - (16 * density).toInt()
+        val estimatedHeight = maxCardSize + (120 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
+        // top edge level with the bubble's top edge, like the quick phrases drawer
+        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
+        val targetGravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
+        val targetX = bubbleWidthPx + gap
+
+        if (isDockedOnRight && lp.width != targetWidth && ocr.isAttachedToWindow) {
+            var placeholderBitmap: Bitmap? = null
+            if (rootPanel.width > 0 && rootPanel.height > 0) {
+                try {
+                    val bmp = Bitmap.createBitmap(rootPanel.width, rootPanel.height, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bmp)
+                    rootPanel.draw(canvas)
+                    val vf = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
+                    val camBmp = vf?.bitmap
+                    if (camBmp != null && cardPreview != null) {
+                        val destRect = Rect(0, 0, cardPreview.width, cardPreview.height)
+                        (ocr as? ViewGroup)?.offsetDescendantRectToMyCoords(cardPreview, destRect)
+                        canvas.drawBitmap(camBmp, null, destRect, null)
+                        camBmp.recycle()
+                    }
+                    placeholderBitmap = bmp
+                } catch (e: Throwable) {
+                    Log.w(TAG, "Snapshot for seamless OCR swap failed", e)
+                }
+            }
+
+            btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+            (rootPanel.layoutParams as? FrameLayout.LayoutParams)?.apply {
+                width = targetWidth
+            }
+            cardPreview?.layoutParams?.apply {
+                width = cardSize
+                height = cardSize
+            }
+
+            val newContainer = FrameLayout(context)
+            val newLp = WindowManager.LayoutParams(
+                targetWidth,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                allowDisplayCutout()
+                gravity = targetGravity
+                x = targetX
+                y = targetY
+            }
+            try {
+                val oldGroup = rootPanel.parent as? ViewGroup
+                if (placeholderBitmap != null && oldGroup != null) {
+                    val ivPlaceholder = ImageView(context).apply {
+                        setImageBitmap(placeholderBitmap)
+                        layoutParams = FrameLayout.LayoutParams(placeholderBitmap.width, placeholderBitmap.height)
+                    }
+                    oldGroup.addView(ivPlaceholder)
+                }
+                oldGroup?.removeView(rootPanel)
+                newContainer.addView(rootPanel)
+                windowManager.addView(newContainer, newLp)
+                ocrWindowView = newContainer
+                ocrWindowLayoutParams = newLp
+
+                newContainer.postDelayed({
+                    if (windowManager.isViewAdded(ocr)) {
+                        try {
+                            windowManager.removeViewImmediate(ocr)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to remove old OCR container", e)
+                        }
+                    }
+                    placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
+                }, 48L)
+                return
+            } catch (e: Exception) {
+                placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
+                Log.w(TAG, "Failed to swap OCR container on setEnlarged", e)
+            }
+        }
+
+        btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+        (rootPanel.layoutParams as? FrameLayout.LayoutParams)?.apply {
+            width = targetWidth
+        }
         cardPreview?.layoutParams?.apply {
             width = cardSize
             height = cardSize
         }
+        rootPanel.requestLayout()
         cardPreview?.requestLayout()
 
-        lp.width = targetWidth
-        val btnScale = ocr.findViewById<ImageButton>(R.id.btn_ocr_scale)
-        btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
-
-        val estimatedHeight = cardSize + (120 * density).toInt()
-        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        // top edge level with the bubble's top edge, like the quick phrases drawer
-        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
-        lp.y = targetY
-        lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
-        lp.x = bubbleWidthPx + gap
-
-        if (ocr.isAttachedToWindow) {
-            try {
-                windowManager.updateViewLayout(ocr, lp)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to update OCR window layout on setEnlarged", e)
+        if (lp.width != targetWidth || lp.y != targetY || lp.gravity != targetGravity || lp.x != targetX) {
+            lp.width = targetWidth
+            lp.y = targetY
+            lp.gravity = targetGravity
+            lp.x = targetX
+            if (ocr.isAttachedToWindow) {
+                try {
+                    windowManager.updateViewLayout(ocr, lp)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to update OCR window layout on setEnlarged", e)
+                }
             }
         }
     }
@@ -375,6 +479,11 @@ class OcrOverlayController(
         screenWidth: Int,
         safeBottom: Int
     ) {
+        currentAnchorY = anchorY
+        currentIsDockedOnRight = isDockedOnRight
+        currentScreenWidth = screenWidth
+        currentSafeBottom = safeBottom
+
         val ocr = ocrWindowView ?: return
         val lp = ocrWindowLayoutParams ?: return
         if (!isModeActive || !ocr.isAttachedToWindow) return
@@ -383,24 +492,9 @@ class OcrOverlayController(
         val gap = (10 * density).toInt()
 
         val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val targetWidth = if (isEnlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
-        } else {
-            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
-        }
-        if (lp.width != targetWidth) {
-            lp.width = targetWidth
-            val cardSize = targetWidth - (16 * density).toInt()
-            val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
-            cardPreview?.layoutParams?.apply {
-                width = cardSize
-                height = cardSize
-            }
-            cardPreview?.requestLayout()
-        }
-
-        val cardSize = lp.width - (16 * density).toInt()
-        val estimatedHeight = cardSize + (120 * density).toInt()
+        val maxWindowWidth = (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+        val maxCardSize = maxWindowWidth - (16 * density).toInt()
+        val estimatedHeight = maxCardSize + (120 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         lp.y = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
         lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)

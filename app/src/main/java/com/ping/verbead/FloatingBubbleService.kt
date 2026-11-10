@@ -1699,6 +1699,31 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
 
+        // 若被刪除的球正好是當前開啟視窗的錨點球，或者處於語音狀態，立即關閉該球所開啟的視窗/狀態
+        val isDeletingActiveAnchor = activeAnchorBubble?.id == bubbleToDelete.id
+        if (isDeletingActiveAnchor) {
+            if (isScannerModeActive) {
+                overlays.stopScanner()
+            }
+            if (isOcrModeActive || isOcrSnapshotActive) {
+                dismissOcrSnapshot()
+                overlays.stopOcr()
+            }
+            if (isPhrasesDrawerActive) {
+                overlays.closePhrases()
+            }
+            if (state == State.RECORDING) {
+                voice.abortRecording()
+                hidePreviewText()
+                setState(State.IDLE)
+            } else if (state == State.TRANSCRIBING) {
+                voice.abortTranscribing()
+                hidePreviewText()
+                setState(State.IDLE)
+            }
+            hideXButton()
+        }
+
         bubbleToDelete.view.animate().cancel()
         bubbleToDelete.view.animate()
             .scaleX(0f)
@@ -1984,10 +2009,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val currentCenterX = startX + bubbleWidthPx / 2f
         val projectedCenterX = currentCenterX + vx * tau
 
+        val startOnRight = currentCenterX >= screenWidth / 2f
         // Target edge is determined strictly by whether the projected rest position crosses the screen midpoint
         val targetOnRight = projectedCenterX >= screenWidth / 2f
-        item.isDockedOnRight = targetOnRight
-        if (item.id == 0) isDockedOnRight = targetOnRight
+        val isChangingSide = startOnRight != targetOnRight
+        if (!isChangingSide) {
+            item.isDockedOnRight = targetOnRight
+            if (item.id == 0) isDockedOnRight = targetOnRight
+        }
 
         val normalLeftX = 0f
         val normalRightX = (screenWidth - bubbleWidthPx).toFloat()
@@ -2146,6 +2175,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         // 2. Facebook Messenger / AOSP Damped Harmonic Oscillator (Spring) Physics
+        val isOverlayOpen = isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive
         val omegaN = 16.0f
         val zeta = 0.82f
         val gamma = zeta * omegaN
@@ -2174,10 +2204,29 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     val sin = kotlin.math.sin((omegaD * t).toDouble()).toFloat()
 
                     val currentX = targetX + exp * (c1x * cos + c2x * sin)
-                    val currentY = finalItemTargetY + exp * (c1y * cos + c2y * sin)
+                    // When an overlay window is open, use a critically damped Y trajectory (no cosine/sine oscillation)
+                    // so the attached overlay window glides smoothly to finalItemTargetY without vertical bounce/jitter.
+                    val currentY = if (isOverlayOpen) {
+                        val expCrit = kotlin.math.exp((-omegaN * t).toDouble()).toFloat()
+                        finalItemTargetY + c1y * (1f + omegaN * t) * expCrit
+                    } else {
+                        finalItemTargetY + exp * (c1y * cos + c2y * sin)
+                    }
 
                     val newX = currentX.toInt().coerceIn(minClampX, maxClampX)
                     val newY = currentY.toInt().coerceIn(0, screenHeight - bubbleHeightPx)
+
+                    if (isChangingSide) {
+                        val crossedMidpoint = if (targetOnRight) {
+                            (newX + bubbleWidthPx / 2f) >= screenWidth / 2f
+                        } else {
+                            (newX + bubbleWidthPx / 2f) < screenWidth / 2f
+                        }
+                        if (crossedMidpoint && item.isDockedOnRight != targetOnRight) {
+                            item.isDockedOnRight = targetOnRight
+                            if (item.id == 0) isDockedOnRight = targetOnRight
+                        }
+                    }
 
                     if (t > 0.20f && kotlin.math.abs(currentX - targetX) < 0.75f && kotlin.math.abs(currentY - finalItemTargetY) < 0.75f) {
                         val finalX = targetX.toInt().coerceIn(minClampX, maxClampX)

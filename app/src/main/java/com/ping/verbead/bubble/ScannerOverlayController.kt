@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import com.ping.verbead.util.allowDisplayCutout
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Handler
@@ -14,9 +16,12 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ScaleGestureDetector
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
+import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.SeekBar
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -66,6 +71,11 @@ class ScannerOverlayController(
     private var scannerView: View? = null
     private var scannerLayoutParams: WindowManager.LayoutParams? = null
 
+    private var currentAnchorY: Int = 0
+    private var currentIsDockedOnRight: Boolean = false
+    private var currentScreenWidth: Int = 0
+    private var currentSafeBottom: Int = 0
+
     var isActive: Boolean = false
         private set
 
@@ -109,20 +119,27 @@ class ScannerOverlayController(
         }
         val scanner = scannerView ?: return
 
+        currentAnchorY = anchorY
+        currentIsDockedOnRight = isDockedOnRight
+        currentScreenWidth = screenWidth
+        currentSafeBottom = safeBottom
+
         val density = context.resources.displayMetrics.density
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
 
-        isEnlarged = ModelConfig.isCameraEnlarged(context, MODE_BARCODE)
+        isEnlarged = false
         val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
+        val maxWindowWidth = (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
         val scannerWidth = if (isEnlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+            maxWindowWidth
         } else {
             (250 * density).toInt().coerceAtMost(maxAvailableWidth)
         }
         val cardSize = scannerWidth - (16 * density).toInt()
 
-        val estimatedHeight = cardSize + (120 * density).toInt()
+        val maxCardSize = maxWindowWidth - (16 * density).toInt()
+        val estimatedHeight = maxCardSize + (120 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         // top edge level with the bubble's top edge, like the quick phrases drawer
         val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
@@ -140,6 +157,7 @@ class ScannerOverlayController(
             y = targetY
         }
 
+        val rootPanel = scanner.findViewById<View>(R.id.layout_scanner_root)
         val btnClose = scanner.findViewById<ImageButton>(R.id.btn_close_scanner)
         val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
         val btnFlash = scanner.findViewById<ImageButton>(R.id.btn_scanner_flash)
@@ -148,6 +166,9 @@ class ScannerOverlayController(
         val viewFinder = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
         val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
 
+        rootPanel?.layoutParams = (rootPanel?.layoutParams as? FrameLayout.LayoutParams)?.apply {
+            width = scannerWidth
+        }
         btnScale?.setImageResource(if (isEnlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
         cardPreview?.layoutParams = cardPreview?.layoutParams?.apply {
             width = cardSize
@@ -161,7 +182,7 @@ class ScannerOverlayController(
 
         btnScale?.setOnClickListener {
             HapticUtil.click(context)
-            setEnlarged(!isEnlarged, anchorY, isDockedOnRight, screenWidth, safeBottom)
+            setEnlarged(!isEnlarged, currentAnchorY, currentIsDockedOnRight, currentScreenWidth, currentSafeBottom)
         }
 
         btnFlash.setOnClickListener {
@@ -291,6 +312,11 @@ class ScannerOverlayController(
         screenWidth: Int,
         safeBottom: Int
     ) {
+        currentAnchorY = anchorY
+        currentIsDockedOnRight = isDockedOnRight
+        currentScreenWidth = screenWidth
+        currentSafeBottom = safeBottom
+
         isEnlarged = enlarged
         ModelConfig.setCameraEnlarged(context, MODE_BARCODE, enlarged)
         val scanner = scannerView ?: return
@@ -300,37 +326,123 @@ class ScannerOverlayController(
         val gap = (10 * density).toInt()
 
         val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val targetWidth = if (enlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
-        } else {
-            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
-        }
+        val maxWindowWidth = (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+        val smallWidth = (250 * density).toInt().coerceAtMost(maxAvailableWidth)
+        val targetWidth = if (enlarged) maxWindowWidth else smallWidth
 
+        val rootPanel = scanner.findViewById<View>(R.id.layout_scanner_root) ?: return
         val cardSize = targetWidth - (16 * density).toInt()
         val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
+        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
+
+        val maxCardSize = maxWindowWidth - (16 * density).toInt()
+        val estimatedHeight = maxCardSize + (120 * density).toInt()
+        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
+        // top edge level with the bubble's top edge, like the quick phrases drawer
+        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
+        val targetGravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
+        val targetX = bubbleWidthPx + gap
+
+        if (isDockedOnRight && lp.width != targetWidth && scanner.isAttachedToWindow) {
+            // Capture a 1-frame snapshot of rootPanel (including TextureView camera preview) to keep inside the old
+            // window while the new window prepares its first frame, eliminating the 1-frame blank flicker!
+            var placeholderBitmap: Bitmap? = null
+            if (rootPanel.width > 0 && rootPanel.height > 0) {
+                try {
+                    val bmp = Bitmap.createBitmap(rootPanel.width, rootPanel.height, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bmp)
+                    rootPanel.draw(canvas)
+                    val vf = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
+                    val camBmp = vf?.bitmap
+                    if (camBmp != null && cardPreview != null) {
+                        val destRect = Rect(0, 0, cardPreview.width, cardPreview.height)
+                        (scanner as? ViewGroup)?.offsetDescendantRectToMyCoords(cardPreview, destRect)
+                        canvas.drawBitmap(camBmp, null, destRect, null)
+                        camBmp.recycle()
+                    }
+                    placeholderBitmap = bmp
+                } catch (e: Throwable) {
+                    Log.w(TAG, "Snapshot for seamless swap failed", e)
+                }
+            }
+
+            btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+            (rootPanel.layoutParams as? FrameLayout.LayoutParams)?.apply {
+                width = targetWidth
+            }
+            cardPreview?.layoutParams?.apply {
+                width = cardSize
+                height = cardSize
+            }
+
+            val newContainer = FrameLayout(context)
+            val newLp = WindowManager.LayoutParams(
+                targetWidth,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                allowDisplayCutout()
+                gravity = targetGravity
+                x = targetX
+                y = targetY
+            }
+            try {
+                val oldGroup = rootPanel.parent as? ViewGroup
+                if (placeholderBitmap != null && oldGroup != null) {
+                    val ivPlaceholder = ImageView(context).apply {
+                        setImageBitmap(placeholderBitmap)
+                        layoutParams = FrameLayout.LayoutParams(placeholderBitmap.width, placeholderBitmap.height)
+                    }
+                    oldGroup.addView(ivPlaceholder)
+                }
+                oldGroup?.removeView(rootPanel)
+                newContainer.addView(rootPanel)
+                windowManager.addView(newContainer, newLp)
+                scannerView = newContainer
+                scannerLayoutParams = newLp
+
+                // Remove the old window AFTER the new window has drawn and submitted its first frame
+                newContainer.postDelayed({
+                    if (windowManager.isViewAdded(scanner)) {
+                        try {
+                            windowManager.removeViewImmediate(scanner)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to remove old scanner container", e)
+                        }
+                    }
+                    placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
+                }, 48L)
+                return
+            } catch (e: Exception) {
+                placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
+                Log.w(TAG, "Failed to swap scanner container on setEnlarged", e)
+            }
+        }
+
+        btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+        (rootPanel.layoutParams as? FrameLayout.LayoutParams)?.apply {
+            width = targetWidth
+        }
         cardPreview?.layoutParams?.apply {
             width = cardSize
             height = cardSize
         }
+        rootPanel.requestLayout()
         cardPreview?.requestLayout()
 
-        lp.width = targetWidth
-        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
-        btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
-
-        val estimatedHeight = cardSize + (120 * density).toInt()
-        val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
-        // top edge level with the bubble's top edge, like the quick phrases drawer
-        val targetY = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
-        lp.y = targetY
-        lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
-        lp.x = bubbleWidthPx + gap
-
-        if (scanner.isAttachedToWindow) {
-            try {
-                windowManager.updateViewLayout(scanner, lp)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to update scanner layout on setEnlarged", e)
+        if (lp.width != targetWidth || lp.y != targetY || lp.gravity != targetGravity || lp.x != targetX) {
+            lp.width = targetWidth
+            lp.y = targetY
+            lp.gravity = targetGravity
+            lp.x = targetX
+            if (scanner.isAttachedToWindow) {
+                try {
+                    windowManager.updateViewLayout(scanner, lp)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to update scanner layout on setEnlarged", e)
+                }
             }
         }
     }
@@ -341,6 +453,11 @@ class ScannerOverlayController(
         screenWidth: Int,
         safeBottom: Int
     ) {
+        currentAnchorY = anchorY
+        currentIsDockedOnRight = isDockedOnRight
+        currentScreenWidth = screenWidth
+        currentSafeBottom = safeBottom
+
         val scanner = scannerView ?: return
         val lp = scannerLayoutParams ?: return
         if (!isActive || !scanner.isAttachedToWindow) return
@@ -349,24 +466,9 @@ class ScannerOverlayController(
         val gap = (10 * density).toInt()
 
         val maxAvailableWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
-        val targetWidth = if (isEnlarged) {
-            (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
-        } else {
-            (250 * density).toInt().coerceAtMost(maxAvailableWidth)
-        }
-        if (lp.width != targetWidth) {
-            lp.width = targetWidth
-            val cardSize = targetWidth - (16 * density).toInt()
-            val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
-            cardPreview?.layoutParams?.apply {
-                width = cardSize
-                height = cardSize
-            }
-            cardPreview?.requestLayout()
-        }
-
-        val cardSize = lp.width - (16 * density).toInt()
-        val estimatedHeight = cardSize + (120 * density).toInt()
+        val maxWindowWidth = (340 * density).toInt().coerceIn((200 * density).toInt(), maxAvailableWidth)
+        val maxCardSize = maxWindowWidth - (16 * density).toInt()
+        val estimatedHeight = maxCardSize + (120 * density).toInt()
         val maxAllowedY = safeBottom - estimatedHeight - (8 * density).toInt()
         lp.y = anchorY.coerceIn(0, maxOf(0, maxAllowedY))
         lp.gravity = if (isDockedOnRight) (Gravity.TOP or Gravity.RIGHT) else (Gravity.TOP or Gravity.LEFT)
