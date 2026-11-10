@@ -373,26 +373,6 @@ class OcrOverlayController(
         val targetX = bubbleWidthPx + gap
 
         if (isDockedOnRight && lp.width != targetWidth && ocr.isAttachedToWindow) {
-            var placeholderBitmap: Bitmap? = null
-            if (rootPanel.width > 0 && rootPanel.height > 0) {
-                try {
-                    val bmp = Bitmap.createBitmap(rootPanel.width, rootPanel.height, Bitmap.Config.ARGB_8888)
-                    val canvas = Canvas(bmp)
-                    rootPanel.draw(canvas)
-                    val vf = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
-                    val camBmp = vf?.bitmap
-                    if (camBmp != null && cardPreview != null) {
-                        val destRect = Rect(0, 0, cardPreview.width, cardPreview.height)
-                        (ocr as? ViewGroup)?.offsetDescendantRectToMyCoords(cardPreview, destRect)
-                        canvas.drawBitmap(camBmp, null, destRect, null)
-                        camBmp.recycle()
-                    }
-                    placeholderBitmap = bmp
-                } catch (e: Throwable) {
-                    Log.w(TAG, "Snapshot for seamless OCR swap failed", e)
-                }
-            }
-
             btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
             (rootPanel.layoutParams as? FrameLayout.LayoutParams)?.apply {
                 width = targetWidth
@@ -402,7 +382,6 @@ class OcrOverlayController(
                 height = cardSize
             }
 
-            val newContainer = FrameLayout(context)
             val newLp = WindowManager.LayoutParams(
                 targetWidth,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -415,35 +394,14 @@ class OcrOverlayController(
                 x = targetX
                 y = targetY
             }
-            try {
-                val oldGroup = rootPanel.parent as? ViewGroup
-                if (placeholderBitmap != null && oldGroup != null) {
-                    val ivPlaceholder = ImageView(context).apply {
-                        setImageBitmap(placeholderBitmap)
-                        layoutParams = FrameLayout.LayoutParams(placeholderBitmap.width, placeholderBitmap.height)
-                    }
-                    oldGroup.addView(ivPlaceholder)
-                }
-                oldGroup?.removeView(rootPanel)
-                newContainer.addView(rootPanel)
-                windowManager.addView(newContainer, newLp)
-                ocrWindowView = newContainer
+            val swapped = OverlayWindowSwap.swap(
+                context, windowManager, ocr, rootPanel,
+                ocr.findViewById<PreviewView>(R.id.ocr_view_finder), cardPreview, newLp
+            )
+            if (swapped != null) {
+                ocrWindowView = swapped
                 ocrWindowLayoutParams = newLp
-
-                newContainer.postDelayed({
-                    if (windowManager.isViewAdded(ocr)) {
-                        try {
-                            windowManager.removeViewImmediate(ocr)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to remove old OCR container", e)
-                        }
-                    }
-                    placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
-                }, 48L)
                 return
-            } catch (e: Exception) {
-                placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
-                Log.w(TAG, "Failed to swap OCR container on setEnlarged", e)
             }
         }
 

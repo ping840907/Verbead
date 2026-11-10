@@ -344,28 +344,6 @@ class ScannerOverlayController(
         val targetX = bubbleWidthPx + gap
 
         if (isDockedOnRight && lp.width != targetWidth && scanner.isAttachedToWindow) {
-            // Capture a 1-frame snapshot of rootPanel (including TextureView camera preview) to keep inside the old
-            // window while the new window prepares its first frame, eliminating the 1-frame blank flicker!
-            var placeholderBitmap: Bitmap? = null
-            if (rootPanel.width > 0 && rootPanel.height > 0) {
-                try {
-                    val bmp = Bitmap.createBitmap(rootPanel.width, rootPanel.height, Bitmap.Config.ARGB_8888)
-                    val canvas = Canvas(bmp)
-                    rootPanel.draw(canvas)
-                    val vf = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
-                    val camBmp = vf?.bitmap
-                    if (camBmp != null && cardPreview != null) {
-                        val destRect = Rect(0, 0, cardPreview.width, cardPreview.height)
-                        (scanner as? ViewGroup)?.offsetDescendantRectToMyCoords(cardPreview, destRect)
-                        canvas.drawBitmap(camBmp, null, destRect, null)
-                        camBmp.recycle()
-                    }
-                    placeholderBitmap = bmp
-                } catch (e: Throwable) {
-                    Log.w(TAG, "Snapshot for seamless swap failed", e)
-                }
-            }
-
             btnScale?.setImageResource(if (enlarged) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
             (rootPanel.layoutParams as? FrameLayout.LayoutParams)?.apply {
                 width = targetWidth
@@ -375,7 +353,6 @@ class ScannerOverlayController(
                 height = cardSize
             }
 
-            val newContainer = FrameLayout(context)
             val newLp = WindowManager.LayoutParams(
                 targetWidth,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -388,36 +365,14 @@ class ScannerOverlayController(
                 x = targetX
                 y = targetY
             }
-            try {
-                val oldGroup = rootPanel.parent as? ViewGroup
-                if (placeholderBitmap != null && oldGroup != null) {
-                    val ivPlaceholder = ImageView(context).apply {
-                        setImageBitmap(placeholderBitmap)
-                        layoutParams = FrameLayout.LayoutParams(placeholderBitmap.width, placeholderBitmap.height)
-                    }
-                    oldGroup.addView(ivPlaceholder)
-                }
-                oldGroup?.removeView(rootPanel)
-                newContainer.addView(rootPanel)
-                windowManager.addView(newContainer, newLp)
-                scannerView = newContainer
+            val swapped = OverlayWindowSwap.swap(
+                context, windowManager, scanner, rootPanel,
+                scanner.findViewById<PreviewView>(R.id.scanner_view_finder), cardPreview, newLp
+            )
+            if (swapped != null) {
+                scannerView = swapped
                 scannerLayoutParams = newLp
-
-                // Remove the old window AFTER the new window has drawn and submitted its first frame
-                newContainer.postDelayed({
-                    if (windowManager.isViewAdded(scanner)) {
-                        try {
-                            windowManager.removeViewImmediate(scanner)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to remove old scanner container", e)
-                        }
-                    }
-                    placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
-                }, 48L)
                 return
-            } catch (e: Exception) {
-                placeholderBitmap?.let { if (!it.isRecycled) it.recycle() }
-                Log.w(TAG, "Failed to swap scanner container on setEnlarged", e)
             }
         }
 
