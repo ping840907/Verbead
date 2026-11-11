@@ -128,6 +128,17 @@ class OcrOverlayController(
             return
         }
 
+        // Start loading the recognizer now: building the GPU models is slow, and the user takes a while to frame a shot.
+        if (ModelConfig.isOcrReady(context)) {
+            scope.launch(Dispatchers.Default) {
+                try {
+                    ppOcrEngine.warmUp()
+                } catch (e: Throwable) {
+                    Log.w(TAG, "OCR warm-up failed: ${e.message}")
+                }
+            }
+        }
+
         if (ocrWindowView == null) {
             ocrWindowView = LayoutInflater.from(context).inflate(R.layout.layout_floating_ocr, null)
         }

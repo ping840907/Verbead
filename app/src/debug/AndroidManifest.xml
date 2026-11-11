@@ -17,6 +17,9 @@
             android:name=".OcrRecSmokeReceiver"
             android:exported="true" />
         <receiver
+            android:name=".OcrGpuProbeReceiver"
+            android:exported="true" />
+        <receiver
             android:name=".PendingTextDebugReceiver"
             android:exported="true" />
     </application>

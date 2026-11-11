@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
+import android.os.SystemClock
 import android.util.Log
 import com.google.ai.edge.litert.Accelerator
 import com.google.ai.edge.litert.CompiledModel
@@ -146,13 +147,14 @@ class PpOcrEngine(private val context: Context) {
      * One fixed-shape LiteRT model with reusable input/output buffers. Tries the GPU first (compiled programs are
      * cached on disk so later launches skip the compile) and falls back to the CPU when the GPU cannot take the model.
      */
-    private inner class Net(private val file: File) : AutoCloseable {
+    private inner class Net(private val file: File, private val fullPrecision: Boolean = false) : AutoCloseable {
         private var model: CompiledModel
         private var input: TensorBuffer
         private var output: TensorBuffer
         private var onGpu = false
 
         init {
+            val t0 = SystemClock.elapsedRealtime()
             val m = try {
                 create(Accelerator.GPU).also { onGpu = true }
             } catch (t: Throwable) {
@@ -162,6 +164,7 @@ class PpOcrEngine(private val context: Context) {
             model = m
             input = m.createInputBuffers().first()
             output = m.createOutputBuffers().first()
+            Log.i(TAG, "built ${file.name} on ${if (onGpu) "GPU" else "CPU"} in ${SystemClock.elapsedRealtime() - t0} ms")
         }
 
         private fun create(acc: Accelerator): CompiledModel {
@@ -173,7 +176,7 @@ class PpOcrEngine(private val context: Context) {
                     modelCacheKey = file.name.removeSuffix(".tflite"),
                     serializeProgramCache = true,
                     serializeExternalTensors = true,
-                    precision = if (forceGpuFp32) CompiledModel.GpuOptions.Precision.FP32 else null
+                    precision = if (forceGpuFp32 || fullPrecision) CompiledModel.GpuOptions.Precision.FP32 else null
                 )
             }
             return CompiledModel.create(file.path, opts, litertEnv!!)
@@ -209,7 +212,37 @@ class PpOcrEngine(private val context: Context) {
     private fun recNet(width: Int): Net =
         recNets.getOrPut(width) { Net(File(modelDir!!, "${modelName}_rec_${width}.tflite")) }
 
-    suspend fun load(): Boolean = withContext(Dispatchers.IO) {
+    /**
+     * Gets the first frame ready before the user takes it: loads the files and builds the fixed-shape models the camera
+     * view usually needs. Building one is the slow part, above all on the GPU (the program is compiled; a copy on disk
+     * only shortens that on later runs), and without this it was paid when the first picture was analysed.
+     * Models of other sizes are still built when they are first needed.
+     */
+    suspend fun warmUp() {
+        val tLoad = SystemClock.elapsedRealtime()
+        if (!load()) return
+        Log.i(TAG, "PP-OCR files loaded in ${SystemClock.elapsedRealtime() - tLoad} ms")
+        val t0 = SystemClock.elapsedRealtime()
+        // the viewfinder is square, so its pictures use the square detector size
+        detMutex.withLock {
+            if (isReady) runCatching { detNet(640, 640) }.onFailure { Log.w(TAG, "Warm-up of the detector failed: ${it.message}") }
+        }
+        val widths = OcrShapes.recWidths(modelName == ModelConfig.OCR_MODEL_TINY)
+        // a short line, a line, a long line
+        val wanted = listOf(160, 320, 640).map { target -> widths.minByOrNull { kotlin.math.abs(it - target) } ?: target }.distinct()
+        for (w in wanted) {
+            recMutex.withLock {
+                if (isReady) runCatching { recNet(w) }.onFailure { Log.w(TAG, "Warm-up of the recognizer $w failed: ${it.message}") }
+            }
+        }
+        Log.i(TAG, "PP-OCR warm-up took ${SystemClock.elapsedRealtime() - t0} ms")
+    }
+
+    private val loadMutex = Mutex()
+
+    suspend fun load(): Boolean = loadMutex.withLock { loadLocked() }
+
+    private suspend fun loadLocked(): Boolean = withContext(Dispatchers.IO) {
         try {
             val selected = ModelConfig.selectedOcrModel(context)
             if (isReady && loadedModel == selected) return@withContext true
@@ -745,7 +778,9 @@ class PpOcrEngine(private val context: Context) {
     private fun koreanAvailable(): Boolean = koreanDir != null && !koreanBroken
 
     private fun koreanNet(width: Int): Net =
-        koreanNets.getOrPut(width) { Net(File(koreanDir!!, "${ModelConfig.OCR_MODEL_KOREAN}_rec_${width}.tflite")) }
+        // Full precision: at the GPU's half precision 2 of 18 test strips of the narrowest size decoded differently,
+        // at full precision all of them match the reference, and it is still about 2x faster than the CPU.
+        koreanNets.getOrPut(width) { Net(File(koreanDir!!, "${ModelConfig.OCR_MODEL_KOREAN}_rec_${width}.tflite"), fullPrecision = true) }
 
     private fun koreanDictionary(): List<String>? {
         koreanDict?.let { return it }
