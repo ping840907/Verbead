@@ -512,4 +512,7 @@
     <string name="asr_delete_message">會移除手機上的模型檔。之後要再使用，需要重新下載。</string>
     <string name="asr_keep_one">至少要保留一個使用中的模型</string>
     <string name="asr_size_format">約 %1$d MB</string>
+    <string name="asr_badge_recommended">推薦</string>
+    <string name="asr_variants_count_format">%1$d 個版本</string>
+    <string name="asr_preset_left_format">還需下載約 %1$d MB</string>
 </resources>

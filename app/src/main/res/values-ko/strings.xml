@@ -512,4 +512,7 @@
     <string name="asr_delete_message">이 휴대폰에서 모델 파일을 삭제합니다. 다시 사용하려면 다시 다운로드해야 합니다.</string>
     <string name="asr_keep_one">모델을 하나 이상 사용 중으로 두어야 합니다</string>
     <string name="asr_size_format">약 %1$d MB</string>
+    <string name="asr_badge_recommended">추천</string>
+    <string name="asr_variants_count_format">%1$d개 버전</string>
+    <string name="asr_preset_left_format">약 %1$d MB 더 다운로드</string>
 </resources>

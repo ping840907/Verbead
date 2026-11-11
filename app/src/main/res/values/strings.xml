@@ -517,4 +517,7 @@ Final: %2$s</string>
     <string name="asr_delete_message">Its files are removed from this phone. To use it again you will have to download it again.</string>
     <string name="asr_keep_one">At least one model has to stay in use</string>
     <string name="asr_size_format">About %1$d MB</string>
+    <string name="asr_badge_recommended">Recommended</string>
+    <string name="asr_variants_count_format">%1$d versions</string>
+    <string name="asr_preset_left_format">%1$d MB left to download</string>
 </resources>

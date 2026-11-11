@@ -512,4 +512,7 @@
     <string name="asr_delete_message">この端末からモデルのファイルを削除します。もう一度使うには再ダウンロードが必要です。</string>
     <string name="asr_keep_one">少なくとも 1 つのモデルを使用中にしておく必要があります</string>
     <string name="asr_size_format">約 %1$d MB</string>
+    <string name="asr_badge_recommended">おすすめ</string>
+    <string name="asr_variants_count_format">%1$d バージョン</string>
+    <string name="asr_preset_left_format">あと約 %1$d MB をダウンロード</string>
 </resources>

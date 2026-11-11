@@ -54,7 +54,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private lateinit var btnClearLive: View
     private lateinit var btnClearFinal: View
     private lateinit var tvAsrMemoryHint: TextView
-    private lateinit var chipsKind: ChipGroup
+    private lateinit var tvPresetSummary: TextView
     private lateinit var chipDownloadedOnly: Chip
     private lateinit var btnLanguageFilter: MaterialButton
     private lateinit var layoutModels: android.widget.LinearLayout
@@ -98,11 +98,21 @@ class SpeechSettingsActivity : AppCompatActivity() {
     /** The views of each model card currently shown, by model id (the download progress is drawn into them). */
     private class CardViews(
         val card: MaterialCardView,
-        val action: MaterialButton,
+        /** The main button of a detail card; a list row has none */
+        val action: MaterialButton?,
         val progress: LinearProgressIndicator,
         val progressText: TextView,
     )
+
+    /** The list rows currently shown, by model id (a family of variants registers every variant). */
     private val cards = HashMap<String, CardViews>()
+
+    // The details of one model, shown in a bottom sheet over the list
+    private var sheet: com.google.android.material.bottomsheet.BottomSheetDialog? = null
+    private var sheetHolder: android.widget.FrameLayout? = null
+    private var sheetGroup: List<AsrModel>? = null
+    private var sheetViews: CardViews? = null
+    private var sheetModelId: String? = null
 
     // Audio & VAD Preferences
     private lateinit var layoutPreferExternalAudioToggle: View
@@ -174,7 +184,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         btnClearLive.setOnClickListener { clearSlot(AsrMode.LIVE) }
         btnClearFinal.setOnClickListener { clearSlot(AsrMode.FINAL) }
         tvAsrMemoryHint = findViewById(R.id.tv_asr_memory_hint)
-        chipsKind = findViewById(R.id.chips_asr_kind)
+        tvPresetSummary = findViewById(R.id.tv_asr_preset_summary)
         chipDownloadedOnly = findViewById(R.id.chip_downloaded_only)
         btnLanguageFilter = findViewById(R.id.btn_asr_language_filter)
         layoutModels = findViewById(R.id.layout_asr_models)
@@ -197,11 +207,19 @@ class SpeechSettingsActivity : AppCompatActivity() {
         quickMain = inflateQuickRow(findViewById(R.id.layout_quick_main))
         quickPreview = inflateQuickRow(findViewById(R.id.layout_quick_preview))
         previewWanted = ModelConfig.selectedAsrModel(this, AsrMode.LIVE) != null && ModelConfig.selectedAsrModel(this, AsrMode.FINAL) != null
+        // the list starts with the models for the user's language; the language button shows all of them
+        filterLanguage = ModelConfig.asrPrimaryLanguage(this)
 
         btnPrimaryLanguage.setOnClickListener {
             showLanguagePicker(ModelConfig.asrPrimaryLanguage(this), withAll = false) { tag ->
-                if (tag != null) ModelConfig.setAsrPrimaryLanguage(this, tag)
+                if (tag != null) {
+                    val old = ModelConfig.asrPrimaryLanguage(this)
+                    ModelConfig.setAsrPrimaryLanguage(this, tag)
+                    // the list keeps following the language unless the user looked at another one
+                    if (filterLanguage == old) filterLanguage = tag
+                }
                 renderQuick()
+                renderModels()
             }
         }
         chipsProfile.setOnCheckedStateChangeListener { _, ids ->
@@ -213,6 +231,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
             }
             ModelConfig.setAsrProfile(this, tier)
             renderQuick()
+            renderModels()
         }
         layoutPreviewToggle.setOnClickListener { switchPreview.toggle() }
         switchPreview.setOnCheckedChangeListener { _, checked ->
@@ -261,14 +280,6 @@ class SpeechSettingsActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        chipsKind.setOnCheckedStateChangeListener { _, ids ->
-            filterMode = when (ids.firstOrNull()) {
-                R.id.chip_kind_live -> AsrMode.LIVE
-                R.id.chip_kind_final -> AsrMode.FINAL
-                else -> null
-            }
-            renderModels()
-        }
         chipDownloadedOnly.setOnCheckedChangeListener { _, _ -> renderModels() }
         btnLanguageFilter.setOnClickListener { showLanguageFilterDialog() }
 
@@ -500,6 +511,19 @@ class SpeechSettingsActivity : AppCompatActivity() {
             val showPreview = previewWanted && preview != null
             quickPreview.root.visibility = if (showPreview) View.VISIBLE else View.GONE
             if (showPreview) bindQuickRow(quickPreview, preview!!, asPreview = true) else quickPreview.modelId = null
+
+            // what this preset amounts to: the models, what is still to download, and a warning if they are heavy together
+            val picked = listOfNotNull(main, if (showPreview) preview else null)
+            if (picked.isEmpty()) {
+                tvPresetSummary.visibility = View.GONE
+            } else {
+                val left = picked.filter { !ModelConfig.isModelReady(this, it) }.sumOf { it.sizeMb }
+                val state = if (left > 0) getString(R.string.asr_preset_left_format, left) else getString(R.string.common_ready)
+                val heavy = picked.size > 1 && AsrCatalog.isHeavy(picked)
+                tvPresetSummary.text = picked.joinToString(" + ") { it.name } + " · " + state +
+                    if (heavy) "\n" + getString(R.string.asr_memory_hint) else ""
+                tvPresetSummary.visibility = View.VISIBLE
+            }
         } finally {
             renderingQuick = false
         }
@@ -523,7 +547,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val live = ModelConfig.selectedAsrModel(this, AsrMode.LIVE)
         val fin = ModelConfig.selectedAsrModel(this, AsrMode.FINAL)
         showCombo(live, fin)
-        tvAsrMemoryHint.visibility = if (AsrCatalog.isHeavy(listOfNotNull(live, fin))) View.VISIBLE else View.GONE
+        // a warning only for two models run together; one model is the user's plain choice
+        tvAsrMemoryHint.visibility =
+            if (live != null && fin != null && AsrCatalog.isHeavy(listOf(live, fin))) View.VISIBLE else View.GONE
 
         btnLanguageFilter.text = getString(
             R.string.asr_language_filter_format,
@@ -543,21 +569,29 @@ class SpeechSettingsActivity : AppCompatActivity() {
         tvCustomProblems.text = getString(R.string.asr_custom_problems_format, problems.joinToString("\n"))
         val inflater = layoutInflater
         val groups = AsrCatalog.grouped(shown)
+        val recommended = recommendedIds()
+        // a model is marked recommended only while the list shows the user's own language
+        val primary = ModelConfig.asrPrimaryLanguage(this)
+        val markRecommended = filterLanguage == null || filterLanguage == primary
         for (mode in listOf(AsrMode.LIVE, AsrMode.FINAL)) {
-            val ofMode = AsrCatalog.sortForDisplay(
-                groups.filter { it.first().mode == mode },
-                inUse = { g -> g.any { ModelConfig.selectedAsrModel(this, it.mode)?.id == it.id } },
-                downloaded = { g -> g.any { ModelConfig.isModelReady(this, it) } },
-            )
+            val ofMode = groups.filter { it.first().mode == mode }.sortedBy { g ->
+                when {
+                    g.any { ModelConfig.selectedAsrModel(this, it.mode)?.id == it.id } -> 0
+                    markRecommended && g.any { it.id in recommended } -> 1
+                    g.any { ModelConfig.isModelReady(this, it) } -> 2
+                    else -> 3
+                }
+            }
             if (ofMode.isEmpty()) continue
-            layoutModels.addView(sectionHeader(if (mode == AsrMode.LIVE) R.string.asr_mode_live_chip else R.string.asr_mode_final_chip))
+            val title = getString(if (mode == AsrMode.LIVE) R.string.asr_mode_live_chip else R.string.asr_mode_final_chip)
+            layoutModels.addView(sectionHeader("$title (${ofMode.size})"))
             for (variants in ofMode) {
-                val model = chooseVariant(variants)
-                val view = inflater.inflate(R.layout.item_asr_model, layoutModels, false) as MaterialCardView
-                bindModelCard(view, model, variants)
-                layoutModels.addView(view)
+                val row = inflater.inflate(R.layout.item_asr_row, layoutModels, false) as MaterialCardView
+                bindRow(row, variants, markRecommended && variants.any { it.id in recommended })
+                layoutModels.addView(row)
             }
         }
+        if (sheet != null) bindSheet()
         applyActiveDownload()
     }
 
@@ -567,7 +601,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     /** Which variant of a group the card shows: the one chosen, else the one in use, else a downloaded one, else the first. */
     private fun chooseVariant(variants: List<AsrModel>): AsrModel {
         val group = variants.first().group ?: return variants.first()
-        chosenVariant[group]?.let { id -> variants.firstOrNull { it.id == id }?.let { return it } }
+        chosenVariant[variants.first().mode.name + group]?.let { id -> variants.firstOrNull { it.id == id }?.let { return it } }
         return variants.firstOrNull { ModelConfig.selectedAsrModel(this, it.mode)?.id == it.id }
             ?: variants.firstOrNull { ModelConfig.isModelReady(this, it) }
             ?: variants.first()
@@ -589,7 +623,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(R.string.asr_variant_dialog_title)
             .setSingleChoiceItems(variants.map { variantLabel(it, variants) }.toTypedArray(), variants.indexOf(current)) { dialog, which ->
-                variants[which].group?.let { chosenVariant[it] = variants[which].id }
+                variants[which].group?.let { chosenVariant[variants[which].mode.name + it] = variants[which].id }
                 dialog.dismiss()
                 renderModels()
             }
@@ -598,9 +632,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
     }
 
     /** A small heading above the cards of one kind (live / final). */
-    private fun sectionHeader(textRes: Int): TextView =
+    private fun sectionHeader(text: CharSequence): TextView =
         TextView(this, null, 0, R.style.Verbead_Text_Section).apply {
-            setText(textRes)
+            setText(text)
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
@@ -633,6 +667,96 @@ class SpeechSettingsActivity : AppCompatActivity() {
             expanded = !expanded
             show()
         }
+    }
+
+    /** The models the quick setup recommends for the user's language and profile (one live, one final). */
+    private fun recommendedIds(): Set<String> {
+        val language = ModelConfig.asrPrimaryLanguage(this)
+        val tier = ModelConfig.asrProfile(this)
+        return listOfNotNull(
+            AsrRecommender.pick(AsrCatalog.models, language, AsrMode.FINAL, tier),
+            AsrRecommender.pick(AsrCatalog.models, language, AsrMode.LIVE, tier),
+        ).map { it.id }.toSet()
+    }
+
+    /** One row of the list: the name, what it costs, and where it stands. Details and actions are one tap away. */
+    private fun bindRow(row: MaterialCardView, variants: List<AsrModel>, recommended: Boolean) {
+        val shown = chooseVariant(variants)
+        val inUse = variants.any { ModelConfig.selectedAsrModel(this, it.mode)?.id == it.id }
+        val onPhone = variants.any { ModelConfig.isModelReady(this, it) }
+
+        row.findViewById<TextView>(R.id.tv_row_name).text = shown.group ?: shown.name
+        row.findViewById<View>(R.id.tv_row_recommended).visibility = if (recommended) View.VISIBLE else View.GONE
+
+        val locale = Locale.getDefault()
+        val languages = variants.flatMap { it.languages }.distinct()
+        val meta = listOfNotNull(
+            if (variants.size > 1) getString(R.string.asr_variants_count_format, variants.size)
+            else if (shown.sizeMb > 0) getString(R.string.asr_size_format, shown.sizeMb) else null,
+            if (languages.size == 1) AsrCatalog.languageName(languages.first(), locale)
+            else getString(R.string.asr_languages_count_format, languages.size),
+        ).joinToString(" · ")
+        row.findViewById<TextView>(R.id.tv_row_meta).text = meta
+
+        row.findViewById<TextView>(R.id.tv_row_state).apply {
+            when {
+                inUse -> {
+                    visibility = View.VISIBLE
+                    text = getString(R.string.asr_rec_in_use)
+                    setBackgroundResource(R.drawable.bg_status_badge_success)
+                    setTextColor(ContextCompat.getColor(context, R.color.status_success_text))
+                }
+                onPhone -> {
+                    visibility = View.VISIBLE
+                    text = getString(R.string.common_ready)
+                    background = null
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                }
+                else -> visibility = View.GONE
+            }
+        }
+
+        row.setOnClickListener {
+            HapticUtil.click(this)
+            showModelSheet(variants)
+        }
+        updateModelCardSelection(row, inUse)
+        val views = CardViews(row, null, row.findViewById(R.id.progress_row), row.findViewById(R.id.tv_row_progress))
+        for (v in variants) cards[v.id] = views
+    }
+
+    /** The details of one model (or family) over the list: description, languages, size, and the actions. */
+    private fun showModelSheet(variants: List<AsrModel>) {
+        sheetGroup = variants
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        val holder = android.widget.FrameLayout(this).apply {
+            setPadding(dpToPx(16f), dpToPx(8f), dpToPx(16f), dpToPx(24f))
+        }
+        dialog.setContentView(holder)
+        sheet = dialog
+        sheetHolder = holder
+        dialog.setOnDismissListener {
+            sheet = null
+            sheetHolder = null
+            sheetGroup = null
+            sheetViews = null
+            sheetModelId = null
+        }
+        bindSheet()
+        dialog.show()
+        dialog.behavior.skipCollapsed = true
+        dialog.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+    }
+
+    /** (Re)draws the open details for the current state of the model. */
+    private fun bindSheet() {
+        val holder = sheetHolder ?: return
+        val group = sheetGroup ?: return
+        holder.removeAllViews()
+        val card = layoutInflater.inflate(R.layout.item_asr_model, holder, false) as MaterialCardView
+        bindModelCard(card, chooseVariant(group), group)
+        holder.addView(card)
+        applyActiveDownload()
     }
 
     /**
@@ -679,11 +803,12 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
 
         updateModelCardSelection(card, inUse)
-        cards[model.id] = CardViews(
+        sheetViews = CardViews(
             card, action,
             card.findViewById(R.id.progress_model_download),
             card.findViewById(R.id.tv_model_download_status),
         )
+        sheetModelId = model.id
     }
 
     private fun showModelMenu(anchor: View, model: AsrModel) {
@@ -856,18 +981,31 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
     private fun beginDownload(engine: String) {
         ModelDownloadService.start(this, engine)
-        val views = cards[engine] ?: return
-        views.action.text = getString(R.string.common_cancel_download)
-        views.action.setOnClickListener { handleDownloadButtonClick(engine) }
-        views.progress.visibility = View.VISIBLE
-        views.progress.isIndeterminate = true
-        views.progressText.visibility = View.VISIBLE
-        views.progressText.text = getString(R.string.common_connecting)
+        for (views in viewsOf(engine)) drawDownload(views, engine, -1, getString(R.string.common_connecting))
     }
 
-    /** Draws the running download (if any) into the card of that model. */
+    /** The row of that model in the list and, if it is open, its details. */
+    private fun viewsOf(engine: String): List<CardViews> =
+        listOfNotNull(cards[engine], sheetViews?.takeIf { sheetModelId == engine })
+
+    private fun drawDownload(views: CardViews, engine: String, percent: Int, text: String) {
+        views.action?.let {
+            it.text = getString(R.string.common_cancel_download)
+            it.isEnabled = true
+            it.setOnClickListener { handleDownloadButtonClick(engine) }
+            ChoiceButtonUtil.applyChoiceState(it, false)
+        }
+        views.progress.visibility = View.VISIBLE
+        views.progress.isIndeterminate = percent < 0
+        if (percent >= 0) views.progress.progress = percent
+        views.progressText.visibility = View.VISIBLE
+        views.progressText.text = text
+    }
+
+    /** Draws the running download (if any) into the quick setup, the row of that model and its open details. */
     private fun applyActiveDownload() {
         val active = ModelDownloadState.active.value ?: return
+        val text = "${active.progress.label(this)} (${active.progress.percent}%)"
         for (row in listOf(quickMain, quickPreview)) {
             if (row.modelId != active.engine) continue
             row.action.text = getString(R.string.common_cancel_download)
@@ -877,17 +1015,9 @@ class SpeechSettingsActivity : AppCompatActivity() {
             row.progressText.visibility = View.VISIBLE
             row.progress.isIndeterminate = active.progress.percent < 0
             if (active.progress.percent >= 0) row.progress.progress = active.progress.percent
-            row.progressText.text = "${active.progress.label(this)} (${active.progress.percent}%)"
+            row.progressText.text = text
         }
-        val views = cards[active.engine] ?: return
-        views.action.text = getString(R.string.common_cancel_download)
-        views.action.setOnClickListener { handleDownloadButtonClick(active.engine) }
-        ChoiceButtonUtil.applyChoiceState(views.action, false)
-        views.progress.visibility = View.VISIBLE
-        views.progressText.visibility = View.VISIBLE
-        views.progress.isIndeterminate = active.progress.percent < 0
-        if (active.progress.percent >= 0) views.progress.progress = active.progress.percent
-        views.progressText.text = "${active.progress.label(this)} (${active.progress.percent}%)"
+        for (views in viewsOf(active.engine)) drawDownload(views, active.engine, active.progress.percent, text)
     }
 
     private fun observeDownloadState() {

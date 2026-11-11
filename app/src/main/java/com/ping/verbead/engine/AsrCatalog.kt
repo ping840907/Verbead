@@ -273,9 +273,12 @@ object AsrCatalog {
         customProblems = problems
     }
 
-    /** The models of a filtered list, in order, gathered by group: a model without a group is a group of its own. */
+    /**
+     * The models of a filtered list, in order, gathered by group: a model without a group is a group of its own.
+     * A family can exist as a live and as a final set (Zipformer does), and those are kept apart.
+     */
     fun grouped(list: List<AsrModel>): List<List<AsrModel>> =
-        list.groupBy { it.group ?: it.id }.values.toList()
+        list.groupBy { (it.group ?: it.id) + "|" + it.mode }.values.toList()
 
     /** Display order of the cards: the ones in use first, then the downloaded ones, then the rest (catalog order within each). */
     fun <T> sortForDisplay(items: List<T>, inUse: (T) -> Boolean, downloaded: (T) -> Boolean): List<T> =

@@ -224,6 +224,15 @@ class AsrGroupingTest {
         assertTrue(groups.filter { it.first().group == null }.all { it.size == 1 })
     }
 
+    @Test fun zipformerIsOneFamilyPerKind() {
+        val families = AsrCatalog.grouped(AsrCatalog.models).filter { it.first().group == "Zipformer" }
+        // streaming checkpoints are live, the offline ones are final; a family never mixes the two
+        assertEquals(setOf(AsrMode.LIVE, AsrMode.FINAL), families.map { it.first().mode }.toSet())
+        assertEquals(families.size, 2)
+        assertTrue(families.all { f -> f.all { it.mode == f.first().mode } })
+        assertTrue(AsrCatalog.models.none { it.name.contains("Zipformer") && it.group == null })
+    }
+
     @Test fun languageFilterNarrowsTheGroup() {
         val shown = AsrCatalog.filter(AsrMode.FINAL, "ja", { false })
         val moonshineJa = AsrCatalog.grouped(shown).single { it.first().group == "Moonshine v2" }
