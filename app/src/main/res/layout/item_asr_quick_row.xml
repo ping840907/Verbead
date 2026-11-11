@@ -40,7 +40,7 @@
         android:textColor="@color/md_theme_light_primary"
         android:visibility="gone" />
 
-    <com.google.android.material.button.MaterialButton
+    <com.ping.verbead.ui.GlassMaterialButton
         android:id="@+id/btn_quick_action"
         style="@style/Verbead.Button.Tonal"
         android:layout_width="match_parent"

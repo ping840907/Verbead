@@ -55,6 +55,8 @@ class BubbleModeConfigAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ModeViewHolder {
         val v = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_bubble_mode_config, parent, false)
+        com.ping.verbead.ui.GlassStage.skin(v)
+        (v as? MaterialCardView)?.let { com.ping.verbead.ui.GlassStage.frost(it) }
         return ModeViewHolder(v)
     }
 

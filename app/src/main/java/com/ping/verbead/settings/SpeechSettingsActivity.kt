@@ -33,6 +33,7 @@ import com.ping.verbead.engine.AsrModel
 import com.ping.verbead.engine.AsrRecommender
 import com.ping.verbead.engine.AsrTier
 import java.util.Locale
+import com.ping.verbead.ui.GlassStage
 import com.ping.verbead.util.LanguageSection
 import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloadSpec
@@ -433,6 +434,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     private fun inflateQuickRow(container: android.widget.LinearLayout): QuickRow {
         val v = layoutInflater.inflate(R.layout.item_asr_quick_row, container, false)
         container.addView(v)
+        GlassStage.skin(v)
         return QuickRow(
             container, v.findViewById(R.id.tv_quick_name), v.findViewById(R.id.tv_quick_info),
             v.findViewById(R.id.btn_quick_action), v.findViewById(R.id.progress_quick), v.findViewById(R.id.tv_quick_progress),
@@ -590,6 +592,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
                 val row = inflater.inflate(R.layout.item_asr_row, layoutModels, false) as MaterialCardView
                 bindRow(row, variants, markRecommended && variants.any { it.id in recommended })
                 layoutModels.addView(row)
+                GlassStage.skin(row)
+                GlassStage.frost(row)
             }
         }
         if (sheet != null) bindSheet()
@@ -757,6 +761,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
         val card = layoutInflater.inflate(R.layout.item_asr_model, holder, false) as MaterialCardView
         bindModelCard(card, chooseVariant(group), group)
         holder.addView(card)
+        GlassStage.skin(card)
+        GlassStage.frost(card)
         applyActiveDownload()
     }
 
@@ -928,8 +934,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
             card.strokeColor = primaryColor
             card.strokeWidth = dpToPx(1.5f)
         } else {
-            card.strokeColor = Color.TRANSPARENT
-            card.strokeWidth = 0
+            card.strokeColor = GlassStage.hairline(card.context)
+            card.strokeWidth = dpToPx(1f)
         }
     }
 

@@ -42,7 +42,7 @@
                     android:maxLines="1"
                     android:textSize="15sp" />
 
-                <TextView
+                <com.ping.verbead.ui.GlassTagText
                     android:id="@+id/tv_row_recommended"
                     style="@style/Verbead.Text.Badge"
                     android:layout_width="wrap_content"
@@ -82,7 +82,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <TextView
+        <com.ping.verbead.ui.GlassTagText
             android:id="@+id/tv_row_state"
             style="@style/Verbead.Text.Badge"
             android:layout_width="wrap_content"

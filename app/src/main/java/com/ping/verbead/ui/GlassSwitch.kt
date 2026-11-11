@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
@@ -112,13 +115,14 @@ class GlassSwitch @JvmOverloads constructor(
                     // track-sized (see onMeasure), so nothing around it is pushed away.
                     Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).alpha(if (on) 1f else 0.45f)) {
                         SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
-                            Box(Modifier.fillMaxSize().seaGlass(palette = trackPalette))
+                            Box(Modifier.fillMaxSize().clip(RoundedCornerShape(50)).seaGlass(palette = trackPalette))
                         }
                         SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Disc) {
                             Box(
                                 Modifier.align(Alignment.CenterStart)
                                     .offset(x = thumbX)
                                     .size(THUMB_DP.dp)
+                                    .clip(CircleShape)
                                     .seaGlass(palette = thumbPalette)
                             )
                         }
@@ -205,6 +209,6 @@ class GlassSwitch @JvmOverloads constructor(
         const val TRACK_H_DP = 32
         const val THUMB_DP = 24
         const val INSET_DP = 4
-        const val GLOW_DP = 16
+        const val GLOW_DP = 4
     }
 }

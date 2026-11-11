@@ -48,7 +48,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <com.google.android.material.button.MaterialButton
+        <com.ping.verbead.ui.GlassMaterialButton
             android:id="@+id/btn_model_variant"
             style="@style/Verbead.Button.Outlined"
             android:layout_width="match_parent"
@@ -93,7 +93,7 @@
             android:textColor="@color/md_theme_light_primary"
             android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
+        <com.ping.verbead.ui.GlassMaterialButton
             android:id="@+id/btn_model_action"
             style="@style/Verbead.Button.Tonal"
             android:layout_width="match_parent"

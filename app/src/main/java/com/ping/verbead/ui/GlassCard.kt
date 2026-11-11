@@ -9,6 +9,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.graphics.ColorUtils
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.widget.NestedScrollView
+import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.color.MaterialColors
 
 /**
@@ -102,16 +109,113 @@ object GlassStage {
         val content = activity.findViewById<ViewGroup>(android.R.id.content)
         val root = content.getChildAt(0) ?: return
         content.removeView(root)
+
+        // Edge to edge: the backdrop fills the whole window, behind the status bar, the toolbar
+        // and the navigation bar. System bars become transparent and the content is inset.
+        val window = activity.window
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            window.isStatusBarContrastEnforced = false
+            window.isNavigationBarContrastEnforced = false
+        }
+        val night = (activity.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = !night
+            isAppearanceLightNavigationBars = !night
+        }
+
         val backdrop = GlassBackdropView(activity)
         val stage = FrameLayout(activity)
         stage.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
         root.setBackgroundColor(Color.TRANSPARENT)
-        stage.addView(root, FrameLayout.LayoutParams(-1, -1))
+        clearToolbars(root)
+        val inset = FrameLayout(activity)
+        inset.addView(root, FrameLayout.LayoutParams(-1, -1))
+        stage.addView(inset, FrameLayout.LayoutParams(-1, -1))
         content.addView(stage, ViewGroup.LayoutParams(-1, -1))
+
+        // Top and sides are padded by the window; the bottom inset goes onto the scrolling
+        // list so its content can still scroll underneath the transparent navigation bar.
+        val scroller = findScroller(root)
+        val scrollBottom = scroller?.paddingBottom ?: 0
+        scroller?.clipToPadding = false
+        ViewCompat.setOnApplyWindowInsetsListener(stage) { _, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            inset.setPadding(bars.left, bars.top, bars.right, if (scroller == null) bars.bottom else 0)
+            scroller?.setPadding(
+                scroller.paddingLeft, scroller.paddingTop, scroller.paddingRight,
+                scrollBottom + bars.bottom
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(stage)
+
         bind(root, backdrop)
         val buttons = ArrayList<GlassMaterialButton>()
         collectButtons(root, buttons)
         buttons.forEach { GlassButtonFrame.wrap(it) }
+        val plates = ArrayList<View>()
+        collectPlates(root, plates)
+        plates.forEach { v -> (v as? GlassPlateHost)?.let { GlassPlateFrame.wrap(it, v) } }
+    }
+
+    /** Toolbars and app bars paint their own opaque colour; let the backdrop show instead. */
+    private fun clearToolbars(v: View) {
+        if (v is MaterialToolbar) v.setBackgroundColor(Color.TRANSPARENT)
+        if (v is AppBarLayout) {
+            v.setBackgroundColor(Color.TRANSPARENT)
+            v.isLiftOnScroll = false
+            v.statusBarForeground = null
+        }
+        if (v is ViewGroup) for (i in 0 until v.childCount) clearToolbars(v.getChildAt(i))
+    }
+
+    private fun findScroller(v: View): NestedScrollView? {
+        if (v is NestedScrollView) return v
+        if (v is ViewGroup) for (i in 0 until v.childCount) findScroller(v.getChildAt(i))?.let { return it }
+        return null
+    }
+
+
+    /** Skins views that are inflated after the screen was set up (list rows, dialogs). */
+    fun skin(root: View) {
+        val buttons = ArrayList<GlassMaterialButton>()
+        collectButtons(root, buttons)
+        buttons.forEach { GlassButtonFrame.wrap(it) }
+        val plates = ArrayList<View>()
+        collectPlates(root, plates)
+        plates.forEach { v -> (v as? GlassPlateHost)?.let { GlassPlateFrame.wrap(it, v) } }
+    }
+
+    /** Gives a MaterialCardView the same frosted look as [GlassCard]. */
+    fun frost(card: com.google.android.material.card.MaterialCardView) {
+        val ctx = card.context
+        val container = MaterialColors.getColor(card, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY)
+        val surface = MaterialColors.getColor(card, com.google.android.material.R.attr.colorSurface, Color.WHITE)
+        card.setCardBackgroundColor(
+            ColorUtils.setAlphaComponent(ColorUtils.blendARGB(surface, container, 0.35f), 0xD6)
+        )
+        card.strokeColor = hairline(ctx)
+        if (card.strokeWidth == 0) card.strokeWidth = (1f * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        card.cardElevation = 0f
+    }
+
+    fun hairline(context: Context): Int {
+        val v = View(context)
+        return ColorUtils.setAlphaComponent(
+            MaterialColors.getColor(v, com.google.android.material.R.attr.colorOnSurface, Color.BLACK), 0x1F
+        )
+    }
+
+    private fun collectPlates(v: View, out: MutableList<View>) {
+        if (v is GlassPlateHost) out.add(v)
+        if (v is ViewGroup) for (i in 0 until v.childCount) collectPlates(v.getChildAt(i), out)
     }
 
     private fun collectButtons(v: View, out: MutableList<GlassMaterialButton>) {

@@ -67,21 +67,21 @@
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_profile_light"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_profile_light" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_profile_balanced"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_profile_balanced" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_profile_best"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_profile_best" />
@@ -104,14 +104,14 @@
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mode_live"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_mode_live_chip" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mode_final"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_mode_final_chip" />
@@ -218,7 +218,7 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <TextView
+                        <com.ping.verbead.ui.GlassTagText
                             style="@style/Verbead.Text.Badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -253,7 +253,7 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <TextView
+                        <com.ping.verbead.ui.GlassTagText
                             style="@style/Verbead.Text.Badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -347,7 +347,7 @@
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_downloaded_only"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Verbead.Chip"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
@@ -400,7 +400,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content">
 
-                        <ImageView
+                        <com.ping.verbead.ui.GlassIconView
                             style="@style/Verbead.RowIcon"
                             android:layout_width="44dp"
                             android:layout_height="44dp"
@@ -512,7 +512,7 @@
                                     android:text="@string/settings_speech_gain_desc" />
                             </LinearLayout>
 
-                            <TextView
+                            <com.ping.verbead.ui.GlassTagText
                                 android:id="@+id/tv_audio_gain_value"
                                 style="@style/Verbead.Text.Badge"
                                 android:layout_width="wrap_content"
@@ -579,7 +579,7 @@
                                     android:text="@string/settings_speech_vad_desc" />
                             </LinearLayout>
 
-                            <TextView
+                            <com.ping.verbead.ui.GlassTagText
                                 android:id="@+id/tv_vad_value"
                                 style="@style/Verbead.Text.Badge"
                                 android:layout_width="wrap_content"
@@ -621,7 +621,7 @@
                     android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <ImageView
+                    <com.ping.verbead.ui.GlassIconView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:background="@drawable/bg_icon_circle"
@@ -686,7 +686,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content">
 
-                        <ImageView
+                        <com.ping.verbead.ui.GlassIconView
                             style="@style/Verbead.RowIcon"
                             android:layout_width="44dp"
                             android:layout_height="44dp"

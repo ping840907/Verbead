@@ -131,4 +131,17 @@
         <item name="android:tint">?attr/colorOnPrimaryContainer</item>
     </style>
 
+
+    <!-- ══════════ Chips (frosted, follows Material You) ══════════ -->
+    <style name="Verbead.Chip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/chip_glass_bg</item>
+        <item name="chipStrokeColor">@color/chip_glass_stroke</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="shapeAppearanceOverlay">@style/Verbead.ShapeAppearance.Pill</item>
+    </style>
+
+    <style name="Verbead.ShapeAppearance.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
 </resources>

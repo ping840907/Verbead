@@ -11,6 +11,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -132,6 +134,7 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
                                 Modifier.fillMaxSize()
                                     .alpha(if (on) 1f else 0.45f)
                                     .padding(GLOW_DP.dp)
+                                    .clip(RoundedCornerShape(50))
                                     .seaGlass(palette = palette)
                             )
                         }
@@ -157,7 +160,7 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
     }
 
     companion object {
-        const val GLOW_DP = 18
+        const val GLOW_DP = 2
 
         /** Replaces [button] in its parent by a frame that holds the glass layer and the button. */
         fun wrap(button: GlassMaterialButton) {

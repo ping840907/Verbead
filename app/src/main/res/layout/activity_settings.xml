@@ -68,7 +68,7 @@
                             android:text="@string/settings_status_desc" />
                     </LinearLayout>
 
-                    <TextView
+                    <com.ping.verbead.ui.GlassTagText
                         android:id="@+id/tv_overall_badge"
                         android:maxWidth="132dp"
                         style="@style/Verbead.Text.Badge"
@@ -317,7 +317,7 @@
                 android:orientation="horizontal"
                 android:padding="16dp">
 
-                <ImageView
+                <com.ping.verbead.ui.GlassIconView
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="@drawable/bg_icon_circle"
@@ -375,7 +375,7 @@
                 android:orientation="horizontal"
                 android:padding="16dp">
 
-                <ImageView
+                <com.ping.verbead.ui.GlassIconView
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="@drawable/bg_icon_circle"
@@ -433,7 +433,7 @@
                 android:orientation="horizontal"
                 android:padding="16dp">
 
-                <ImageView
+                <com.ping.verbead.ui.GlassIconView
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="@drawable/bg_icon_circle"
@@ -493,7 +493,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <ImageView
+                    <com.ping.verbead.ui.GlassIconView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:background="@drawable/bg_icon_circle"
@@ -524,7 +524,7 @@
                             android:text="@string/settings_restore_desc_short" />
                     </LinearLayout>
 
-                    <TextView
+                    <com.ping.verbead.ui.GlassTagText
                         android:id="@+id/tv_all_models_badge"
                         android:maxWidth="132dp"
                         style="@style/Verbead.Text.Badge"
@@ -584,7 +584,7 @@
                 android:orientation="horizontal"
                 android:padding="16dp">
 
-                <ImageView
+                <com.ping.verbead.ui.GlassIconView
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="@drawable/bg_icon_circle"

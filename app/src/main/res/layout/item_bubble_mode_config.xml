@@ -35,7 +35,7 @@
             app:tint="@color/text_secondary" />
 
         <!-- Order Badge -->
-        <TextView
+        <com.ping.verbead.ui.GlassTagText
             android:id="@+id/tv_mode_order_badge"
             android:layout_width="22dp"
             android:layout_height="22dp"
@@ -48,7 +48,7 @@
             android:textStyle="bold" />
 
         <!-- Mode Icon -->
-        <ImageView
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/iv_mode_icon"
             style="@style/Verbead.RowIcon"
             android:layout_width="36dp"
