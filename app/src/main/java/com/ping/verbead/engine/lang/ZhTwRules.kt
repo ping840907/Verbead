@@ -74,7 +74,78 @@ object ZhTwRules {
      * without vocabulary substitution, preserving the speaker's exact original phrasing.
      * Then applies point-to-point correction for archaic, rare, and non-standard variants.
      */
-    fun toTaiwanTraditional(raw: String): String = mapByEvidence(raw) { clause, chinese, jis ->
+    fun toTaiwanTraditional(raw: String): String {
+        // Text that is Traditional already must not go through the whole s2t: it changes characters that are right as
+        // they are (干預 -> 幹預, 里長 -> 裡長). Characters that exist only in Simplified form are still converted.
+        if (isAlreadyTraditional(raw)) return normalizeTaiwanVariants(convertSimplifiedOnlyCharacters(raw))
+        return convertToTraditional(raw)
+    }
+
+    /**
+     * How many characters that exist only in Traditional form (數 與 長: the Simplified form is another character) the
+     * text needs to be taken as Traditional already, as long as they outnumber the characters that exist only in
+     * Simplified form (数 与 长). A few Traditional characters among Simplified ones (a quotation, a name) do not make
+     * a Simplified text Traditional.
+     */
+    const val TRADITIONAL_EVIDENCE_MIN = 3
+
+    private const val FORM_TRADITIONAL_ONLY = 1
+    private const val FORM_SIMPLIFIED_ONLY = 2
+    private const val FORM_NEITHER = 0
+    private val formCache = java.util.concurrent.ConcurrentHashMap<Char, Int>()
+
+    /**
+     * Simplified characters that are also real Traditional characters with a meaning of their own (皇后, 公里, 干預,
+     * 台灣, 只有, 周公): in Traditional text they are right as they are, so they are neither evidence nor converted alone.
+     */
+    private const val SHARED_WITH_TRADITIONAL = "干后里台只余系采谷周云征松范郁蒙术向几"
+
+    private fun formOf(ch: Char): Int = formCache.getOrPut(ch) {
+        if (!isHan(ch)) return@getOrPut FORM_NEITHER
+        val str = ch.toString()
+        try {
+            val simplified = ZhConverterUtil.toSimple(str)
+            val traditional = ZhConverterUtil.toTraditional(str)
+            when {
+                simplified != str && traditional == str -> FORM_TRADITIONAL_ONLY
+                simplified == str && traditional != str && traditional.length == 1 && ch !in SHARED_WITH_TRADITIONAL -> FORM_SIMPLIFIED_ONLY
+                else -> FORM_NEITHER // shared (的 人 事) or one that can be either (干 后 里)
+            }
+        } catch (_: Exception) {
+            FORM_NEITHER
+        }
+    }
+
+    /** True when the text has at least [TRADITIONAL_EVIDENCE_MIN] Traditional-only characters, and more of them than Simplified-only ones. */
+    fun isAlreadyTraditional(text: String): Boolean {
+        var traditional = 0
+        var simplified = 0
+        for (ch in text) {
+            when (formOf(ch)) {
+                FORM_TRADITIONAL_ONLY -> traditional++
+                FORM_SIMPLIFIED_ONLY -> simplified++
+            }
+        }
+        return traditional >= TRADITIONAL_EVIDENCE_MIN && traditional > simplified
+    }
+
+    /**
+     * Converts only the characters that exist in Simplified form alone (这 个 说 请), one by one, and leaves everything
+     * else as it is. In a Japanese clause only the characters Japanese does not use are touched.
+     */
+    private fun convertSimplifiedOnlyCharacters(text: String): String = mapByEvidence(text) { clause, chinese, jis ->
+        buildString(clause.length) {
+            for (ch in clause) {
+                if (formOf(ch) == FORM_SIMPLIFIED_ONLY && (chinese || isChineseOnlyHan(ch, jis))) {
+                    append(ZhConverterUtil.toTraditional(ch.toString()))
+                } else {
+                    append(ch)
+                }
+            }
+        }
+    }
+
+    private fun convertToTraditional(raw: String): String = mapByEvidence(raw) { clause, chinese, jis ->
         val converted = try {
             ZhConverterUtil.toTraditional(clause)
         } catch (_: Exception) {
