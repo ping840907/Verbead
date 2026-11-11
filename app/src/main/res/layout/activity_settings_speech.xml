@@ -30,9 +30,8 @@
             android:paddingBottom="32dp">
 
             <!-- 0. 快速設定：只問語言與輕重，其餘由 app 推薦 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_asr_quick"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp">
@@ -49,7 +48,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/asr_simple_title" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_asr_primary_language"
                         style="@style/Verbead.Button.Outlined"
                         android:layout_width="match_parent"
@@ -175,7 +174,7 @@
                                 android:text="@string/asr_preview_hint" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_asr_preview"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -189,18 +188,14 @@
                         android:orientation="vertical"
                         android:visibility="gone" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
             <!-- 1. 目前使用的模型組合：醒目的重點卡片 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_asr_combo"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardBackgroundColor="@color/md_theme_light_primaryContainer"
-                app:strokeColor="@color/md_theme_light_primary"
-                app:strokeWidth="2dp">
+                android:layout_marginBottom="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -296,7 +291,7 @@
                         android:textColor="@color/status_warning_text"
                         android:visibility="gone" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
             <!-- 進階：自行選擇模型（預設收合） -->
             <LinearLayout
@@ -341,7 +336,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <com.google.android.material.button.MaterialButton
+                <com.ping.verbead.ui.GlassMaterialButton
                     android:id="@+id/btn_asr_language_filter"
                     style="@style/Verbead.Button.Outlined"
                     android:layout_width="0dp"
@@ -389,9 +384,8 @@
             </LinearLayout>
 
             <!-- 4. 語音輸入偏好 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_speech_settings"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp">
@@ -472,7 +466,7 @@
                                 android:text="@string/settings_speech_external_audio_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_prefer_external_audio"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -606,13 +600,12 @@
                             android:progress="6" />
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
 
             <!-- 5. 自訂管理詞彙選項卡 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_custom_dict"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
@@ -666,7 +659,7 @@
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/text_tertiary" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_open_dict"
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
@@ -674,12 +667,11 @@
                         android:text="@string/settings_speech_vocab_button"
                         android:visibility="gone" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
             <!-- 6. Qwen3 辨識偏好 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_qwen3_preferences"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp">
@@ -760,7 +752,7 @@
                                 android:text="@string/settings_speech_filter_punct_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_filter_punctuation"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -812,7 +804,7 @@
                                 android:text="@string/settings_speech_filter_half_punct_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_filter_half_punct"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -864,7 +856,7 @@
                                 android:text="@string/settings_speech_spoken_numbers_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_spoken_numbers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -927,7 +919,7 @@
                                 android:text="@string/settings_speech_to_traditional_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_convert_traditional"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -935,7 +927,7 @@
 
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

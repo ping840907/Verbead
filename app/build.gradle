@@ -1,11 +1,12 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace 'com.ping.verbead'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.ping.verbead"
@@ -39,7 +40,7 @@ android {
         // LiteRT 2.3.x is compiled with Kotlin 2.4 metadata; this project's compiler is 2.2
         freeCompilerArgs += ['-Xskip-metadata-version-check']
     }
-    buildFeatures { viewBinding true; buildConfig true }
+    buildFeatures { viewBinding true; buildConfig true; compose true }
     packagingOptions {
         jniLibs {
             useLegacyPackaging = false
@@ -62,6 +63,11 @@ dependencies {
     implementation libs.androidx.core.ktx
     implementation libs.androidx.appcompat
     implementation libs.material
+    implementation platform("androidx.compose:compose-bom:2025.01.00")
+    implementation "androidx.compose.foundation:foundation"
+    implementation "androidx.compose.material3:material3"
+    implementation "androidx.compose.ui:ui"
+    implementation "dev.mttmcknn:sea-glass:0.1.0"
     implementation libs.androidx.recyclerview
     implementation libs.kotlinx.coroutines.android
     implementation libs.androidx.lifecycle.service

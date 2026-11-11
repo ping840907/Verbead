@@ -94,7 +94,7 @@
 
             </LinearLayout>
 
-            <com.google.android.material.materialswitch.MaterialSwitch
+            <com.ping.verbead.ui.GlassSwitch
                 android:id="@+id/switch_hotwords"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />

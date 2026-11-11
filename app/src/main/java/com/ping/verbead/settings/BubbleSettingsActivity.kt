@@ -16,7 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.materialswitch.MaterialSwitch
+import com.ping.verbead.ui.GlassSwitch
 import com.ping.verbead.FloatingBubbleService
 import com.ping.verbead.QuickPhrasesManager
 import com.ping.verbead.R
@@ -38,10 +38,10 @@ class BubbleSettingsActivity : AppCompatActivity() {
     private lateinit var btnOpenAppInfo: MaterialButton
 
     private lateinit var layoutShowOnlyOnKeyboardToggle: View
-    private lateinit var switchShowOnlyOnKeyboard: MaterialSwitch
+    private lateinit var switchShowOnlyOnKeyboard: GlassSwitch
 
     private lateinit var layoutMultiBubbleToggle: View
-    private lateinit var switchMultiBubble: MaterialSwitch
+    private lateinit var switchMultiBubble: GlassSwitch
     private lateinit var layoutMultiBubbleCount: View
     private lateinit var dividerMultiBubbleCount: View
     private lateinit var sbMultiBubbleCount: SeekBar
@@ -52,11 +52,11 @@ class BubbleSettingsActivity : AppCompatActivity() {
 
     private lateinit var layoutPasteModeToggle: View
     private lateinit var dividerPasteMode: View
-    private lateinit var switchPasteMode: MaterialSwitch
+    private lateinit var switchPasteMode: GlassSwitch
     private lateinit var tvPasteModeDesc: TextView
 
     private lateinit var layoutHistoryEnabledToggle: View
-    private lateinit var switchHistoryEnabled: MaterialSwitch
+    private lateinit var switchHistoryEnabled: GlassSwitch
     private lateinit var tvHistoryDesc: TextView
     private lateinit var layoutHistoryLimit: View
     private lateinit var dividerHistoryLimit: View
@@ -70,6 +70,7 @@ class BubbleSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings_bubble)
+        com.ping.verbead.ui.GlassStage.install(this)
 
         bindViews()
         setupToolbar()

@@ -20,6 +20,7 @@ class AboutSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings_about)
+        com.ping.verbead.ui.GlassStage.install(this)
 
         toolbar = findViewById(R.id.toolbar)
         toolbar.setNavigationOnClickListener {

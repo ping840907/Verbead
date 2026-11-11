@@ -28,8 +28,7 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingBottom="32dp">
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Verbead.Card"
+        <com.ping.verbead.ui.GlassCard
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp">
@@ -57,11 +56,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_credits"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp">
@@ -242,7 +240,7 @@
                         android:text="@string/settings_about_onnx_credit" />
                 </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

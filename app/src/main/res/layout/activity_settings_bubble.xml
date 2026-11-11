@@ -28,9 +28,8 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingBottom="32dp">
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_bubble_module"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp">
@@ -126,7 +125,7 @@
                             android:text="@string/settings_bubble_overlay_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_grant_overlay"
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
@@ -175,7 +174,7 @@
                             android:text="@string/settings_bubble_autofill_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_grant_accessibility"
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
@@ -229,7 +228,7 @@
                             android:text="@string/settings_bubble_restricted_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_open_app_info"
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
@@ -281,7 +280,7 @@
                             android:text="@string/settings_bubble_keyboard_only_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_show_only_on_keyboard"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -332,7 +331,7 @@
                             android:text="@string/settings_bubble_multi_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_multi_bubble"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -453,7 +452,7 @@
                                 android:text="@string/settings_bubble_modes_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.button.MaterialButton
+                        <com.ping.verbead.ui.GlassMaterialButton
                             android:id="@+id/btn_reset_bubble_modes"
                             style="@style/Verbead.Button.Compact"
                             android:layout_width="wrap_content"
@@ -517,7 +516,7 @@
                             android:text="@string/settings_bubble_paste_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_paste_mode"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -568,7 +567,7 @@
                             android:text="@string/settings_bubble_history_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_history_enabled"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -643,7 +642,7 @@
                 </LinearLayout>
 
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

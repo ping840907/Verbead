@@ -20,7 +20,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.materialswitch.MaterialSwitch
+import com.ping.verbead.ui.GlassSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.DictSettingsActivity
 import com.ping.verbead.ModelDownloadService
@@ -64,7 +64,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     // Quick setup
     private lateinit var btnPrimaryLanguage: MaterialButton
     private lateinit var chipsProfile: ChipGroup
-    private lateinit var switchPreview: MaterialSwitch
+    private lateinit var switchPreview: GlassSwitch
     private lateinit var layoutPreviewToggle: View
     private lateinit var tvRecNone: TextView
     private lateinit var layoutAdvanced: View
@@ -116,24 +116,24 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
     // Audio & VAD Preferences
     private lateinit var layoutPreferExternalAudioToggle: View
-    private lateinit var switchPreferExternalAudio: MaterialSwitch
+    private lateinit var switchPreferExternalAudio: GlassSwitch
     private lateinit var layoutAudioGain: View
     private lateinit var seekAudioGain: SeekBar
     private lateinit var tvAudioGainVal: TextView
     private lateinit var seekVadSilence: SeekBar
     private lateinit var tvVadSilenceVal: TextView
     private lateinit var layoutSpokenNumbersToggle: View
-    private lateinit var switchSpokenNumbers: MaterialSwitch
+    private lateinit var switchSpokenNumbers: GlassSwitch
     private lateinit var layoutConvertTraditionalToggle: View
-    private lateinit var switchConvertTraditional: MaterialSwitch
+    private lateinit var switchConvertTraditional: GlassSwitch
     private lateinit var layoutFilterPunctuationToggle: View
-    private lateinit var switchFilterPunctuation: MaterialSwitch
+    private lateinit var switchFilterPunctuation: GlassSwitch
     private lateinit var layoutFilterHalfPunctToggle: View
-    private lateinit var switchFilterHalfPunct: MaterialSwitch
+    private lateinit var switchFilterHalfPunct: GlassSwitch
 
 
     // Custom dictionary option card
-    private lateinit var cardCustomDict: MaterialCardView
+    private lateinit var cardCustomDict: View
     private lateinit var layoutDictToggle: View
     private lateinit var tvVocabDesc: TextView
     private lateinit var btnOpenDict: MaterialButton
@@ -161,6 +161,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings_speech)
+        com.ping.verbead.ui.GlassStage.install(this)
 
         bindViews()
         setupToolbar()

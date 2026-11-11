@@ -12,7 +12,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.materialswitch.MaterialSwitch
+import com.ping.verbead.ui.GlassSwitch
 import com.ping.verbead.R
 import com.ping.verbead.engine.ModelConfig
 import java.util.Collections
@@ -161,6 +161,6 @@ class BubbleModeConfigAdapter(
         val tvDesc: TextView = itemView.findViewById(R.id.tv_mode_desc)
         val btnMoveUp: ImageButton = itemView.findViewById(R.id.btn_mode_move_up)
         val btnMoveDown: ImageButton = itemView.findViewById(R.id.btn_mode_move_down)
-        val switchEnabled: MaterialSwitch = itemView.findViewById(R.id.switch_mode_enabled)
+        val switchEnabled: GlassSwitch = itemView.findViewById(R.id.switch_mode_enabled)
     }
 }

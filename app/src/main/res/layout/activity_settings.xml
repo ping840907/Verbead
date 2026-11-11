@@ -19,13 +19,11 @@
 
 
         <!-- ══════════════════════ 頂部狀態顯示器 ══════════════════════ -->
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_status_indicator"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            app:cardCornerRadius="20dp">
+            android:layout_marginBottom="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -281,7 +279,7 @@
                 </LinearLayout>
 
                 <!-- Navigation button to interactive onboarding / operation guide -->
-                <com.google.android.material.button.MaterialButton
+                <com.ping.verbead.ui.GlassMaterialButton
                     android:id="@+id/btn_open_onboarding"
                     style="@style/Verbead.Button.Tonal"
                     android:layout_width="match_parent"
@@ -291,7 +289,7 @@
                     app:icon="@drawable/ic_info"
                     app:iconGravity="textStart" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
         <!-- ══════════════════════ 設定功能分類 ══════════════════════ -->
         <TextView
@@ -303,9 +301,8 @@
             android:text="@string/settings_categories_title" />
 
         <!-- 1. 懸浮球與操作模式 -->
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_cat_bubble"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -359,12 +356,11 @@
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@color/text_tertiary" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
         <!-- 2. 語音辨識與模型 -->
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_cat_speech"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -418,12 +414,11 @@
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@color/text_tertiary" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
         <!-- 3. 智慧文字辨識 (OCR) -->
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_cat_ocr"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -477,12 +472,11 @@
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@color/text_tertiary" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
         <!-- 5. 離線模型包匯入與復原（主頁直接實作） -->
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_import_models"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp">
@@ -561,7 +555,7 @@
                     android:textColor="@color/md_theme_light_primary"
                     android:visibility="gone" />
 
-                <com.google.android.material.button.MaterialButton
+                <com.ping.verbead.ui.GlassMaterialButton
                     android:id="@+id/btn_import_models_zip"
                     style="@style/Verbead.Button"
                     android:layout_width="match_parent"
@@ -571,12 +565,11 @@
                     app:icon="@drawable/ic_archive"
                     app:iconGravity="textStart" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
         <!-- 6. 關於與授權致謝 -->
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_cat_about"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
@@ -630,7 +623,7 @@
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@color/text_tertiary" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
         <!-- ══════════════════════ 底部品牌標籤 ══════════════════════ -->
         <TextView

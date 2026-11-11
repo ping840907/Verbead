@@ -14,7 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.materialswitch.MaterialSwitch
+import com.ping.verbead.ui.GlassSwitch
 import com.ping.verbead.engine.ModelConfig
 
 import com.ping.verbead.util.HapticUtil
@@ -67,7 +67,7 @@ class DictSettingsActivity : AppCompatActivity() {
             finish()
         }
 
-        val switchHotwords = findViewById<MaterialSwitch>(R.id.switch_hotwords)
+        val switchHotwords = findViewById<GlassSwitch>(R.id.switch_hotwords)
         findViewById<View>(R.id.layout_hotwords_toggle).setOnClickListener {
             switchHotwords.toggle()
         }

@@ -117,7 +117,7 @@
         </LinearLayout>
 
         <!-- Enable / Disable Switch -->
-        <com.google.android.material.materialswitch.MaterialSwitch
+        <com.ping.verbead.ui.GlassSwitch
             android:id="@+id/switch_mode_enabled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
