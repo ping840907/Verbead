@@ -67,6 +67,7 @@ class PhrasesDrawerController(
 
         if (phrasesDrawerView == null) {
             phrasesDrawerView = LayoutInflater.from(context).inflate(R.layout.layout_floating_phrases_drawer, null)
+            phrasesDrawerView?.let { com.ping.verbead.ui.GlassStage.skin(it) }
         }
         val drawer = phrasesDrawerView ?: return
 
@@ -76,8 +77,8 @@ class PhrasesDrawerController(
         val maxDrawerWidth = screenWidth - bubbleWidthPx - gap - (12 * density).toInt()
         val drawerWidth = (260 * density).toInt().coerceAtMost(maxDrawerWidth)
 
-        val btnClose = drawer.findViewById<ImageButton>(R.id.btn_close_phrases_drawer)
-        val btnAdd = drawer.findViewById<ImageButton>(R.id.btn_add_phrase)
+        val btnClose = drawer.findViewById<android.widget.ImageView>(R.id.btn_close_phrases_drawer)
+        val btnAdd = drawer.findViewById<android.widget.ImageView>(R.id.btn_add_phrase)
         val rvPhrases = drawer.findViewById<RecyclerView>(R.id.rv_phrases)
 
         btnClose.setOnClickListener {

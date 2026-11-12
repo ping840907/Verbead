@@ -25,12 +25,18 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import com.google.android.material.color.MaterialColors
+import com.ping.verbead.R
 import dev.mttmcknn.seaglass.SeaGlassMaterialTheme
 import dev.mttmcknn.seaglass.SeaGlassPalette
 import dev.mttmcknn.seaglass.SeaGlassShape
 import dev.mttmcknn.seaglass.rememberSeaGlassColorScheme
 import dev.mttmcknn.seaglass.seaGlass
 import androidx.compose.ui.graphics.Color as ComposeColor
+
+/** Views that carry a fixed glass colour for overlay windows. */
+internal interface OverlayTinted {
+    val overlayTint: Int?
+}
 
 /** A view whose own background is replaced by a Sea Glass plate once GlassStage wraps it. */
 internal interface GlassPlateHost {
@@ -53,6 +59,7 @@ class GlassPlateFrame internal constructor(
 ) : FrameLayout(context) {
 
     private val tintState = mutableIntStateOf(Color.TRANSPARENT)
+    internal var darkOverlay = false
     private val glow = (GLOW_DP * resources.displayMetrics.density).toInt()
     private val glassView: ComposeView
 
@@ -60,10 +67,12 @@ class GlassPlateFrame internal constructor(
         clipChildren = false
         clipToPadding = false
         glassView = ComposeView(context).apply {
+            // Compose needs a window; views inflated for an overlay are measured before they are attached.
+            visibility = GONE
             setContent {
                 val colors = rememberSeaGlassColorScheme(
                     dynamicColor = true,
-                    darkTheme = isSystemInDarkTheme()
+                    darkTheme = isSystemInDarkTheme() || darkOverlay
                 )
                 MaterialTheme(colorScheme = colors) {
                     val tint by tintState
@@ -87,11 +96,23 @@ class GlassPlateFrame internal constructor(
         )
     }
 
+    override fun onAttachedToWindow() {
+        ensureOverlayOwners(this)
+        super.onAttachedToWindow()
+        glassView.visibility = VISIBLE
+    }
+
+    override fun onDetachedFromWindow() {
+        glassView.visibility = GONE
+        super.onDetachedFromWindow()
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         measureChildWithMargins(child, widthMeasureSpec, 0, heightMeasureSpec, 0)
         val w = resolveSize(child.measuredWidth, widthMeasureSpec)
         val h = resolveSize(child.measuredHeight, heightMeasureSpec)
         setMeasuredDimension(w, h)
+        if (!isAttachedToWindow) return
         glassView.measure(
             MeasureSpec.makeMeasureSpec(w + 2 * glow, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(h + 2 * glow, MeasureSpec.EXACTLY)
@@ -124,6 +145,7 @@ class GlassPlateFrame internal constructor(
                 )
             )
             host.plate = frame
+            frame.darkOverlay = (host as? OverlayTinted)?.overlayTint != null
             frame.setTint(host.defaultPlateTint())
             view.background = null
         }
@@ -138,12 +160,14 @@ class GlassIconView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : AppCompatImageView(context, attrs, defStyleAttr), GlassPlateHost {
+) : AppCompatImageView(context, attrs, defStyleAttr), GlassPlateHost, OverlayTinted {
 
     override var plate: GlassPlateFrame? = null
     override val plateShape get() = SeaGlassShape.Disc
 
-    override fun defaultPlateTint(): Int = MaterialColors.getColor(
+    override val overlayTint: Int? = readOverlayTint(context, attrs)
+
+    override fun defaultPlateTint(): Int = overlayTint ?: MaterialColors.getColor(
         this, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY
     )
 
@@ -170,15 +194,17 @@ class GlassTagText @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : AppCompatTextView(context, attrs, defStyleAttr), GlassPlateHost {
+) : AppCompatTextView(context, attrs, defStyleAttr), GlassPlateHost, OverlayTinted {
 
     override var plate: GlassPlateFrame? = null
     override val plateShape get() = SeaGlassShape.Capsule
 
+    override val overlayTint: Int? = readOverlayTint(context, attrs)
+
     /** Colour of the background drawable given in XML, captured before the plate exists. */
     private var xmlTint: Int? = null
 
-    override fun defaultPlateTint(): Int = pigment(
+    override fun defaultPlateTint(): Int = overlayTint ?: pigment(
         xmlTint ?: MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorSecondaryContainer, Color.GRAY
         )
@@ -202,4 +228,12 @@ class GlassTagText @JvmOverloads constructor(
         super.setVisibility(visibility)
         (parent as? GlassPlateFrame)?.visibility = visibility
     }
+}
+
+private fun readOverlayTint(context: Context, attrs: AttributeSet?): Int? {
+    if (attrs == null) return null
+    val a = context.obtainStyledAttributes(attrs, R.styleable.GlassOverlay)
+    val c = if (a.hasValue(R.styleable.GlassOverlay_glassTint)) a.getColor(R.styleable.GlassOverlay_glassTint, 0) else null
+    a.recycle()
+    return c
 }

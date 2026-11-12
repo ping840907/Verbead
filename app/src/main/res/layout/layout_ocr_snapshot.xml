@@ -43,15 +43,17 @@
         android:paddingStart="12dp"
         android:paddingEnd="12dp">
 
-        <ImageButton
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/btn_close_ocr"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="@drawable/bg_scanner_btn_circle"
             android:contentDescription="@string/common_close"
             android:padding="8dp"
             android:src="@drawable/ic_close"
-            app:tint="#FFFFFFFF" />
+            app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassTint="#4F7A73" />
 
         <TextView
             android:id="@+id/tv_ocr_status"
@@ -72,16 +74,18 @@
             android:indeterminateTint="#64B5F6"
             android:visibility="visible" />
 
-        <ImageButton
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/btn_rotate_ocr"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginStart="8dp"
-            android:background="@drawable/bg_scanner_btn_circle"
             android:contentDescription="@string/ocr_snapshot_rotate_desc"
             android:padding="8dp"
             android:src="@drawable/ic_rotate"
-            app:tint="#FFFFFFFF" />
+            app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassTint="#4F7A73" />
     </LinearLayout>
 
     <!-- Bottom Action Bar (Multi-select Actions) -->
@@ -97,11 +101,10 @@
         android:paddingEnd="16dp"
         android:visibility="gone">
 
-        <TextView
+        <com.ping.verbead.ui.GlassTagText
             android:id="@+id/btn_ocr_select_all"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
-            android:background="@drawable/bg_ocr_pill_btn"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
@@ -110,14 +113,14 @@
             android:text="@string/ocr_snapshot_select_all"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:glassTint="#4F7A73" />
 
-        <TextView
+        <com.ping.verbead.ui.GlassTagText
             android:id="@+id/btn_ocr_clear"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
             android:layout_marginStart="8dp"
-            android:background="@drawable/bg_ocr_pill_btn"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
@@ -125,18 +128,18 @@
             android:paddingEnd="14dp"
             android:text="@string/ocr_snapshot_clear"
             android:textColor="#B0BEC5"
-            android:textSize="13sp" />
+            android:textSize="13sp"
+            app:glassTint="#4F7A73" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1" />
 
-        <TextView
+        <com.ping.verbead.ui.GlassTagText
             android:id="@+id/btn_ocr_confirm"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:background="@drawable/bg_ocr_confirm_btn"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
@@ -145,7 +148,8 @@
             android:text="@string/ocr_snapshot_recognize_and_input"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:glassTint="#3F8F4A" />
     </LinearLayout>
 
 </FrameLayout>

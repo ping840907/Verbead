@@ -2310,10 +2310,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         // Undo only when nothing else is going on. A snapshot stays valid for 15 s after a fill, so
         // without this check a ✕ pressed during the next recording undid the old text and left that
         // recording running in the background.
-        val nothingActive = !isPhrasesDrawerActive && !isOcrSnapshotActive && !isOcrModeActive &&
-            !isScannerModeActive && state != State.RECORDING && state != State.TRANSCRIBING && state != State.LOADING
         when {
-            state == State.PASTED || (nothingActive && VoiceAccessibilityService.instance?.hasValidSnapshot() == true) -> {
+            isUndoMode() -> {
                 isRestoringSnapshot = true
                 try {
                     // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
@@ -2389,8 +2387,25 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         )
     }
 
+    /**
+     * True when the ✕ button would undo the last fill (the text is in, nothing else is running or open).
+     * While something is recording, loading or open it cancels that instead.
+     */
+    private fun isUndoMode(): Boolean {
+        val nothingActive = !isPhrasesDrawerActive && !isOcrSnapshotActive && !isOcrModeActive &&
+            !isScannerModeActive && state != State.RECORDING && state != State.TRANSCRIBING && state != State.LOADING
+        return state == State.PASTED || (nothingActive && VoiceAccessibilityService.instance?.hasValidSnapshot() == true)
+    }
+
+    /** Keeps the button's icon (cancel or undo) in step with what a press would do. */
+    internal fun refreshXButtonIcon() {
+        if (!::bubbleXButtonController.isInitialized) return
+        bubbleXButtonController.setUndo(isUndoMode())
+    }
+
     internal fun showXButton() {
         if (!::bubbleXButtonController.isInitialized) return
+        bubbleXButtonController.setUndo(isUndoMode())
         val anchor = currentAnchorBubble
         val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
@@ -2738,6 +2753,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     internal fun setState(s: State) {
         stateMachine.transitionTo(s)
+        refreshXButtonIcon()
         if (state == State.RECORDING) {
             showPulseView()
         } else {

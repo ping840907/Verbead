@@ -519,4 +519,5 @@
     <string name="settings_theme_system">システムに従う</string>
     <string name="settings_theme_light">ライト</string>
     <string name="settings_theme_dark">ダーク</string>
+    <string name="common_undo">元に戻す</string>
 </resources>

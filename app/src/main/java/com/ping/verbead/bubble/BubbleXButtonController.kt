@@ -27,9 +27,43 @@ class BubbleXButtonController(
     }
 
     private var xButtonView: View? = null
+    private var undoMode = false
+    private var shownUndoMode = false
     private var xButtonLayoutParams: WindowManager.LayoutParams? = null
     var isShowing: Boolean = false
         private set
+
+    /**
+     * The button is a cancel (X) while something is running or open, and an undo (back arrow) once the text
+     * has been filled in. Only the icon changes; the click handler decides what to do.
+     */
+    fun setUndo(undo: Boolean) {
+        undoMode = undo
+        val view = xButtonView ?: return
+        if (!isShowing) {
+            applyIcon(view, animate = false)
+            return
+        }
+        applyIcon(view, animate = true)
+    }
+
+    private fun applyIcon(view: View, animate: Boolean) {
+        if (shownUndoMode == undoMode) return
+        shownUndoMode = undoMode
+        val icon = view.findViewById<android.widget.ImageView>(R.id.iv_bubble_x_icon) ?: return
+        val res = if (undoMode) R.drawable.ic_undo_back else R.drawable.ic_close
+        icon.contentDescription = context.getString(if (undoMode) R.string.common_undo else R.string.common_close)
+        if (!animate) {
+            icon.setImageResource(res)
+            return
+        }
+        icon.animate().cancel()
+        icon.animate().alpha(0f).rotation(if (undoMode) -40f else 40f).setDuration(80).withEndAction {
+            icon.setImageResource(res)
+            icon.rotation = if (undoMode) 40f else -40f
+            icon.animate().alpha(1f).rotation(0f).setDuration(110).start()
+        }.start()
+    }
 
     fun updatePosition(
         anchorX: Int,
@@ -87,9 +121,12 @@ class BubbleXButtonController(
         if (xButtonView == null) {
             xButtonView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_bubble_x, null).apply {
                 setOnClickListener { onXButtonClick() }
+                com.ping.verbead.ui.GlassStage.skin(this)
             }
+            shownUndoMode = false
         }
         val view = xButtonView ?: return
+        applyIcon(view, animate = false)
         val density = context.resources.displayMetrics.density
         val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 

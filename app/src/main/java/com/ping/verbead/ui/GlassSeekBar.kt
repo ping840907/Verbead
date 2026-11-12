@@ -55,6 +55,15 @@ class GlassSeekBar @JvmOverloads constructor(
     internal val enabledState = mutableStateOf(true)
     internal val heightPx = mutableFloatStateOf(0f)
     internal var framed = false
+    /** Overlay windows float over other apps: always the dark glass scheme. */
+    internal val forceDark: Boolean = run {
+        if (attrs == null) false else {
+            val a = context.obtainStyledAttributes(attrs, com.ping.verbead.R.styleable.GlassOverlay)
+            val v = a.getBoolean(com.ping.verbead.R.styleable.GlassOverlay_glassDark, false)
+            a.recycle()
+            v
+        }
+    }
 
     init {
         val d = resources.displayMetrics.density
@@ -114,10 +123,11 @@ class GlassSeekFrame internal constructor(
         clipChildren = false
         clipToPadding = false
         glassView = ComposeView(context).apply {
+            visibility = GONE // until attached, see onAttachedToWindow
             setContent {
                 val colors = rememberSeaGlassColorScheme(
                     dynamicColor = true,
-                    darkTheme = isSystemInDarkTheme()
+                    darkTheme = isSystemInDarkTheme() || bar.forceDark
                 )
                 MaterialTheme(colorScheme = colors) {
                     val cs = MaterialTheme.colorScheme
@@ -184,11 +194,23 @@ class GlassSeekFrame internal constructor(
         )
     }
 
+    override fun onAttachedToWindow() {
+        ensureOverlayOwners(this)
+        super.onAttachedToWindow()
+        glassView.visibility = VISIBLE
+    }
+
+    override fun onDetachedFromWindow() {
+        glassView.visibility = GONE
+        super.onDetachedFromWindow()
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         measureChildWithMargins(bar, widthMeasureSpec, 0, heightMeasureSpec, 0)
         val w = resolveSize(bar.measuredWidth, widthMeasureSpec)
         val h = resolveSize(bar.measuredHeight, heightMeasureSpec)
         setMeasuredDimension(w, h)
+        if (!isAttachedToWindow) return
         glassView.measure(
             MeasureSpec.makeMeasureSpec(w + 2 * glow, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(h + 2 * glow, MeasureSpec.EXACTLY)

@@ -2,5 +2,12 @@
 <resources>
     <declare-styleable name="GlassPanel">
         <attr name="glassRadius" format="dimension" />
+        <!-- Large panels use the quiet frosted fill; Sea Glass is kept for small, pill-sized ones. -->
+        <attr name="glassFrosted" format="boolean" />
+    </declare-styleable>
+    <!-- Overlay windows float over other apps: fixed dark glass, whatever the app theme is. -->
+    <declare-styleable name="GlassOverlay">
+        <attr name="glassTint" format="color" />
+        <attr name="glassDark" format="boolean" />
     </declare-styleable>
 </resources>

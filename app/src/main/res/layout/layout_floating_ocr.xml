@@ -9,6 +9,7 @@
         android:layout_width="250dp"
         android:layout_height="wrap_content"
         app:glassRadius="20dp"
+        app:glassFrosted="true"
         android:orientation="vertical"
         android:padding="8dp">
 
@@ -18,17 +19,19 @@
         android:layout_height="36dp"
         android:layout_marginBottom="4dp">
 
-        <ImageButton
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/btn_close_ocr"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/bg_scanner_btn_circle"
             android:contentDescription="@string/common_close"
             android:padding="6dp"
             android:src="@drawable/ic_close"
-            app:tint="#FFFFFFFF" />
+            app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassTint="#4F7A73" />
 
         <TextView
             android:id="@+id/tv_ocr_window_title"
@@ -48,27 +51,31 @@
             android:orientation="horizontal">
 
             <!-- 縮放鍵 (Scale/Resize Toggle) -->
-            <ImageButton
+            <com.ping.verbead.ui.GlassIconView
                 android:id="@+id/btn_ocr_scale"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:layout_marginEnd="6dp"
-                android:background="@drawable/bg_scanner_btn_circle"
                 android:contentDescription="@string/floating_resize_window_desc"
                 android:padding="6dp"
                 android:src="@drawable/ic_fullscreen"
-                app:tint="#FFFFFFFF" />
+                app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassTint="#4F7A73" />
 
             <!-- 閃光燈 (Flash Toggle) -->
-            <ImageButton
+            <com.ping.verbead.ui.GlassIconView
                 android:id="@+id/btn_ocr_flash"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:background="@drawable/bg_scanner_btn_circle"
                 android:contentDescription="@string/floating_flash_desc"
                 android:padding="6dp"
                 android:src="@drawable/ic_flash_off"
-                app:tint="#FFFFFFFF" />
+                app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassTint="#4F7A73" />
         </LinearLayout>
     </RelativeLayout>
 
@@ -96,7 +103,8 @@
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Zoom Slider below camera view -->
-    <SeekBar
+    <com.ping.verbead.ui.GlassSeekBar
+        app:glassDark="true"
         android:id="@+id/slider_ocr_zoom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -104,8 +112,8 @@
         android:layout_marginBottom="4dp"
         android:max="100"
         android:progress="0"
-        android:progressTint="#64B5F6"
-        android:thumbTint="#90CAF9" />
+        android:progressTint="#CFE6E1"
+        android:thumbTint="#E6F4F1" />
 
     <!-- Bottom Controls: Auto-Enter, Shutter Button, and Screen OCR -->
     <RelativeLayout
@@ -116,17 +124,19 @@
         android:paddingEnd="4dp">
 
         <!-- Auto-Enter Toggle Button -->
-        <ImageButton
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/btn_ocr_auto_enter"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/bg_scanner_btn_circle"
             android:contentDescription="@string/floating_wrap_desc"
             android:padding="6dp"
             android:src="@drawable/ic_auto_enter_on"
-            app:tint="#FFFFFFFF" />
+            app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassTint="#4F7A73" />
 
         <!-- 快門鍵 (Shutter Button - Always Retained) -->
         <FrameLayout
@@ -140,17 +150,19 @@
             android:contentDescription="@string/floating_ocr_capture_desc" />
 
         <!-- 螢幕 OCR (Screen OCR): bottom-right corner, away from the title -->
-        <ImageButton
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/btn_ocr_screen"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/bg_scanner_btn_circle"
             android:contentDescription="@string/floating_screen_ocr_desc"
             android:padding="6dp"
             android:src="@drawable/ic_screen_ocr"
-            app:tint="#FFFFFFFF" />
+            app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassTint="#4F7A73" />
     </RelativeLayout>
 
     </com.ping.verbead.ui.GlassLinearLayout>

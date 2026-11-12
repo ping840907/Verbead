@@ -519,4 +519,5 @@
     <string name="settings_theme_system">시스템 설정 따르기</string>
     <string name="settings_theme_light">라이트</string>
     <string name="settings_theme_dark">다크</string>
+    <string name="common_undo">실행 취소</string>
 </resources>

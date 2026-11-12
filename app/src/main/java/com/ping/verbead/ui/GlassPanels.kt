@@ -72,6 +72,33 @@ private fun radiusOf(context: Context, attrs: AttributeSet?, fallbackDp: Float):
     return r
 }
 
+
+private fun frostedOf(context: Context, attrs: AttributeSet?): Boolean {
+    if (attrs == null) return false
+    val a = context.obtainStyledAttributes(attrs, R.styleable.GlassPanel)
+    val f = a.getBoolean(R.styleable.GlassPanel_glassFrosted, false)
+    a.recycle()
+    return f
+}
+
+/** Dark, translucent, wallpaper-tinted fill with a faint top light and a hairline edge. */
+private fun frostedDrawable(context: Context, radiusDp: Float): android.graphics.drawable.Drawable {
+    val d = context.resources.displayMetrics.density
+    val tint = if (android.os.Build.VERSION.SDK_INT >= 31) {
+        runCatching { context.getColor(android.R.color.system_accent1_900) }.getOrDefault(0xFF1E232A.toInt())
+    } else 0xFF1E232A.toInt()
+    val fill = android.graphics.drawable.GradientDrawable().apply {
+        cornerRadius = radiusDp * d
+        setColor(androidx.core.graphics.ColorUtils.setAlphaComponent(tint, 0xF4))
+        setStroke((1f * d).toInt().coerceAtLeast(1), 0x33FFFFFF)
+    }
+    val sheen = android.graphics.drawable.GradientDrawable(
+        android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+        intArrayOf(0x1FFFFFFF, 0x00FFFFFF)
+    ).apply { cornerRadius = radiusDp * d }
+    return android.graphics.drawable.LayerDrawable(arrayOf(fill, sheen))
+}
+
 /**
  * FrameLayout with a Sea Glass panel behind its children. The glass is child 0 with zero size, so
  * it never decides how big a wrap_content panel is; after the content is laid out it is stretched
@@ -83,17 +110,22 @@ class GlassFrameLayout @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    private val frosted = frostedOf(context, attrs)
     private val glass: ComposeView = panelGlass(context, radiusOf(context, attrs, 18f))
 
     init {
         clipChildren = false
         clipToPadding = false
+        if (frosted) background = frostedDrawable(context, radiusOf(context, attrs, 18f))
         glass.translationZ = -1f
-        super.addView(glass, 0, LayoutParams(0, 0))
+        // Compose needs a window; until the panel is attached (it may be measured off-screen first) the glass stays out of layout.
+        glass.visibility = View.GONE
+        if (!frosted) super.addView(glass, 0, LayoutParams(0, 0))
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
+        if (frosted || !isAttachedToWindow) return
         glass.measure(
             MeasureSpec.makeMeasureSpec(right - left, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(bottom - top, MeasureSpec.EXACTLY)
@@ -104,11 +136,18 @@ class GlassFrameLayout @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         ensureOverlayOwners(this)
         super.onAttachedToWindow()
+        if (!frosted) glass.visibility = View.VISIBLE
+    }
+
+    override fun onDetachedFromWindow() {
+        if (!frosted) glass.visibility = View.GONE
+        super.onDetachedFromWindow()
     }
 
     override fun removeAllViews() {
         // Keep the glass layer (child 0) when the content is rebuilt.
-        if (childCount > 1) removeViews(1, childCount - 1)
+        val keep = if (frosted) 0 else 1
+        if (childCount > keep) removeViews(keep, childCount - keep)
     }
 }
 
@@ -122,14 +161,18 @@ class GlassLinearLayout @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
+    private val frosted = frostedOf(context, attrs)
     private val glass: ComposeView = panelGlass(context, radiusOf(context, attrs, 20f))
 
     init {
         clipChildren = false
         clipToPadding = false
+        if (frosted) background = frostedDrawable(context, radiusOf(context, attrs, 20f))
         // Behind every sibling, whatever order the content is added in later.
         glass.translationZ = -1f
-        super.addView(glass, 0, LayoutParams(0, 0))
+        // Compose needs a window; until the panel is attached (it may be measured off-screen first) the glass stays out of layout.
+        glass.visibility = View.GONE
+        if (!frosted) super.addView(glass, 0, LayoutParams(0, 0))
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
@@ -137,6 +180,7 @@ class GlassLinearLayout @JvmOverloads constructor(
         // the glass measured and stretched over the whole panel (measuring it earlier would push the
         // content down by the panel's height).
         super.onLayout(changed, l, t, r, b)
+        if (frosted || !isAttachedToWindow) return
         glass.measure(
             MeasureSpec.makeMeasureSpec(r - l, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(b - t, MeasureSpec.EXACTLY)
@@ -147,10 +191,17 @@ class GlassLinearLayout @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         ensureOverlayOwners(this)
         super.onAttachedToWindow()
+        if (!frosted) glass.visibility = View.VISIBLE
+    }
+
+    override fun onDetachedFromWindow() {
+        if (!frosted) glass.visibility = View.GONE
+        super.onDetachedFromWindow()
     }
 
     override fun removeAllViews() {
-        if (childCount > 1) removeViews(1, childCount - 1)
+        val keep = if (frosted) 0 else 1
+        if (childCount > keep) removeViews(keep, childCount - keep)
     }
 
 }
