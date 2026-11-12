@@ -18,7 +18,9 @@ object ChoiceButtonUtil {
         val context = button.context
         val primaryColor = ContextCompat.getColor(context, R.color.md_theme_light_primary)
         val onPrimaryColor = ContextCompat.getColor(context, R.color.md_theme_light_onPrimary)
-        val unselectedBg = ContextCompat.getColor(context, R.color.surface_card)
+        val unselectedBg = com.google.android.material.color.MaterialColors.getColor(
+            button, com.google.android.material.R.attr.colorSurfaceVariant, ContextCompat.getColor(context, R.color.surface_card)
+        )
         val unselectedText = ContextCompat.getColor(context, R.color.text_primary)
         val strokeColor = if (isSelected) primaryColor else ContextCompat.getColor(context, R.color.surface_card_stroke)
         val density = context.resources.displayMetrics.density
@@ -26,8 +28,12 @@ object ChoiceButtonUtil {
 
         if (isSelected) {
             button.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            button.setTextColor(onPrimaryColor)
-            button.iconTint = ColorStateList.valueOf(onPrimaryColor)
+            // A disabled "in use" button is drawn faded, so white text on it would wash out in light mode.
+            val selectedText =
+                if (button.isEnabled || androidx.core.graphics.ColorUtils.calculateLuminance(onPrimaryColor) < 0.5) onPrimaryColor
+                else unselectedText
+            button.setTextColor(selectedText)
+            button.iconTint = ColorStateList.valueOf(selectedText)
             button.strokeColor = ColorStateList.valueOf(primaryColor)
             button.strokeWidth = strokeWidthPx
             button.elevation = 2f * density

@@ -14,7 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.materialswitch.MaterialSwitch
+import com.ping.verbead.ui.GlassSwitch
 import com.ping.verbead.engine.ModelConfig
 
 import com.ping.verbead.util.HapticUtil
@@ -60,6 +60,7 @@ class DictSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dict_settings)
+        com.ping.verbead.ui.GlassStage.install(this)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         toolbar.setNavigationOnClickListener {
@@ -67,7 +68,7 @@ class DictSettingsActivity : AppCompatActivity() {
             finish()
         }
 
-        val switchHotwords = findViewById<MaterialSwitch>(R.id.switch_hotwords)
+        val switchHotwords = findViewById<GlassSwitch>(R.id.switch_hotwords)
         findViewById<View>(R.id.layout_hotwords_toggle).setOnClickListener {
             switchHotwords.toggle()
         }
@@ -218,8 +219,11 @@ class DictSettingsActivity : AppCompatActivity() {
             val btnDel: ImageButton = view.findViewById(R.id.btn_delete)
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            VH(LayoutInflater.from(parent.context).inflate(R.layout.item_dict_entry, parent, false))
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_dict_entry, parent, false)
+            (v as? com.google.android.material.card.MaterialCardView)?.let { com.ping.verbead.ui.GlassStage.frost(it) }
+            return VH(v)
+        }
 
         override fun getItemCount() = items.size
 

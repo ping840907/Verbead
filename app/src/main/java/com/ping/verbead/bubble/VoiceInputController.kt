@@ -26,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import com.ping.verbead.bubble.BubbleState as State
 
@@ -66,10 +67,19 @@ class VoiceInputController(
 
     private var activeStream: OnlineStream? = null
     private var recordingJob: Job? = null
+    @Volatile
     var isRecording = false
         private set
+    // Read from the recorder / inference threads and written from the main thread.
+    @Volatile
     private var isAborted = false
+    @Volatile
     private var lastStreamingText = ""
+    /** Bumped whenever a pending model load is abandoned, so a late load result does not start recording. */
+    @Volatile
+    private var loadGeneration = 0
+    /** The final engine is not safe to run twice at once (an aborted inference may still be finishing). */
+    private val inferenceLock = kotlinx.coroutines.sync.Mutex()
 
     /** 使用者主動結束錄音（點泡泡）：讓錄音自然收尾並進入辨識 */
     fun stopEarly() = recorder.stopEarly()
@@ -82,6 +92,12 @@ class VoiceInputController(
         recorder.stopEarly()
         activeStream?.let { runCatching { it.release() } }
         activeStream = null
+    }
+
+    /** ✕ while the models are still loading: drop the pending start. */
+    fun abortLoading() {
+        loadGeneration++
+        isAborted = true
     }
 
     /** ✕ 鍵於辨識中：中斷推論並阻止後續填入 */
@@ -120,6 +136,7 @@ class VoiceInputController(
             // the same model in both slots would decode the audio twice for the same text: use it live only
             val finalModel = ModelConfig.readyAsrModel(context, AsrMode.FINAL)?.takeIf { it.id != liveModel?.id }
             if (liveModel == null && finalModel == null) {
+                host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                 host.setState(State.IDLE)
                 ToastUtil.show(context, R.string.toast_model_not_downloaded)
                 return
@@ -133,6 +150,7 @@ class VoiceInputController(
             beginRecording()
                 } catch (e: Throwable) {
             Log.e(TAG, "startRecording failed: ${e.message}", e)
+            host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
             host.setState(State.IDLE)
             ToastUtil.show(context, context.getString(R.string.preview_voice_start_failed, e.localizedMessage ?: context.getString(R.string.common_unknown_error)))
         }
@@ -161,15 +179,19 @@ class VoiceInputController(
         host.setState(State.LOADING)
         host.showStatus(context.getString(if (dual) R.string.preview_loading_dual_models else R.string.preview_loading_models))
 
+        val generation = ++loadGeneration
         scope.launch {
             val success = withContext(Dispatchers.IO) {
                 val liveOk = liveEngine?.let { it.isLoaded() || it.load().success } ?: true
                 val finalOk = finalEngine?.load(buildHotwords())?.success ?: true
                 liveOk && finalOk
             }
+            // The user may have pressed X (or started over) while the models were loading.
+            if (generation != loadGeneration) return@launch
             if (success) {
                 beginRecording()
             } else {
+                host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                 host.setState(State.IDLE)
                 ToastUtil.show(context, R.string.preview_model_load_failed)
             }
@@ -251,6 +273,7 @@ class VoiceInputController(
             if (isAborted) return@launch
 
             if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
+                host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                 host.setState(State.IDLE)
                 host.hideXButton()
                 ToastUtil.show(context, R.string.preview_no_speech_detected)
@@ -266,6 +289,7 @@ class VoiceInputController(
             // 合併完整的音訊 buffer
             val totalSamples = audioBuffer.sumOf { it.size }
             if (totalSamples == 0) {
+                host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                 host.setState(State.IDLE)
                 host.hideXButton()
                 ToastUtil.show(context, R.string.preview_no_speech_detected)
@@ -282,7 +306,7 @@ class VoiceInputController(
             try {
                 val raw = withContext(Dispatchers.Default) {
                     if (isAborted) return@withContext ""
-                    finalEngine.transcribe(combinedAudio)
+                    inferenceLock.withLock { finalEngine.transcribe(combinedAudio) }
                 }
                 if (isAborted) return@launch
                 host.onTranscribed(finalizeText(raw, finalModel))
@@ -294,6 +318,7 @@ class VoiceInputController(
                     host.onTranscribed(fallbackText)
                     ToastUtil.show(context, R.string.toast_offline_model_error_applied_streaming)
                 } else {
+                    host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                     host.setState(State.IDLE)
                     host.hideXButton()
                     ToastUtil.show(context, R.string.toast_transcribe_failed_retry)
@@ -327,17 +352,19 @@ class VoiceInputController(
                 try {
                     val raw = withContext(Dispatchers.Default) {
                         if (isAborted) return@withContext ""
-                        finalEngine.transcribe(recording.samples)
+                        inferenceLock.withLock { finalEngine.transcribe(recording.samples) }
                     }
                     if (isAborted) return@launch
                     host.onTranscribed(finalizeText(raw, finalModel))
                 } catch (ex: Throwable) {
                     if (ex is kotlinx.coroutines.CancellationException || isAborted) return@launch
+                    host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                     host.setState(State.IDLE)
                     host.hideXButton()
                     ToastUtil.show(context, R.string.toast_transcribe_failed_retry)
                 }
             } else {
+                host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                 host.setState(State.IDLE)
                 host.hideXButton()
                 ToastUtil.show(context, R.string.preview_no_speech_detected)
@@ -406,6 +433,7 @@ class VoiceInputController(
             if (isAborted) return@launch
 
             if (stopReason == AudioRecorder.StopReason.INITIAL_TIMEOUT) {
+                host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
                 host.setState(State.IDLE)
                 host.hideXButton()
                 ToastUtil.show(context, R.string.preview_no_speech_detected)

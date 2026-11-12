@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.materialswitch.MaterialSwitch
+import com.ping.verbead.ui.GlassSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.ping.verbead.ModelDownloadService
 import com.ping.verbead.R
@@ -43,22 +43,22 @@ class OcrSettingsActivity : AppCompatActivity() {
     private lateinit var progressKorean: LinearProgressIndicator
     private lateinit var tvKoreanProgress: TextView
     private lateinit var layoutKoreanToggle: View
-    private lateinit var switchKorean: MaterialSwitch
+    private lateinit var switchKorean: GlassSwitch
 
     private lateinit var btnSelectOcrTiny: MaterialButton
     private lateinit var btnSelectOcrSmall: MaterialButton
 
     private lateinit var layoutOcrAutoEnterToggle: View
-    private lateinit var switchOcrAutoEnter: MaterialSwitch
+    private lateinit var switchOcrAutoEnter: GlassSwitch
 
     private lateinit var layoutOcrSmartStitchToggle: View
-    private lateinit var switchOcrSmartStitch: MaterialSwitch
+    private lateinit var switchOcrSmartStitch: GlassSwitch
 
     private lateinit var layoutOcrPanguSpacingToggle: View
-    private lateinit var switchOcrPanguSpacing: MaterialSwitch
+    private lateinit var switchOcrPanguSpacing: GlassSwitch
 
     private lateinit var layoutOcrToTraditionalToggle: View
-    private lateinit var switchOcrToTraditional: MaterialSwitch
+    private lateinit var switchOcrToTraditional: GlassSwitch
 
     private lateinit var dividerOcrSep: View
     private lateinit var layoutOcrSepContainer: View
@@ -81,6 +81,7 @@ class OcrSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings_ocr)
+        com.ping.verbead.ui.GlassStage.install(this)
 
         bindViews()
         setupToolbar()

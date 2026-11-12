@@ -9,6 +9,7 @@ class VerbeadApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AppLocale.restore(this)
+        com.ping.verbead.util.AppTheme.restore(this)
         // models the user added by hand (custom_models.json in the models folder)
         runCatching { ModelConfig.reloadCustomModels(this) }
         // Apply Material You dynamic color theming across activities on Android 12+ (API 31+)

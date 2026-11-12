@@ -158,14 +158,13 @@
         </LinearLayout>
 
         <!-- Secondary Clone Floating Bubble (for Phase 3 shake-to-duplicate demo) -->
-        <FrameLayout
+        <com.ping.verbead.ui.GlassBubbleLayout
             android:id="@+id/layout_mock_clone_bubble"
             android:layout_width="52dp"
             android:layout_height="52dp"
             android:layout_gravity="end|center_vertical"
             android:layout_marginEnd="12dp"
             android:alpha="0"
-            android:background="@drawable/bubble_background"
             android:elevation="5dp">
 
             <ImageView
@@ -175,16 +174,15 @@
                 android:layout_gravity="center"
                 android:src="@drawable/ic_ocr"
                 app:tint="@android:color/white" />
-        </FrameLayout>
+        </com.ping.verbead.ui.GlassBubbleLayout>
 
         <!-- The Floating Bubble that animates tucking, keyboard sync, and shake-to-duplicate -->
-        <FrameLayout
+        <com.ping.verbead.ui.GlassBubbleLayout
             android:id="@+id/layout_mock_tuck_bubble"
             android:layout_width="52dp"
             android:layout_height="52dp"
             android:layout_gravity="end|center_vertical"
             android:layout_marginEnd="12dp"
-            android:background="@drawable/bubble_background"
             android:elevation="6dp">
 
             <ImageView
@@ -194,7 +192,7 @@
                 android:layout_gravity="center"
                 android:src="@drawable/ic_mic"
                 app:tint="@android:color/white" />
-        </FrameLayout>
+        </com.ping.verbead.ui.GlassBubbleLayout>
 
     </FrameLayout>
 

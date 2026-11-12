@@ -83,6 +83,8 @@ class ScannerOverlayController(
         private set
 
     private var isFlashOn: Boolean = false
+    // Set on the camera analyzer thread, cleared on the main thread.
+    @Volatile
     private var isProcessingBarcode: Boolean = false
 
     private var cameraExecutor: ExecutorService? = null
@@ -116,6 +118,7 @@ class ScannerOverlayController(
 
         if (scannerView == null) {
             scannerView = LayoutInflater.from(context).inflate(R.layout.layout_floating_scanner, null)
+            scannerView?.let { com.ping.verbead.ui.GlassStage.skin(it) }
         }
         val scanner = scannerView ?: return
 
@@ -158,10 +161,10 @@ class ScannerOverlayController(
         }
 
         val rootPanel = scanner.findViewById<View>(R.id.layout_scanner_root)
-        val btnClose = scanner.findViewById<ImageButton>(R.id.btn_close_scanner)
-        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
-        val btnFlash = scanner.findViewById<ImageButton>(R.id.btn_scanner_flash)
-        val btnAutoEnter = scanner.findViewById<ImageButton>(R.id.btn_scanner_auto_enter)
+        val btnClose = scanner.findViewById<android.widget.ImageView>(R.id.btn_close_scanner)
+        val btnScale = scanner.findViewById<android.widget.ImageView>(R.id.btn_scanner_scale)
+        val btnFlash = scanner.findViewById<android.widget.ImageView>(R.id.btn_scanner_flash)
+        val btnAutoEnter = scanner.findViewById<android.widget.ImageView>(R.id.btn_scanner_auto_enter)
         val sliderZoom = scanner.findViewById<SeekBar>(R.id.slider_scanner_zoom)
         val viewFinder = scanner.findViewById<PreviewView>(R.id.scanner_view_finder)
         val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
@@ -333,7 +336,7 @@ class ScannerOverlayController(
         val rootPanel = scanner.findViewById<View>(R.id.layout_scanner_root) ?: return
         val cardSize = targetWidth - (16 * density).toInt()
         val cardPreview = scanner.findViewById<MaterialCardView>(R.id.card_scanner_preview)
-        val btnScale = scanner.findViewById<ImageButton>(R.id.btn_scanner_scale)
+        val btnScale = scanner.findViewById<android.widget.ImageView>(R.id.btn_scanner_scale)
 
         val maxCardSize = maxWindowWidth - (16 * density).toInt()
         val estimatedHeight = maxCardSize + (120 * density).toInt()

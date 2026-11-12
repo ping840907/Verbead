@@ -141,6 +141,7 @@ class OcrOverlayController(
 
         if (ocrWindowView == null) {
             ocrWindowView = LayoutInflater.from(context).inflate(R.layout.layout_floating_ocr, null)
+            ocrWindowView?.let { com.ping.verbead.ui.GlassStage.skin(it) }
         }
         val ocr = ocrWindowView ?: return
 
@@ -183,12 +184,12 @@ class OcrOverlayController(
         }
 
         val rootPanel = ocr.findViewById<View>(R.id.layout_ocr_root)
-        val btnClose = ocr.findViewById<ImageButton>(R.id.btn_close_ocr)
-        val btnScale = ocr.findViewById<ImageButton>(R.id.btn_ocr_scale)
-        val btnFlash = ocr.findViewById<ImageButton>(R.id.btn_ocr_flash)
-        val btnAutoEnter = ocr.findViewById<ImageButton>(R.id.btn_ocr_auto_enter)
+        val btnClose = ocr.findViewById<android.widget.ImageView>(R.id.btn_close_ocr)
+        val btnScale = ocr.findViewById<android.widget.ImageView>(R.id.btn_ocr_scale)
+        val btnFlash = ocr.findViewById<android.widget.ImageView>(R.id.btn_ocr_flash)
+        val btnAutoEnter = ocr.findViewById<android.widget.ImageView>(R.id.btn_ocr_auto_enter)
         val btnShutter = ocr.findViewById<FrameLayout>(R.id.btn_ocr_shutter)
-        val btnScreen = ocr.findViewById<ImageButton>(R.id.btn_ocr_screen)
+        val btnScreen = ocr.findViewById<android.widget.ImageView>(R.id.btn_ocr_screen)
         val sliderZoom = ocr.findViewById<SeekBar>(R.id.slider_ocr_zoom)
         val viewFinder = ocr.findViewById<PreviewView>(R.id.ocr_view_finder)
         val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
@@ -373,7 +374,7 @@ class OcrOverlayController(
         val rootPanel = ocr.findViewById<View>(R.id.layout_ocr_root) ?: return
         val cardSize = targetWidth - (16 * density).toInt()
         val cardPreview = ocr.findViewById<MaterialCardView>(R.id.card_ocr_preview)
-        val btnScale = ocr.findViewById<ImageButton>(R.id.btn_ocr_scale)
+        val btnScale = ocr.findViewById<android.widget.ImageView>(R.id.btn_ocr_scale)
 
         val maxCardSize = maxWindowWidth - (16 * density).toInt()
         val estimatedHeight = maxCardSize + (120 * density).toInt()
@@ -531,6 +532,7 @@ class OcrOverlayController(
 
         if (ocrSnapshotView == null) {
             ocrSnapshotView = LayoutInflater.from(context).inflate(R.layout.layout_ocr_snapshot, null)
+            ocrSnapshotView?.let { com.ping.verbead.ui.GlassStage.skin(it) }
         }
         val ocrView = ocrSnapshotView ?: return
 
@@ -544,8 +546,8 @@ class OcrOverlayController(
 
         val ivSnapshot = ocrView.findViewById<ImageView>(R.id.iv_ocr_snapshot)
         val boxesOverlay = ocrView.findViewById<OcrBoxesOverlayView>(R.id.view_ocr_boxes)
-        val btnCloseOcr = ocrView.findViewById<ImageButton>(R.id.btn_close_ocr)
-        val btnRotateOcr = ocrView.findViewById<ImageButton>(R.id.btn_rotate_ocr)
+        val btnCloseOcr = ocrView.findViewById<android.widget.ImageView>(R.id.btn_close_ocr)
+        val btnRotateOcr = ocrView.findViewById<android.widget.ImageView>(R.id.btn_rotate_ocr)
         val tvStatus = ocrView.findViewById<TextView>(R.id.tv_ocr_status)
         val progress = ocrView.findViewById<ProgressBar>(R.id.progress_ocr)
         val frameContainer = ocrView.findViewById<View>(R.id.container_snapshot_frame)

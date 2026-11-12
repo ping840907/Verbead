@@ -90,25 +90,25 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvStatusValModel: TextView
 
     // Category Cards
-    private lateinit var cardCatBubble: MaterialCardView
+    private lateinit var cardCatBubble: View
     private lateinit var tvCatBubbleSummary: TextView
 
-    private lateinit var cardCatSpeech: MaterialCardView
+    private lateinit var cardCatSpeech: View
     private lateinit var tvCatSpeechSummary: TextView
 
-    private lateinit var cardCatOcr: MaterialCardView
+    private lateinit var cardCatOcr: View
     private lateinit var tvCatOcrSummary: TextView
 
 
     // Inline Offline Model Package Import
-    private lateinit var cardImportModels: MaterialCardView
+    private lateinit var cardImportModels: View
     private lateinit var tvCatBackupSummary: TextView
     private lateinit var tvAllModelsBadge: TextView
     private lateinit var progressImportModels: LinearProgressIndicator
     private lateinit var tvImportModelsStatus: TextView
     private lateinit var btnImportModelsZip: MaterialButton
 
-    private lateinit var cardCatAbout: MaterialCardView
+    private lateinit var cardCatAbout: View
     private lateinit var tvCatAboutSummary: TextView
 
     private val micPermissionLauncher = registerForActivityResult(
@@ -157,6 +157,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         setContentView(R.layout.activity_settings)
+        com.ping.verbead.ui.GlassStage.install(this)
 
         getSharedPreferences(ModelConfig.PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(bubblePrefsListener)

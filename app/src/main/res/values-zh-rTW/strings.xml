@@ -31,9 +31,9 @@
     <string name="onboarding_page2_title">垂直膠囊 · 四大模式隨心切換</string>
     <string name="onboarding_page2_desc">長按懸浮球展開垂直功能膠囊，上下滑動對齊即可切換四大模式：「語音即時輸入」、「條碼掃描」、「文字辨識 (PP-OCRv6)」與「常用語與歷史紀錄」。</string>
     <string name="onboarding_page2_tip">提示：滑動到想要的模式後放開手指，即可切換並立即使用。</string>
-    <string name="onboarding_page3_title">懸浮 X 鍵 · 一鍵撤回與還原</string>
-    <string name="onboarding_page3_desc">無論是語音輸入或 OCR 擷取，若結果不如預期，無需手動逐字修改！填入後 10 秒內點擊懸浮球上方的小型 ✕ 鍵，即可瞬間撤回並完整還原原本的文字內容。</string>
-    <string name="onboarding_page3_tip">提示：完成輸入後，懸浮球上方會浮現 ✕ 鍵，輕點即可執行 Undo 無損復原。</string>
+    <string name="onboarding_page3_title">懸浮 ↶ 鍵 · 一鍵撤回與還原</string>
+    <string name="onboarding_page3_desc">無論是語音輸入或 OCR 擷取，若結果不如預期，無需手動逐字修改！填入後 10 秒內點擊懸浮球上方的小型 ↶ 鍵，即可瞬間撤回並完整還原原本的文字內容。</string>
+    <string name="onboarding_page3_tip">提示：完成輸入後，懸浮球上方會浮現 ↶ 鍵，輕點即可執行 Undo 無損復原。</string>
     <string name="onboarding_page4_title">貼邊收納 · 鍵盤聯動 · 搖晃分身</string>
     <string name="onboarding_page4_desc" formatted="false">拖至螢幕邊緣自動貼邊收納 70%，也可開啟「僅軟體鍵盤出現時顯示」。此外，拖曳懸浮球時快速左右搖晃即可「分裂新增分身」（最多 4 顆），讓語音、OCR 與 AI 改寫多球同屏待命！</string>
     <string name="onboarding_page4_tip">提示：分身懸浮球各自記憶獨立模式；若要移除多餘分身，拖曳至螢幕頂部刪除區即可。</string>
@@ -385,7 +385,7 @@
     <string name="onboarding_privacy_chip_ocr">PP-OCRv6 辨識</string>
     <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 離線辨識</string>
     <string name="onboarding_privacy_chip_zero_upload">零上傳 · 全程本機</string>
-    <string name="onboarding_undo_title">即時復原 · 點擊上方 ✕ 鍵撤回</string>
+    <string name="onboarding_undo_title">即時復原 · 點擊上方 ↶ 鍵撤回</string>
     <string name="onboarding_undo_mock_question">請問簡報檔案在哪裡？</string>
     <string name="onboarding_undo_mock_hint">點擊懸浮球輸入...</string>
     <string name="onboarding_undo_done">已復原輸入內容</string>
@@ -515,4 +515,9 @@
     <string name="asr_badge_recommended">推薦</string>
     <string name="asr_variants_count_format">%1$d 個版本</string>
     <string name="asr_preset_left_format">還需下載約 %1$d MB</string>
+    <string name="settings_theme_title">外觀主題</string>
+    <string name="settings_theme_system">跟隨系統</string>
+    <string name="settings_theme_light">淺色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="common_undo">復原</string>
 </resources>

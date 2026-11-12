@@ -29,10 +29,118 @@
             android:paddingHorizontal="16dp"
             android:paddingBottom="32dp">
 
+            <!-- 1. 目前使用的模型組合：醒目的重點卡片 -->
+            <com.ping.verbead.ui.GlassCard
+                android:id="@+id/card_asr_combo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/asr_combo_title"
+                        android:textColor="@color/md_theme_light_onPrimaryContainer"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/row_combo_live"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.ping.verbead.ui.GlassTagText
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_recommend"
+                            android:text="@string/asr_tag_live"
+                            android:textColor="@color/tag_recommend" />
+
+                        <TextView
+                            android:id="@+id/tv_combo_live"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:textColor="@color/md_theme_light_onPrimaryContainer"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                        <com.ping.verbead.ui.GlassIconView
+                            android:id="@+id/btn_combo_clear_live"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/asr_combo_clear"
+                            android:src="@drawable/ic_close"
+                            android:tint="@color/md_theme_light_onPrimaryContainer"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/row_combo_final"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.ping.verbead.ui.GlassTagText
+                            style="@style/Verbead.Text.Badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_status_badge_success"
+                            android:text="@string/asr_tag_final"
+                            android:textColor="@color/status_success_text" />
+
+                        <TextView
+                            android:id="@+id/tv_combo_final"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:textColor="@color/md_theme_light_onPrimaryContainer"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                        <com.ping.verbead.ui.GlassIconView
+                            android:id="@+id/btn_combo_clear_final"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/asr_combo_clear"
+                            android:src="@drawable/ic_close"
+                            android:tint="@color/md_theme_light_onPrimaryContainer"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_asr_memory_hint"
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/asr_memory_hint"
+                        android:textColor="@color/status_warning_text"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.ping.verbead.ui.GlassCard>
+
             <!-- 0. 快速設定：只問語言與輕重，其餘由 app 推薦 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_asr_quick"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp">
@@ -49,7 +157,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/asr_simple_title" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_asr_primary_language"
                         style="@style/Verbead.Button.Outlined"
                         android:layout_width="match_parent"
@@ -58,7 +166,7 @@
                         app:icon="@drawable/ic_arrow_down"
                         app:iconGravity="textEnd" />
 
-                    <com.google.android.material.chip.ChipGroup
+                    <com.ping.verbead.ui.GlassChipGroup
                         android:id="@+id/chips_asr_profile"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -68,25 +176,25 @@
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_profile_light"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_profile_light" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_profile_balanced"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_profile_balanced" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_profile_best"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_profile_best" />
-                    </com.google.android.material.chip.ChipGroup>
+                    </com.ping.verbead.ui.GlassChipGroup>
 
                     <TextView
                         android:id="@+id/tv_asr_preset_summary"
@@ -96,7 +204,7 @@
                         android:layout_marginBottom="4dp"
                         android:visibility="gone" />
 
-                    <com.google.android.material.chip.ChipGroup
+                    <com.ping.verbead.ui.GlassChipGroup
                         android:id="@+id/chips_asr_mode"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -105,18 +213,18 @@
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mode_live"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_mode_live_chip" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mode_final"
-                            style="@style/Widget.Material3.Chip.Filter"
+                            style="@style/Verbead.Chip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/asr_mode_final_chip" />
-                    </com.google.android.material.chip.ChipGroup>
+                    </com.ping.verbead.ui.GlassChipGroup>
 
                     <TextView
                         style="@style/Verbead.Text.Caption"
@@ -175,7 +283,7 @@
                                 android:text="@string/asr_preview_hint" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_asr_preview"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -189,114 +297,7 @@
                         android:orientation="vertical"
                         android:visibility="gone" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 1. 目前使用的模型組合：醒目的重點卡片 -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_asr_combo"
-                style="@style/Verbead.Card"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardBackgroundColor="@color/md_theme_light_primaryContainer"
-                app:strokeColor="@color/md_theme_light_primary"
-                app:strokeWidth="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/asr_combo_title"
-                        android:textColor="@color/md_theme_light_onPrimaryContainer"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            style="@style/Verbead.Text.Badge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_status_badge_recommend"
-                            android:text="@string/asr_tag_live"
-                            android:textColor="@color/tag_recommend" />
-
-                        <TextView
-                            android:id="@+id/tv_combo_live"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:textColor="@color/md_theme_light_onPrimaryContainer"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-                        <ImageButton
-                            android:id="@+id/btn_combo_clear_live"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:contentDescription="@string/asr_combo_clear"
-                            android:src="@drawable/ic_close"
-                            android:tint="@color/md_theme_light_onPrimaryContainer"
-                            android:visibility="gone" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            style="@style/Verbead.Text.Badge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_status_badge_success"
-                            android:text="@string/asr_tag_final"
-                            android:textColor="@color/status_success_text" />
-
-                        <TextView
-                            android:id="@+id/tv_combo_final"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:textColor="@color/md_theme_light_onPrimaryContainer"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-                        <ImageButton
-                            android:id="@+id/btn_combo_clear_final"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:contentDescription="@string/asr_combo_clear"
-                            android:src="@drawable/ic_close"
-                            android:tint="@color/md_theme_light_onPrimaryContainer"
-                            android:visibility="gone" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tv_asr_memory_hint"
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="@string/asr_memory_hint"
-                        android:textColor="@color/status_warning_text"
-                        android:visibility="gone" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
             <!-- 進階：自行選擇模型（預設收合） -->
             <LinearLayout
@@ -341,7 +342,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <com.google.android.material.button.MaterialButton
+                <com.ping.verbead.ui.GlassMaterialButton
                     android:id="@+id/btn_asr_language_filter"
                     style="@style/Verbead.Button.Outlined"
                     android:layout_width="0dp"
@@ -350,9 +351,9 @@
                     app:icon="@drawable/ic_arrow_down"
                     app:iconGravity="textEnd" />
 
-                <com.google.android.material.chip.Chip
+                <com.ping.verbead.ui.GlassChip
                     android:id="@+id/chip_downloaded_only"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Verbead.Chip"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
@@ -389,9 +390,8 @@
             </LinearLayout>
 
             <!-- 4. 語音輸入偏好 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_speech_settings"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp">
@@ -406,7 +406,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content">
 
-                        <ImageView
+                        <com.ping.verbead.ui.GlassIconView
                             style="@style/Verbead.RowIcon"
                             android:layout_width="44dp"
                             android:layout_height="44dp"
@@ -472,7 +472,7 @@
                                 android:text="@string/settings_speech_external_audio_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_prefer_external_audio"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -518,7 +518,7 @@
                                     android:text="@string/settings_speech_gain_desc" />
                             </LinearLayout>
 
-                            <TextView
+                            <com.ping.verbead.ui.GlassTagText
                                 android:id="@+id/tv_audio_gain_value"
                                 style="@style/Verbead.Text.Badge"
                                 android:layout_width="wrap_content"
@@ -528,7 +528,7 @@
                                 android:textColor="@color/tag_recommend" />
                         </LinearLayout>
 
-                        <SeekBar
+                        <com.ping.verbead.ui.GlassSeekBar
                             android:id="@+id/sb_audio_gain"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -585,7 +585,7 @@
                                     android:text="@string/settings_speech_vad_desc" />
                             </LinearLayout>
 
-                            <TextView
+                            <com.ping.verbead.ui.GlassTagText
                                 android:id="@+id/tv_vad_value"
                                 style="@style/Verbead.Text.Badge"
                                 android:layout_width="wrap_content"
@@ -595,7 +595,7 @@
                                 android:textColor="@color/tag_recommend" />
                         </LinearLayout>
 
-                        <SeekBar
+                        <com.ping.verbead.ui.GlassSeekBar
                             android:id="@+id/sb_vad_silence"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -606,13 +606,12 @@
                             android:progress="6" />
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
 
             <!-- 5. 自訂管理詞彙選項卡 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_custom_dict"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
@@ -628,7 +627,7 @@
                     android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <ImageView
+                    <com.ping.verbead.ui.GlassIconView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:background="@drawable/bg_icon_circle"
@@ -666,7 +665,7 @@
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/text_tertiary" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_open_dict"
                         style="@style/Verbead.Button.Compact"
                         android:layout_width="wrap_content"
@@ -674,12 +673,11 @@
                         android:text="@string/settings_speech_vocab_button"
                         android:visibility="gone" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
             <!-- 6. Qwen3 辨識偏好 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.ping.verbead.ui.GlassCard
                 android:id="@+id/card_qwen3_preferences"
-                style="@style/Verbead.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp">
@@ -694,7 +692,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content">
 
-                        <ImageView
+                        <com.ping.verbead.ui.GlassIconView
                             style="@style/Verbead.RowIcon"
                             android:layout_width="44dp"
                             android:layout_height="44dp"
@@ -760,7 +758,7 @@
                                 android:text="@string/settings_speech_filter_punct_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_filter_punctuation"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -812,7 +810,7 @@
                                 android:text="@string/settings_speech_filter_half_punct_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_filter_half_punct"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -864,7 +862,7 @@
                                 android:text="@string/settings_speech_spoken_numbers_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_spoken_numbers"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -927,7 +925,7 @@
                                 android:text="@string/settings_speech_to_traditional_desc" />
                         </LinearLayout>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
+                        <com.ping.verbead.ui.GlassSwitch
                             android:id="@+id/switch_convert_traditional"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -935,7 +933,7 @@
 
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </com.ping.verbead.ui.GlassCard>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

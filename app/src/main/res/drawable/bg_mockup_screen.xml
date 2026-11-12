@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <corners android:radius="24dp" />
-    <solid android:color="@color/surface_container" />
-    <stroke
-        android:width="1dp"
-        android:color="@color/md_theme_light_outlineVariant" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <solid android:color="@color/glass_mock_fill" />
+            <stroke android:width="1dp" android:color="@color/glass_hairline" />
+        </shape>
+    </item>
+    <!-- faint top light, same as the frosted cards -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient android:angle="270" android:startColor="#1AFFFFFF" android:endColor="#00FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

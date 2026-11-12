@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/capsule_menu_root"
     android:layout_width="60dp"
     android:layout_height="304dp"
@@ -9,14 +10,13 @@
     android:paddingBottom="12dp">
 
     <!-- The continuous vertical capsule pill (56dp wide, 280dp tall for 5 items) -->
-    <LinearLayout
+    <com.ping.verbead.ui.GlassLinearLayout
         android:id="@+id/layout_capsule_pill"
         android:layout_width="56dp"
         android:layout_height="280dp"
         android:layout_gravity="center_horizontal"
         android:orientation="vertical"
-        android:background="@drawable/bg_capsule_menu"
-        android:elevation="12dp"
+        app:glassRadius="28dp"
         android:clipChildren="false"
         android:clipToPadding="false">
 
@@ -120,5 +120,5 @@
                 android:contentDescription="@string/capsule_phrases_drawer_desc" />
         </FrameLayout>
 
-    </LinearLayout>
+    </com.ping.verbead.ui.GlassLinearLayout>
 </FrameLayout>

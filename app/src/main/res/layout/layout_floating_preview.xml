@@ -8,15 +8,11 @@
     android:clipToPadding="false"
     android:padding="14dp">
 
-    <com.google.android.material.card.MaterialCardView
+    <com.ping.verbead.ui.GlassFrameLayout
         android:id="@+id/card_bubble_preview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="18dp"
-        app:cardElevation="6dp"
-        app:cardBackgroundColor="@color/bubble_card_bg"
-        app:strokeColor="#33FFFFFF"
-        app:strokeWidth="1dp">
+        app:glassRadius="18dp">
 
         <!-- clips the text while it scrolls (marquee) when a status line is wider than the card -->
         <FrameLayout
@@ -41,5 +37,5 @@
                 android:textSize="14sp"
                 android:lineSpacingExtra="2dp" />
         </FrameLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </com.ping.verbead.ui.GlassFrameLayout>
 </FrameLayout>

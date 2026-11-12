@@ -8,13 +8,11 @@
     android:padding="2dp">
 
     <!-- Mic Button Container (56dp circular) -->
-    <FrameLayout
+    <com.ping.verbead.ui.GlassBubbleLayout
         android:id="@+id/btn_bubble_mic"
         android:layout_width="56dp"
         android:layout_height="56dp"
         android:layout_gravity="center"
-        android:background="@drawable/bubble_background"
-        android:elevation="8dp"
         android:clickable="true"
         android:focusable="true">
 
@@ -46,5 +44,5 @@
             android:importantForAccessibility="no"
             android:src="@drawable/ic_tuck_arrow"
             android:visibility="gone" />
-    </FrameLayout>
+    </com.ping.verbead.ui.GlassBubbleLayout>
 </FrameLayout>

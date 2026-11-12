@@ -31,9 +31,9 @@
     <string name="onboarding_page2_title">세로 캡슐 · 네 가지 모드를 마음대로 전환</string>
     <string name="onboarding_page2_desc">버블을 길게 누르면 세로 기능 캡슐이 펼쳐집니다. 위아래로 밀어 \"음성 실시간 입력\", \"바코드 스캔\", \"문자 인식(PP-OCRv6)\", \"자주 쓰는 문구 및 기록\" 네 가지 모드를 전환할 수 있습니다.</string>
     <string name="onboarding_page2_tip">팁: 원하는 모드까지 밀고 손가락을 떼면 바로 전환되어 사용할 수 있습니다.</string>
-    <string name="onboarding_page3_title">플로팅 ✕ 키 · 한 번에 취소 및 복원</string>
-    <string name="onboarding_page3_desc">음성 입력이나 OCR 결과가 마음에 들지 않아도 글자를 하나하나 고칠 필요가 없습니다. 입력 후 10초 이내에 버블 위의 작은 ✕ 키를 탭하면 원래 텍스트를 즉시 그대로 복원합니다.</string>
-    <string name="onboarding_page3_tip">팁: 입력이 끝나면 버블 위에 ✕ 키가 나타납니다. 탭하면 손실 없이 실행 취소할 수 있습니다.</string>
+    <string name="onboarding_page3_title">플로팅 ↶ 키 · 한 번에 취소 및 복원</string>
+    <string name="onboarding_page3_desc">음성 입력이나 OCR 결과가 마음에 들지 않아도 글자를 하나하나 고칠 필요가 없습니다. 입력 후 10초 이내에 버블 위의 작은 ↶ 키를 탭하면 원래 텍스트를 즉시 그대로 복원합니다.</string>
+    <string name="onboarding_page3_tip">팁: 입력이 끝나면 버블 위에 ↶ 키가 나타납니다. 탭하면 손실 없이 실행 취소할 수 있습니다.</string>
     <string name="onboarding_page4_title">가장자리 수납 · 키보드 연동 · 흔들어 복제</string>
     <string name="onboarding_page4_desc" formatted="false">화면 가장자리로 끌면 70%가 가려지며 수납됩니다. \"소프트웨어 키보드가 나타날 때만 표시\"를 켤 수도 있습니다. 또한 버블을 끌면서 좌우로 빠르게 흔들면 \"분신을 추가\"할 수 있어(최대 4개), 음성, OCR, AI 다시 쓰기 버블을 한 화면에 함께 둘 수 있습니다!</string>
     <string name="onboarding_page4_tip">팁: 분신 버블은 각자 다른 모드를 기억합니다. 불필요한 분신은 화면 위쪽 삭제 영역으로 끌어 제거하세요.</string>
@@ -385,7 +385,7 @@
     <string name="onboarding_privacy_chip_ocr">PP-OCRv6 인식</string>
     <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 오프라인 인식</string>
     <string name="onboarding_privacy_chip_zero_upload">업로드 없음 · 전부 기기 안</string>
-    <string name="onboarding_undo_title">즉시 취소 · 위의 ✕ 키를 탭해 되돌리기</string>
+    <string name="onboarding_undo_title">즉시 취소 · 위의 ↶ 키를 탭해 되돌리기</string>
     <string name="onboarding_undo_mock_question">발표 자료 파일이 어디에 있나요?</string>
     <string name="onboarding_undo_mock_hint">버블을 탭해서 입력...</string>
     <string name="onboarding_undo_done">입력을 취소했습니다</string>
@@ -515,4 +515,9 @@
     <string name="asr_badge_recommended">추천</string>
     <string name="asr_variants_count_format">%1$d개 버전</string>
     <string name="asr_preset_left_format">약 %1$d MB 더 다운로드</string>
+    <string name="settings_theme_title">테마</string>
+    <string name="settings_theme_system">시스템 설정 따르기</string>
+    <string name="settings_theme_light">라이트</string>
+    <string name="settings_theme_dark">다크</string>
+    <string name="common_undo">실행 취소</string>
 </resources>

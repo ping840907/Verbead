@@ -34,21 +34,8 @@
             android:src="@drawable/ic_drag_handle"
             app:tint="@color/text_secondary" />
 
-        <!-- Order Badge -->
-        <TextView
-            android:id="@+id/tv_mode_order_badge"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_icon_circle"
-            android:gravity="center"
-            android:text="1"
-            android:textColor="@color/md_theme_light_primary"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
         <!-- Mode Icon -->
-        <ImageView
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/iv_mode_icon"
             style="@style/Verbead.RowIcon"
             android:layout_width="36dp"
@@ -117,7 +104,7 @@
         </LinearLayout>
 
         <!-- Enable / Disable Switch -->
-        <com.google.android.material.materialswitch.MaterialSwitch
+        <com.ping.verbead.ui.GlassSwitch
             android:id="@+id/switch_mode_enabled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />

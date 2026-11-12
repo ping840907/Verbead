@@ -32,8 +32,8 @@
     <string name="onboarding_page2_desc">长按悬浮球展开垂直功能胶囊，上下滑动对齐即可切换四大模式：“语音实时输入”、“条码扫描”、“文字识别 (PP-OCRv6)”与“常用语与历史记录”。</string>
     <string name="onboarding_page2_tip">提示：滑动到想要的模式后放开手指，即可切换并立即使用。</string>
     <string name="onboarding_page3_title">悬浮 X 键 · 一键撤回与还原</string>
-    <string name="onboarding_page3_desc">无论是语音输入或 OCR 截取，若结果不如预期，无需手动逐字修改！填入后 10 秒内点击悬浮球上方的小型 ✕ 键，即可瞬间撤回并完整还原原本的文字内容。</string>
-    <string name="onboarding_page3_tip">提示：完成输入后，悬浮球上方会浮现 ✕ 键，轻点即可执行 Undo 无损恢复。</string>
+    <string name="onboarding_page3_desc">无论是语音输入或 OCR 截取，若结果不如预期，无需手动逐字修改！填入后 10 秒内点击悬浮球上方的小型 ↶ 键，即可瞬间撤回并完整还原原本的文字内容。</string>
+    <string name="onboarding_page3_tip">提示：完成输入后，悬浮球上方会浮现 ↶ 键，轻点即可执行 Undo 无损恢复。</string>
     <string name="onboarding_page4_title">贴边收纳 · 键盘联动 · 摇晃分身</string>
     <string name="onboarding_page4_desc" formatted="false">拖至屏幕边缘自动贴边收纳 70%，也可开启“仅软键盘出现时显示”。此外，拖动悬浮球时快速左右摇晃即可“分裂添加分身”（最多 4 颗），让语音、OCR 与 AI 改写多球同屏待命！</string>
     <string name="onboarding_page4_tip">提示：分身悬浮球各自记忆独立模式；若要移除多余分身，拖动至屏幕顶部删除区即可。</string>
@@ -385,7 +385,7 @@
     <string name="onboarding_privacy_chip_ocr">PP-OCRv6 识别</string>
     <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 离线识别</string>
     <string name="onboarding_privacy_chip_zero_upload">零上传 · 全程本机</string>
-    <string name="onboarding_undo_title">实时恢复 · 点击上方 ✕ 键撤回</string>
+    <string name="onboarding_undo_title">实时恢复 · 点击上方 ↶ 键撤回</string>
     <string name="onboarding_undo_mock_question">请问演示文稿在哪里？</string>
     <string name="onboarding_undo_mock_hint">点击悬浮球输入...</string>
     <string name="onboarding_undo_done">已恢复输入内容</string>
@@ -515,4 +515,9 @@
     <string name="asr_badge_recommended">推荐</string>
     <string name="asr_variants_count_format">%1$d 个版本</string>
     <string name="asr_preset_left_format">还需下载约 %1$d MB</string>
+    <string name="settings_theme_title">外观主题</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="common_undo">撤销</string>
 </resources>

@@ -28,9 +28,8 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingBottom="32dp">
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_ocr"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp">
@@ -52,7 +51,7 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <ImageView
+                        <com.ping.verbead.ui.GlassIconView
                             style="@style/Verbead.RowIcon"
                             android:layout_width="44dp"
                             android:layout_height="44dp"
@@ -95,7 +94,7 @@
                         android:layout_marginTop="12dp"
                         android:orientation="horizontal">
 
-                        <com.google.android.material.button.MaterialButton
+                        <com.ping.verbead.ui.GlassMaterialButton
                             android:id="@+id/btn_select_ocr_tiny"
                             style="@style/Verbead.Button.Choice"
                             android:layout_width="0dp"
@@ -104,7 +103,7 @@
                             android:layout_weight="1"
                             android:text="Tiny · 11MB" />
 
-                        <com.google.android.material.button.MaterialButton
+                        <com.ping.verbead.ui.GlassMaterialButton
                             android:id="@+id/btn_select_ocr_small"
                             style="@style/Verbead.Button.Choice"
                             android:layout_width="0dp"
@@ -133,7 +132,7 @@
                         android:textColor="@color/md_theme_light_primary"
                         android:visibility="gone" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_download_ocr"
                         style="@style/Verbead.Button.Outlined"
                         android:layout_width="match_parent"
@@ -214,7 +213,7 @@
                             android:text="@string/settings_ocr_auto_enter_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_ocr_auto_enter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -258,7 +257,7 @@
                             android:text="@string/settings_ocr_smart_join_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_ocr_smart_stitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -313,7 +312,7 @@
                             android:text="@string/ocr_pangu_spacing_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_ocr_pangu_spacing"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -357,7 +356,7 @@
                             android:text="@string/ocr_to_traditional_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_ocr_to_traditional"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -404,7 +403,7 @@
                         android:layout_marginTop="12dp"
                         android:orientation="horizontal">
 
-                        <com.google.android.material.button.MaterialButton
+                        <com.ping.verbead.ui.GlassMaterialButton
                             android:id="@+id/btn_ocr_sep_newline"
                             style="@style/Verbead.Button.Choice"
                             android:layout_width="0dp"
@@ -413,7 +412,7 @@
                             android:layout_weight="1"
                             android:text="@string/settings_ocr_join_newline" />
 
-                        <com.google.android.material.button.MaterialButton
+                        <com.ping.verbead.ui.GlassMaterialButton
                             android:id="@+id/btn_ocr_sep_space"
                             style="@style/Verbead.Button.Choice"
                             android:layout_width="0dp"
@@ -422,7 +421,7 @@
                             android:layout_weight="1"
                             android:text="@string/settings_ocr_join_space" />
 
-                        <com.google.android.material.button.MaterialButton
+                        <com.ping.verbead.ui.GlassMaterialButton
                             android:id="@+id/btn_ocr_sep_none"
                             style="@style/Verbead.Button.Choice"
                             android:layout_width="0dp"
@@ -432,12 +431,11 @@
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
 
         <!-- Optional Korean recognizer (second pass) -->
-        <com.google.android.material.card.MaterialCardView
+        <com.ping.verbead.ui.GlassCard
             android:id="@+id/card_ocr_korean"
-            style="@style/Verbead.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp">
@@ -495,7 +493,7 @@
                         android:textColor="@color/md_theme_light_primary"
                         android:visibility="gone" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.ping.verbead.ui.GlassMaterialButton
                         android:id="@+id/btn_download_ocr_korean"
                         style="@style/Verbead.Button.Outlined"
                         android:layout_width="match_parent"
@@ -541,13 +539,13 @@
                             android:text="@string/settings_ocr_korean_switch_desc" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.ping.verbead.ui.GlassSwitch
                         android:id="@+id/switch_ocr_korean"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.ping.verbead.ui.GlassCard>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

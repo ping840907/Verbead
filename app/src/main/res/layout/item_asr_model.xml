@@ -30,11 +30,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <ImageButton
+            <com.ping.verbead.ui.GlassIconView
                 android:id="@+id/btn_model_more"
+                android:clickable="true"
+                android:focusable="true"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
-                android:layout_marginEnd="-8dp"
+                android:layout_marginEnd="0dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/asr_more_actions"
                 android:src="@drawable/ic_more_vert"
@@ -48,7 +50,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <com.google.android.material.button.MaterialButton
+        <com.ping.verbead.ui.GlassMaterialButton
             android:id="@+id/btn_model_variant"
             style="@style/Verbead.Button.Outlined"
             android:layout_width="match_parent"
@@ -93,7 +95,7 @@
             android:textColor="@color/md_theme_light_primary"
             android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
+        <com.ping.verbead.ui.GlassMaterialButton
             android:id="@+id/btn_model_action"
             style="@style/Verbead.Button.Tonal"
             android:layout_width="match_parent"
