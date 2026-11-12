@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -127,8 +128,14 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
                         val tint by tintState
                         val on by enabledState
                         val bodyArgb = if (android.graphics.Color.alpha(tint) > 0) tint else surfaceVariant
-                        val body = lerp(ComposeColor(bodyArgb or (0xFF shl 24)), ComposeColor.White, 0.28f)
+                        val light = !isSystemInDarkTheme()
+                        val base = ComposeColor(bodyArgb or (0xFF shl 24))
+                        // In light mode a washed-out body melts into the pale card, so it is pulled
+                        // towards the ink colour instead and given a thin outline.
+                        val body = if (light) lerp(base, MaterialTheme.colorScheme.onSurface, 0.14f)
+                        else lerp(base, ComposeColor.White, 0.28f)
                         val palette = SeaGlassPalette(body, lerp(body, ComposeColor.White, .35f), ComposeColor.Black)
+                        val rim = if (light) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f) else ComposeColor.Transparent
                         SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
                             Box(
                                 Modifier.fillMaxSize()
@@ -136,6 +143,7 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
                                     .padding(GLOW_DP.dp)
                                     .clip(RoundedCornerShape(50))
                                     .seaGlass(palette = palette)
+                                    .border(1.dp, rim, RoundedCornerShape(50))
                             )
                         }
                     }

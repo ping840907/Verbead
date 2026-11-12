@@ -111,7 +111,7 @@
                 android:gravity="center"
                 android:orientation="horizontal">
 
-                <TextView
+                <com.ping.verbead.ui.GlassTagText
                     style="@style/Verbead.Text.Badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -123,7 +123,7 @@
                     android:textColor="@color/status_success_text"
                     android:textSize="11sp" />
 
-                <TextView
+                <com.ping.verbead.ui.GlassTagText
                     style="@style/Verbead.Text.Badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -142,7 +142,7 @@
                 android:gravity="center"
                 android:orientation="horizontal">
 
-                <TextView
+                <com.ping.verbead.ui.GlassTagText
                     style="@style/Verbead.Text.Badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -154,7 +154,7 @@
                     android:textColor="@color/md_theme_light_primary"
                     android:textSize="11sp" />
 
-                <TextView
+                <com.ping.verbead.ui.GlassTagText
                     style="@style/Verbead.Text.Badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

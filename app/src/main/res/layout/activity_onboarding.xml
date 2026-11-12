@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
     android:orientation="vertical">
 
     <!-- ── Top Header Bar ────────────────────────────────────────────── -->
@@ -109,7 +108,7 @@
                 android:background="@drawable/bg_indicator_dot_inactive" />
         </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
+        <com.ping.verbead.ui.GlassMaterialButton
             android:id="@+id/btn_onboarding_next"
             style="@style/Verbead.Button"
             android:layout_width="wrap_content"

@@ -101,7 +101,7 @@
                             android:text="@string/onboarding_mode_voice_title"
                             android:textSize="14sp" />
 
-                        <TextView
+                        <com.ping.verbead.ui.GlassTagText
                             android:id="@+id/tv_mock_mode_badge"
                             style="@style/Verbead.Text.Badge"
                             android:layout_width="wrap_content"

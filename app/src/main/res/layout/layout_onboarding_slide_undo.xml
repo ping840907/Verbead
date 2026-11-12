@@ -151,12 +151,11 @@
             </FrameLayout>
 
             <!-- Main Floating Bubble -->
-            <FrameLayout
+            <com.ping.verbead.ui.GlassBubbleLayout
                 android:id="@+id/layout_mock_undo_bubble"
                 android:layout_width="52dp"
                 android:layout_height="52dp"
                 android:layout_gravity="center"
-                android:background="@drawable/bubble_background"
                 android:elevation="8dp">
 
                 <ImageView
@@ -165,7 +164,7 @@
                     android:layout_gravity="center"
                     android:src="@drawable/ic_mic"
                     app:tint="@android:color/white" />
-            </FrameLayout>
+            </com.ping.verbead.ui.GlassBubbleLayout>
 
             <!-- Animated Touch Finger Dot targeting X button -->
             <View

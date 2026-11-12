@@ -12,6 +12,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -103,7 +104,11 @@ class GlassSwitch @JvmOverloads constructor(
                     val thumbX = (INSET_DP + travel * position.value).dp
                     val cs = MaterialTheme.colorScheme
                     val p = position.value
-                    val trackBody = lerp(cs.surfaceVariant, cs.primary, p)
+                    val light = !isSystemInDarkTheme()
+                    // Off state: in light mode the track is darkened so it stays visible on pale cards.
+                    val offTrack = if (light) lerp(cs.surfaceVariant, cs.onSurface, .22f) else cs.surfaceVariant
+                    val trackBody = lerp(offTrack, cs.primary, p)
+                    val rim = if (light) cs.onSurface.copy(alpha = .3f) else Color.Transparent
                     val trackPalette = SeaGlassPalette(
                         trackBody, lerp(trackBody, Color.White, .35f), cs.onSurface
                     )
@@ -115,7 +120,10 @@ class GlassSwitch @JvmOverloads constructor(
                     // track-sized (see onMeasure), so nothing around it is pushed away.
                     Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).alpha(if (on) 1f else 0.45f)) {
                         SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
-                            Box(Modifier.fillMaxSize().clip(RoundedCornerShape(50)).seaGlass(palette = trackPalette))
+                            Box(
+                                Modifier.fillMaxSize().clip(RoundedCornerShape(50)).seaGlass(palette = trackPalette)
+                                    .border(1.dp, rim, RoundedCornerShape(50))
+                            )
                         }
                         SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Disc) {
                             Box(
@@ -124,6 +132,7 @@ class GlassSwitch @JvmOverloads constructor(
                                     .size(THUMB_DP.dp)
                                     .clip(CircleShape)
                                     .seaGlass(palette = thumbPalette)
+                                    .border(1.dp, rim, CircleShape)
                             )
                         }
                     }

@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -82,8 +83,11 @@ class GlassChipFrame internal constructor(
                     Box(Modifier.fillMaxSize()) {
                         for (s in list) {
                             // Dark enough to keep the chip text readable on top.
+                            val light = !isSystemInDarkTheme()
                             val body = if (s.checked) lerp(cs.primaryContainer, cs.primary, .35f)
+                            else if (light) lerp(cs.surfaceVariant, cs.onSurface, .16f)
                             else lerp(cs.surfaceVariant, ComposeColor.White, .1f)
+                            val rim = if (light) cs.onSurface.copy(alpha = .28f) else ComposeColor.Transparent
                             val palette = SeaGlassPalette(
                                 body, lerp(body, ComposeColor.White, .35f), cs.onSurface
                             )
@@ -99,6 +103,7 @@ class GlassChipFrame internal constructor(
                                         .alpha(if (s.enabled) 1f else 0.45f)
                                         .clip(RoundedCornerShape(50))
                                         .seaGlass(palette = palette)
+                                        .border(1.dp, rim, RoundedCornerShape(50))
                                 )
                             }
                         }

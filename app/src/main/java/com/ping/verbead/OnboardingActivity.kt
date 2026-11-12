@@ -49,6 +49,7 @@ class OnboardingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_onboarding)
+        com.ping.verbead.ui.GlassStage.install(this)
 
         initViews()
         setupViewPager()
@@ -620,6 +621,8 @@ class OnboardingActivity : AppCompatActivity() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SlideViewHolder {
             val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
+            com.ping.verbead.ui.GlassStage.skin(view)
+            frostCards(view)
             return SlideViewHolder(view)
         }
 
@@ -629,4 +632,9 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
     }
+}
+
+private fun frostCards(v: View) {
+    if (v is com.google.android.material.card.MaterialCardView) com.ping.verbead.ui.GlassStage.frost(v)
+    if (v is ViewGroup) for (i in 0 until v.childCount) frostCards(v.getChildAt(i))
 }
