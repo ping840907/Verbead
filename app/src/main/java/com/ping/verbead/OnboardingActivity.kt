@@ -376,7 +376,9 @@ class OnboardingActivity : AppCompatActivity() {
     // ── Slide 2: Undo Input via Small X Button Mockup Animation ─────────────
     private fun startUndoAnimation(view: View) {
         val tvInput = view.findViewById<TextView>(R.id.tv_mock_undo_input) ?: return
-        val btnX = view.findViewById<View>(R.id.btn_mock_undo_x) ?: return
+        val btnXIcon = view.findViewById<View>(R.id.btn_mock_undo_x) ?: return
+        // wrapped in its glass plate by GlassStage.skin: animate the plate so the disc and icon move together
+        val btnX: View = (btnXIcon.parent as? com.ping.verbead.ui.GlassPlateFrame) ?: btnXIcon
         val tvToast = view.findViewById<TextView>(R.id.tv_mock_undo_toast)
         val finger = view.findViewById<View>(R.id.view_mock_undo_finger)
 

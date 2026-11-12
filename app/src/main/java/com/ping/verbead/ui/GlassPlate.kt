@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color as ComposeColor
 /** Views that carry a fixed glass colour for overlay windows. */
 internal interface OverlayTinted {
     val overlayTint: Int?
+    val followBubble: Boolean
 }
 
 /** A view whose own background is replaced by a Sea Glass plate once GlassStage wraps it. */
@@ -60,6 +61,7 @@ class GlassPlateFrame internal constructor(
 
     private val tintState = mutableIntStateOf(Color.TRANSPARENT)
     internal var darkOverlay = false
+    internal var followBubble = false
     private val glow = (GLOW_DP * resources.displayMetrics.density).toInt()
     private val glassView: ComposeView
 
@@ -70,17 +72,24 @@ class GlassPlateFrame internal constructor(
             // Compose needs a window; views inflated for an overlay are measured before they are attached.
             visibility = GONE
             setContent {
+                val dark = isSystemInDarkTheme()
                 val colors = rememberSeaGlassColorScheme(
                     dynamicColor = true,
-                    darkTheme = isSystemInDarkTheme() || darkOverlay
+                    darkTheme = if (followBubble) dark else dark || darkOverlay
                 )
                 MaterialTheme(colorScheme = colors) {
                     val tint by tintState
-                    val body = lerp(
-                        ComposeColor(tint or (0xFF shl 24)), ComposeColor.White, 0.06f
+                    val body = if (followBubble) {
+                        // exactly the main bubble's colour, so the two always match
+                        if (dark) colors.primaryContainer else colors.primary
+                    } else {
+                        lerp(ComposeColor(tint or (0xFF shl 24)), ComposeColor.White, 0.06f)
+                    }
+                    val palette = SeaGlassPalette(
+                        body, lerp(body, ComposeColor.White, .35f),
+                        if (followBubble) ComposeColor.White else ComposeColor.Black
                     )
-                    val palette = SeaGlassPalette(body, lerp(body, ComposeColor.White, .35f), ComposeColor.Black)
-                    SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = shape) {
+                    SeaGlassMaterialTheme(style = if (followBubble) BubbleRecipe else SmallGlassRecipe, shape = shape) {
                         // Clipped to the plate's own shape: the cast shadow would otherwise be cut into a flat edge.
                         val clipShape = if (shape == SeaGlassShape.Disc) CircleShape else RoundedCornerShape(50)
                         Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).clip(clipShape).seaGlass(palette = palette))
@@ -146,6 +155,7 @@ class GlassPlateFrame internal constructor(
             )
             host.plate = frame
             frame.darkOverlay = (host as? OverlayTinted)?.overlayTint != null
+            frame.followBubble = (host as? OverlayTinted)?.followBubble == true
             frame.setTint(host.defaultPlateTint())
             view.background = null
         }
@@ -166,6 +176,7 @@ class GlassIconView @JvmOverloads constructor(
     override val plateShape get() = SeaGlassShape.Disc
 
     override val overlayTint: Int? = readOverlayTint(context, attrs)
+    override val followBubble: Boolean = readFollowBubble(context, attrs)
 
     override fun defaultPlateTint(): Int = overlayTint ?: MaterialColors.getColor(
         this, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY
@@ -200,6 +211,7 @@ class GlassTagText @JvmOverloads constructor(
     override val plateShape get() = SeaGlassShape.Capsule
 
     override val overlayTint: Int? = readOverlayTint(context, attrs)
+    override val followBubble: Boolean = false
 
     /** Colour of the background drawable given in XML, captured before the plate exists. */
     private var xmlTint: Int? = null
@@ -236,4 +248,12 @@ private fun readOverlayTint(context: Context, attrs: AttributeSet?): Int? {
     val c = if (a.hasValue(R.styleable.GlassOverlay_glassTint)) a.getColor(R.styleable.GlassOverlay_glassTint, 0) else null
     a.recycle()
     return c
+}
+
+private fun readFollowBubble(context: Context, attrs: AttributeSet?): Boolean {
+    if (attrs == null) return false
+    val a = context.obtainStyledAttributes(attrs, R.styleable.GlassOverlay)
+    val v = a.getBoolean(R.styleable.GlassOverlay_glassFollowBubble, false)
+    a.recycle()
+    return v
 }

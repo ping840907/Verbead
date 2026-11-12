@@ -133,22 +133,16 @@
                 android:textStyle="bold" />
 
             <!-- Small Floating X Button (Appears above the bubble) -->
-            <FrameLayout
+            <com.ping.verbead.ui.GlassIconView
                 android:id="@+id/btn_mock_undo_x"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_gravity="top|center_horizontal"
                 android:layout_marginTop="-46dp"
-                android:background="@drawable/bubble_x_background"
-                android:elevation="10dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_close"
-                    app:tint="@android:color/white" />
-            </FrameLayout>
+                android:contentDescription="@string/common_undo"
+                android:padding="9dp"
+                android:src="@drawable/ic_undo_back"
+                app:glassFollowBubble="true" />
 
             <!-- Main Floating Bubble -->
             <com.ping.verbead.ui.GlassBubbleLayout

@@ -16,5 +16,5 @@
         android:contentDescription="@string/common_close"
         android:padding="9dp"
         android:src="@drawable/ic_close"
-        app:glassTint="#4F7A73" />
+        app:glassFollowBubble="true" />
 </FrameLayout>

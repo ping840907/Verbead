@@ -41,7 +41,7 @@ import dev.mttmcknn.seaglass.seaGlass
  * in a WindowManager window, which has no Activity to provide them). Always RESUMED.
  */
 /** Small, tight glow so it fits inside the bubble's small overlay window. */
-private val BubbleRecipe = SmallGlassRecipe.copy(thickness = 2.dp, frost = 0.25f, bulge = 0.25f)
+internal val BubbleRecipe = SmallGlassRecipe.copy(thickness = 2.dp, frost = 0.25f, bulge = 0.25f)
 
 internal object OverlayOwner : LifecycleOwner, SavedStateRegistryOwner {
     private val registry = LifecycleRegistry(this)

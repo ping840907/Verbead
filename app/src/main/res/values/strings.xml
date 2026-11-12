@@ -31,9 +31,9 @@
     <string name="onboarding_page2_title">Vertical capsule · Four modes at your fingertips</string>
     <string name="onboarding_page2_desc">Long-press the bubble to open the vertical capsule menu, then slide up or down to switch between four modes: Voice input, Barcode scanning, Text recognition (PP-OCRv6) and Quick phrases &amp; history.</string>
     <string name="onboarding_page2_tip">Tip: slide to the mode you want and lift your finger to switch and start using it right away.</string>
-    <string name="onboarding_page3_title">Floating ✕ key · One-tap undo and restore</string>
-    <string name="onboarding_page3_desc">If a voice or OCR result isn\'t what you wanted, there\'s no need to fix it character by character. Within 10 seconds after filling in, tap the small ✕ key above the bubble to instantly undo and restore your original text.</string>
-    <string name="onboarding_page3_tip">Tip: after input completes, a ✕ key appears above the bubble; tap it for a lossless undo.</string>
+    <string name="onboarding_page3_title">Floating ↶ key · One-tap undo and restore</string>
+    <string name="onboarding_page3_desc">If a voice or OCR result isn\'t what you wanted, there\'s no need to fix it character by character. Within 10 seconds after filling in, tap the small ↶ key above the bubble to instantly undo and restore your original text.</string>
+    <string name="onboarding_page3_tip">Tip: after input completes, a ↶ key appears above the bubble; tap it for a lossless undo.</string>
     <string name="onboarding_page4_title">Edge tuck · Keyboard link · Shake to duplicate</string>
     <string name="onboarding_page4_desc" formatted="false">Drag the bubble to the screen edge to tuck it 70% out of view, or enable \"Show only when the on-screen keyboard appears\". You can also shake the bubble left and right while dragging to \"split off a copy\" (up to 4), keeping voice, OCR and AI rewriting bubbles ready on screen at once!</string>
     <string name="onboarding_page4_tip">Tip: each copy remembers its own mode; to remove extras, drag them to the delete zone at the top of the screen.</string>
@@ -390,7 +390,7 @@
     <string name="onboarding_privacy_chip_ocr">PP-OCRv6 recognition</string>
     <string name="onboarding_privacy_chip_qwen">Qwen3-ASR offline recognition</string>
     <string name="onboarding_privacy_chip_zero_upload">No uploads · Fully local</string>
-    <string name="onboarding_undo_title">Instant undo · Tap the ✕ above to take it back</string>
+    <string name="onboarding_undo_title">Instant undo · Tap the ↶ above to take it back</string>
     <string name="onboarding_undo_mock_question">Where is the presentation file?</string>
     <string name="onboarding_undo_mock_hint">Tap the bubble to type...</string>
     <string name="onboarding_undo_done">Input undone</string>

@@ -9,5 +9,7 @@
     <declare-styleable name="GlassOverlay">
         <attr name="glassTint" format="color" />
         <attr name="glassDark" format="boolean" />
+        <!-- Same colours as the main floating bubble (primaryContainer in dark, primary in light). -->
+        <attr name="glassFollowBubble" format="boolean" />
     </declare-styleable>
 </resources>
