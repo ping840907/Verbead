@@ -14,7 +14,6 @@ import android.view.WindowManager
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.TextView
-import com.google.android.material.card.MaterialCardView
 import com.ping.verbead.R
 
 /** What the card is showing, which decides how an over-long text is handled. */
@@ -58,7 +57,7 @@ class BubblePreviewController(
     private lateinit var previewLayoutParams: WindowManager.LayoutParams
     lateinit var previewView: View
         private set
-    private lateinit var cardBubblePreview: MaterialCardView
+    private lateinit var cardBubblePreview: View
     private lateinit var clipView: FrameLayout
     private lateinit var tvBubblePreview: TextView
     private var marqueeAnimator: ValueAnimator? = null

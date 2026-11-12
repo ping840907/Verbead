@@ -83,6 +83,8 @@ class ScannerOverlayController(
         private set
 
     private var isFlashOn: Boolean = false
+    // Set on the camera analyzer thread, cleared on the main thread.
+    @Volatile
     private var isProcessingBarcode: Boolean = false
 
     private var cameraExecutor: ExecutorService? = null

@@ -4,11 +4,11 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
-    <LinearLayout
+    <com.ping.verbead.ui.GlassLinearLayout
         android:id="@+id/layout_ocr_root"
         android:layout_width="250dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_scanner_window"
+        app:glassRadius="20dp"
         android:orientation="vertical"
         android:padding="8dp">
 
@@ -153,6 +153,6 @@
             app:tint="#FFFFFFFF" />
     </RelativeLayout>
 
-    </LinearLayout>
+    </com.ping.verbead.ui.GlassLinearLayout>
 
 </FrameLayout>

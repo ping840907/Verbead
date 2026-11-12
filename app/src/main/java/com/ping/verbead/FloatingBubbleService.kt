@@ -1915,25 +1915,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             }
             MODE_OCR -> {
                 if (state == State.RECORDING) {
+                    // the dictation still finishes and is filled in, so the state must say TRANSCRIBING (not IDLE)
                     voice.stopEarly()
                     hidePreviewText()
-                    setState(State.IDLE)
+                    setState(State.TRANSCRIBING)
                 }
                 overlays.toggleOcr()
             }
             MODE_BARCODE -> {
                 if (state == State.RECORDING) {
+                    // the dictation still finishes and is filled in, so the state must say TRANSCRIBING (not IDLE)
                     voice.stopEarly()
                     hidePreviewText()
-                    setState(State.IDLE)
+                    setState(State.TRANSCRIBING)
                 }
                 overlays.toggleScanner()
             }
             MODE_PHRASES -> {
                 if (state == State.RECORDING) {
+                    // the dictation still finishes and is filled in, so the state must say TRANSCRIBING (not IDLE)
                     voice.stopEarly()
                     hidePreviewText()
-                    setState(State.IDLE)
+                    setState(State.TRANSCRIBING)
                 }
                 overlays.togglePhrases()
             }
@@ -2304,8 +2307,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
         HapticUtil.click(this)
+        // Undo only when nothing else is going on. A snapshot stays valid for 15 s after a fill, so
+        // without this check a ✕ pressed during the next recording undid the old text and left that
+        // recording running in the background.
+        val nothingActive = !isPhrasesDrawerActive && !isOcrSnapshotActive && !isOcrModeActive &&
+            !isScannerModeActive && state != State.RECORDING && state != State.TRANSCRIBING && state != State.LOADING
         when {
-            state == State.PASTED || VoiceAccessibilityService.instance?.hasValidSnapshot() == true -> {
+            state == State.PASTED || (nothingActive && VoiceAccessibilityService.instance?.hasValidSnapshot() == true) -> {
                 isRestoringSnapshot = true
                 try {
                     // 復原文字框 (Undo)：透過無障礙快照還原至貼上前之內容與游標位置、state → IDLE
@@ -2341,6 +2349,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             state == State.RECORDING -> {
                 // 中止錄音：停止 AudioRecord、丟棄音訊 buffer、關閉預覽氣泡、state → IDLE
                 voice.abortRecording()
+                hidePreviewText()
+                setState(State.IDLE)
+                hideXButton()
+            }
+            state == State.LOADING -> {
+                // the models are still loading: drop the pending start so it does not begin recording later
+                voice.abortLoading()
                 hidePreviewText()
                 setState(State.IDLE)
                 hideXButton()
@@ -2689,11 +2704,28 @@ class FloatingBubbleService : Service(), LifecycleOwner {
      * 失敗（沒有焦點輸入框或服務不可用）：保留文字到常用語清單；若沒有彈出清單則呼叫 [onCopiedNotice] 顯示「已複製」類提示。
      * @return 是否填入成功
      */
+    private var pendingEnter: Runnable? = null
+
+    private fun flushPendingEnter() {
+        pendingEnter?.let {
+            mainHandler.removeCallbacks(it)
+            it.run()
+        }
+    }
+
     private fun deliverText(text: String, autoEnter: Boolean = false, onCopiedNotice: () -> Unit): Boolean {
+        // An Enter still waiting from the previous fill goes first, so two quick fills (e.g. two barcodes)
+        // end up as "text, Enter, text, Enter" and not "text, text, Enter, Enter".
+        flushPendingEnter()
         val injected = VoiceAccessibilityService.instance?.inputText(text) ?: false
         if (injected) {
             if (autoEnter) {
-                mainHandler.postDelayed({ VoiceAccessibilityService.instance?.sendEnterKey() }, 100)
+                val enter = Runnable {
+                    pendingEnter = null
+                    VoiceAccessibilityService.instance?.sendEnterKey()
+                }
+                pendingEnter = enter
+                mainHandler.postDelayed(enter, 100)
             }
             enterPastedState()
         } else {
@@ -2966,6 +2998,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     // ══════════════════════════════════════════════════════════════════
     private fun insertQuickPhrase(phrase: String) {
         HapticUtil.click(this)
+        flushPendingEnter()
         val injected = VoiceAccessibilityService.instance?.inputText(phrase) ?: false
         if (injected) {
             enterPastedState()
