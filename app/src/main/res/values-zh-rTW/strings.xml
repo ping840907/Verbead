@@ -1,11 +1,11 @@
 <resources>
     <string name="app_name">珠璣</string>
-    <string name="accessibility_service_desc">允許珠璣懸浮球將辨識出的文字直接填入任何應用程式的輸入框中，無需切換目前使用的輸入法。</string>
+    <string name="accessibility_service_desc">讓懸浮球把辨識出的文字填入任何 App 的輸入框，無須切換輸入法。</string>
     <string name="bubble_notification_channel">懸浮輸入服務</string>
 
     <!-- Notifications -->
     <string name="notif_bubble_title">珠璣 懸浮輸入助手</string>
-    <string name="notif_bubble_text">輕觸懸浮球即可輸入文字或掃描條碼至目前焦點欄位</string>
+    <string name="notif_bubble_text">輕觸懸浮球即可輸入文字或掃描條碼</string>
     <string name="notif_bubble_action_close">關閉懸浮球</string>
     <string name="notif_channel_bubble_desc">提供懸浮泡泡語音輸入服務</string>
     <string name="notif_download_title">正在下載語音辨識模型</string>
@@ -21,25 +21,25 @@
 
     <!-- VoiceAccessibility Toasts -->
     <string name="toast_password_not_supported">密碼欄位不支援自動填入</string>
-    <string name="toast_fallback_clipboard">無法直接填入，已安全複製至剪貼簿</string>
+    <string name="toast_fallback_clipboard">無法直接填入，已複製到剪貼簿</string>
 
     <!-- Onboarding Tour -->
     <string name="onboarding_tour_title">操作導覽</string>
     <string name="onboarding_page1_title">隨處懸浮 · 點擊即說</string>
-    <string name="onboarding_page1_desc">無須更換您習慣的注音或 Gboard 鍵盤。在任何 App 的輸入欄位中，輕觸懸浮球即可開始收音；支援雙引擎「即時預覽 + 離線高精度轉譯」，懸浮球旁會即時串流顯示辨識文字並自動填入！</string>
-    <string name="onboarding_page1_tip">提示：點擊懸浮球轉為紅色即開始收音，再次點擊或靜音即自動完成轉譯與填入。</string>
+    <string name="onboarding_page1_desc">在任何 App 的輸入欄輕觸懸浮球即可收音，辨識結果自動填入，不必換鍵盤。</string>
+    <string name="onboarding_page1_tip">懸浮球轉紅表示收音中，再點一次或停頓即送出。</string>
     <string name="onboarding_page2_title">垂直膠囊 · 四大模式隨心切換</string>
-    <string name="onboarding_page2_desc">長按懸浮球展開垂直功能膠囊，上下滑動對齊即可切換四大模式：「語音即時輸入」、「條碼掃描」、「文字辨識 (PP-OCRv6)」與「常用語與歷史紀錄」。</string>
-    <string name="onboarding_page2_tip">提示：滑動到想要的模式後放開手指，即可切換並立即使用。</string>
+    <string name="onboarding_page2_desc">四種模式：語音輸入、條碼掃描、文字辨識（PP-OCRv6）、常用語與歷史。</string>
+    <string name="onboarding_page2_tip">放開手指即切換並使用。</string>
     <string name="onboarding_page3_title">懸浮 ↶ 鍵 · 一鍵撤回與還原</string>
-    <string name="onboarding_page3_desc">無論是語音輸入或 OCR 擷取，若結果不如預期，無需手動逐字修改！填入後 10 秒內點擊懸浮球上方的小型 ↶ 鍵，即可瞬間撤回並完整還原原本的文字內容。</string>
-    <string name="onboarding_page3_tip">提示：完成輸入後，懸浮球上方會浮現 ↶ 鍵，輕點即可執行 Undo 無損復原。</string>
+    <string name="onboarding_page3_desc">填入後 10 秒內，點懸浮球上方的 ↶ 鍵即可還原原本的文字。</string>
+    <string name="onboarding_page3_tip">↶ 鍵會在填入後出現在懸浮球上方。</string>
     <string name="onboarding_page4_title">貼邊收納 · 鍵盤聯動 · 搖晃分身</string>
-    <string name="onboarding_page4_desc" formatted="false">拖至螢幕邊緣自動貼邊收納 70%，也可開啟「僅軟體鍵盤出現時顯示」。此外，拖曳懸浮球時快速左右搖晃即可「分裂新增分身」（最多 4 顆），讓語音、OCR 與 AI 改寫多球同屏待命！</string>
-    <string name="onboarding_page4_tip">提示：分身懸浮球各自記憶獨立模式；若要移除多餘分身，拖曳至螢幕頂部刪除區即可。</string>
+    <string name="onboarding_page4_desc" formatted="false">拖到螢幕邊緣會自動收納；拖曳時快速左右搖晃可分裂新球（最多 4 顆）。</string>
+    <string name="onboarding_page4_tip">各球獨立記憶模式；拖到頂部刪除區即可移除。</string>
     <string name="onboarding_page5_title" formatted="false">100% 離線端側 · 一站式主設定</string>
-    <string name="onboarding_page5_desc">從雙引擎語音到 PP-OCRv6 文字辨識，全程在手機本機推論，零雲端上傳、零隱私外洩。所有權限、模型管理與離線模型包匯入皆整合於主設定頁面！</string>
-    <string name="onboarding_page5_tip">隱私保障：極致端側運算速度與最高資安規格，點擊下方前往主設定開始體驗。</string>
+    <string name="onboarding_page5_desc">語音與文字辨識都在手機本機執行，不上傳雲端。權限與模型都在主設定頁管理。</string>
+    <string name="onboarding_page5_tip">點下方按鈕前往主設定。</string>
 
     <!-- Onboarding Toasts -->
     <string name="toast_file_picker_error">無法開啟檔案選擇器: %1$s</string>
@@ -92,18 +92,18 @@
 
     <!-- Settings Category Titles -->
     <string name="settings_cat_bubble_title">懸浮球與操作模式</string>
-    <string name="settings_cat_bubble_desc">多球切換、模式開關排序、貼邊收納與鍵盤連動</string>
+    <string name="settings_cat_bubble_desc">多球、模式排序、貼邊與鍵盤連動</string>
 
     <string name="settings_cat_speech_title">語音辨識與模型</string>
-    <string name="settings_cat_speech_desc">雙引擎切換、X-ASR 串流、Qwen3 離線高精與熱詞</string>
+    <string name="settings_cat_speech_desc">雙引擎、X-ASR、Qwen3 與熱詞</string>
 
     <string name="settings_cat_ocr_title">智慧文字辨識 (OCR)</string>
-    <string name="settings_cat_ocr_desc">PP-OCR 繁中離線模型、盤古排版間距、條碼掃描</string>
+    <string name="settings_cat_ocr_desc">PP-OCR 離線模型、盤古間距、條碼掃描</string>
 
 
 
     <string name="settings_cat_about_title">關於與授權致謝</string>
-    <string name="settings_cat_about_desc">版本資訊、開源核心技術致謝與 GitHub 專案</string>
+    <string name="settings_cat_about_desc">版本、開源致謝與 GitHub</string>
 
     <!-- Manifest labels -->
     <string name="onboarding_title">新手設置</string>
@@ -116,7 +116,7 @@
 
     <!-- P1-1: small layouts -->
     <string name="dict_settings_how_title">詞彙作用方式</string>
-    <string name="dict_settings_how_body">1. Qwen3-ASR 會將自訂詞彙加入熱詞清單以提升辨識率。\n2. 於輸入法中長按選取文字，可直接點選詞彙進行置換。\n3. 或點擊鍵盤「詞彙」按鈕開啟面板快速插入。</string>
+    <string name="dict_settings_how_body">1. Qwen3-ASR 會把詞彙當熱詞以提升辨識率。\n2. 在輸入法長按選取文字，或點鍵盤「詞彙」按鈕，即可置換或插入詞彙。</string>
     <string name="dict_settings_use_as_hotwords">使用詞彙作為熱詞</string>
     <string name="dict_settings_empty_title">尚無自定義詞彙</string>
     <string name="dict_settings_empty_hint">點擊下方按鈕加入專用名詞、自訂詞語或特殊術語</string>
@@ -149,7 +149,7 @@
     <string name="capsule_phrases_drawer_desc">常用語抽屜</string>
     <string name="dialog_add_entry_target_hint">目標詞彙 / 正確文字（必填）</string>
     <string name="dialog_add_entry_source_hint">原辨識字 / 欲替換詞（選填）</string>
-    <string name="dialog_add_entry_tip">提示：若填寫「原辨識字」，辨識出該字時將自動替換為「目標詞彙」；若留空，則直接作為專屬詞庫加強語音識別。</string>
+    <string name="dialog_add_entry_tip">提示：填寫「原辨識字」時，辨識到該字會替換為「目標詞彙」；留空則只用來加強辨識。</string>
     <string name="quick_history_desc">歷史紀錄</string>
     <string name="quick_history_add_phrase_desc">加入常用語</string>
     <string name="quick_history_delete_desc">刪除此紀錄</string>
@@ -179,9 +179,9 @@
     <string name="settings_speech_prefs_title">語音輸入偏好</string>
     <string name="settings_speech_prefs_desc">適用於所有語音辨識模式與引擎</string>
     <string name="settings_speech_external_audio_title">優先使用外部音訊</string>
-    <string name="settings_speech_external_audio_desc">連線藍牙耳機或外接麥克風時優先收音，關閉則固定使用手機麥克風</string>
+    <string name="settings_speech_external_audio_desc">優先使用藍牙耳機或外接麥克風；關閉則固定用手機麥克風</string>
     <string name="settings_speech_gain_title">外部音訊增益</string>
-    <string name="settings_speech_gain_desc">調整耳機或外接麥克風收音音量倍率，解決遠距偏小問題</string>
+    <string name="settings_speech_gain_desc">調整外接麥克風的收音倍率</string>
     <string name="settings_speech_gain_value_default">2.5x 增益</string>
     <string name="settings_speech_vad_title">停頓斷句緩衝 (VAD)</string>
     <string name="settings_speech_vad_desc">停止說話達此秒數後自動結束並送出辨識</string>
@@ -194,7 +194,7 @@
     <string name="settings_speech_to_traditional_title">轉換為繁體中文</string>
     <string name="settings_speech_to_traditional_desc">簡體轉繁體；日文、韓文段落不會被轉換。關閉則完全保留辨識原文</string>
     <string name="settings_speech_spoken_numbers_title">口語數字轉阿拉伯數字</string>
-    <string name="settings_speech_spoken_numbers_desc">把中、英、日、韓的口語數字轉成阿拉伯數字（「一百二十三」「twenty three」→ 123 / 23），含年份、小數、百分比；中文另支援四則運算、分數、時間。日常用語中單獨的一位數（三個、一下）不會被轉換</string>
+    <string name="settings_speech_spoken_numbers_desc">把中、英、日、韓的口語數字轉為阿拉伯數字（「一百二十三」→ 123），含年份、小數、百分比；單獨的一位數（三個、一下）不轉換</string>
     <string name="settings_speech_filter_punct_title">過濾全形標點符號</string>
     <string name="settings_speech_filter_punct_desc">自動去除逗號、句號、問號等全形符號</string>
     <string name="settings_bubble_header_title">懸浮語音泡泡</string>
@@ -207,24 +207,24 @@
     <string name="settings_bubble_autofill_desc">將辨識文字直接填入焦點欄位</string>
     <string name="settings_bubble_autofill_action">前往開啟</string>
     <string name="settings_bubble_restricted_title">解除受限制的設定</string>
-    <string name="settings_bubble_restricted_desc">若「顯示在上層」或「自動填入」開關被系統反灰鎖定，請點此前往應用程式資訊頁面，點選畫面右上角「︙」（三點選單）並選擇「解除受限制的設定」即可解除鎖定</string>
+    <string name="settings_bubble_restricted_desc">若上面兩項被系統鎖住：開啟應用程式資訊 → 右上「︙」→「解除受限制的設定」</string>
     <string name="settings_bubble_restricted_action">前往解除</string>
     <string name="settings_bubble_keyboard_only_title">僅在鍵盤出現時顯示</string>
-    <string name="settings_bubble_keyboard_only_desc">開啟時僅於輸入鍵盤彈出時顯示懸浮球；關閉時常駐貼邊</string>
+    <string name="settings_bubble_keyboard_only_desc">開啟：僅鍵盤彈出時顯示；關閉：常駐貼邊</string>
     <string name="settings_bubble_multi_title">多懸浮球並存模式</string>
-    <string name="settings_bubble_multi_desc">畫面同時顯示多個功能懸浮球，支援智慧碰撞推擠避讓，貼邊不重疊</string>
+    <string name="settings_bubble_multi_desc">同時顯示多個懸浮球，自動避讓不重疊</string>
     <string name="settings_bubble_count_title">懸浮球數量</string>
-    <string name="settings_bubble_count_desc">設定同時顯示的懸浮球數量 (2～4 個：語音、辨識、條碼、常用語)</string>
+    <string name="settings_bubble_count_desc">2～4 個（語音、辨識、條碼、常用語）</string>
     <string name="settings_bubble_count_value_default">4 個</string>
     <string name="settings_bubble_modes_title">懸浮球功能模式與排序</string>
-    <string name="settings_bubble_modes_desc">按住拖曳把手或點選箭頭調整膠囊選單與複製球順序，亦可開關個別模式</string>
+    <string name="settings_bubble_modes_desc">按住把手拖曳排序，可開關個別模式</string>
     <string name="settings_bubble_modes_reset">重置預設</string>
     <string name="settings_bubble_paste_title">使用剪貼簿貼上模式</string>
-    <string name="settings_bubble_paste_desc">開啟時使用剪貼簿貼上 (Paste) 填入文字；關閉時使用無障礙直接填入 (SetText)</string>
+    <string name="settings_bubble_paste_desc">選擇填入文字的方式</string>
     <string name="settings_bubble_history_title">常用語抽屜輸入紀錄</string>
-    <string name="settings_bubble_history_desc">開啟時自動暫存其他模式 (語音/辨識/條碼) 輸入內容於常用語抽屜</string>
+    <string name="settings_bubble_history_desc">暫存語音、辨識、條碼的輸入內容</string>
     <string name="settings_bubble_history_count_title">保留歷史紀錄筆數</string>
-    <string name="settings_bubble_history_count_desc">設定常用語抽屜頂端最多保留幾筆歷史回溯紀錄 (1～12 筆)</string>
+    <string name="settings_bubble_history_count_desc">抽屜頂端最多保留幾筆（1～12）</string>
     <string name="settings_bubble_history_count_value_default">6 筆</string>
     <string name="settings_status_title">功能配置狀態</string>
     <string name="settings_status_desc">點擊未完成項目可直接跳轉設定</string>
@@ -244,9 +244,9 @@
     <string name="settings_footer_title">珠璣</string>
     <string name="settings_footer_tagline">落辭成玉，字字珠璣</string>
     <string name="settings_ocr_header_title">PP-OCRv6 端側文字辨識</string>
-    <string name="settings_ocr_header_desc">於懸浮掃描器中點選相機畫面文字即可定格辨識並自動填入</string>
-    <string name="settings_ocr_tip_vertical">直排文字自動展開：書籍、菜單、春聯等直排中文會自動正立展開，精準辨識不顛倒。</string>
-    <string name="settings_ocr_tip_multiselect">多選區塊依序組合：點選文字區塊顯示 ①②③ 序號，可依自訂順序拼接；雙擊任一區塊立即確認貼入。</string>
+    <string name="settings_ocr_header_desc">在掃描器中點選畫面文字即可定格辨識並填入</string>
+    <string name="settings_ocr_tip_vertical">直排文字（書籍、菜單、春聯）會自動轉正辨識。</string>
+    <string name="settings_ocr_tip_multiselect">點選多個區塊會標上 ①②③ 依序拼接；雙擊區塊立即貼入。</string>
     <string name="settings_ocr_auto_enter_title">辨識與掃描後自動換行</string>
     <string name="settings_ocr_auto_enter_desc">填入條碼或選取文字後自動送出 Enter 鍵</string>
     <string name="settings_ocr_smart_join_title">智慧段落折行拼接</string>
@@ -257,7 +257,7 @@
     <string name="settings_ocr_join_space">空格</string>
     <string name="settings_ocr_join_none">無間隔</string>
     <string name="settings_about_credits_title">開源專案與致謝</string>
-    <string name="settings_about_credits_intro">珠璣 衷心感謝開源社群與模型作者的卓越貢獻（點擊開啟專案）：</string>
+    <string name="settings_about_credits_intro">感謝開源社群與模型作者（點擊開啟專案）：</string>
     <string name="settings_about_paddleocr_credit">"  作者：PaddlePaddle 團隊 (百度飛槳) · 離線文字辨識"</string>
     <string name="settings_about_zxing_title">• zxing-cpp 條碼辨識庫 ↗</string>
     <string name="settings_about_zxing_credit">"  作者：zxing-cpp 團隊 / Axel Waggershauser · C++ 條碼掃描"</string>
@@ -285,8 +285,8 @@
     <string name="settings_import_invalid_source">無效的檔案來源</string>
     <string name="settings_import_core_files_item">• 離線模型核心檔案</string>
     <string name="settings_import_success_title">離線模型一鍵復原成功</string>
-    <string name="settings_import_success_message">已根據導入包內容智慧辨識並復原共 %1$d 個模型核心檔案！\n\n本次復原就緒項目：\n%2$s\n\n所有對應功能均已自動啟用，可立即使用。</string>
-    <string name="settings_import_success_ok">太棒了</string>
+    <string name="settings_import_success_message">已復原 %1$d 個模型檔案：\n%2$s</string>
+    <string name="settings_import_success_ok">好</string>
     <string name="settings_import_failed_title">導入失敗</string>
     <string name="settings_import_failed_message">無法順利解壓或安裝此模型包：\n%1$s</string>
     <string name="settings_status_ready_check">已就緒 ✓</string>
@@ -305,7 +305,7 @@
     <string name="settings_summary_ocr_compact">緊湊排版</string>
     <string name="settings_summary_ocr_trad">繁中</string>
     <string name="settings_summary_ocr_original">原字</string>
-    <string name="settings_summary_backup">已下載 %1$d/%2$d 個離線模型 · 支援 ZIP 導入</string>
+    <string name="settings_summary_backup">已下載 %1$d/%2$d 個離線模型</string>
     <string name="settings_all_models_ready">全部模型已就緒</string>
     <string name="settings_summary_about">版本 %1$s · 開源技術致謝與授權</string>
     <string name="dict_dialog_delete_title">刪除專屬詞彙</string>
@@ -322,12 +322,12 @@
     <string name="settings_bubble_accessibility_running">無障礙服務執行中，支援自動填入</string>
     <string name="settings_bubble_button_enabled">已開啟</string>
     <string name="settings_bubble_accessibility_not_enabled">尚未啟用無障礙服務</string>
-    <string name="settings_bubble_modes_summary_multi">已開啟多球：已啟用 %1$d 個功能模式，畫面將同時呈現多顆懸浮球</string>
-    <string name="settings_bubble_modes_summary_single">已關閉多球：單顆懸浮球模式，長按懸浮球可叫出垂直膠囊選單切換功能</string>
-    <string name="settings_bubble_paste_desc_on">文字會先複製到剪貼簿，再貼上到目前的輸入欄，相容更多應用程式</string>
-    <string name="settings_bubble_paste_desc_off">透過無障礙服務直接寫入輸入欄；若某些應用程式貼上異常可改用此方式</string>
-    <string name="settings_bubble_history_desc_on">在快速常用語抽屜上方即時顯示近期的轉譯歷史紀錄</string>
-    <string name="settings_bubble_history_desc_off">已關閉歷史紀錄，常用語抽屜將僅顯示固定常用語</string>
+    <string name="settings_bubble_modes_summary_multi">多球已開啟：%1$d 個模式同時顯示</string>
+    <string name="settings_bubble_modes_summary_single">單球模式：長按懸浮球叫出膠囊選單切換</string>
+    <string name="settings_bubble_paste_desc_on">先複製再貼上，相容更多 App</string>
+    <string name="settings_bubble_paste_desc_off">以無障礙直接寫入；貼上異常時可選用</string>
+    <string name="settings_bubble_history_desc_on">在常用語抽屜上方顯示最近的歷史紀錄</string>
+    <string name="settings_bubble_history_desc_off">已關閉，抽屜只顯示常用語</string>
     <string name="settings_speech_toast_bluetooth_denied">未授予藍牙連線權限，可能無法自動切換至藍牙耳機</string>
     <string name="settings_speech_gain_original">1.0x (原音)</string>
     <string name="settings_speech_gain_format">%1$.1fx 增益</string>
@@ -337,14 +337,14 @@
     <string name="settings_speech_vocab_desc_count">已收錄 %1$d 筆自訂詞彙 · 點擊管理專屬詞庫</string>
     <string name="settings_speech_missing_both">X-ASR 與 Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">需要下載模型以啟用雙引擎</string>
-    <string name="settings_speech_dual_needs_model_message">雙引擎模式結合了 X-ASR 的低延遲即時預覽與 Qwen3-ASR 的高精離線轉譯。\n\n目前尚未下載：%1$s。\n請先點選「下載模型」完成安裝後再開啟。</string>
+    <string name="settings_speech_dual_needs_model_message">雙引擎需要 X-ASR 與 Qwen3-ASR。\n\n尚未下載：%1$s。請先下載再開啟。</string>
     <string name="settings_speech_model_label_xasr">X-ASR 串流模型</string>
     <string name="settings_speech_model_label_qwen">Qwen3-ASR 語音模型</string>
     <string name="settings_speech_download_title">下載 %1$s</string>
     <string name="settings_speech_redownload_title">重新下載 %1$s</string>
-    <string name="settings_speech_download_message">預估大小：約 %1$d MB。\n下載過程中將在背景維持前景服務，下載完成後即可離線運作。</string>
+    <string name="settings_speech_download_message">約 %1$d MB，下載時會在背景保持前景服務。</string>
     <string name="settings_ocr_checking_size">檢查檔案大小…</string>
-    <string name="settings_ocr_download_message">即將下載約 %1$s 的離線繁中辨識模型，下載完成後文字辨識全程在本機執行。\n\n是否繼續？</string>
+    <string name="settings_ocr_download_message">即將下載約 %1$s 的辨識模型。\n\n要繼續嗎？</string>
     <string name="settings_ocr_download_start">開始下載</string>
 
     <!-- P1-4: onboarding -->
@@ -356,35 +356,35 @@
     <string name="onboarding_capsule_title">垂直膠囊 · 滑動選單切換</string>
     <string name="onboarding_mode_voice_title">語音即時輸入</string>
     <string name="onboarding_capsule_badge_default">模式 1/4</string>
-    <string name="onboarding_mode_voice_desc">高精準度離線語音辨識，輕觸即開始聽寫並直接貼上</string>
-    <string name="onboarding_capsule_tags_default">• 離線 ASR 雙模型即時轉譯\n• 支援自動標點與自訂專屬詞彙\n• 耳機外接音訊倍率增益</string>
-    <string name="onboarding_capsule_hint">長按懸浮球展開膠囊，上下滑動對齊切換模式</string>
-    <string name="onboarding_mode_voice_tags">• 雙引擎「即時預覽 + 離線高精度轉譯」\n• 支援自動標點與自訂專屬詞彙替換\n• 耳機外接音訊與麥克風倍率增益</string>
+    <string name="onboarding_mode_voice_desc">輕觸開始聽寫並貼上</string>
+    <string name="onboarding_capsule_tags_default">• 即時預覽 + 離線轉譯\n• 自動標點、自訂詞彙</string>
+    <string name="onboarding_capsule_hint">長按展開，上下滑動切換</string>
+    <string name="onboarding_mode_voice_tags">• 即時預覽 + 離線轉譯\n• 自動標點、自訂詞彙</string>
     <string name="onboarding_mode_barcode_title">條碼與 QR 掃描</string>
-    <string name="onboarding_mode_barcode_desc">極速本機條碼讀取，瞄準即辨識並自動填入</string>
-    <string name="onboarding_mode_barcode_tags">• 支援 QR Code 及各類一維條碼\n• 支援相機雙指縮放與閃光燈補光\n• 掃描完成後可設定自動換行</string>
+    <string name="onboarding_mode_barcode_desc">瞄準即辨識並自動填入</string>
+    <string name="onboarding_mode_barcode_tags">• QR Code 與一維條碼\n• 雙指縮放、閃光燈</string>
     <string name="onboarding_mode_ocr_title">文字辨識 (PP-OCRv6)</string>
-    <string name="onboarding_mode_ocr_desc">凍結畫面框選或多選文字區塊，離線高精度擷取</string>
-    <string name="onboarding_mode_ocr_tags">• PP-OCRv6 離線模型，支援直排中文正立辨識\n• 點擊區塊依序多選組合與智慧段落折行拼接\n• 可自訂換行或空格分隔符，雙指縮放對焦</string>
+    <string name="onboarding_mode_ocr_desc">框選或多選文字區塊離線擷取</string>
+    <string name="onboarding_mode_ocr_tags">• 支援直排中文\n• 點選多個區塊依序拼接</string>
     <string name="onboarding_mode_phrases_title">常用語與歷史紀錄</string>
-    <string name="onboarding_mode_phrases_desc">自訂片語隨點即貼，自動回溯最近輸入內容</string>
-    <string name="onboarding_mode_phrases_tags">• 常用片語支援長按拖曳平滑換位排序\n• 自動置頂最近 1～12 筆各模式輸入回溯\n• 隨點即貼，免重複打字</string>
+    <string name="onboarding_mode_phrases_desc">隨點即貼，並回溯最近輸入</string>
+    <string name="onboarding_mode_phrases_tags">• 長按拖曳排序\n• 自動列出最近輸入</string>
     <string name="onboarding_voice_sample">今天下午兩點在三樓會議室開會。</string>
     <string name="onboarding_undo_sample">今天開會時間是兩點整。</string>
     <string name="onboarding_gesture_edge_title">1. 邊緣收納：超出邊界 70%</string>
-    <string name="onboarding_gesture_edge_desc">自動藏入螢幕邊緣，僅露 30% 圓弧，輕點即可拉出</string>
+    <string name="onboarding_gesture_edge_desc">收進邊緣只露出 30%，輕點拉出</string>
     <string name="onboarding_gesture_keyboard_title">2. 鍵盤聯動：僅打字時現身</string>
-    <string name="onboarding_gesture_keyboard_desc">主設定開啟「僅軟體鍵盤出現時顯示」，伴隨鍵盤升起淡入出現</string>
+    <string name="onboarding_gesture_keyboard_desc">開啟「僅軟體鍵盤出現時顯示」後，隨鍵盤淡入</string>
     <string name="onboarding_gesture_shake_title">3. 搖晃分身：多顆懸浮球並行</string>
-    <string name="onboarding_gesture_shake_desc">拖曳懸浮球時快速左右搖晃即可分裂新球（最多 4 顆），各自獨立記憶模式</string>
+    <string name="onboarding_gesture_shake_desc">拖曳時左右搖晃即可分裂新球（最多 4 顆）</string>
     <string name="onboarding_gestures_title">收納 · 聯動 · 搖晃分裂多球</string>
     <string name="onboarding_gestures_mock_keyboard">系統軟體鍵盤 (Gboard / 注音)</string>
     <string name="onboarding_privacy_title">隱私安全 · 100% 離線端側運算</string>
-    <string name="onboarding_privacy_subtitle">純本機推論 · 零雲端傳輸</string>
+    <string name="onboarding_privacy_subtitle">零雲端傳輸</string>
     <string name="onboarding_privacy_chip_dual">雙引擎離線語音</string>
     <string name="onboarding_privacy_chip_ocr">PP-OCRv6 辨識</string>
     <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 離線辨識</string>
-    <string name="onboarding_privacy_chip_zero_upload">零上傳 · 全程本機</string>
+    <string name="onboarding_privacy_chip_zero_upload">零上傳</string>
     <string name="onboarding_undo_title">即時復原 · 點擊上方 ↶ 鍵撤回</string>
     <string name="onboarding_undo_mock_question">請問簡報檔案在哪裡？</string>
     <string name="onboarding_undo_mock_hint">點擊懸浮球輸入...</string>
@@ -458,10 +458,10 @@
     <string name="floating_screen_ocr_desc">螢幕文字辨識</string>
     <string name="toast_screen_capture_failed">螢幕擷取失敗，請啟用珠璣無障礙服務（需 Android 11 以上）</string>
     <string name="settings_ocr_korean_title">韓文文字辨識</string>
-    <string name="settings_ocr_korean_desc">主模型無法辨識韓文。安裝這個選用的韓文模型後，主模型讀不懂的文字會再辨識一次。只在需要時才執行，不會拖慢中文與英文的辨識速度</string>
+    <string name="settings_ocr_korean_desc">選用。主模型讀不懂韓文時才會多辨識一次，不影響中英文速度</string>
     <string name="settings_ocr_korean_switch_title">使用韓文模型</string>
     <string name="settings_ocr_korean_switch_desc">關閉時不會載入韓文模型</string>
-    <string name="settings_ocr_korean_download_message">即將下載韓文辨識模型（%1$s，PP-OCRv5 mobile）。下載完成後完全在本機執行。\n\n要繼續嗎？</string>
+    <string name="settings_ocr_korean_download_message">即將下載韓文辨識模型（%1$s，PP-OCRv5 mobile）。\n\n要繼續嗎？</string>
     <string name="ocr_model_name_korean">PP-OCRv5 韓文</string>
     <string name="model_label_ocr_korean_detail">PP-OCRv5 韓文文字辨識</string>
 
@@ -481,7 +481,7 @@
     <string name="asr_languages_format">支援語言：%1$s</string>
     <string name="asr_model_size_format">下載約 %1$d MB</string>
     <string name="asr_in_use">使用中・點擊取消</string>
-    <string name="asr_memory_hint">這個組合佔用的記憶體對這支手機偏多；若變慢或被系統關閉，請改選較輕的模型。</string>
+    <string name="asr_memory_hint">這個組合佔用記憶體偏多，變慢或被系統關閉時請改選較輕的模型。</string>
     <string name="asr_custom_problems_format">custom_models.json 中有些項目被略過：\n%1$s</string>
     <string name="asr_variant_format">版本：%1$s</string>
     <string name="asr_variant_dialog_title">選擇版本</string>
@@ -493,7 +493,7 @@
     <string name="asr_profile_balanced">均衡</string>
     <string name="asr_profile_best">最準</string>
     <string name="asr_rec_title">為你推薦</string>
-    <string name="asr_rec_none">這個語言還沒有推薦的模型，請展開下方的完整清單自行選擇。</string>
+    <string name="asr_rec_none">這個語言尚無推薦，請從下方完整清單選擇。</string>
     <string name="asr_rec_download_use">下載並使用</string>
     <string name="asr_rec_use">使用</string>
     <string name="asr_rec_in_use">使用中</string>
@@ -509,7 +509,7 @@
     <string name="asr_more_actions">更多操作</string>
     <string name="asr_menu_delete">刪除模型</string>
     <string name="asr_delete_title">刪除 %1$s？</string>
-    <string name="asr_delete_message">會移除手機上的模型檔。之後要再使用，需要重新下載。</string>
+    <string name="asr_delete_message">會移除手機上的模型檔，之後需重新下載。</string>
     <string name="asr_keep_one">至少要保留一個使用中的模型</string>
     <string name="asr_size_format">約 %1$d MB</string>
     <string name="asr_badge_recommended">推薦</string>

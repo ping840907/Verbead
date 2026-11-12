@@ -1,11 +1,11 @@
 <resources>
     <string name="app_name">Verbead</string>
-    <string name="accessibility_service_desc">Lets the Verbead floating bubble fill recognized text directly into any app\'s input field, without switching your current keyboard.</string>
+    <string name="accessibility_service_desc">Lets the floating bubble fill recognized text into any text field without switching keyboards.</string>
     <string name="bubble_notification_channel">Floating input service</string>
 
     <!-- Notifications -->
     <string name="notif_bubble_title">Verbead floating input assistant</string>
-    <string name="notif_bubble_text">Tap the floating bubble to enter text or scan a barcode into the focused field</string>
+    <string name="notif_bubble_text">Tap the bubble to enter text or scan a barcode</string>
     <string name="notif_bubble_action_close">Close bubble</string>
     <string name="notif_channel_bubble_desc">Provides voice input through the floating bubble</string>
     <string name="notif_download_title">Downloading speech recognition model</string>
@@ -21,25 +21,25 @@
 
     <!-- VoiceAccessibility Toasts -->
     <string name="toast_password_not_supported">Password fields don\'t support auto-fill</string>
-    <string name="toast_fallback_clipboard">Couldn\'t fill directly; copied to the clipboard instead</string>
+    <string name="toast_fallback_clipboard">Could not fill in directly. Copied to the clipboard</string>
 
     <!-- Onboarding Tour -->
     <string name="onboarding_tour_title">App tour</string>
     <string name="onboarding_page1_title">Floating anywhere · Tap to speak</string>
-    <string name="onboarding_page1_desc">No need to change your usual keyboard. In any app\'s input field, tap the floating bubble to start listening. The dual engine (live preview + high-accuracy offline transcription) streams recognized text next to the bubble and fills it in automatically!</string>
-    <string name="onboarding_page1_tip">Tip: the bubble turns red while listening; tap again or stay silent to finish transcribing and fill in the text.</string>
+    <string name="onboarding_page1_desc">Tap the bubble in any text field to record. The result is filled in automatically, with no keyboard switch.</string>
+    <string name="onboarding_page1_tip">The bubble turns red while recording. Tap again or pause to finish.</string>
     <string name="onboarding_page2_title">Vertical capsule · Four modes at your fingertips</string>
-    <string name="onboarding_page2_desc">Long-press the bubble to open the vertical capsule menu, then slide up or down to switch between four modes: Voice input, Barcode scanning, Text recognition (PP-OCRv6) and Quick phrases &amp; history.</string>
-    <string name="onboarding_page2_tip">Tip: slide to the mode you want and lift your finger to switch and start using it right away.</string>
+    <string name="onboarding_page2_desc">Four modes: voice input, barcode scan, text recognition (PP-OCRv6), and phrases and history.</string>
+    <string name="onboarding_page2_tip">Release to switch and start using it.</string>
     <string name="onboarding_page3_title">Floating ↶ key · One-tap undo and restore</string>
-    <string name="onboarding_page3_desc">If a voice or OCR result isn\'t what you wanted, there\'s no need to fix it character by character. Within 10 seconds after filling in, tap the small ↶ key above the bubble to instantly undo and restore your original text.</string>
-    <string name="onboarding_page3_tip">Tip: after input completes, a ↶ key appears above the bubble; tap it for a lossless undo.</string>
+    <string name="onboarding_page3_desc">Within 10 seconds of filling in, tap the ↶ key above the bubble to restore the original text.</string>
+    <string name="onboarding_page3_tip">The ↶ key appears above the bubble after text is filled in.</string>
     <string name="onboarding_page4_title">Edge tuck · Keyboard link · Shake to duplicate</string>
-    <string name="onboarding_page4_desc" formatted="false">Drag the bubble to the screen edge to tuck it 70% out of view, or enable \"Show only when the on-screen keyboard appears\". You can also shake the bubble left and right while dragging to \"split off a copy\" (up to 4), keeping voice, OCR and AI rewriting bubbles ready on screen at once!</string>
-    <string name="onboarding_page4_tip">Tip: each copy remembers its own mode; to remove extras, drag them to the delete zone at the top of the screen.</string>
+    <string name="onboarding_page4_desc" formatted="false">Drag the bubble to an edge to tuck it away. Shake it side to side while dragging to split off a new one (up to 4).</string>
+    <string name="onboarding_page4_tip">Each bubble remembers its own mode. Drag one to the top to remove it.</string>
     <string name="onboarding_page5_title" formatted="false">100% on-device · All-in-one settings</string>
-    <string name="onboarding_page5_desc">From dual-engine voice to PP-OCRv6 text recognition, everything runs locally on your phone: no cloud uploads, no privacy leaks. Permissions, model management and offline model package import are all in the main settings page!</string>
-    <string name="onboarding_page5_tip">Privacy: maximum on-device speed with top-tier security. Tap below to open the main settings and get started.</string>
+    <string name="onboarding_page5_desc">Speech and text recognition run on your phone and nothing is uploaded. Permissions and models are managed in main settings.</string>
+    <string name="onboarding_page5_tip">Tap below to open main settings.</string>
 
     <!-- Onboarding Toasts -->
     <string name="toast_file_picker_error">Can\'t open the file picker: %1$s</string>
@@ -92,18 +92,18 @@
 
     <!-- Settings Category Titles -->
     <string name="settings_cat_bubble_title">Floating bubble &amp; modes</string>
-    <string name="settings_cat_bubble_desc">Multiple bubbles, mode toggles and order, edge tuck and keyboard link</string>
+    <string name="settings_cat_bubble_desc">Multi-bubble, mode order, edge docking, keyboard link</string>
 
     <string name="settings_cat_speech_title">Speech recognition &amp; models</string>
-    <string name="settings_cat_speech_desc">Dual engine, X-ASR streaming, Qwen3 offline accuracy and hotwords</string>
+    <string name="settings_cat_speech_desc">Dual engine, X-ASR, Qwen3 and hot words</string>
 
     <string name="settings_cat_ocr_title">Smart text recognition (OCR)</string>
-    <string name="settings_cat_ocr_desc">PP-OCR offline model, text spacing, barcode scanning</string>
+    <string name="settings_cat_ocr_desc">PP-OCR offline models, spacing, barcode scanning</string>
 
 
 
     <string name="settings_cat_about_title">About &amp; credits</string>
-    <string name="settings_cat_about_desc">Version info, open-source credits and the GitHub project</string>
+    <string name="settings_cat_about_desc">Version, open-source credits and GitHub</string>
 
     <!-- Manifest labels -->
     <string name="onboarding_title">Setup</string>
@@ -121,7 +121,7 @@
 
     <!-- P1-1: small layouts -->
     <string name="dict_settings_how_title">How vocabulary works</string>
-    <string name="dict_settings_how_body">1. Qwen3-ASR adds your custom vocabulary to its hotword list to improve recognition.\n2. In a keyboard, long-press to select text, then tap an entry to replace it.\n3. Or tap the keyboard\'s \"Vocabulary\" button to open the panel and insert quickly.</string>
+    <string name="dict_settings_how_body">1. Qwen3-ASR uses these words as hot words to improve recognition.\n2. Long-press selected text in the keyboard, or tap its Vocabulary button, to replace or insert a word.</string>
     <string name="dict_settings_use_as_hotwords">Use vocabulary as hotwords</string>
     <string name="dict_settings_empty_title">No custom vocabulary yet</string>
     <string name="dict_settings_empty_hint">Tap the button below to add proper nouns, custom words or special terms</string>
@@ -154,7 +154,7 @@
     <string name="capsule_phrases_drawer_desc">Quick phrases</string>
     <string name="dialog_add_entry_target_hint">Target word / correct text (required)</string>
     <string name="dialog_add_entry_source_hint">Recognized text / word to replace (optional)</string>
-    <string name="dialog_add_entry_tip">Tip: if you fill in the recognized text, it is automatically replaced with the target word whenever it is recognized. If left empty, the target word is simply added to the vocabulary to improve recognition.</string>
+    <string name="dialog_add_entry_tip">Tip: when the original word is recognized, it is replaced by the target word. Leave it empty to only improve recognition.</string>
     <string name="quick_history_desc">History</string>
     <string name="quick_history_add_phrase_desc">Add to quick phrases</string>
     <string name="quick_history_delete_desc">Delete this entry</string>
@@ -184,9 +184,9 @@
     <string name="settings_speech_prefs_title">Voice input preferences</string>
     <string name="settings_speech_prefs_desc">Applies to all recognition modes and engines</string>
     <string name="settings_speech_external_audio_title">Prefer external audio</string>
-    <string name="settings_speech_external_audio_desc">Use a connected Bluetooth headset or external microphone first; when off, always use the phone microphone</string>
+    <string name="settings_speech_external_audio_desc">Prefer a Bluetooth headset or external mic. Off always uses the phone mic</string>
     <string name="settings_speech_gain_title">External audio gain</string>
-    <string name="settings_speech_gain_desc">Adjust the pickup volume multiplier for headsets or external microphones to fix low volume at a distance</string>
+    <string name="settings_speech_gain_desc">Adjust the pickup level of the external mic</string>
     <string name="settings_speech_gain_value_default">2.5x gain</string>
     <string name="settings_speech_vad_title">Pause buffer (VAD)</string>
     <string name="settings_speech_vad_desc">After this many seconds of silence, recording ends and recognition is sent</string>
@@ -199,7 +199,7 @@
     <string name="settings_speech_to_traditional_title">Convert to Traditional Chinese</string>
     <string name="settings_speech_to_traditional_desc">Converts Simplified to Traditional Chinese; Japanese and Korean passages are left unchanged. When off, the recognized text is kept exactly as is</string>
     <string name="settings_speech_spoken_numbers_title">Convert spoken numbers to digits</string>
-    <string name="settings_speech_spoken_numbers_desc">Turns spoken numbers in Chinese, English, Japanese and Korean into digits (\"twenty three\" → 23, \"一百二十三\" → 123), including years, decimals, percentages and, in Chinese, arithmetic, fractions and times. A single digit in everyday phrases is left as a word</string>
+    <string name="settings_speech_spoken_numbers_desc">Converts spoken numbers in Chinese, English, Japanese and Korean to digits (twenty three → 23), including years, decimals and percentages. A lone single digit in everyday phrases is left as is</string>
     <string name="settings_speech_filter_punct_title">Filter full-width punctuation</string>
     <string name="settings_speech_filter_punct_desc">Automatically removes full-width commas, periods, question marks and similar symbols</string>
     <string name="settings_bubble_header_title">Floating voice bubble</string>
@@ -212,24 +212,24 @@
     <string name="settings_bubble_autofill_desc">Fill recognized text directly into the focused field</string>
     <string name="settings_bubble_autofill_action">Enable</string>
     <string name="settings_bubble_restricted_title">Allow restricted settings</string>
-    <string name="settings_bubble_restricted_desc">If the \"Display over other apps\" or \"Auto-fill\" switch is greyed out by the system, tap here to open the app info page, tap the \"⋮\" (three-dot menu) at the top right and choose \"Allow restricted settings\"</string>
+    <string name="settings_bubble_restricted_desc">If the two switches above are locked by the system: open App info, tap the ︙ menu at the top right, then Allow restricted settings</string>
     <string name="settings_bubble_restricted_action">Open</string>
     <string name="settings_bubble_keyboard_only_title">Show only when keyboard is open</string>
-    <string name="settings_bubble_keyboard_only_desc">When on, the bubble appears only while the on-screen keyboard is up; when off, it stays docked at the edge</string>
+    <string name="settings_bubble_keyboard_only_desc">On: only while the keyboard is up. Off: always docked at the edge</string>
     <string name="settings_bubble_multi_title">Multiple bubbles</string>
-    <string name="settings_bubble_multi_desc">Show several function bubbles at once, with smart collision avoidance so they never overlap at the edge</string>
+    <string name="settings_bubble_multi_desc">Show several bubbles at once, pushed apart so they do not overlap</string>
     <string name="settings_bubble_count_title">Number of bubbles</string>
-    <string name="settings_bubble_count_desc">How many bubbles to show at once (2–4: voice, recognition, barcode, quick phrases)</string>
+    <string name="settings_bubble_count_desc">2 to 4 (voice, recognition, barcode, phrases)</string>
     <string name="settings_bubble_count_value_default">4</string>
     <string name="settings_bubble_modes_title">Bubble modes &amp; order</string>
-    <string name="settings_bubble_modes_desc">Press and drag the handle or tap the arrows to reorder the capsule menu and duplicate bubbles; you can also toggle individual modes</string>
+    <string name="settings_bubble_modes_desc">Hold the handle and drag to reorder; switch individual modes on or off</string>
     <string name="settings_bubble_modes_reset">Reset to default</string>
     <string name="settings_bubble_paste_title">Use clipboard paste mode</string>
-    <string name="settings_bubble_paste_desc">When on, text is filled in by pasting from the clipboard (Paste); when off, it is filled in directly through accessibility (SetText)</string>
+    <string name="settings_bubble_paste_desc">Choose how text is filled in</string>
     <string name="settings_bubble_history_title">Quick phrases input history</string>
-    <string name="settings_bubble_history_desc">When on, input from other modes (voice / recognition / barcode) is saved to the quick phrases drawer</string>
+    <string name="settings_bubble_history_desc">Keeps voice, recognition and barcode input</string>
     <string name="settings_bubble_history_count_title">History entries to keep</string>
-    <string name="settings_bubble_history_count_desc">The most history entries kept at the top of the quick phrases drawer (1–12)</string>
+    <string name="settings_bubble_history_count_desc">How many entries to keep at the top of the drawer (1 to 12)</string>
     <string name="settings_bubble_history_count_value_default">6</string>
     <string name="settings_status_title">Setup status</string>
     <string name="settings_status_desc">Tap an incomplete item to jump to its setting</string>
@@ -249,9 +249,9 @@
     <string name="settings_footer_title">Verbead</string>
     <string name="settings_footer_tagline">Every word a pearl</string>
     <string name="settings_ocr_header_title">PP-OCRv6 on-device text recognition</string>
-    <string name="settings_ocr_header_desc">In the floating scanner, tap text in the camera view to freeze it, recognize it and fill it in automatically</string>
-    <string name="settings_ocr_tip_vertical">Vertical text auto-unfold: vertical Chinese text in books, menus, couplets and more is automatically straightened for accurate, upright recognition.</string>
-    <string name="settings_ocr_tip_multiselect">Multi-select in order: tap text blocks to show ①②③ numbers and join them in your own order; double-tap any block to confirm and paste right away.</string>
+    <string name="settings_ocr_header_desc">Tap text in the scanner view to freeze, recognize and fill it in</string>
+    <string name="settings_ocr_tip_vertical">Vertical text (books, menus, couplets) is turned upright automatically.</string>
+    <string name="settings_ocr_tip_multiselect">Selected blocks are numbered ①②③ and joined in that order. Double-tap a block to paste it right away.</string>
     <string name="settings_ocr_auto_enter_title">Auto Enter after recognition and scanning</string>
     <string name="settings_ocr_auto_enter_desc">Automatically sends the Enter key after filling in a barcode or selected text</string>
     <string name="settings_ocr_smart_join_title">Smart line-break joining</string>
@@ -262,7 +262,7 @@
     <string name="settings_ocr_join_space">Space</string>
     <string name="settings_ocr_join_none">None</string>
     <string name="settings_about_credits_title">Open source &amp; credits</string>
-    <string name="settings_about_credits_intro">Verbead sincerely thanks the open-source community and model authors for their outstanding work (tap to open a project):</string>
+    <string name="settings_about_credits_intro">Thanks to the open-source community and model authors (tap to open):</string>
     <string name="settings_about_paddleocr_credit">"  By PaddlePaddle team (Baidu) · Offline text recognition"</string>
     <string name="settings_about_zxing_title">• zxing-cpp barcode library ↗</string>
     <string name="settings_about_zxing_credit">"  By zxing-cpp team / Axel Waggershauser · C++ barcode scanning"</string>
@@ -290,8 +290,8 @@
     <string name="settings_import_invalid_source">Invalid file source</string>
     <string name="settings_import_core_files_item">• Offline model core files</string>
     <string name="settings_import_success_title">Offline models restored</string>
-    <string name="settings_import_success_message">Detected the package contents and restored the model files. Restored model files: %1$d\n\nRestored items:\n%2$s\n\nAll related features are enabled and ready to use.</string>
-    <string name="settings_import_success_ok">Great</string>
+    <string name="settings_import_success_message">Restored %1$d model files:\n%2$s</string>
+    <string name="settings_import_success_ok">OK</string>
     <string name="settings_import_failed_title">Import failed</string>
     <string name="settings_import_failed_message">Couldn\'t extract or install this model package:\n%1$s</string>
     <string name="settings_status_ready_check">Ready ✓</string>
@@ -310,7 +310,7 @@
     <string name="settings_summary_ocr_compact">Compact</string>
     <string name="settings_summary_ocr_trad">Traditional</string>
     <string name="settings_summary_ocr_original">Original</string>
-    <string name="settings_summary_backup">Downloaded: %1$d/%2$d · ZIP import supported</string>
+    <string name="settings_summary_backup">%1$d/%2$d offline models downloaded</string>
     <string name="settings_all_models_ready">All models ready</string>
     <string name="settings_summary_about">Version %1$s · Credits and licenses</string>
     <string name="dict_dialog_delete_title">Delete vocabulary entry</string>
@@ -327,12 +327,12 @@
     <string name="settings_bubble_accessibility_running">Accessibility service is running; auto-fill supported</string>
     <string name="settings_bubble_button_enabled">Enabled</string>
     <string name="settings_bubble_accessibility_not_enabled">Accessibility service isn\'t enabled</string>
-    <string name="settings_bubble_modes_summary_multi">Multiple bubbles on · Modes enabled: %1$d. Several bubbles appear on screen at once</string>
-    <string name="settings_bubble_modes_summary_single">Multiple bubbles off · Single bubble mode. Long-press the bubble to open the vertical capsule menu and switch functions</string>
-    <string name="settings_bubble_paste_desc_on">Text is copied to the clipboard and pasted into the focused field, which works in more apps</string>
-    <string name="settings_bubble_paste_desc_off">Text is written straight into the focused field through accessibility; use this if pasting misbehaves in some apps</string>
-    <string name="settings_bubble_history_desc_on">Shows recent transcription history above the quick phrases drawer</string>
-    <string name="settings_bubble_history_desc_off">History is off; the quick phrases drawer shows only saved phrases</string>
+    <string name="settings_bubble_modes_summary_multi">Multi-bubble on: %1$d modes shown at once</string>
+    <string name="settings_bubble_modes_summary_single">Single bubble: long-press it to open the capsule menu</string>
+    <string name="settings_bubble_paste_desc_on">Copies, then pastes. Works with more apps</string>
+    <string name="settings_bubble_paste_desc_off">Writes directly through accessibility. Use it if pasting misbehaves</string>
+    <string name="settings_bubble_history_desc_on">Recent history is shown above the phrases drawer</string>
+    <string name="settings_bubble_history_desc_off">Off. The drawer shows saved phrases only</string>
     <string name="settings_speech_toast_bluetooth_denied">Bluetooth permission not granted; automatic switching to a Bluetooth headset may not work</string>
     <string name="settings_speech_gain_original">1.0x (original)</string>
     <string name="settings_speech_gain_format">%1$.1fx gain</string>
@@ -342,14 +342,14 @@
     <string name="settings_speech_vocab_desc_count">Custom entries: %1$d · tap to manage</string>
     <string name="settings_speech_missing_both">X-ASR and Qwen3-ASR</string>
     <string name="settings_speech_dual_needs_model_title">Download needed for dual-engine mode</string>
-    <string name="settings_speech_dual_needs_model_message">Dual-engine mode combines X-ASR\'s low-latency live preview with Qwen3-ASR\'s high-accuracy offline transcription.\n\nNot downloaded yet: %1$s.\nTap \"Download model\" to install it first, then turn this on.</string>
+    <string name="settings_speech_dual_needs_model_message">Dual engine needs X-ASR and Qwen3-ASR.\n\nNot downloaded yet: %1$s. Download first, then turn it on.</string>
     <string name="settings_speech_model_label_xasr">X-ASR streaming model</string>
     <string name="settings_speech_model_label_qwen">Qwen3-ASR speech model</string>
     <string name="settings_speech_download_title">Download %1$s</string>
     <string name="settings_speech_redownload_title">Download %1$s again</string>
-    <string name="settings_speech_download_message">Estimated size: about %1$d MB.\nA foreground service keeps the download running in the background; once it finishes, the model works offline.</string>
+    <string name="settings_speech_download_message">About %1$d MB. A foreground service keeps the download running in the background.</string>
     <string name="settings_ocr_checking_size">Checking file size…</string>
-    <string name="settings_ocr_download_message">About to download an offline Traditional Chinese recognition model (%1$s). Once it finishes, text recognition runs entirely on this device.\n\nContinue?</string>
+    <string name="settings_ocr_download_message">About to download a recognition model of about %1$s.\n\nContinue?</string>
     <string name="settings_ocr_download_start">Start download</string>
 
     <!-- P1-4: onboarding -->
@@ -361,35 +361,35 @@
     <string name="onboarding_capsule_title">Vertical capsule · Slide to switch</string>
     <string name="onboarding_mode_voice_title">Live voice input</string>
     <string name="onboarding_capsule_badge_default">Mode 1/4</string>
-    <string name="onboarding_mode_voice_desc">High-accuracy offline speech recognition: tap to start dictating and paste straight in</string>
-    <string name="onboarding_capsule_tags_default">• Offline dual-model ASR transcription\n• Auto punctuation and custom vocabulary\n• Gain for headsets and external mics</string>
-    <string name="onboarding_capsule_hint">Long-press the bubble to open the capsule, then slide up or down to switch modes</string>
-    <string name="onboarding_mode_voice_tags">• Dual engine: live preview + high-accuracy offline transcription\n• Auto punctuation and custom vocabulary replacement\n• Gain for headsets and external mics</string>
+    <string name="onboarding_mode_voice_desc">Tap to dictate and paste</string>
+    <string name="onboarding_capsule_tags_default">• Live preview + offline transcription\n• Auto punctuation, custom vocabulary</string>
+    <string name="onboarding_capsule_hint">Long-press to open, slide up or down to switch</string>
+    <string name="onboarding_mode_voice_tags">• Live preview + offline transcription\n• Auto punctuation, custom vocabulary</string>
     <string name="onboarding_mode_barcode_title">Barcode &amp; QR scanning</string>
-    <string name="onboarding_mode_barcode_desc">Fast on-device barcode reading: aim to recognize and fill in automatically</string>
-    <string name="onboarding_mode_barcode_tags">• Supports QR codes and common 1D barcodes\n• Pinch to zoom the camera, flash fill light\n• Optional auto Enter after scanning</string>
+    <string name="onboarding_mode_barcode_desc">Aim to scan and fill in automatically</string>
+    <string name="onboarding_mode_barcode_tags">• QR codes and 1D barcodes\n• Pinch zoom, flashlight</string>
     <string name="onboarding_mode_ocr_title">Text recognition (PP-OCRv6)</string>
-    <string name="onboarding_mode_ocr_desc">Freeze the frame and select one or more text blocks for high-accuracy offline capture</string>
-    <string name="onboarding_mode_ocr_tags">• PP-OCRv6 offline model, with upright recognition of vertical Chinese\n• Tap blocks to combine them in order, with smart line-break joining\n• Custom line break or space separator, pinch to zoom and focus</string>
+    <string name="onboarding_mode_ocr_desc">Select one or more text blocks, recognized offline</string>
+    <string name="onboarding_mode_ocr_tags">• Vertical Chinese supported\n• Tap blocks to join them in order</string>
     <string name="onboarding_mode_phrases_title">Quick phrases &amp; history</string>
-    <string name="onboarding_mode_phrases_desc">Tap a custom phrase to paste it, and recall recent input automatically</string>
-    <string name="onboarding_mode_phrases_tags">• Long-press and drag phrases to reorder smoothly\n• Recent input from every mode is pinned on top (1–12 entries)\n• Tap to paste, no retyping</string>
+    <string name="onboarding_mode_phrases_desc">Tap a phrase to paste; recent input is kept</string>
+    <string name="onboarding_mode_phrases_tags">• Long-press and drag to reorder\n• Recent input listed automatically</string>
     <string name="onboarding_voice_sample">The meeting is at two this afternoon in the third-floor conference room.</string>
     <string name="onboarding_undo_sample">The meeting time is two o\'clock sharp.</string>
     <string name="onboarding_gesture_edge_title" formatted="false">1. Edge tuck: 70% beyond the edge</string>
-    <string name="onboarding_gesture_edge_desc" formatted="false">Tucks into the screen edge with only a 30% arc showing; tap to pull it back out</string>
+    <string name="onboarding_gesture_edge_desc" formatted="false">Only 30% stays visible at the edge; tap to pull it out</string>
     <string name="onboarding_gesture_keyboard_title">2. Keyboard link: appears only when typing</string>
-    <string name="onboarding_gesture_keyboard_desc">Turn on \"Show only when keyboard is open\" in settings and the bubble fades in as the keyboard rises</string>
+    <string name="onboarding_gesture_keyboard_desc">With the keyboard-only option on, it fades in with the keyboard</string>
     <string name="onboarding_gesture_shake_title">3. Shake to duplicate: many bubbles at once</string>
-    <string name="onboarding_gesture_shake_desc">Shake the bubble left and right while dragging to split off a new one (up to 4), each remembering its own mode</string>
+    <string name="onboarding_gesture_shake_desc">Shake while dragging to split off a new bubble (up to 4)</string>
     <string name="onboarding_gestures_title">Tuck · Link · Shake to duplicate</string>
     <string name="onboarding_gestures_mock_keyboard">System keyboard (Gboard)</string>
     <string name="onboarding_privacy_title" formatted="false">Private · 100% on-device processing</string>
-    <string name="onboarding_privacy_subtitle">Local inference only · Zero cloud transfer</string>
+    <string name="onboarding_privacy_subtitle">Nothing sent to the cloud</string>
     <string name="onboarding_privacy_chip_dual">Dual-engine offline voice</string>
     <string name="onboarding_privacy_chip_ocr">PP-OCRv6 recognition</string>
     <string name="onboarding_privacy_chip_qwen">Qwen3-ASR offline recognition</string>
-    <string name="onboarding_privacy_chip_zero_upload">No uploads · Fully local</string>
+    <string name="onboarding_privacy_chip_zero_upload">No uploads</string>
     <string name="onboarding_undo_title">Instant undo · Tap the ↶ above to take it back</string>
     <string name="onboarding_undo_mock_question">Where is the presentation file?</string>
     <string name="onboarding_undo_mock_hint">Tap the bubble to type...</string>
@@ -463,10 +463,10 @@
     <string name="floating_screen_ocr_desc">Screen OCR</string>
     <string name="toast_screen_capture_failed">Screen capture failed. Enable the Verbead accessibility service (Android 11+)</string>
     <string name="settings_ocr_korean_title">Korean text recognition</string>
-    <string name="settings_ocr_korean_desc">The main model cannot read Hangul. With this optional Korean model, text it cannot read is recognized a second time. It only runs when needed, so Chinese and English recognition is not slowed down</string>
+    <string name="settings_ocr_korean_desc">Optional. Used only when the main model cannot read Korean text, so Chinese and English stay fast</string>
     <string name="settings_ocr_korean_switch_title">Use the Korean model</string>
     <string name="settings_ocr_korean_switch_desc">When off, the Korean model is never loaded</string>
-    <string name="settings_ocr_korean_download_message">About to download the Korean recognition model (%1$s, PP-OCRv5 mobile). Once it finishes, it runs entirely on this device.\n\nContinue?</string>
+    <string name="settings_ocr_korean_download_message">About to download the Korean recognition model (%1$s, PP-OCRv5 mobile).\n\nContinue?</string>
     <string name="ocr_model_name_korean">PP-OCRv5 Korean</string>
     <string name="model_label_ocr_korean_detail">PP-OCRv5 Korean text recognition</string>
 
@@ -486,7 +486,7 @@ Final: %2$s</string>
     <string name="asr_languages_format">Languages: %1$s</string>
     <string name="asr_model_size_format">Download about %1$d MB</string>
     <string name="asr_in_use">In use · tap to clear</string>
-    <string name="asr_memory_hint">These models take a large share of this phone\'s memory. If the app gets slow or closes, pick lighter ones.</string>
+    <string name="asr_memory_hint">This combination uses a lot of memory. If things slow down or the system closes the app, pick a lighter model.</string>
     <string name="asr_custom_problems_format">Some entries of custom_models.json were skipped:\n%1$s</string>
     <string name="asr_variant_format">Variant: %1$s</string>
     <string name="asr_variant_dialog_title">Choose a variant</string>
@@ -498,7 +498,7 @@ Final: %2$s</string>
     <string name="asr_profile_balanced">Balanced</string>
     <string name="asr_profile_best">Most accurate</string>
     <string name="asr_rec_title">Recommended for you</string>
-    <string name="asr_rec_none">No recommended model for this language yet. Open the full list below to choose one yourself.</string>
+    <string name="asr_rec_none">No recommendation for this language yet. Pick from the full list below.</string>
     <string name="asr_rec_download_use">Download and use</string>
     <string name="asr_rec_use">Use</string>
     <string name="asr_rec_in_use">In use</string>
@@ -514,7 +514,7 @@ Final: %2$s</string>
     <string name="asr_more_actions">More actions</string>
     <string name="asr_menu_delete">Delete model</string>
     <string name="asr_delete_title">Delete %1$s?</string>
-    <string name="asr_delete_message">Its files are removed from this phone. To use it again you will have to download it again.</string>
+    <string name="asr_delete_message">Removes the model files from this phone. You will need to download it again to use it.</string>
     <string name="asr_keep_one">At least one model has to stay in use</string>
     <string name="asr_size_format">About %1$d MB</string>
     <string name="asr_badge_recommended">Recommended</string>
