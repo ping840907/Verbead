@@ -31,7 +31,7 @@
             app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -61,7 +61,7 @@
                 app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
 
             <!-- 閃光燈 (Flash Toggle) -->
             <com.ping.verbead.ui.GlassIconView
@@ -74,7 +74,7 @@
                 app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
         </LinearLayout>
     </RelativeLayout>
 
@@ -133,7 +133,7 @@
             app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
 
         <TextView
             android:id="@+id/tv_scanner_hint"

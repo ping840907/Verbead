@@ -70,6 +70,8 @@ class GlassBubbleLayout @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val activeState = mutableStateOf(false)
+    /** Bumped when the screen orientation or the view's size changes; the glass is rebuilt from scratch. */
+    private val rebuild = androidx.compose.runtime.mutableIntStateOf(0)
 
     init {
         clipChildren = false
@@ -91,10 +93,15 @@ class GlassBubbleLayout @JvmOverloads constructor(
                     val listening = if (dark) Color(0xFF8E1B1B) else Color(0xFFB3261E)
                     val body = lerp(idle, listening, mix.value)
                     val palette = SeaGlassPalette(body, lerp(body, Color.White, .35f), Color.White)
-                    SeaGlassMaterialTheme(style = BubbleRecipe, shape = SeaGlassShape.Disc) {
-                        // Full 56dp disc. The window has no room for the cast shadow, which would be
-                        // cut into a flat edge, so the glass is clipped to the circle instead.
-                        Box(Modifier.fillMaxSize().clip(CircleShape).seaGlass(palette = palette))
+                    // Sea Glass caches its outline per size; after a rotation the old one could stay on screen,
+                    // so a new generation throws the cached glass away and builds it again.
+                    val generation by rebuild
+                    androidx.compose.runtime.key(generation) {
+                        SeaGlassMaterialTheme(style = BubbleRecipe, shape = SeaGlassShape.Disc) {
+                            // Full 56dp disc. The window has no room for the cast shadow, which would be
+                            // cut into a flat edge, so the glass is clipped to the circle instead.
+                            Box(Modifier.fillMaxSize().clip(CircleShape).seaGlass(palette = palette))
+                        }
                     }
                 }
             }
@@ -112,6 +119,21 @@ class GlassBubbleLayout @JvmOverloads constructor(
             root.setViewTreeSavedStateRegistryOwner(OverlayOwner)
         }
         super.onAttachedToWindow()
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration?) {
+        super.onConfigurationChanged(newConfig)
+        rebuild.intValue++
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (oldw != 0 || oldh != 0) rebuild.intValue++
+    }
+
+    /** Called by the service after a screen change. */
+    fun rebuildGlass() {
+        rebuild.intValue++
     }
 
     override fun setBackgroundResource(resid: Int) {

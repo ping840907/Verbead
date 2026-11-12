@@ -3030,6 +3030,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         spareBubbleView = null // 主題或螢幕設定改變後，預載的版面可能過期
+        // After a rotation the glass is rebuilt and any squish / magnet transform left over from an interrupted
+        // animation is cleared, so no bubble stays deformed.
+        for (item in bubbleItems) {
+            (item.btnBubble as? com.ping.verbead.ui.GlassBubbleLayout)?.rebuildGlass()
+            item.btnBubble.animate().cancel()
+            item.btnBubble.scaleX = 1f
+            item.btnBubble.scaleY = 1f
+            item.btnBubble.rotation = 0f
+        }
         if (::bubbleView.isInitialized && bubbleView.isAttachedToWindow) {
             val screenWidth = getScreenWidth()
             val bubbleWidthPx = (60 * resources.displayMetrics.density).toInt()

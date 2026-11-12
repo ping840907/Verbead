@@ -53,7 +53,7 @@
             app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
 
         <TextView
             android:id="@+id/tv_ocr_status"
@@ -85,7 +85,7 @@
             app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
     </LinearLayout>
 
     <!-- Bottom Action Bar (Multi-select Actions) -->
@@ -114,7 +114,7 @@
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:textStyle="bold"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
 
         <com.ping.verbead.ui.GlassTagText
             android:id="@+id/btn_ocr_clear"
@@ -129,7 +129,7 @@
             android:text="@string/ocr_snapshot_clear"
             android:textColor="#B0BEC5"
             android:textSize="13sp"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
 
         <View
             android:layout_width="0dp"
@@ -149,7 +149,8 @@
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold"
-            app:glassTint="#3F8F4A" />
+            app:glassFollowBubble="true"
+            app:glassAccent="true" />
     </LinearLayout>
 
 </FrameLayout>

@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color as ComposeColor
 internal interface OverlayTinted {
     val overlayTint: Int?
     val followBubble: Boolean
+    val accent: Boolean get() = false
 }
 
 /** A view whose own background is replaced by a Sea Glass plate once GlassStage wraps it. */
@@ -61,7 +62,9 @@ class GlassPlateFrame internal constructor(
 
     private val tintState = mutableIntStateOf(Color.TRANSPARENT)
     internal var darkOverlay = false
+    private val rebuild = mutableIntStateOf(0)
     internal var followBubble = false
+    internal var accent = false
     private val glow = (GLOW_DP * resources.displayMetrics.density).toInt()
     private val glassView: ComposeView
 
@@ -81,7 +84,9 @@ class GlassPlateFrame internal constructor(
                     val tint by tintState
                     val body = if (followBubble) {
                         // exactly the main bubble's colour, so the two always match
-                        if (dark) colors.primaryContainer else colors.primary
+                        val base = if (dark) colors.primaryContainer else colors.primary
+                        // the main action: the theme's primary colour, darkened so white text stays readable
+                        if (accent) lerp(colors.primary, ComposeColor.Black, 0.38f) else base
                     } else {
                         lerp(ComposeColor(tint or (0xFF shl 24)), ComposeColor.White, 0.06f)
                     }
@@ -89,10 +94,13 @@ class GlassPlateFrame internal constructor(
                         body, lerp(body, ComposeColor.White, .35f),
                         if (followBubble) ComposeColor.White else ComposeColor.Black
                     )
-                    SeaGlassMaterialTheme(style = if (followBubble) BubbleRecipe else SmallGlassRecipe, shape = shape) {
-                        // Clipped to the plate's own shape: the cast shadow would otherwise be cut into a flat edge.
-                        val clipShape = if (shape == SeaGlassShape.Disc) CircleShape else RoundedCornerShape(50)
-                        Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).clip(clipShape).seaGlass(palette = palette))
+                    val generation by rebuild
+                    androidx.compose.runtime.key(generation) {
+                        SeaGlassMaterialTheme(style = if (followBubble) BubbleRecipe else SmallGlassRecipe, shape = shape) {
+                            // Clipped to the plate's own shape: the cast shadow would otherwise be cut into a flat edge.
+                            val clipShape = if (shape == SeaGlassShape.Disc) CircleShape else RoundedCornerShape(50)
+                            Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).clip(clipShape).seaGlass(palette = palette))
+                        }
                     }
                 }
             }
@@ -103,6 +111,11 @@ class GlassPlateFrame internal constructor(
                 setMargins(-glow, -glow, -glow, -glow)
             }
         )
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration?) {
+        super.onConfigurationChanged(newConfig)
+        rebuild.intValue++
     }
 
     override fun onAttachedToWindow() {
@@ -156,6 +169,7 @@ class GlassPlateFrame internal constructor(
             host.plate = frame
             frame.darkOverlay = (host as? OverlayTinted)?.overlayTint != null
             frame.followBubble = (host as? OverlayTinted)?.followBubble == true
+            frame.accent = (host as? OverlayTinted)?.accent == true
             frame.setTint(host.defaultPlateTint())
             view.background = null
         }
@@ -211,7 +225,8 @@ class GlassTagText @JvmOverloads constructor(
     override val plateShape get() = SeaGlassShape.Capsule
 
     override val overlayTint: Int? = readOverlayTint(context, attrs)
-    override val followBubble: Boolean = false
+    override val followBubble: Boolean = readFollowBubble(context, attrs)
+    override val accent: Boolean = readAccent(context, attrs)
 
     /** Colour of the background drawable given in XML, captured before the plate exists. */
     private var xmlTint: Int? = null
@@ -254,6 +269,14 @@ private fun readFollowBubble(context: Context, attrs: AttributeSet?): Boolean {
     if (attrs == null) return false
     val a = context.obtainStyledAttributes(attrs, R.styleable.GlassOverlay)
     val v = a.getBoolean(R.styleable.GlassOverlay_glassFollowBubble, false)
+    a.recycle()
+    return v
+}
+
+private fun readAccent(context: Context, attrs: AttributeSet?): Boolean {
+    if (attrs == null) return false
+    val a = context.obtainStyledAttributes(attrs, R.styleable.GlassOverlay)
+    val v = a.getBoolean(R.styleable.GlassOverlay_glassAccent, false)
     a.recycle()
     return v
 }

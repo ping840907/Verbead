@@ -27,7 +27,7 @@
             app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
 
         <TextView
             android:id="@+id/tv_phrases_title"
@@ -51,7 +51,7 @@
             app:tint="#FFFFFFFF"
             android:clickable="true"
             android:focusable="true"
-            app:glassTint="#4F7A73" />
+            app:glassFollowBubble="true" />
     </RelativeLayout>
 
     <!-- Content: Phrases List & Empty State -->
