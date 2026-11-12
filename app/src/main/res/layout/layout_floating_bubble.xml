@@ -16,7 +16,7 @@
         android:clickable="true"
         android:focusable="true">
 
-        <ImageView
+        <com.ping.verbead.ui.PopImageView
             android:id="@+id/iv_bubble_icon"
             android:layout_width="28dp"
             android:layout_height="28dp"

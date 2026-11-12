@@ -15,6 +15,7 @@
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowAnimationStyle">@style/Verbead.WindowAnim</item>
         <item name="alertDialogTheme">@style/ThemeOverlay.Verbead.Dialog</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Verbead.Dialog</item>
     </style>

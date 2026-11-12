@@ -16,11 +16,14 @@
         android:layout_weight="1"
         android:background="@drawable/bg_mockup_screen"
         android:clipChildren="false"
+        android:clipToPadding="false"
         android:padding="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:gravity="center_horizontal"
             android:orientation="vertical">
 
@@ -32,26 +35,15 @@
                 android:orientation="horizontal"
                 android:paddingBottom="12dp">
 
-                <View
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:background="@drawable/bg_icon_circle"
-                    android:backgroundTint="@color/md_theme_light_outlineVariant" />
 
                 <TextView
                     style="@style/Verbead.Text.Caption"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:text="@string/onboarding_privacy_title"
                     android:textColor="@color/text_tertiary" />
 
-                <View
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
-                    android:background="@drawable/bg_icon_circle"
-                    android:backgroundTint="@color/status_success_text" />
             </LinearLayout>
 
             <View
@@ -62,9 +54,11 @@
             <!-- Animated Shield Container -->
             <FrameLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
-                <!-- Pulse Ring -->
+                <!-- Pulse Ring (grows past the container, so nothing above may clip it) -->
                 <View
                     android:id="@+id/view_mock_privacy_pulse"
                     android:layout_width="96dp"

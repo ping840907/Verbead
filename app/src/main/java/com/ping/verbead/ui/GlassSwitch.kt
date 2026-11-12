@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
@@ -101,6 +104,9 @@ class GlassSwitch @JvmOverloads constructor(
                         if (d != null) position.snapTo(d)
                         else position.animateTo(if (checked) 1f else 0f, tween(180))
                     }
+                    // Stretch while moving (0 at both ends, so the resting thumb is unchanged).
+                    val stretch = kotlin.math.sin(Math.PI * position.value.coerceIn(0f, 1f)).toFloat() * 0.3f
+                    // Scale on the drawn layer, not a resize: a size change makes Sea Glass rebuild its outline.
                     val thumbX = (INSET_DP + travel * position.value).dp
                     val cs = MaterialTheme.colorScheme
                     val p = position.value
@@ -130,6 +136,10 @@ class GlassSwitch @JvmOverloads constructor(
                                 Modifier.align(Alignment.CenterStart)
                                     .offset(x = thumbX)
                                     .size(THUMB_DP.dp)
+                                    .graphicsLayer {
+                                        scaleX = 1f + stretch
+                                        scaleY = 1f - stretch * 0.22f
+                                    }
                                     .clip(CircleShape)
                                     .seaGlass(palette = thumbPalette)
                                     .border(1.dp, rim, CircleShape)
@@ -146,7 +156,6 @@ class GlassSwitch @JvmOverloads constructor(
                 setMargins(-g, -g, -g, -g)
             }
         )
-        super.setOnClickListener { toggle() }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -202,6 +211,15 @@ class GlassSwitch @JvmOverloads constructor(
 
     fun toggle() {
         isChecked = !isChecked
+    }
+
+    /**
+     * A tap (or an accessibility click) flips the switch first, then runs whatever click listener the
+     * screen set, which therefore sees the new state. Setting a listener no longer replaces the toggle.
+     */
+    override fun performClick(): Boolean {
+        toggle()
+        return super.performClick()
     }
 
     fun setOnCheckedChangeListener(l: ((View, Boolean) -> Unit)?) {

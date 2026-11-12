@@ -11,5 +11,7 @@
         <attr name="glassDark" format="boolean" />
         <!-- Same colours as the main floating bubble (primaryContainer in dark, primary in light). -->
         <attr name="glassFollowBubble" format="boolean" />
+        <!-- With glassFollowBubble: a stronger shade of the same colour for the main action. -->
+        <attr name="glassAccent" format="boolean" />
     </declare-styleable>
 </resources>

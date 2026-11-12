@@ -72,37 +72,6 @@
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Quick Up / Down Buttons -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageButton
-                android:id="@+id/btn_mode_move_up"
-                android:layout_width="28dp"
-                android:layout_height="24dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/bubble_mode_move_up_desc"
-                android:padding="2dp"
-                android:scaleType="centerInside"
-                android:src="@drawable/ic_arrow_up"
-                app:tint="@color/text_secondary" />
-
-            <ImageButton
-                android:id="@+id/btn_mode_move_down"
-                android:layout_width="28dp"
-                android:layout_height="24dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/bubble_mode_move_down_desc"
-                android:padding="2dp"
-                android:scaleType="centerInside"
-                android:src="@drawable/ic_arrow_down"
-                app:tint="@color/text_secondary" />
-        </LinearLayout>
-
         <!-- Enable / Disable Switch -->
         <com.ping.verbead.ui.GlassSwitch
             android:id="@+id/switch_mode_enabled"
