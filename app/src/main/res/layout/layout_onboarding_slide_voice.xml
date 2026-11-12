@@ -31,26 +31,15 @@
                 android:orientation="horizontal"
                 android:paddingBottom="12dp">
 
-                <View
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:background="@drawable/bg_icon_circle"
-                    android:backgroundTint="@color/md_theme_light_outlineVariant" />
 
                 <TextView
                     style="@style/Verbead.Text.Caption"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:text="@string/onboarding_voice_title"
                     android:textColor="@color/text_tertiary" />
 
-                <View
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
-                    android:background="@drawable/bg_icon_circle"
-                    android:backgroundTint="@color/status_success_text" />
             </LinearLayout>
 
             <!-- Simulated Chat Bubble from other person -->
