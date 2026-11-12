@@ -515,4 +515,8 @@
     <string name="asr_badge_recommended">推薦</string>
     <string name="asr_variants_count_format">%1$d 個版本</string>
     <string name="asr_preset_left_format">還需下載約 %1$d MB</string>
+    <string name="settings_theme_title">外觀主題</string>
+    <string name="settings_theme_system">跟隨系統</string>
+    <string name="settings_theme_light">淺色</string>
+    <string name="settings_theme_dark">深色</string>
 </resources>

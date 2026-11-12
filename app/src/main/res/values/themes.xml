@@ -15,5 +15,12 @@
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.Verbead.Dialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Verbead.Dialog</item>
+    </style>
+
+    <!-- Rounded tonal dialogs; colours come from the Material You scheme -->
+    <style name="ThemeOverlay.Verbead.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="dialogCornerRadius">28dp</item>
     </style>
 </resources>

@@ -134,6 +134,7 @@
 
     <!-- ══════════ Chips (frosted, follows Material You) ══════════ -->
     <style name="Verbead.Chip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipSurfaceColor">@android:color/transparent</item>
         <item name="chipBackgroundColor">@color/chip_glass_bg</item>
         <item name="chipStrokeColor">@color/chip_glass_stroke</item>
         <item name="chipStrokeWidth">1dp</item>

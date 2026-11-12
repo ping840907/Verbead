@@ -17,6 +17,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -540,9 +542,13 @@ class SpeechSettingsActivity : AppCompatActivity() {
             view.text = model?.name ?: none
             view.alpha = if (model == null) 0.45f else 1f
         }
+        // Without a second model there is nothing to show in the empty slot, so it folds away.
+        val dual = live != null && fin != null
+        findViewById<View>(R.id.row_combo_live).visibility = if (live != null || fin == null) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.row_combo_final).visibility = if (fin != null || live == null) View.VISIBLE else View.GONE
         // a slot can be cleared while the other one still has a model (one must always stay)
-        btnClearLive.visibility = if (live != null && fin != null) View.VISIBLE else View.GONE
-        btnClearFinal.visibility = if (live != null && fin != null) View.VISIBLE else View.GONE
+        btnClearLive.visibility = if (dual) View.VISIBLE else View.GONE
+        btnClearFinal.visibility = if (dual) View.VISIBLE else View.GONE
     }
 
     /** Rebuilds the card list for the current filter and the current download / selection state. */
@@ -738,6 +744,11 @@ class SpeechSettingsActivity : AppCompatActivity() {
             setPadding(dpToPx(16f), dpToPx(8f), dpToPx(16f), dpToPx(24f))
         }
         dialog.setContentView(holder)
+        // The sheet hosts Sea Glass (Compose) views, which look their lifecycle owner up from the window.
+        dialog.window?.decorView?.let {
+            it.setViewTreeLifecycleOwner(this)
+            it.setViewTreeSavedStateRegistryOwner(this)
+        }
         sheet = dialog
         sheetHolder = holder
         dialog.setOnDismissListener {
@@ -894,6 +905,8 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
         val list = android.widget.ListView(this).apply {
             this.adapter = adapter
+            divider = null
+            dividerHeight = 0
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT, (360 * dp).toInt()
             )

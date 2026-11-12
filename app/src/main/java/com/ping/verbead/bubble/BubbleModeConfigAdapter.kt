@@ -72,22 +72,7 @@ class BubbleModeConfigAdapter(
         holder.tvDesc.text = context.getString(meta.descriptionRes)
         holder.ivIcon.setImageResource(getIconResForMode(mode))
 
-        // Compute 1-based order rank among enabled modes
-        if (isEnabled) {
-            var enabledRank = 1
-            for (i in 0 until position) {
-                if (ModelConfig.isBubbleModeEnabled(context, modeOrder[i])) {
-                    enabledRank++
-                }
-            }
-            holder.tvOrderBadge.text = enabledRank.toString()
-            holder.tvOrderBadge.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_primary))
-            holder.cardRoot.alpha = 1.0f
-        } else {
-            holder.tvOrderBadge.text = "—"
-            holder.tvOrderBadge.setTextColor(ContextCompat.getColor(context, R.color.text_tertiary))
-            holder.cardRoot.alpha = 0.55f
-        }
+        holder.cardRoot.alpha = if (isEnabled) 1.0f else 0.55f
 
         holder.btnMoveUp.isEnabled = position > 0
         holder.btnMoveUp.alpha = if (position > 0) 1.0f else 0.25f
@@ -157,7 +142,6 @@ class BubbleModeConfigAdapter(
         val cardRoot: MaterialCardView = itemView.findViewById(R.id.card_mode_item)
         val layoutRoot: View = itemView.findViewById(R.id.layout_mode_item_root)
         val ivDragHandle: ImageView = itemView.findViewById(R.id.iv_mode_drag_handle)
-        val tvOrderBadge: TextView = itemView.findViewById(R.id.tv_mode_order_badge)
         val ivIcon: ImageView = itemView.findViewById(R.id.iv_mode_icon)
         val tvTitle: TextView = itemView.findViewById(R.id.tv_mode_title)
         val tvDesc: TextView = itemView.findViewById(R.id.tv_mode_desc)

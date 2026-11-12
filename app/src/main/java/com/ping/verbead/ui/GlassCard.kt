@@ -8,6 +8,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import com.ping.verbead.R
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -162,7 +163,11 @@ object GlassStage {
         buttons.forEach { GlassButtonFrame.wrap(it) }
         val plates = ArrayList<View>()
         collectPlates(root, plates)
-        plates.forEach { v -> (v as? GlassPlateHost)?.let { GlassPlateFrame.wrap(it, v) } }
+        plates.forEach { v ->
+            (v as? GlassPlateHost)?.let { GlassPlateFrame.wrap(it, v) }
+            (v as? GlassSeekBar)?.let { GlassSeekFrame.wrap(it) }
+            if (v is GlassChipGroup || v is GlassChip) GlassChipFrame.wrap(v)
+        }
     }
 
     /** Toolbars and app bars paint their own opaque colour; let the backdrop show instead. */
@@ -190,7 +195,11 @@ object GlassStage {
         buttons.forEach { GlassButtonFrame.wrap(it) }
         val plates = ArrayList<View>()
         collectPlates(root, plates)
-        plates.forEach { v -> (v as? GlassPlateHost)?.let { GlassPlateFrame.wrap(it, v) } }
+        plates.forEach { v ->
+            (v as? GlassPlateHost)?.let { GlassPlateFrame.wrap(it, v) }
+            (v as? GlassSeekBar)?.let { GlassSeekFrame.wrap(it) }
+            if (v is GlassChipGroup || v is GlassChip) GlassChipFrame.wrap(v)
+        }
     }
 
     /** Gives a MaterialCardView the same frosted look as [GlassCard]. */
@@ -199,8 +208,21 @@ object GlassStage {
         val container = MaterialColors.getColor(card, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY)
         val surface = MaterialColors.getColor(card, com.google.android.material.R.attr.colorSurface, Color.WHITE)
         card.setCardBackgroundColor(
-            ColorUtils.setAlphaComponent(ColorUtils.blendARGB(surface, container, 0.35f), 0xD6)
+            ColorUtils.setAlphaComponent(ColorUtils.blendARGB(surface, container, 0.35f), 0xC4)
         )
+        card.radius = 24f * ctx.resources.displayMetrics.density
+        // Same faint top-light sheen as GlassCard, laid over the card so it follows the radius.
+        if (card.getTag(R.id.glass_tint) == null) {
+            val sheen = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(ColorUtils.setAlphaComponent(Color.WHITE, 0x24), Color.TRANSPARENT)
+            ).apply { cornerRadius = card.radius }
+            card.overlay.add(sheen)
+            card.addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
+                sheen.setBounds(0, 0, r - l, b - t)
+            }
+            card.setTag(R.id.glass_tint, sheen)
+        }
         card.strokeColor = hairline(ctx)
         if (card.strokeWidth == 0) card.strokeWidth = (1f * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(1)
         card.cardElevation = 0f
@@ -214,7 +236,7 @@ object GlassStage {
     }
 
     private fun collectPlates(v: View, out: MutableList<View>) {
-        if (v is GlassPlateHost) out.add(v)
+        if (v is GlassPlateHost || v is GlassSeekBar || v is GlassChipGroup || (v is GlassChip && v.parent !is GlassChipGroup)) out.add(v)
         if (v is ViewGroup) for (i in 0 until v.childCount) collectPlates(v.getChildAt(i), out)
     }
 

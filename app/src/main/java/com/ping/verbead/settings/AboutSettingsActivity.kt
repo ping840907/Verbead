@@ -11,6 +11,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.ping.verbead.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ping.verbead.util.AppLocale
+import com.ping.verbead.util.AppTheme
 import com.ping.verbead.util.HapticUtil
 
 class AboutSettingsActivity : AppCompatActivity() {
@@ -33,6 +34,13 @@ class AboutSettingsActivity : AppCompatActivity() {
         findViewById<View>(R.id.row_language).setOnClickListener {
             HapticUtil.click(this)
             showLanguageDialog()
+        }
+
+        val themeValue = findViewById<TextView>(R.id.text_theme_value)
+        themeValue.text = themeLabel(AppTheme.current(this))
+        findViewById<View>(R.id.row_theme).setOnClickListener {
+            HapticUtil.click(this)
+            showThemeDialog()
         }
 
         fun openWebUrl(url: String) {
@@ -81,6 +89,24 @@ class AboutSettingsActivity : AppCompatActivity() {
             .setSingleChoiceItems(tags.map(::languageLabel).toTypedArray(), current) { dialog, which ->
                 dialog.dismiss()
                 if (which != current) AppLocale.setTag(this, tags[which])
+            }
+            .show()
+    }
+
+    private fun themeLabel(mode: String): String = when (mode) {
+        AppTheme.LIGHT -> getString(R.string.settings_theme_light)
+        AppTheme.DARK -> getString(R.string.settings_theme_dark)
+        else -> getString(R.string.settings_theme_system)
+    }
+
+    private fun showThemeDialog() {
+        val modes = AppTheme.MODES
+        val current = modes.indexOf(AppTheme.current(this)).coerceAtLeast(0)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.settings_theme_title)
+            .setSingleChoiceItems(modes.map(::themeLabel).toTypedArray(), current) { dialog, which ->
+                dialog.dismiss()
+                if (which != current) AppTheme.set(this, modes[which])
             }
             .show()
     }

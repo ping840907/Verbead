@@ -520,4 +520,8 @@ Final: %2$s</string>
     <string name="asr_badge_recommended">Recommended</string>
     <string name="asr_variants_count_format">%1$d versions</string>
     <string name="asr_preset_left_format">%1$d MB left to download</string>
+    <string name="settings_theme_title">Appearance</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
 </resources>

@@ -395,7 +395,7 @@
                             android:textColor="@color/tag_recommend" />
                     </LinearLayout>
 
-                    <SeekBar
+                    <com.ping.verbead.ui.GlassSeekBar
                         android:id="@+id/sb_multi_bubble_count"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -630,7 +630,7 @@
                             android:textColor="@color/tag_recommend" />
                     </LinearLayout>
 
-                    <SeekBar
+                    <com.ping.verbead.ui.GlassSeekBar
                         android:id="@+id/sb_history_limit"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

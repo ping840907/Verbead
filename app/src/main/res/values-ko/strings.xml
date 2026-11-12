@@ -515,4 +515,8 @@
     <string name="asr_badge_recommended">추천</string>
     <string name="asr_variants_count_format">%1$d개 버전</string>
     <string name="asr_preset_left_format">약 %1$d MB 더 다운로드</string>
+    <string name="settings_theme_title">테마</string>
+    <string name="settings_theme_system">시스템 설정 따르기</string>
+    <string name="settings_theme_light">라이트</string>
+    <string name="settings_theme_dark">다크</string>
 </resources>
