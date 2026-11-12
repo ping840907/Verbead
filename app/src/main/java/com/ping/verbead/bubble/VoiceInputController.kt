@@ -225,6 +225,7 @@ class VoiceInputController(
         val audioBuffer = mutableListOf<FloatArray>()
         var accumulatedXAsr = ""
         lastStreamingText = ""
+        val livePreview = LivePreview(liveEngine?.model)
 
         recordingJob = scope.launch {
             val stopReason = withContext(Dispatchers.IO) {
@@ -241,14 +242,18 @@ class VoiceInputController(
                         val combined = accumulatedXAsr + partial
                         if (combined.isNotBlank() && combined != lastStreamingText) {
                             lastStreamingText = combined
+                            val shown = livePreview.text(partial)
                             mainHandler.post {
                                 if (isRecording && !isAborted) {
-                                    host.showLive(xAsrModelText(combined))
+                                    host.showLive(shown)
                                 }
                             }
                         }
                         if (xAsr.isEndpoint(stream)) {
-                            if (partial.isNotBlank()) accumulatedXAsr += partial
+                            if (partial.isNotBlank()) {
+                                accumulatedXAsr += partial
+                                livePreview.commit(partial)
+                            }
                             xAsr.reset(stream)
                         }
                     },
@@ -387,6 +392,7 @@ class VoiceInputController(
 
         var accumulated = ""
         var lastShown = ""
+        val livePreview = LivePreview(engine.model)
 
         recordingJob = scope.launch {
             val stopReason = withContext(Dispatchers.IO) {
@@ -402,14 +408,18 @@ class VoiceInputController(
                         val combined = accumulated + partial
                         if (combined.isNotBlank() && combined != lastShown) {
                             lastShown = combined
+                            val shown = livePreview.text(partial)
                             mainHandler.post {
                                 if (isRecording && !isAborted) {
-                                    host.showLive(xAsrModelText(combined))
+                                    host.showLive(shown)
                                 }
                             }
                         }
                         if (engine.isEndpoint(stream)) {
-                            if (partial.isNotBlank()) accumulated += partial
+                            if (partial.isNotBlank()) {
+                                accumulated += partial
+                                livePreview.commit(partial)
+                            }
                             engine.reset(stream)
                         }
                     },
@@ -440,6 +450,7 @@ class VoiceInputController(
                 return@launch
             }
 
+            // 整句完成：用模型的原文（未經即時轉換）整段重新做一次簡繁轉換與後處理
             val fullText = (accumulated + finalSegment).trim()
             host.onTranscribed(finalizeText(fullText, engine.model))
         }
@@ -454,8 +465,37 @@ class VoiceInputController(
         return postProcess(producer?.normalizeText(raw) ?: raw, producer)
     }
 
-    /** Text of the live model for the preview, tidied up if the model writes in capitals only. */
-    private fun xAsrModelText(text: String): String = liveEngine?.model?.normalizeText(text) ?: text
+    /** The script conversion the convert-to-Traditional setting asks for, given the model that wrote the text. */
+    private fun scriptModeFor(producer: AsrModel?): ScriptMode = when {
+        !ModelConfig.isConvertToTraditionalEnabled(context) -> ScriptMode.OFF
+        // a model that writes Traditional Chinese by itself only needs the Taiwan wording rules
+        producer?.nativeTraditional == true -> ScriptMode.VARIANTS_ONLY
+        else -> ScriptMode.FULL
+    }
+
+    /**
+     * 串流預覽的即時簡繁轉換（OpenCC）。每個已到端點的段落用它自己的原文轉一次後快取，
+     * 之後的每個 chunk 只需轉換尚未結束的那一段，所以長句錄音也不會越轉越慢。
+     * 這只影響預覽；最後送出的文字一律由 [finalizeText] 以整段原文重新轉換。
+     */
+    private inner class LivePreview(private val model: AsrModel?) {
+        private val mode = scriptModeFor(model)
+        private val committed = StringBuilder()
+
+        private fun convert(raw: String): String {
+            val tidied = model?.normalizeText(raw) ?: raw
+            if (mode == ScriptMode.OFF) return tidied
+            return runCatching { ZhTwProfile.convertScript(tidied, mode) }.getOrDefault(tidied)
+        }
+
+        /** An endpoint closed this segment: keep its converted form. */
+        fun commit(segment: String) {
+            committed.append(convert(segment))
+        }
+
+        /** The preview text: finished segments plus the segment still being spoken, both converted. */
+        fun text(partial: String): String = committed.toString() + convert(partial)
+    }
 
     private fun buildHotwords(): String =
         if (ModelConfig.isHotwordsEnabled(context)) {
@@ -466,12 +506,7 @@ class VoiceInputController(
 
     /** 辨識後處理：依 [ZhTwProfile] 的規則依序套用。規則以字元證據逐句判斷，日韓文句子不會被動到。 */
     private fun postProcess(raw: String, producer: AsrModel?): String {
-        val scriptMode = when {
-            !ModelConfig.isConvertToTraditionalEnabled(context) -> ScriptMode.OFF
-            // a model that writes Traditional Chinese by itself only needs the Taiwan wording rules
-            producer?.nativeTraditional == true -> ScriptMode.VARIANTS_ONLY
-            else -> ScriptMode.FULL
-        }
+        val scriptMode = scriptModeFor(producer)
         val converted = ZhTwProfile.convertScript(raw, scriptMode)
         val userReplaced = UserDictionary.apply(converted, UserDictionary.load(context))
         val postReplaced = if (userReplaced == converted || scriptMode == ScriptMode.OFF) {

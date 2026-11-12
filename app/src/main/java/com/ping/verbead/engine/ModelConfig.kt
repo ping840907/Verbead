@@ -164,10 +164,44 @@ object ModelConfig {
     fun isDualEngineActive(context: Context): Boolean =
         readyAsrModel(context, AsrMode.LIVE) != null && readyAsrModel(context, AsrMode.FINAL) != null
 
-    /** Puts a model that has just been downloaded into its slot when that slot is empty or its model is missing. */
+    private const val KEY_DUAL_MODELS = "dual_models"
+
+    /**
+     * Whether the live-text option (a live model next to a final model) is on. Until it is, models replace each other.
+     * A user who already had both slots filled keeps that setup, so the first read follows the slots.
+     */
+    fun isDualModelEnabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE)
+        if (!prefs.contains(KEY_DUAL_MODELS)) {
+            val sel = asrSelection(context)
+            prefs.edit().putBoolean(KEY_DUAL_MODELS, sel.live != null && sel.final != null).apply()
+        }
+        return prefs.getBoolean(KEY_DUAL_MODELS, false)
+    }
+
+    /** Turning it off keeps one model: the final one if there is one, else the live one. */
+    fun setDualModelEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREF_ASR_MODELS, Context.MODE_PRIVATE).edit().putBoolean(KEY_DUAL_MODELS, enabled).apply()
+        if (!enabled && selectedAsrModel(context, AsrMode.FINAL) != null) setAsrModel(context, AsrMode.LIVE, null)
+    }
+
+    /** Puts a model to use: next to the other slot when the live-text option is on, else in place of it. */
+    fun selectAsrModel(context: Context, model: AsrModel) {
+        setAsrModel(context, model.mode, model.id)
+        if (!isDualModelEnabled(context)) {
+            setAsrModel(context, if (model.mode == AsrMode.LIVE) AsrMode.FINAL else AsrMode.LIVE, null)
+        }
+    }
+
+    /** Puts a model that has just been downloaded to use when its slot is empty or its model is missing (or, with one slot, when nothing is). */
     fun useIfSlotEmpty(context: Context, model: AsrModel) {
         val current = selectedAsrModel(context, model.mode)
-        if (current == null || !isModelReady(context, current)) setAsrModel(context, model.mode, model.id)
+        if (current != null && isModelReady(context, current)) return
+        if (!isDualModelEnabled(context)) {
+            val other = selectedAsrModel(context, if (model.mode == AsrMode.LIVE) AsrMode.FINAL else AsrMode.LIVE)
+            if (other != null && isModelReady(context, other)) return
+        }
+        selectAsrModel(context, model)
     }
 
     // ── Qwen3 Punctuation Filter ──────────────────────────────────────────────
