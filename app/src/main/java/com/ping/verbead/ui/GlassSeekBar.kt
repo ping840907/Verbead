@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.lerp
@@ -55,6 +56,7 @@ class GlassSeekBar @JvmOverloads constructor(
     internal val enabledState = mutableStateOf(true)
     internal val heightPx = mutableFloatStateOf(0f)
     internal var framed = false
+    internal val heldState = mutableStateOf(false)
     /** Overlay windows float over other apps: always the dark glass scheme. */
     internal val forceDark: Boolean = run {
         if (attrs == null) false else {
@@ -79,7 +81,7 @@ class GlassSeekBar @JvmOverloads constructor(
         }
         splitTrack = false
         background = null
-        minimumHeight = ((THUMB_DP + 8) * d).toInt()
+        minimumHeight = ((THUMB_DP + 14) * d).toInt()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -92,6 +94,14 @@ class GlassSeekBar @JvmOverloads constructor(
         if (s != trackStartPx.floatValue) trackStartPx.floatValue = s
         if (e != trackEndPx.floatValue) trackEndPx.floatValue = e
         if (height.toFloat() != heightPx.floatValue) heightPx.floatValue = height.toFloat()
+    }
+
+    override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> heldState.value = true
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> heldState.value = false
+        }
+        return super.onTouchEvent(event)
     }
 
     override fun setEnabled(enabled: Boolean) {
@@ -138,7 +148,17 @@ class GlassSeekFrame internal constructor(
                     val h by bar.heightPx
                     val on by bar.enabledState
                     val trackH = GlassSeekBar.TRACK_DP.dp
+                    val held by bar.heldState
+                    // The thumb keeps its size (Sea Glass would rebuild its outline on every size change, and
+                    // that showed up as a cut-off edge). Growing while held is a scale on the drawn layer.
                     val thumbD = GlassSeekBar.THUMB_DP.dp
+                    val grow by androidx.compose.animation.core.animateFloatAsState(
+                        if (held) 1.15f else 1f,
+                        // grows with a calm spring, lets go with a bouncier one so it wobbles a little
+                        if (held) androidx.compose.animation.core.spring(dampingRatio = 0.75f, stiffness = 600f)
+                        else androidx.compose.animation.core.spring(dampingRatio = 0.32f, stiffness = 420f),
+                        label = "seek-thumb"
+                    )
                     val (startDp, endDp, centerDp, midDp) = with(density) {
                         listOf(start.toDp(), end.toDp(), center.toDp(), (h / 2f).toDp())
                     }
@@ -178,6 +198,7 @@ class GlassSeekFrame internal constructor(
                                 Modifier.align(Alignment.TopStart)
                                     .offset(x = centerDp - thumbD / 2, y = midDp - thumbD / 2)
                                     .size(thumbD)
+                                    .graphicsLayer { scaleX = grow; scaleY = grow }
                                     .clip(CircleShape)
                                     .seaGlass(palette = thumbPalette)
                             )
@@ -223,7 +244,7 @@ class GlassSeekFrame internal constructor(
     }
 
     internal companion object {
-        const val GLOW_DP = 3
+        const val GLOW_DP = 7
 
         fun wrap(bar: GlassSeekBar) {
             if (bar.framed) return
@@ -239,6 +260,15 @@ class GlassSeekFrame internal constructor(
                 LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             )
             bar.framed = true
+            // A parent that clips its children cuts the glow and the grown thumb off at the frame's edge.
+            var up: android.view.ViewParent? = frame.parent
+            var levels = 0
+            while (up is ViewGroup && levels < 4) {
+                up.clipChildren = false
+                up.clipToPadding = false // the glow reaches into the parent's padding
+                up = up.parent
+                levels++
+            }
         }
     }
 }

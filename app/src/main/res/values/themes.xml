@@ -15,6 +15,7 @@
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowAnimationStyle">@style/Verbead.WindowAnim</item>
         <item name="alertDialogTheme">@style/ThemeOverlay.Verbead.Dialog</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Verbead.Dialog</item>
     </style>
@@ -22,5 +23,13 @@
     <!-- Rounded tonal dialogs; colours come from the Material You scheme -->
     <style name="ThemeOverlay.Verbead.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="dialogCornerRadius">28dp</item>
+    </style>
+
+    <!-- Screens fade and rise in; the one underneath dims and recedes -->
+    <style name="Verbead.WindowAnim" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/page_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/page_behind</item>
+        <item name="android:activityCloseEnterAnimation">@anim/page_restore</item>
+        <item name="android:activityCloseExitAnimation">@anim/page_exit</item>
     </style>
 </resources>

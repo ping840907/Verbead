@@ -167,6 +167,7 @@ class GlassPlateFrame internal constructor(
                 )
             )
             host.plate = frame
+            if (view.isClickable) GlassMotion.press(view, frame, 0.9f)
             frame.darkOverlay = (host as? OverlayTinted)?.overlayTint != null
             frame.followBubble = (host as? OverlayTinted)?.followBubble == true
             frame.accent = (host as? OverlayTinted)?.accent == true

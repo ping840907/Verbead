@@ -125,9 +125,11 @@ class PhrasesDrawerController(
         )
         rvPhrases.layoutManager = LinearLayoutManager(context)
         rvPhrases.adapter = quickPhrasesAdapter
+        rvPhrases.layoutAnimation = android.view.animation.AnimationUtils.loadLayoutAnimation(context, R.anim.layout_list_rise)
 
         setupDragAndDrop(rvPhrases)
         refreshPhrasesList()
+        rvPhrases.scheduleLayoutAnimation()
 
         // 測量抽屜實際高度以計算貼齊懸浮球的精確 Y 座標與縮放軸心
         drawer.measure(

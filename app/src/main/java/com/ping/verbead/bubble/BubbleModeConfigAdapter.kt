@@ -74,29 +74,6 @@ class BubbleModeConfigAdapter(
 
         holder.cardRoot.alpha = if (isEnabled) 1.0f else 0.55f
 
-        holder.btnMoveUp.isEnabled = position > 0
-        holder.btnMoveUp.alpha = if (position > 0) 1.0f else 0.25f
-        holder.btnMoveDown.isEnabled = position < modeOrder.size - 1
-        holder.btnMoveDown.alpha = if (position < modeOrder.size - 1) 1.0f else 0.25f
-
-        holder.btnMoveUp.setOnClickListener {
-            val pos = holder.bindingAdapterPosition
-            if (pos > 0) {
-                onItemMove(pos, pos - 1)
-                notifyItemRangeChanged(pos - 1, 2)
-                onConfigChanged()
-            }
-        }
-
-        holder.btnMoveDown.setOnClickListener {
-            val pos = holder.bindingAdapterPosition
-            if (pos in 0 until modeOrder.size - 1) {
-                onItemMove(pos, pos + 1)
-                notifyItemRangeChanged(pos, 2)
-                onConfigChanged()
-            }
-        }
-
         holder.switchEnabled.setOnCheckedChangeListener(null)
         holder.switchEnabled.isChecked = isEnabled
 
@@ -145,8 +122,6 @@ class BubbleModeConfigAdapter(
         val ivIcon: ImageView = itemView.findViewById(R.id.iv_mode_icon)
         val tvTitle: TextView = itemView.findViewById(R.id.tv_mode_title)
         val tvDesc: TextView = itemView.findViewById(R.id.tv_mode_desc)
-        val btnMoveUp: ImageButton = itemView.findViewById(R.id.btn_mode_move_up)
-        val btnMoveDown: ImageButton = itemView.findViewById(R.id.btn_mode_move_down)
         val switchEnabled: GlassSwitch = itemView.findViewById(R.id.switch_mode_enabled)
     }
 }

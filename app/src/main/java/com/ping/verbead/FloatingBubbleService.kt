@@ -559,7 +559,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             onShakeTriggered = {
                 currentlyDraggedBubble?.let { item ->
                     if (!handleShakeToDuplicate(item)) {
-                        item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                        com.ping.verbead.ui.GlassMotion.springBack(item.btnBubble)
                     }
                 }
             }
@@ -1045,6 +1045,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     currentlyDraggedBubble = item
+                    // press in: the bubble gives a little under the finger
+                    item.btnBubble.animate().cancel()
+                    item.btnBubble.animate().scaleX(0.92f).scaleY(0.92f).setDuration(90L).start()
                     shakeChain.end()
                     shakeDetector?.reset()
                     Looper.myQueue().addIdleHandler {
@@ -1285,7 +1288,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                             item.view.setLayerType(View.LAYER_TYPE_NONE, null)
                             handleDeleteBubble(item)
                         } else {
-                            item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                            com.ping.verbead.ui.GlassMotion.springBack(item.btnBubble)
                             if (bubbleDeleteZoneController.isShowing) {
                                 bubbleDeleteZoneController.hide(animated = true)
                             }
@@ -1310,7 +1313,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 MotionEvent.ACTION_CANCEL -> {
                     longPressHandler.removeCallbacks(longPressRunnable)
                     bubbleDeleteZoneController.discardPrewarm()
-                    item.btnBubble.animate().scaleX(1f).scaleY(1f).setDuration(120L).start()
+                    com.ping.verbead.ui.GlassMotion.springBack(item.btnBubble)
                     currentlyDraggedBubble = null
                     shakeChain.end()
                     shakeDetector?.reset()

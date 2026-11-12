@@ -168,6 +168,24 @@ object GlassStage {
             (v as? GlassSeekBar)?.let { GlassSeekFrame.wrap(it) }
             if (v is GlassChipGroup || v is GlassChip) GlassChipFrame.wrap(v)
         }
+
+        // Motion: cards rise in one after another, rows give a little under the finger.
+        val density = activity.resources.displayMetrics.density
+        val cards = ArrayList<View>()
+        collectCards(root, cards)
+        GlassMotion.staggerIn(cards.filter { it.visibility == View.VISIBLE }.take(8), rise = 26 * density)
+        val rows = ArrayList<View>()
+        GlassMotion.clickableRows(root, rows)
+        rows.forEach { row ->
+            var p: android.view.ViewParent? = row.parent
+            while (p != null && p !is GlassCard) p = p.parent
+            (p as? View)?.let { GlassMotion.press(row, it, 0.985f) }
+        }
+    }
+
+    private fun collectCards(v: View, out: MutableList<View>) {
+        if (v is GlassCard) out.add(v)
+        if (v is ViewGroup) for (i in 0 until v.childCount) collectCards(v.getChildAt(i), out)
     }
 
     /** Toolbars and app bars paint their own opaque colour; let the backdrop show instead. */

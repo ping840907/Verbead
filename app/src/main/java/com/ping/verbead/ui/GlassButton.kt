@@ -191,6 +191,7 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
             )
             button.frame = frame
             button.neutralise()
+            GlassMotion.press(button, frame, 0.95f)
             frame.tintState.intValue = button.glassTint
         }
     }
