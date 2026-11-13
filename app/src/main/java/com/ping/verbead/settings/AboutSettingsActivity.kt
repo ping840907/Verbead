@@ -59,23 +59,24 @@ class AboutSettingsActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<View?>(R.id.row_credit_ppocr)?.setOnClickListener {
-            openWebUrl("https://github.com/PaddlePaddle/PaddleOCR")
-        }
-        findViewById<View?>(R.id.row_credit_zxing)?.setOnClickListener {
-            openWebUrl("https://github.com/zxing-cpp/zxing-cpp")
-        }
-        findViewById<View?>(R.id.row_credit_sherpa)?.setOnClickListener {
-            openWebUrl("https://github.com/k2-fsa/sherpa-onnx")
-        }
-        findViewById<View?>(R.id.row_credit_xasr)?.setOnClickListener {
-            openWebUrl("https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m")
-        }
-        findViewById<View?>(R.id.row_credit_qwen)?.setOnClickListener {
-            openWebUrl("https://github.com/QwenLM/Qwen3-ASR")
-        }
-        findViewById<View?>(R.id.row_credit_onnx)?.setOnClickListener {
-            openWebUrl("https://github.com/microsoft/onnxruntime")
+        val creditUrls = mapOf(
+            R.id.row_credit_sherpa to "https://github.com/k2-fsa/sherpa-onnx",
+            R.id.row_credit_xasr to "https://huggingface.co/Luigi/x-asr-zh-tw-en-streaming-ft75m",
+            R.id.row_credit_qwen to "https://github.com/QwenLM/Qwen3-ASR",
+            R.id.row_credit_nvidia_asr to "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3",
+            R.id.row_credit_moonshine to "https://huggingface.co/UsefulSensors/moonshine-streaming-tiny",
+            R.id.row_credit_ppocr to "https://huggingface.co/collections/PaddlePaddle/pp-ocrv6",
+            R.id.row_credit_korean_ppocr to "https://huggingface.co/PaddlePaddle/korean_PP-OCRv5_mobile_rec",
+            R.id.row_credit_litert to "https://github.com/google-ai-edge/LiteRT",
+            R.id.row_credit_zxing to "https://github.com/zxing-cpp/zxing-cpp",
+            R.id.row_credit_onnx to "https://github.com/microsoft/onnxruntime",
+            R.id.row_credit_opencc to "https://github.com/houbb/opencc4j",
+            R.id.row_credit_seaglass to "https://github.com/mttmcknn/sea-glass",
+            R.id.row_credit_material to "https://github.com/material-components/material-components-android",
+            R.id.row_credit_commons_compress to "https://commons.apache.org/proper/commons-compress/"
+        )
+        creditUrls.forEach { (id, url) ->
+            findViewById<View?>(id)?.setOnClickListener { openWebUrl(url) }
         }
     }
 

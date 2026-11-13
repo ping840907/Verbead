@@ -144,58 +144,6 @@
                     android:layout_marginBottom="12dp"
                     android:text="@string/settings_about_credits_intro" />
 
-                <!-- PP-OCR -->
-                <LinearLayout
-                    android:id="@+id/row_credit_ppocr"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:orientation="vertical"
-                    android:paddingVertical="8dp">
-
-                    <TextView
-                        style="@style/Verbead.Text.Body"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="• PaddleOCR (PP-OCRv6) ↗"
-                        android:textColor="@color/md_theme_light_primary"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_about_paddleocr_credit" />
-                </LinearLayout>
-
-                <!-- zxing-cpp -->
-                <LinearLayout
-                    android:id="@+id/row_credit_zxing"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:orientation="vertical"
-                    android:paddingVertical="8dp">
-
-                    <TextView
-                        style="@style/Verbead.Text.Body"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_about_zxing_title"
-                        android:textColor="@color/md_theme_light_primary"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        style="@style/Verbead.Text.Caption"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_about_zxing_credit" />
-                </LinearLayout>
-
                 <!-- sherpa-onnx -->
                 <LinearLayout
                     android:id="@+id/row_credit_sherpa"
@@ -274,6 +222,162 @@
                         android:text="@string/settings_about_qwen_credit" />
                 </LinearLayout>
 
+                <!-- Parakeet / Nemotron (NVIDIA) -->
+                <LinearLayout
+                    android:id="@+id/row_credit_nvidia_asr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_nvidia_asr_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_nvidia_asr_credit" />
+                </LinearLayout>
+
+                <!-- Moonshine -->
+                <LinearLayout
+                    android:id="@+id/row_credit_moonshine"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_moonshine_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_moonshine_credit" />
+                </LinearLayout>
+
+                <!-- PP-OCRv6 -->
+                <LinearLayout
+                    android:id="@+id/row_credit_ppocr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• PaddleOCR (PP-OCRv6) ↗"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_paddleocr_credit" />
+                </LinearLayout>
+
+                <!-- Korean PP-OCRv5 -->
+                <LinearLayout
+                    android:id="@+id/row_credit_korean_ppocr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_korean_ppocr_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_korean_ppocr_credit" />
+                </LinearLayout>
+
+                <!-- LiteRT -->
+                <LinearLayout
+                    android:id="@+id/row_credit_litert"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_litert_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_litert_credit" />
+                </LinearLayout>
+
+                <!-- zxing-cpp -->
+                <LinearLayout
+                    android:id="@+id/row_credit_zxing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_zxing_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_zxing_credit" />
+                </LinearLayout>
+
                 <!-- ONNX Runtime -->
                 <LinearLayout
                     android:id="@+id/row_credit_onnx"
@@ -298,6 +402,110 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/settings_about_onnx_credit" />
+                </LinearLayout>
+
+                <!-- opencc4j -->
+                <LinearLayout
+                    android:id="@+id/row_credit_opencc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_opencc_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_opencc_credit" />
+                </LinearLayout>
+
+                <!-- Sea Glass -->
+                <LinearLayout
+                    android:id="@+id/row_credit_seaglass"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_seaglass_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_seaglass_credit" />
+                </LinearLayout>
+
+                <!-- Material Components for Android -->
+                <LinearLayout
+                    android:id="@+id/row_credit_material"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_material_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_material_credit" />
+                </LinearLayout>
+
+                <!-- Apache Commons Compress -->
+                <LinearLayout
+                    android:id="@+id/row_credit_commons_compress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        style="@style/Verbead.Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_commons_compress_title"
+                        android:textColor="@color/md_theme_light_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_commons_compress_credit" />
                 </LinearLayout>
             </LinearLayout>
         </com.ping.verbead.ui.GlassCard>

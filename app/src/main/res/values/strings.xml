@@ -272,6 +272,22 @@
     <string name="settings_about_qwen_title">• Qwen3-ASR speech model ↗</string>
     <string name="settings_about_qwen_credit">"  By Alibaba Qwen Team · High-accuracy open-source speech model"</string>
     <string name="settings_about_onnx_credit">"  By Microsoft · Cross-platform high-performance neural network inference engine"</string>
+    <string name="settings_about_nvidia_asr_title" translatable="false">• Parakeet / Nemotron (NVIDIA) ↗</string>
+    <string name="settings_about_nvidia_asr_credit">"  By NVIDIA · Multilingual streaming &amp; offline speech models"</string>
+    <string name="settings_about_moonshine_title" translatable="false">• Moonshine (UsefulSensors) ↗</string>
+    <string name="settings_about_moonshine_credit">"  By Moonshine AI (UsefulSensors) · Lightweight speech recognition models"</string>
+    <string name="settings_about_korean_ppocr_title" translatable="false">• Korean PP-OCRv5 ↗</string>
+    <string name="settings_about_korean_ppocr_credit">"  By PaddlePaddle · Optional Korean text recognition model · Apache 2.0"</string>
+    <string name="settings_about_litert_title" translatable="false">• LiteRT (Google AI Edge) ↗</string>
+    <string name="settings_about_litert_credit">"  By Google AI Edge · On-device OCR inference runtime · Apache 2.0"</string>
+    <string name="settings_about_opencc_title" translatable="false">• opencc4j ↗</string>
+    <string name="settings_about_opencc_credit">"  By houbb · Simplified &amp; Traditional Chinese conversion · Apache 2.0"</string>
+    <string name="settings_about_seaglass_title" translatable="false">• Sea Glass ↗</string>
+    <string name="settings_about_seaglass_credit">"  By Matt McKenna · Liquid glass shader UI components · Apache 2.0"</string>
+    <string name="settings_about_material_title" translatable="false">• Material Components for Android ↗</string>
+    <string name="settings_about_material_credit">"  By Google · Material Design UI components · Apache 2.0"</string>
+    <string name="settings_about_commons_compress_title" translatable="false">• Apache Commons Compress ↗</string>
+    <string name="settings_about_commons_compress_credit">"  By Apache Software Foundation · Model archive decompression · Apache 2.0"</string>
 
     <!-- P1-3: settings activities -->
     <string name="common_add">Add</string>

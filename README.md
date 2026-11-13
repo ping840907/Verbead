@@ -64,5 +64,6 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp) | 條碼與 QR Code 辨識 | Apache 2.0 |
 | [ONNX Runtime](https://github.com/microsoft/onnxruntime)（Microsoft） | 語音模型的推論引擎（內含於 sherpa-onnx） | MIT |
 | [opencc4j](https://github.com/houbb/opencc4j)（houbb） | 繁簡轉換 | Apache 2.0 |
+| [sea-glass](https://github.com/mttmcknn/sea-glass)（Matt McKenna） | SeaGlass 液態玻璃介面元件 | Apache 2.0 |
 | [Material Components for Android](https://github.com/material-components/material-components-android)（Google） | 介面元件 | Apache 2.0 |
 | [Commons Compress](https://commons.apache.org/proper/commons-compress/)（Apache Software Foundation） | 模型壓縮檔解壓縮 | Apache 2.0 |

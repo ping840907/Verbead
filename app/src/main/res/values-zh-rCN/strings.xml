@@ -267,6 +267,14 @@
     <string name="settings_about_qwen_title">• Qwen3-ASR 语音模型 ↗</string>
     <string name="settings_about_qwen_credit">"  作者：Alibaba Qwen Team · 高精度开源语音大模型"</string>
     <string name="settings_about_onnx_credit">"  作者：Microsoft · 跨平台高性能神经网络推理引擎"</string>
+    <string name="settings_about_nvidia_asr_credit">"  作者：NVIDIA · 多语言语音识别模型（选配下载）"</string>
+    <string name="settings_about_moonshine_credit">"  作者：Moonshine AI · 轻量单语言语音模型（选配下载）"</string>
+    <string name="settings_about_korean_ppocr_credit">"  作者：PaddlePaddle 团队 · 选用的韩文文字识别模型 · Apache 2.0"</string>
+    <string name="settings_about_litert_credit">"  作者：Google AI Edge · 文字识别端侧推理执行层 · Apache 2.0"</string>
+    <string name="settings_about_opencc_credit">"  作者：houbb · 繁简中文转换 · Apache 2.0"</string>
+    <string name="settings_about_seaglass_credit">"  作者：Matt McKenna · SeaGlass 液态玻璃界面组件 · Apache 2.0"</string>
+    <string name="settings_about_material_credit">"  作者：Google · Material Design 界面组件 · Apache 2.0"</string>
+    <string name="settings_about_commons_compress_credit">"  作者：Apache Software Foundation · 模型压缩包解压缩 · Apache 2.0"</string>
 
     <!-- P1-3: settings activities -->
     <string name="common_add">添加</string>

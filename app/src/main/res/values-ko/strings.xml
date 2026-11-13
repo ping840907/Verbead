@@ -267,6 +267,14 @@
     <string name="settings_about_qwen_title">• Qwen3-ASR 음성 모델 ↗</string>
     <string name="settings_about_qwen_credit">"  제작: Alibaba Qwen Team · 고정밀 오픈소스 음성 모델"</string>
     <string name="settings_about_onnx_credit">"  제작: Microsoft · 크로스 플랫폼 고성능 신경망 추론 엔진"</string>
+    <string name="settings_about_nvidia_asr_credit">"  제작: NVIDIA · 다국어 음성 인식 모델 (선택 다운로드)"</string>
+    <string name="settings_about_moonshine_credit">"  제작: Moonshine AI · 경량 단일 언어 음성 모델 (선택 다운로드)"</string>
+    <string name="settings_about_korean_ppocr_credit">"  제작: PaddlePaddle 팀 · 선택형 한국어 문자 인식 모델 · Apache 2.0"</string>
+    <string name="settings_about_litert_credit">"  제작: Google AI Edge · 문자 인식 온디바이스 추론 런타임 · Apache 2.0"</string>
+    <string name="settings_about_opencc_credit">"  제작: houbb · 번체·간체 중국어 변환 · Apache 2.0"</string>
+    <string name="settings_about_seaglass_credit">"  제작: Matt McKenna · SeaGlass 리퀴드 글래스 UI 컴포넌트 · Apache 2.0"</string>
+    <string name="settings_about_material_credit">"  제작: Google · Material Design UI 컴포넌트 · Apache 2.0"</string>
+    <string name="settings_about_commons_compress_credit">"  제작: Apache Software Foundation · 모델 압축 파일 해제 · Apache 2.0"</string>
 
     <!-- P1-3: settings activities -->
     <string name="common_add">추가</string>
