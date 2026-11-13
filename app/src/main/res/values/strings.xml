@@ -509,8 +509,8 @@ Final: %2$s</string>
     <string name="asr_language_search_hint">Search languages</string>
     <string name="asr_rec_use">Use</string>
     <string name="asr_rec_in_use">In use</string>
-    <string name="asr_preview_switch">Show text while I speak (optional)</string>
-    <string name="asr_preview_hint">Uses extra memory and battery. Most people don\'t need it.</string>
+    <string name="asr_preview_switch">Add a live model</string>
+    <string name="asr_preview_hint">Shows text while you speak, then the final model settles it. Loads two models, so it uses more memory and battery.</string>
     <string name="settings_speech_filter_half_punct_title">Filter half-width punctuation</string>
     <string name="settings_speech_filter_half_punct_desc">Removes commas, periods, question marks, quotes and similar symbols. Decimal points and times such as 10:30 are kept</string>
     <string name="asr_mode_live_chip">Live · text while speaking</string>

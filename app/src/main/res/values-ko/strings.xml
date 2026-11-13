@@ -496,8 +496,8 @@
     <string name="asr_language_search_hint">언어 검색</string>
     <string name="asr_rec_use">사용</string>
     <string name="asr_rec_in_use">사용 중</string>
-    <string name="asr_preview_switch">말하는 동안 글자 표시(선택)</string>
-    <string name="asr_preview_hint">메모리와 배터리를 더 사용합니다. 대부분은 필요하지 않습니다.</string>
+    <string name="asr_preview_switch">실시간 모델 함께 사용</string>
+    <string name="asr_preview_hint">말하는 동안 글자를 보여 주고, 끝나면 확정 모델이 마무리합니다. 모델 두 개를 불러오므로 메모리와 배터리를 더 사용합니다.</string>
     <string name="settings_speech_filter_half_punct_title">반각 문장부호 제거</string>
     <string name="settings_speech_filter_half_punct_desc">반각 쉼표, 마침표, 물음표, 따옴표 등을 자동으로 제거합니다. 소수점과 10:30 같은 시각은 유지됩니다</string>
     <string name="asr_mode_live_chip">실시간 · 말하며 표시</string>

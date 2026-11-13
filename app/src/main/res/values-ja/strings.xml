@@ -496,8 +496,8 @@
     <string name="asr_language_search_hint">言語を検索</string>
     <string name="asr_rec_use">使う</string>
     <string name="asr_rec_in_use">使用中</string>
-    <string name="asr_preview_switch">話している間に文字を表示（任意）</string>
-    <string name="asr_preview_hint">メモリとバッテリーを余分に使います。多くの方には不要です。</string>
+    <string name="asr_preview_switch">リアルタイムモデルを併用</string>
+    <string name="asr_preview_hint">話している間は文字を表示し、話し終えると確定モデルが仕上げます。モデルを2つ読み込むため、メモリとバッテリーを多く使います。</string>
     <string name="settings_speech_filter_half_punct_title">半角の句読点を除去</string>
     <string name="settings_speech_filter_half_punct_desc">半角のコンマ、ピリオド、疑問符、引用符などを自動で除去します。小数点や 10:30 のような時刻は残ります</string>
     <string name="asr_mode_live_chip">リアルタイム・話しながら表示</string>

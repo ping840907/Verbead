@@ -264,7 +264,8 @@
                                 style="@style/Verbead.Text.Title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/asr_preview_switch" />
+                                android:text="@string/asr_preview_switch"
+                                android:textSize="14sp" />
 
                             <TextView
                                 style="@style/Verbead.Text.Caption"

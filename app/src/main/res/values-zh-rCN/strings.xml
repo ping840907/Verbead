@@ -496,8 +496,8 @@
     <string name="asr_language_search_hint">搜索语言</string>
     <string name="asr_rec_use">使用</string>
     <string name="asr_rec_in_use">使用中</string>
-    <string name="asr_preview_switch">边说边显示文字（选配）</string>
-    <string name="asr_preview_hint">会多用内存与电量，多数人不需要。</string>
+    <string name="asr_preview_switch">搭配即时模型</string>
+    <string name="asr_preview_hint">说话时先显示文字，说完再由整句模型定稿。需同时加载两个模型，更耗内存与电量。</string>
     <string name="settings_speech_filter_half_punct_title">过滤半角标点符号</string>
     <string name="settings_speech_filter_half_punct_desc">自动去除英文逗号、句点、问号、引号等半角符号；小数点与 10:30 这类时间会保留</string>
     <string name="asr_mode_live_chip">即时・边说边显示</string>
