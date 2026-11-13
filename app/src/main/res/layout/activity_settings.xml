@@ -44,7 +44,7 @@
                         android:layout_height="28dp"
                         android:layout_marginEnd="10dp"
                         android:src="@drawable/ic_tune"
-                        app:tint="@color/md_theme_light_primary" />
+                        app:tint="?attr/colorOnPrimaryContainer" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -318,12 +318,11 @@
                 android:padding="16dp">
 
                 <com.ping.verbead.ui.GlassIconView
+                    style="@style/Verbead.RowIcon"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/bg_icon_circle"
                     android:padding="8dp"
-                    android:src="@drawable/ic_bubble"
-                    app:tint="@color/md_theme_light_primary" />
+                    android:src="@drawable/ic_bubble" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -354,7 +353,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_chevron_right"
-                    app:tint="@color/text_tertiary" />
+                    app:tint="@color/text_secondary" />
             </LinearLayout>
         </com.ping.verbead.ui.GlassCard>
 
@@ -376,12 +375,11 @@
                 android:padding="16dp">
 
                 <com.ping.verbead.ui.GlassIconView
+                    style="@style/Verbead.RowIcon"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/bg_icon_circle"
                     android:padding="8dp"
-                    android:src="@drawable/ic_mic"
-                    app:tint="@color/md_theme_light_primary" />
+                    android:src="@drawable/ic_mic" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -412,7 +410,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_chevron_right"
-                    app:tint="@color/text_tertiary" />
+                    app:tint="@color/text_secondary" />
             </LinearLayout>
         </com.ping.verbead.ui.GlassCard>
 
@@ -434,12 +432,11 @@
                 android:padding="16dp">
 
                 <com.ping.verbead.ui.GlassIconView
+                    style="@style/Verbead.RowIcon"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/bg_icon_circle"
                     android:padding="8dp"
-                    android:src="@drawable/ic_ocr"
-                    app:tint="@color/md_theme_light_primary" />
+                    android:src="@drawable/ic_ocr" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -470,7 +467,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_chevron_right"
-                    app:tint="@color/text_tertiary" />
+                    app:tint="@color/text_secondary" />
             </LinearLayout>
         </com.ping.verbead.ui.GlassCard>
 
@@ -494,12 +491,11 @@
                     android:orientation="horizontal">
 
                     <com.ping.verbead.ui.GlassIconView
+                        style="@style/Verbead.RowIcon"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:background="@drawable/bg_icon_circle"
                         android:padding="8dp"
-                        android:src="@drawable/ic_archive"
-                        app:tint="@color/md_theme_light_primary" />
+                        android:src="@drawable/ic_archive" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -585,12 +581,11 @@
                 android:padding="16dp">
 
                 <com.ping.verbead.ui.GlassIconView
+                    style="@style/Verbead.RowIcon"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/bg_icon_circle"
                     android:padding="8dp"
-                    android:src="@drawable/ic_info"
-                    app:tint="@color/md_theme_light_primary" />
+                    android:src="@drawable/ic_info" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -621,7 +616,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_chevron_right"
-                    app:tint="@color/text_tertiary" />
+                    app:tint="@color/text_secondary" />
             </LinearLayout>
         </com.ping.verbead.ui.GlassCard>
 

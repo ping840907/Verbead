@@ -10,8 +10,10 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
@@ -50,26 +52,35 @@ internal fun ensureOverlayOwners(view: View) {
 private fun panelSurface(context: Context, radiusDp: Float): ComposeView = ComposeView(context).apply {
     setContent {
         val style = UiStyleManager.currentStyle(context)
-        val colors = rememberSeaGlassColorScheme(dynamicColor = true, darkTheme = true)
+        val dark = isSystemInDarkTheme()
+        val colors = rememberSeaGlassColorScheme(
+            dynamicColor = true,
+            darkTheme = if (style == UiStyle.EXPRESSIVE) dark else true
+        )
         MaterialTheme(colorScheme = colors) {
-            val shape = RoundedCornerShape(radiusDp.dp)
             if (style == UiStyle.EXPRESSIVE) {
                 val cs = MaterialTheme.colorScheme
-                val base = lerp(cs.surface, cs.primaryContainer, 0.24f).copy(alpha = 0.95f)
-                val glow = cs.primaryContainer.copy(alpha = 0.45f)
-                val stroke = cs.primary.copy(alpha = 0.38f)
+                val corner = (radiusDp * 0.58f).coerceIn(12f, 16f).dp
+                val outerShape = RoundedCornerShape(corner)
+                val innerShape = RoundedCornerShape((corner - 4.dp).coerceAtLeast(8.dp))
+                val startColor = if (dark) lerp(cs.primaryContainer, cs.primary, 0.35f) else lerp(cs.primary, cs.primaryContainer, 0.18f)
+                val endColor = if (dark) lerp(cs.primaryContainer, Color.Black, 0.22f) else lerp(cs.primary, Color.Black, 0.16f)
+                val outerRim = if (dark) cs.primary.copy(alpha = 0.55f) else cs.primaryContainer.copy(alpha = 0.72f)
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .clip(shape)
+                        .clip(outerShape)
                         .background(
                             Brush.verticalGradient(
-                                listOf(lerp(base, glow, 0.25f), base)
+                                listOf(startColor.copy(alpha = 0.96f), endColor.copy(alpha = 0.96f))
                             )
                         )
-                        .border(1.5.dp, stroke, shape)
+                        .border(1.5.dp, outerRim, outerShape)
+                        .padding(4.dp)
+                        .border(1.dp, Color.White.copy(alpha = 0.22f), innerShape)
                 )
             } else {
+                val shape = RoundedCornerShape(radiusDp.dp)
                 val cs = MaterialTheme.colorScheme
                 val body = lerp(cs.primaryContainer, Color.Black, 0.25f)
                 val palette = SeaGlassPalette(body, lerp(body, Color.White, .3f), Color.White)

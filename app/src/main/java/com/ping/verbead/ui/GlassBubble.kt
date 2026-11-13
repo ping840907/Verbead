@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -111,6 +113,7 @@ class GlassBubbleLayout @JvmOverloads constructor(
                         val startColor = lerp(idleStart, activeStart, mix.value)
                         val endColor = lerp(idleEnd, activeEnd, mix.value)
                         val outerRim = lerp(idleRim, activeRim, mix.value)
+                        SideEffect { applyIconTint(lerp(startColor, endColor, 0.5f), active) }
                         val outerShape = RoundedCornerShape(corner)
                         val innerShape = RoundedCornerShape((corner - 4.dp).coerceAtLeast(10.dp))
                         androidx.compose.runtime.key(generation) {
@@ -129,6 +132,7 @@ class GlassBubbleLayout @JvmOverloads constructor(
                         val listening = if (dark) Color(0xFF8E1B1B) else Color(0xFFB3261E)
                         val body = lerp(idle, listening, mix.value)
                         val palette = SeaGlassPalette(body, lerp(body, Color.White, .35f), Color.White)
+                        SideEffect { applyIconTint(body, active) }
                         androidx.compose.runtime.key(generation) {
                             SeaGlassMaterialTheme(style = BubbleRecipe, shape = SeaGlassShape.Disc) {
                                 Box(Modifier.fillMaxSize().clip(CircleShape).seaGlass(palette = palette))
@@ -139,6 +143,21 @@ class GlassBubbleLayout @JvmOverloads constructor(
             }
         }
         addView(glass, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+    }
+
+    /**
+     * Icons follow the bubble's body colour: white on a dark body, near-black on a light one.
+     * While listening the red microphone keeps its own colour.
+     */
+    private fun applyIconTint(body: Color, listening: Boolean) {
+        val tint = when {
+            listening -> null
+            body.luminance() > 0.5f -> android.content.res.ColorStateList.valueOf(0xFF14181C.toInt())
+            else -> android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
+        }
+        for (i in 0 until childCount) {
+            (getChildAt(i) as? android.widget.ImageView)?.imageTintList = tint
+        }
     }
 
     override fun onAttachedToWindow() {

@@ -540,14 +540,22 @@ class SpeechSettingsActivity : AppCompatActivity() {
                 inUse -> {
                     visibility = View.VISIBLE
                     text = getString(R.string.asr_rec_in_use)
+                    // tonal pair from the theme: readable on any light, dark or wallpaper-derived card
                     setBackgroundResource(R.drawable.bg_status_badge_success)
-                    setTextColor(ContextCompat.getColor(context, R.color.status_success_text))
+                    background?.mutate()?.setTint(
+                        com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorSecondaryContainer, 0xFFDDE5DB.toInt())
+                    )
+                    setTextColor(
+                        com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSecondaryContainer, 0xFF111111.toInt())
+                    )
                 }
                 onPhone -> {
                     visibility = View.VISIBLE
                     text = getString(R.string.common_ready)
                     background = null
-                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    setTextColor(
+                        com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF444444.toInt())
+                    )
                 }
                 else -> visibility = View.GONE
             }
@@ -649,7 +657,10 @@ class SpeechSettingsActivity : AppCompatActivity() {
         }
 
         // rare actions, only for a model that is on the phone
-        card.findViewById<View>(R.id.btn_model_more).apply {
+        card.findViewById<android.widget.ImageView>(R.id.btn_model_more).apply {
+            imageTintList = android.content.res.ColorStateList.valueOf(
+                com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface, 0xFF111111.toInt())
+            )
             visibility = if (ready) View.VISIBLE else View.GONE
             setOnClickListener { showModelMenu(it, model) }
         }

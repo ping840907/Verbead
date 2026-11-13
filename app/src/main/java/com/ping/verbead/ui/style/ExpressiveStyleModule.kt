@@ -33,9 +33,7 @@ object ExpressiveStyleModule : UiStyleModule {
 
     private val heroCardIds = setOf(
         R.id.card_status_indicator,
-        R.id.card_asr_combo,
-        R.id.card_bubble_module,
-        R.id.card_ocr
+        R.id.card_asr_combo
     )
 
     override fun drawBackdrop(view: View, canvas: Canvas, width: Int, height: Int, dark: Boolean) {
@@ -106,7 +104,7 @@ object ExpressiveStyleModule : UiStyleModule {
             card.overlay.remove(it)
             card.setTag(R.id.glass_tint, null)
         }
-        card.setCardBackgroundColor(scheme.surfaceContainerHigh)
+        card.setCardBackgroundColor(scheme.surfaceContainerLow)
         card.radius = 22f * d
         card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x66 else 0x80)
         card.strokeWidth = (1f * d).toInt().coerceAtLeast(1)
@@ -116,15 +114,17 @@ object ExpressiveStyleModule : UiStyleModule {
     override fun styleSelectableCard(card: MaterialCardView, isSelected: Boolean, dark: Boolean) {
         val scheme = ExpressivePalette.resolve(card, dark)
         val d = card.resources.displayMetrics.density
+        // Same base as the main page's settings cards (surfaceContainerLow + outlineVariant hairline);
+        // the selected state is only a gentle step towards primaryContainer, not a different colour.
         if (isSelected) {
             card.setCardBackgroundColor(
-                ColorUtils.blendARGB(scheme.surfaceContainerHigh, scheme.primaryContainer, if (dark) 0.55f else 0.72f)
+                ColorUtils.blendARGB(scheme.surfaceContainerLow, scheme.primaryContainer, if (dark) 0.28f else 0.36f)
             )
-            card.strokeColor = scheme.primary
-            card.strokeWidth = (2f * d + 0.5f).toInt()
+            card.strokeColor = ColorUtils.setAlphaComponent(scheme.primary, if (dark) 0x99 else 0x8C)
+            card.strokeWidth = (1.5f * d + 0.5f).toInt()
         } else {
-            card.setCardBackgroundColor(scheme.surfaceContainerHigh)
-            card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x66 else 0x80)
+            card.setCardBackgroundColor(scheme.surfaceContainerLow)
+            card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x70 else 0x99)
             card.strokeWidth = (1f * d + 0.5f).toInt()
         }
     }
@@ -196,13 +196,12 @@ object ExpressiveStyleModule : UiStyleModule {
     }
 
     override fun styleCapsuleIndicator(view: View) {
-        val ov = ExpressivePalette.resolveOverlay(view.context)
         val d = view.resources.displayMetrics.density
         view.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = 15f * d
-            setColor(ov.capsuleIndicatorFill)
-            setStroke((1.5f * d).toInt().coerceAtLeast(1), ov.capsuleIndicatorStroke)
+            cornerRadius = 12f * d
+            setColor(0x38FFFFFF)
+            setStroke((1.5f * d).toInt().coerceAtLeast(1), 0x99FFFFFF.toInt())
         }
     }
 

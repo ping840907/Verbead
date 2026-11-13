@@ -183,14 +183,14 @@ class CapsuleMenuController(
         // initialY + itemWinCenterY = bubbleCenterY => initialY = bubbleCenterY - itemWinCenterY
         val itemWinCenterY = (40f + currentIndex * 56f) * density
         val initialY = (bubbleCenterY - itemWinCenterY).toInt()
-        val maxAllowedY = maxOf(minY, maxY - windowHeight)
-        val clampedInitialY = initialY.coerceIn(minY, maxAllowedY)
+        // The capsule may extend past the screen edge: it stays centred on the bubble.
+        val clampedInitialY = initialY
         capsuleInitialY = clampedInitialY.toFloat()
         capsuleTouchStartY = if (startRawY > 0f) startRawY else bubbleCenterY
 
         val layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
-        val clampedX = bubbleX.coerceIn(0, maxOf(0, screenWidth - windowWidth))
+        val clampedX = bubbleX
         capsuleLayoutParams = WindowManager.LayoutParams(
             windowWidth,
             windowHeight,
@@ -265,8 +265,7 @@ class CapsuleMenuController(
             else -> dy
         }
 
-        val maxAllowedY = maxOf(cachedMinY, cachedMaxY - lp.height)
-        lp.y = (capsuleInitialY + effectiveDy).toInt().coerceIn(cachedMinY, maxAllowedY)
+        lp.y = (capsuleInitialY + effectiveDy).toInt()
         try {
             windowManager.updateViewLayout(menu, lp)
         } catch (e: Exception) {

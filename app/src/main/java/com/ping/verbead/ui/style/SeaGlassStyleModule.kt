@@ -120,12 +120,19 @@ object SeaGlassStyleModule : UiStyleModule {
     override fun applyChoiceButtonState(button: MaterialButton, isSelected: Boolean, dark: Boolean) {
         button.isSelected = isSelected
         val context = button.context
-        val primaryColor = ContextCompat.getColor(context, R.color.md_theme_light_primary)
-        val onPrimaryColor = ContextCompat.getColor(context, R.color.md_theme_light_onPrimary)
+        // Theme colours, so the button stays readable in dark and dynamic (wallpaper) themes too.
+        val primaryColor = MaterialColors.getColor(
+            button, androidx.appcompat.R.attr.colorPrimary, ContextCompat.getColor(context, R.color.md_theme_light_primary)
+        )
+        val onPrimaryColor = MaterialColors.getColor(
+            button, com.google.android.material.R.attr.colorOnPrimary, ContextCompat.getColor(context, R.color.md_theme_light_onPrimary)
+        )
         val unselectedBg = MaterialColors.getColor(
             button, com.google.android.material.R.attr.colorSurfaceVariant, ContextCompat.getColor(context, R.color.surface_card)
         )
-        val unselectedText = ContextCompat.getColor(context, R.color.text_primary)
+        val unselectedText = MaterialColors.getColor(
+            button, com.google.android.material.R.attr.colorOnSurface, ContextCompat.getColor(context, R.color.text_primary)
+        )
         val strokeColor = if (isSelected) primaryColor else ContextCompat.getColor(context, R.color.surface_card_stroke)
         val density = context.resources.displayMetrics.density
         val strokeWidthPx = (1.2f * density).toInt().coerceAtLeast(1)

@@ -40,7 +40,7 @@ class AboutSettingsActivity : AppCompatActivity() {
         themeValue.text = themeLabel(AppTheme.current(this))
         findViewById<View>(R.id.row_theme).setOnClickListener {
             HapticUtil.click(this)
-            showThemeDialog()
+            showThemeDialog(themeValue)
         }
 
         val themeStyleValue = findViewById<TextView>(R.id.text_theme_style_value)
@@ -107,14 +107,18 @@ class AboutSettingsActivity : AppCompatActivity() {
         else -> getString(R.string.settings_theme_system)
     }
 
-    private fun showThemeDialog() {
+    private fun showThemeDialog(valueView: TextView) {
         val modes = AppTheme.MODES
         val current = modes.indexOf(AppTheme.current(this)).coerceAtLeast(0)
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_theme_title)
             .setSingleChoiceItems(modes.map(::themeLabel).toTypedArray(), current) { dialog, which ->
                 dialog.dismiss()
-                if (which != current) AppTheme.set(this, modes[which])
+                if (which != current) {
+                    val chosen = modes[which]
+                    AppTheme.set(this, chosen)
+                    valueView.text = themeLabel(chosen)
+                }
             }
             .show()
     }

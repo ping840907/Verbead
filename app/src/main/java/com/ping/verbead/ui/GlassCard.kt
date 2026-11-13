@@ -89,7 +89,10 @@ object GlassStage {
         }
 
         val installedStyle = UiStyleManager.syncFromPrefs(activity)
-        window.decorView.setTag(R.id.glass_installed_style, installedStyle.key)
+        window.decorView.setTag(
+            R.id.glass_installed_style,
+            themeSignature(activity, installedStyle)
+        )
         attachStyleSyncListener(activity)
 
         val backdrop = GlassBackdropView(activity)
@@ -123,6 +126,9 @@ object GlassStage {
         UiStyleManager.current(activity).installEntranceAndPressMotion(root as? ViewGroup ?: stage)
     }
 
+    private fun themeSignature(activity: Activity, style: UiStyle = UiStyleManager.syncFromPrefs(activity)): String =
+        "${style.key}:${AppTheme.current(activity)}:${UiStyleManager.isDark(activity)}"
+
     private fun attachStyleSyncListener(activity: Activity) {
         val decor = activity.window.decorView
         val key = "glass_focus_listener_attached"
@@ -132,7 +138,7 @@ object GlassStage {
             ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
                 if (!hasFocus || activity.isFinishing || activity.isDestroyed) return@OnWindowFocusChangeListener
                 val installed = decor.getTag(R.id.glass_installed_style) as? String ?: return@OnWindowFocusChangeListener
-                val current = AppTheme.getStyle(activity)
+                val current = themeSignature(activity)
                 if (installed != current) {
                     decor.post {
                         if (!activity.isFinishing && !activity.isDestroyed) {
