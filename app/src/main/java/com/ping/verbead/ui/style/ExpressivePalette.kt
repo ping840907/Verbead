@@ -1,0 +1,158 @@
+package com.ping.verbead.ui.style
+
+import android.graphics.Color
+import android.view.View
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.core.graphics.ColorUtils
+import com.google.android.material.color.MaterialColors
+
+/**
+ * Tonal palette tokens for the Material 3 Expressive theme across light, dark, and
+ * always-dark floating overlay surfaces, blending dynamic Material You colors when available.
+ */
+object ExpressivePalette {
+
+    data class TonalScheme(
+        val surface: Int,
+        val surfaceContainerLowest: Int,
+        val surfaceContainerLow: Int,
+        val surfaceContainer: Int,
+        val surfaceContainerHigh: Int,
+        val surfaceContainerHighest: Int,
+        val primary: Int,
+        val onPrimary: Int,
+        val primaryContainer: Int,
+        val onPrimaryContainer: Int,
+        val secondary: Int,
+        val secondaryContainer: Int,
+        val onSecondaryContainer: Int,
+        val tertiary: Int,
+        val tertiaryContainer: Int,
+        val onTertiaryContainer: Int,
+        val onSurface: Int,
+        val onSurfaceVariant: Int,
+        val outline: Int,
+        val outlineVariant: Int,
+        val error: Int,
+        val errorContainer: Int
+    )
+
+    val Light = TonalScheme(
+        surface = 0xFFFBF8FF.toInt(),
+        surfaceContainerLowest = 0xFFFFFFFF.toInt(),
+        surfaceContainerLow = 0xFFF3EFFA.toInt(),
+        surfaceContainer = 0xFFEDE7F6.toInt(),
+        surfaceContainerHigh = 0xFFE6E0F0.toInt(),
+        surfaceContainerHighest = 0xFFDFD8EB.toInt(),
+        primary = 0xFF0061A4.toInt(),
+        onPrimary = 0xFFFFFFFF.toInt(),
+        primaryContainer = 0xFFD1E4FF.toInt(),
+        onPrimaryContainer = 0xFF001D36.toInt(),
+        secondary = 0xFF535F70.toInt(),
+        secondaryContainer = 0xFFD7E3F7.toInt(),
+        onSecondaryContainer = 0xFF101C2B.toInt(),
+        tertiary = 0xFF6B5778.toInt(),
+        tertiaryContainer = 0xFFF2DAFF.toInt(),
+        onTertiaryContainer = 0xFF251431.toInt(),
+        onSurface = 0xFF191C20.toInt(),
+        onSurfaceVariant = 0xFF43474E.toInt(),
+        outline = 0xFF73777F.toInt(),
+        outlineVariant = 0xFFC3C7CF.toInt(),
+        error = 0xFFBA1A1A.toInt(),
+        errorContainer = 0xFFFFDAD6.toInt()
+    )
+
+    val Dark = TonalScheme(
+        surface = 0xFF10131B.toInt(),
+        surfaceContainerLowest = 0xFF0B0E14.toInt(),
+        surfaceContainerLow = 0xFF181C26.toInt(),
+        surfaceContainer = 0xFF1D222E.toInt(),
+        surfaceContainerHigh = 0xFF272C3A.toInt(),
+        surfaceContainerHighest = 0xFF323846.toInt(),
+        primary = 0xFF9ECAFF.toInt(),
+        onPrimary = 0xFF003258.toInt(),
+        primaryContainer = 0xFF00497D.toInt(),
+        onPrimaryContainer = 0xFFD1E4FF.toInt(),
+        secondary = 0xFFBBC7DB.toInt(),
+        secondaryContainer = 0xFF3B4858.toInt(),
+        onSecondaryContainer = 0xFFD7E3F7.toInt(),
+        tertiary = 0xFFD6BEE4.toInt(),
+        tertiaryContainer = 0xFF523F5F.toInt(),
+        onTertiaryContainer = 0xFFF2DAFF.toInt(),
+        onSurface = 0xFFE2E2E9.toInt(),
+        onSurfaceVariant = 0xFFC3C7CF.toInt(),
+        outline = 0xFF8D9199.toInt(),
+        outlineVariant = 0xFF43474E.toInt(),
+        error = 0xFFFFB4AB.toInt(),
+        errorContainer = 0xFF93000A.toInt()
+    )
+
+    object Overlay {
+        val panelSurface = 0xF4161B26.toInt()
+        val panelHeaderTint = 0x2464B5F6.toInt()
+        val panelStroke = 0x4D9ECAFF.toInt()
+        val iconSurface = 0xEE232A3B.toInt()
+        val iconAccentSurface = 0xFF1565C0.toInt()
+        val tagSurface = 0xDD1E2636.toInt()
+        val bubbleIdleStart = ComposeColor(0xFF1976D2)
+        val bubbleIdleEnd = ComposeColor(0xFF0D47A1)
+        val bubbleIdleRing = ComposeColor(0x669ECAFF)
+        val bubbleActiveStart = ComposeColor(0xFFE53935)
+        val bubbleActiveEnd = ComposeColor(0xFFB71C1C)
+        val bubbleActiveRing = ComposeColor(0x99FF8A80)
+        val sliderTrackActive = ComposeColor(0xFF9ECAFF)
+        val sliderTrackInactive = ComposeColor(0xFF3B4858)
+        val phraseItemFill = 0x2B9ECAFF
+        val phraseItemStroke = 0x4D9ECAFF
+        val phraseItemDragFill = 0x521565C0
+        val phraseItemDragStroke = 0xCC9ECAFF.toInt()
+        val deleteZoneFill = 0xE6181E2B.toInt()
+        val deleteZoneStroke = 0x7A9ECAFF
+        val deleteZoneActiveFill = 0xF0C62828.toInt()
+        val deleteZoneActiveStroke = 0xFFFF8A80.toInt()
+    }
+
+    /** Resolves an expressive tonal scheme, incorporating dynamic Material colors from [view]. */
+    fun resolve(view: View, dark: Boolean): TonalScheme {
+        val fallback = if (dark) Dark else Light
+        val dynPrimary = MaterialColors.getColor(view, androidx.appcompat.R.attr.colorPrimary, fallback.primary)
+        val dynOnPrimary = MaterialColors.getColor(view, com.google.android.material.R.attr.colorOnPrimary, fallback.onPrimary)
+        val dynPrimaryContainer = MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorPrimaryContainer, fallback.primaryContainer
+        )
+        val dynSecondaryContainer = MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorSecondaryContainer, fallback.secondaryContainer
+        )
+        val dynTertiary = MaterialColors.getColor(view, com.google.android.material.R.attr.colorTertiary, fallback.tertiary)
+        val dynTertiaryContainer = MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorTertiaryContainer, fallback.tertiaryContainer
+        )
+        val dynSurface = MaterialColors.getColor(view, com.google.android.material.R.attr.colorSurface, fallback.surface)
+        val dynOnSurface = MaterialColors.getColor(view, com.google.android.material.R.attr.colorOnSurface, fallback.onSurface)
+        val dynOutlineVariant = MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorOutlineVariant, fallback.outlineVariant
+        )
+
+        val surface = ColorUtils.blendARGB(dynSurface, fallback.surface, 0.35f)
+        val surfaceLow = ColorUtils.blendARGB(surface, dynPrimaryContainer, if (dark) 0.14f else 0.18f)
+        val surfaceContainer = ColorUtils.blendARGB(surface, dynPrimaryContainer, if (dark) 0.20f else 0.25f)
+        val surfaceHigh = ColorUtils.blendARGB(surface, dynPrimaryContainer, if (dark) 0.28f else 0.32f)
+        val surfaceHighest = ColorUtils.blendARGB(surface, dynPrimaryContainer, if (dark) 0.35f else 0.38f)
+
+        return fallback.copy(
+            surface = surface,
+            surfaceContainerLow = surfaceLow,
+            surfaceContainer = surfaceContainer,
+            surfaceContainerHigh = surfaceHigh,
+            surfaceContainerHighest = surfaceHighest,
+            primary = dynPrimary,
+            onPrimary = dynOnPrimary,
+            primaryContainer = dynPrimaryContainer,
+            secondaryContainer = dynSecondaryContainer,
+            tertiary = dynTertiary,
+            tertiaryContainer = dynTertiaryContainer,
+            onSurface = dynOnSurface,
+            outlineVariant = if (Color.alpha(dynOutlineVariant) > 0) dynOutlineVariant else fallback.outlineVariant
+        )
+    }
+}

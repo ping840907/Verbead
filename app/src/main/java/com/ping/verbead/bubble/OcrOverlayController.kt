@@ -141,9 +141,14 @@ class OcrOverlayController(
 
         if (ocrWindowView == null) {
             ocrWindowView = LayoutInflater.from(context).inflate(R.layout.layout_floating_ocr, null)
-            ocrWindowView?.let { com.ping.verbead.ui.GlassStage.skin(it) }
         }
         val ocr = ocrWindowView ?: return
+        (ocr.findViewById<View>(R.id.layout_ocr_root) as? com.ping.verbead.ui.GlassLinearLayout)?.refreshPanelStyle()
+        if (com.ping.verbead.util.AppTheme.isExpressive(context)) {
+            com.ping.verbead.ui.GlassStage.skin(ocr)
+        } else {
+            ocr.findViewById<View>(R.id.btn_ocr_shutter)?.setBackgroundResource(R.drawable.bg_shutter_btn)
+        }
 
         currentAnchorY = anchorY
         currentIsDockedOnRight = isDockedOnRight

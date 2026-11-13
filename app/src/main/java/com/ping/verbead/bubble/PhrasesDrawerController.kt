@@ -69,6 +69,7 @@ class PhrasesDrawerController(
             phrasesDrawerView = LayoutInflater.from(context).inflate(R.layout.layout_floating_phrases_drawer, null)
             phrasesDrawerView?.let { com.ping.verbead.ui.GlassStage.skin(it) }
         }
+        (phrasesDrawerView as? com.ping.verbead.ui.GlassLinearLayout)?.refreshPanelStyle()
         val drawer = phrasesDrawerView ?: return
 
         val density = context.resources.displayMetrics.density
@@ -373,7 +374,8 @@ class PhrasesDrawerController(
                         .setDuration(120)
                         .start()
                     viewHolder.itemView.translationZ = 12f * context.resources.displayMetrics.density
-                    viewHolder.itemView.setBackgroundResource(R.drawable.bg_phrase_item_dragging)
+                    com.ping.verbead.ui.style.UiStyleManager.current(context)
+                        .stylePhraseItemBackground(viewHolder.itemView, dragging = true)
                 }
             }
 
@@ -385,7 +387,8 @@ class PhrasesDrawerController(
                     .setDuration(120)
                     .start()
                 viewHolder.itemView.translationZ = 0f
-                viewHolder.itemView.setBackgroundResource(R.drawable.bg_phrase_item)
+                com.ping.verbead.ui.style.UiStyleManager.current(context)
+                    .stylePhraseItemBackground(viewHolder.itemView, dragging = false)
                 HapticUtil.click(context)
                 persistPhrasesFromAdapter()
             }
@@ -559,6 +562,8 @@ class PhrasesDrawerController(
                 }
                 is DrawerItem.History -> {
                     val h = holder as HistoryViewHolder
+                    com.ping.verbead.ui.style.UiStyleManager.current(h.root.context)
+                        .stylePhraseItemBackground(h.root, dragging = false)
                     h.tvText.text = item.text
                     h.root.setOnClickListener { onItemClick(item.text) }
                     h.btnSave.setOnClickListener { onSaveHistoryAsPhrase(item.text) }
@@ -566,6 +571,8 @@ class PhrasesDrawerController(
                 }
                 is DrawerItem.Phrase -> {
                     val h = holder as PhraseViewHolder
+                    com.ping.verbead.ui.style.UiStyleManager.current(h.root.context)
+                        .stylePhraseItemBackground(h.root, dragging = false)
                     h.tvText.text = item.text
                     h.root.setOnClickListener { onItemClick(item.text) }
                     h.btnEdit.setOnClickListener { onEditPhrase(item.text) }

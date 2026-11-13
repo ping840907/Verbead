@@ -1,49 +1,22 @@
 package com.ping.verbead.util
 
-import android.content.res.ColorStateList
-import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
-import com.ping.verbead.R
+import com.ping.verbead.ui.style.UiStyleManager
 
 object ChoiceButtonUtil {
     /**
-     * Styles a segmented choice button (tab/pill) with high-contrast active and inactive states.
-     * Inactive state features a card-surface background with a crisp border so it never blends
-     * into container backgrounds.
+     * Styles a segmented choice button (tab/pill) with high-contrast active and inactive states
+     * matching the currently selected UI style ([com.ping.verbead.ui.style.UiStyle]).
      */
     fun applyChoiceState(
         button: MaterialButton,
         isSelected: Boolean
     ) {
         val context = button.context
-        val primaryColor = ContextCompat.getColor(context, R.color.md_theme_light_primary)
-        val onPrimaryColor = ContextCompat.getColor(context, R.color.md_theme_light_onPrimary)
-        val unselectedBg = com.google.android.material.color.MaterialColors.getColor(
-            button, com.google.android.material.R.attr.colorSurfaceVariant, ContextCompat.getColor(context, R.color.surface_card)
+        UiStyleManager.current(context).applyChoiceButtonState(
+            button = button,
+            isSelected = isSelected,
+            dark = UiStyleManager.isDark(context)
         )
-        val unselectedText = ContextCompat.getColor(context, R.color.text_primary)
-        val strokeColor = if (isSelected) primaryColor else ContextCompat.getColor(context, R.color.surface_card_stroke)
-        val density = context.resources.displayMetrics.density
-        val strokeWidthPx = (1.2f * density).toInt().coerceAtLeast(1)
-
-        if (isSelected) {
-            button.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            // A disabled "in use" button is drawn faded, so white text on it would wash out in light mode.
-            val selectedText =
-                if (button.isEnabled || androidx.core.graphics.ColorUtils.calculateLuminance(onPrimaryColor) < 0.5) onPrimaryColor
-                else unselectedText
-            button.setTextColor(selectedText)
-            button.iconTint = ColorStateList.valueOf(selectedText)
-            button.strokeColor = ColorStateList.valueOf(primaryColor)
-            button.strokeWidth = strokeWidthPx
-            button.elevation = 2f * density
-        } else {
-            button.backgroundTintList = ColorStateList.valueOf(unselectedBg)
-            button.setTextColor(unselectedText)
-            button.iconTint = ColorStateList.valueOf(unselectedText)
-            button.strokeColor = ColorStateList.valueOf(strokeColor)
-            button.strokeWidth = strokeWidthPx
-            button.elevation = 0f
-        }
     }
 }

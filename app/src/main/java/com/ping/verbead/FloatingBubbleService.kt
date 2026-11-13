@@ -158,6 +158,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             val intent = Intent(context, FloatingBubbleService::class.java)
             context.stopService(intent)
         }
+
+        fun notifyThemeStyleChanged() {
+            val svc = instance ?: return
+            svc.mainHandler.post { svc.refreshThemeStyle() }
+        }
     }
 
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -3077,6 +3082,16 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             overlays.setOcrEnlarged(isOcrEnlarged)
         }
         repositionOverlays()
+    }
+
+    private fun refreshThemeStyle() {
+        spareBubbleView = null
+        for (item in bubbleItems) {
+            (item.btnBubble as? com.ping.verbead.ui.GlassBubbleLayout)?.rebuildGlass()
+        }
+        if (::bubblePreviewController.isInitialized) {
+            bubblePreviewController.refreshStyle()
+        }
     }
 
     override fun onDestroy() {

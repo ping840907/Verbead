@@ -1,14 +1,18 @@
 package com.ping.verbead.ui
 
 import android.content.Context
-import android.graphics.Color
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -16,8 +20,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -29,20 +33,22 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.ping.verbead.ui.style.UiStyle
+import com.ping.verbead.ui.style.UiStyleManager
 import dev.mttmcknn.seaglass.SeaGlassMaterialTheme
 import dev.mttmcknn.seaglass.SeaGlassPalette
 import dev.mttmcknn.seaglass.SeaGlassShape
 import dev.mttmcknn.seaglass.rememberSeaGlassColorScheme
 import dev.mttmcknn.seaglass.seaGlass
 
-/** ChipGroup whose chips are drawn as Sea Glass capsules once [GlassChipFrame] wraps it. */
+/** ChipGroup whose chips are themed by [GlassChipFrame] using the active [UiStyle]. */
 class GlassChipGroup @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = com.google.android.material.R.attr.chipGroupStyle
 ) : ChipGroup(context, attrs, defStyleAttr)
 
-/** A single chip (e.g. a filter toggle) drawn as a Sea Glass capsule once wrapped. */
+/** A single chip (e.g. a filter toggle) themed by [GlassChipFrame] using the active [UiStyle]. */
 class GlassChip @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -55,9 +61,8 @@ private class ChipSpot(
 )
 
 /**
- * Glass layer behind a [GlassChipGroup] or [GlassChip]. The chips keep their own behaviour
- * (selection, listeners, ripple); only their fill and outline are cleared and the glass capsule is
- * drawn at each chip's position.
+ * Themed background layer behind a [GlassChipGroup] or [GlassChip].
+ * Renders Material 3 Expressive morphing squircle/pill chips or SeaGlass capsules at each chip's bounds.
  */
 class GlassChipFrame internal constructor(
     context: Context,
@@ -72,9 +77,11 @@ class GlassChipFrame internal constructor(
         clipToPadding = false
         glassView = ComposeView(context).apply {
             setContent {
+                val style = UiStyleManager.currentStyle(context)
+                val dark = isSystemInDarkTheme()
                 val colors = rememberSeaGlassColorScheme(
                     dynamicColor = true,
-                    darkTheme = isSystemInDarkTheme()
+                    darkTheme = dark
                 )
                 MaterialTheme(colorScheme = colors) {
                     val cs = MaterialTheme.colorScheme
@@ -82,18 +89,22 @@ class GlassChipFrame internal constructor(
                     val list by spots
                     Box(Modifier.fillMaxSize()) {
                         for (s in list) {
-                            // Dark enough to keep the chip text readable on top.
-                            val light = !isSystemInDarkTheme()
-                            val body = if (s.checked) lerp(cs.primaryContainer, cs.primary, .35f)
-                            else if (light) lerp(cs.surfaceVariant, cs.onSurface, .16f)
-                            else lerp(cs.surfaceVariant, ComposeColor.White, .1f)
-                            val rim = if (light) cs.onSurface.copy(alpha = .28f) else ComposeColor.Transparent
-                            val palette = SeaGlassPalette(
-                                body, lerp(body, ComposeColor.White, .35f), cs.onSurface
-                            )
-                            SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
+                            if (style == UiStyle.EXPRESSIVE) {
+                                val corner by animateDpAsState(
+                                    targetValue = if (s.checked) 11.dp else 18.dp,
+                                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 520f),
+                                    label = "m3e-chip-corner"
+                                )
+                                val fill by animateColorAsState(
+                                    targetValue = if (s.checked) cs.primaryContainer else cs.surfaceContainerHigh,
+                                    animationSpec = spring(stiffness = 600f),
+                                    label = "m3e-chip-fill"
+                                )
+                                val stroke = if (s.checked) cs.primary else cs.outlineVariant.copy(alpha = 0.75f)
+                                val chipShape = RoundedCornerShape(corner)
                                 Box(
-                                    Modifier.align(Alignment.TopStart)
+                                    Modifier
+                                        .align(Alignment.TopStart)
                                         .offset(
                                             x = with(density) { s.left.toDp() },
                                             y = with(density) { s.top.toDp() }
@@ -101,10 +112,34 @@ class GlassChipFrame internal constructor(
                                         .width(with(density) { s.width.toDp() })
                                         .height(with(density) { s.height.toDp() })
                                         .alpha(if (s.enabled) 1f else 0.45f)
-                                        .clip(RoundedCornerShape(50))
-                                        .seaGlass(palette = palette)
-                                        .border(1.dp, rim, RoundedCornerShape(50))
+                                        .clip(chipShape)
+                                        .background(fill)
+                                        .border(if (s.checked) 1.5.dp else 1.dp, stroke, chipShape)
                                 )
+                            } else {
+                                val light = !dark
+                                val body = if (s.checked) lerp(cs.primaryContainer, cs.primary, .35f)
+                                else if (light) lerp(cs.surfaceVariant, cs.onSurface, .16f)
+                                else lerp(cs.surfaceVariant, ComposeColor.White, .1f)
+                                val rim = if (light) cs.onSurface.copy(alpha = .28f) else ComposeColor.Transparent
+                                val palette = SeaGlassPalette(
+                                    body, lerp(body, ComposeColor.White, .35f), cs.onSurface
+                                )
+                                SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
+                                    Box(
+                                        Modifier.align(Alignment.TopStart)
+                                            .offset(
+                                                x = with(density) { s.left.toDp() },
+                                                y = with(density) { s.top.toDp() }
+                                            )
+                                            .width(with(density) { s.width.toDp() })
+                                            .height(with(density) { s.height.toDp() })
+                                            .alpha(if (s.enabled) 1f else 0.45f)
+                                            .clip(RoundedCornerShape(50))
+                                            .seaGlass(palette = palette)
+                                            .border(1.dp, rim, RoundedCornerShape(50))
+                                    )
+                                }
                             }
                         }
                     }
@@ -112,7 +147,6 @@ class GlassChipFrame internal constructor(
             }
         }
         addView(glassView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-        // Chips can change state or move without this frame being measured again.
         viewTreeObserver.addOnPreDrawListener {
             refreshSpots()
             true

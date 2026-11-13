@@ -770,14 +770,12 @@ class SpeechSettingsActivity : AppCompatActivity() {
     }
 
     private fun updateModelCardSelection(card: MaterialCardView, isSelected: Boolean) {
-        if (isSelected) {
-            val primaryColor = ContextCompat.getColor(card.context, R.color.md_theme_light_primary)
-            card.strokeColor = primaryColor
-            card.strokeWidth = dpToPx(1.5f)
-        } else {
-            card.strokeColor = GlassStage.hairline(card.context)
-            card.strokeWidth = dpToPx(1f)
-        }
+        val ctx = card.context
+        com.ping.verbead.ui.style.UiStyleManager.current(ctx).styleSelectableCard(
+            card = card,
+            isSelected = isSelected,
+            dark = com.ping.verbead.ui.style.UiStyleManager.isDark(ctx)
+        )
     }
 
     private fun dpToPx(dp: Float): Int {

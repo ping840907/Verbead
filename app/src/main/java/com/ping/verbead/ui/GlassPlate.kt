@@ -10,37 +10,45 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import com.google.android.material.color.MaterialColors
 import com.ping.verbead.R
+import com.ping.verbead.ui.style.ExpressivePalette
+import com.ping.verbead.ui.style.UiStyle
+import com.ping.verbead.ui.style.UiStyleManager
 import dev.mttmcknn.seaglass.SeaGlassMaterialTheme
 import dev.mttmcknn.seaglass.SeaGlassPalette
 import dev.mttmcknn.seaglass.SeaGlassShape
 import dev.mttmcknn.seaglass.rememberSeaGlassColorScheme
 import dev.mttmcknn.seaglass.seaGlass
-import androidx.compose.ui.graphics.Color as ComposeColor
 
-/** Views that carry a fixed glass colour for overlay windows. */
+/** Views that carry a fixed glass/expressive colour for overlay windows. */
 internal interface OverlayTinted {
     val overlayTint: Int?
     val followBubble: Boolean
     val accent: Boolean get() = false
 }
 
-/** A view whose own background is replaced by a Sea Glass plate once GlassStage wraps it. */
+/** A view whose own background is replaced by a themed plate once GlassStage wraps it. */
 internal interface GlassPlateHost {
     var plate: GlassPlateFrame?
     val plateShape: SeaGlassShape
@@ -50,9 +58,8 @@ internal interface GlassPlateHost {
 }
 
 /**
- * Sea Glass plate behind a single child view (icon circle, status tag). The plate is sized to
- * the child, the child keeps drawing its own icon or text on top, and the glow gets a little
- * room around the child through negative margins.
+ * Themed plate behind a single child view (icon container, status tag).
+ * Renders either Material 3 Expressive squircle/pill containers or SeaGlass discs/capsules.
  */
 class GlassPlateFrame internal constructor(
     context: Context,
@@ -61,6 +68,7 @@ class GlassPlateFrame internal constructor(
 ) : FrameLayout(context) {
 
     private val tintState = mutableIntStateOf(Color.TRANSPARENT)
+    private val pressedState = mutableStateOf(false)
     internal var darkOverlay = false
     private val rebuild = mutableIntStateOf(0)
     internal var followBubble = false
@@ -72,9 +80,9 @@ class GlassPlateFrame internal constructor(
         clipChildren = false
         clipToPadding = false
         glassView = ComposeView(context).apply {
-            // Compose needs a window; views inflated for an overlay are measured before they are attached.
             visibility = GONE
             setContent {
+                val style = UiStyleManager.currentStyle(context)
                 val dark = isSystemInDarkTheme()
                 val colors = rememberSeaGlassColorScheme(
                     dynamicColor = true,
@@ -82,24 +90,79 @@ class GlassPlateFrame internal constructor(
                 )
                 MaterialTheme(colorScheme = colors) {
                     val tint by tintState
-                    val body = if (followBubble) {
-                        // exactly the main bubble's colour, so the two always match
-                        val base = if (dark) colors.primaryContainer else colors.primary
-                        // the main action: the theme's primary colour, darkened so white text stays readable
-                        if (accent) lerp(colors.primary, ComposeColor.Black, 0.38f) else base
-                    } else {
-                        lerp(ComposeColor(tint or (0xFF shl 24)), ComposeColor.White, 0.06f)
-                    }
-                    val palette = SeaGlassPalette(
-                        body, lerp(body, ComposeColor.White, .35f),
-                        if (followBubble) ComposeColor.White else ComposeColor.Black
-                    )
+                    val pressed by pressedState
                     val generation by rebuild
-                    androidx.compose.runtime.key(generation) {
-                        SeaGlassMaterialTheme(style = if (followBubble) BubbleRecipe else SmallGlassRecipe, shape = shape) {
-                            // Clipped to the plate's own shape: the cast shadow would otherwise be cut into a flat edge.
-                            val clipShape = if (shape == SeaGlassShape.Disc) CircleShape else RoundedCornerShape(50)
-                            Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).clip(clipShape).seaGlass(palette = palette))
+
+                    if (style == UiStyle.EXPRESSIVE) {
+                        val cs = MaterialTheme.colorScheme
+                        androidx.compose.runtime.key(generation) {
+                            if (shape == SeaGlassShape.Disc) {
+                                val cornerPct by animateIntAsState(
+                                    targetValue = if (pressed) 22 else 34,
+                                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 550f),
+                                    label = "m3e-plate-disc"
+                                )
+                                val containerShape = RoundedCornerShape(percent = cornerPct)
+                                val fill = when {
+                                    followBubble && accent -> ComposeColor(ExpressivePalette.Overlay.iconAccentSurface)
+                                    followBubble -> ComposeColor(ExpressivePalette.Overlay.iconSurface)
+                                    else -> {
+                                        val base = ComposeColor(tint or (0xFF shl 24))
+                                        if (dark) lerp(base, cs.primaryContainer, 0.25f) else base
+                                    }
+                                }
+                                val stroke = when {
+                                    followBubble && accent -> ComposeColor(0x809ECAFF)
+                                    followBubble -> ComposeColor(0x47FFFFFF)
+                                    else -> cs.primary.copy(alpha = 0.22f)
+                                }
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(GLOW_DP.dp)
+                                        .clip(containerShape)
+                                        .background(fill)
+                                        .border(1.dp, stroke, containerShape)
+                                )
+                            } else {
+                                val cornerDp = if (pressed) 8.dp else 11.dp
+                                val pillShape = RoundedCornerShape(cornerDp)
+                                val fill = when {
+                                    followBubble && accent -> ComposeColor(ExpressivePalette.Overlay.iconAccentSurface)
+                                    followBubble -> ComposeColor(ExpressivePalette.Overlay.tagSurface)
+                                    else -> ComposeColor(tint or (0xFF shl 24))
+                                }
+                                val stroke = when {
+                                    followBubble && accent -> ComposeColor(0x889ECAFF)
+                                    followBubble -> ComposeColor(0x4D9ECAFF)
+                                    else -> cs.outlineVariant.copy(alpha = 0.55f)
+                                }
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(GLOW_DP.dp)
+                                        .clip(pillShape)
+                                        .background(fill)
+                                        .border(1.dp, stroke, pillShape)
+                                )
+                            }
+                        }
+                    } else {
+                        val body = if (followBubble) {
+                            val base = if (dark) colors.primaryContainer else colors.primary
+                            if (accent) lerp(colors.primary, ComposeColor.Black, 0.38f) else base
+                        } else {
+                            lerp(ComposeColor(tint or (0xFF shl 24)), ComposeColor.White, 0.06f)
+                        }
+                        val palette = SeaGlassPalette(
+                            body, lerp(body, ComposeColor.White, .35f),
+                            if (followBubble) ComposeColor.White else ComposeColor.Black
+                        )
+                        androidx.compose.runtime.key(generation) {
+                            SeaGlassMaterialTheme(style = if (followBubble) BubbleRecipe else SmallGlassRecipe, shape = shape) {
+                                val clipShape = if (shape == SeaGlassShape.Disc) CircleShape else RoundedCornerShape(50)
+                                Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).clip(clipShape).seaGlass(palette = palette))
+                            }
                         }
                     }
                 }
@@ -145,6 +208,14 @@ class GlassPlateFrame internal constructor(
         tintState.intValue = argb
     }
 
+    internal fun onPressedChanged(pressed: Boolean) {
+        pressedState.value = pressed
+    }
+
+    internal fun rebuildPlate() {
+        rebuild.intValue++
+    }
+
     internal companion object {
         const val GLOW_DP = 2
 
@@ -180,7 +251,7 @@ class GlassPlateFrame internal constructor(
 private fun solidColorOf(d: Drawable?): Int? =
     (d as? GradientDrawable)?.color?.defaultColor
 
-/** Round icon holder (the old bg_icon_circle ImageView) drawn as a Sea Glass disc. */
+/** Icon holder drawn as an expressive squircle or SeaGlass disc. */
 class GlassIconView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -202,8 +273,13 @@ class GlassIconView @JvmOverloads constructor(
         if (p == null) super.setBackground(background)
         else {
             p.setTint(solidColorOf(background) ?: defaultPlateTint())
-            super.setBackground(null) // the plate replaces the view's own background
+            super.setBackground(null)
         }
+    }
+
+    override fun setPressed(pressed: Boolean) {
+        super.setPressed(pressed)
+        plate?.onPressedChanged(pressed)
     }
 
     override fun setVisibility(visibility: Int) {
@@ -213,8 +289,7 @@ class GlassIconView @JvmOverloads constructor(
 }
 
 /**
- * Status or count tag (the bg_status_badge_* drawables) drawn as a Sea Glass capsule. Code keeps
- * calling setBackgroundResource with those drawables; only the colour of that drawable is used.
+ * Status or count tag drawn as an expressive pill/squircle badge or SeaGlass capsule.
  */
 class GlassTagText @JvmOverloads constructor(
     context: Context,
@@ -229,7 +304,6 @@ class GlassTagText @JvmOverloads constructor(
     override val followBubble: Boolean = readFollowBubble(context, attrs)
     override val accent: Boolean = readAccent(context, attrs)
 
-    /** Colour of the background drawable given in XML, captured before the plate exists. */
     private var xmlTint: Int? = null
 
     override fun defaultPlateTint(): Int = overlayTint ?: pigment(
@@ -248,8 +322,13 @@ class GlassTagText @JvmOverloads constructor(
             super.setBackground(background)
         } else {
             p.setTint(if (c != null) pigment(c) else defaultPlateTint())
-            super.setBackground(null) // the plate replaces the view's own background
+            super.setBackground(null)
         }
+    }
+
+    override fun setPressed(pressed: Boolean) {
+        super.setPressed(pressed)
+        plate?.onPressedChanged(pressed)
     }
 
     override fun setVisibility(visibility: Int) {

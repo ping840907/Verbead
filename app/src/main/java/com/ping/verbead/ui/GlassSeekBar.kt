@@ -5,10 +5,13 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
-import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.widget.AppCompatSeekBar
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,13 +29,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.ping.verbead.ui.style.ExpressivePalette
+import com.ping.verbead.ui.style.UiStyle
+import com.ping.verbead.ui.style.UiStyleManager
 import dev.mttmcknn.seaglass.SeaGlassMaterialTheme
 import dev.mttmcknn.seaglass.SeaGlassPalette
 import dev.mttmcknn.seaglass.SeaGlassShape
@@ -40,9 +46,9 @@ import dev.mttmcknn.seaglass.rememberSeaGlassColorScheme
 import dev.mttmcknn.seaglass.seaGlass
 
 /**
- * SeekBar whose track and thumb are drawn as Sea Glass once [GlassSeekFrame] wraps it. The
- * SeekBar itself keeps all touch, keyboard and listener behaviour; its own drawables are made
- * invisible and the glass layer behind it follows the thumb position.
+ * SeekBar whose track and thumb are drawn by [GlassSeekFrame] in the active [UiStyle]:
+ * - [UiStyle.EXPRESSIVE]: thick 14dp split-gap track with stop dot and morphing vertical bar handle.
+ * - [UiStyle.SEA_GLASS]: frosted glass capsule track and bouncy disc thumb.
  */
 class GlassSeekBar @JvmOverloads constructor(
     context: Context,
@@ -57,7 +63,7 @@ class GlassSeekBar @JvmOverloads constructor(
     internal val heightPx = mutableFloatStateOf(0f)
     internal var framed = false
     internal val heldState = mutableStateOf(false)
-    /** Overlay windows float over other apps: always the dark glass scheme. */
+    /** Overlay windows float over other apps: always the dark scheme. */
     internal val forceDark: Boolean = run {
         if (attrs == null) false else {
             val a = context.obtainStyledAttributes(attrs, com.ping.verbead.R.styleable.GlassOverlay)
@@ -120,7 +126,7 @@ class GlassSeekBar @JvmOverloads constructor(
     }
 }
 
-/** Sea Glass layer behind a [GlassSeekBar]; sized to the bar, with room for the glow around it. */
+/** Themed layer behind a [GlassSeekBar]; sized to the bar, with room for the glow/handle around it. */
 class GlassSeekFrame internal constructor(
     context: Context,
     private val bar: GlassSeekBar
@@ -133,11 +139,13 @@ class GlassSeekFrame internal constructor(
         clipChildren = false
         clipToPadding = false
         glassView = ComposeView(context).apply {
-            visibility = GONE // until attached, see onAttachedToWindow
+            visibility = GONE
             setContent {
+                val style = UiStyleManager.currentStyle(context)
+                val dark = isSystemInDarkTheme() || bar.forceDark
                 val colors = rememberSeaGlassColorScheme(
                     dynamicColor = true,
-                    darkTheme = isSystemInDarkTheme() || bar.forceDark
+                    darkTheme = dark
                 )
                 MaterialTheme(colorScheme = colors) {
                     val cs = MaterialTheme.colorScheme
@@ -147,61 +155,140 @@ class GlassSeekFrame internal constructor(
                     val end by bar.trackEndPx
                     val h by bar.heightPx
                     val on by bar.enabledState
-                    val trackH = GlassSeekBar.TRACK_DP.dp
                     val held by bar.heldState
-                    // The thumb keeps its size (Sea Glass would rebuild its outline on every size change, and
-                    // that showed up as a cut-off edge). Growing while held is a scale on the drawn layer.
-                    val thumbD = GlassSeekBar.THUMB_DP.dp
-                    val grow by androidx.compose.animation.core.animateFloatAsState(
-                        if (held) 1.15f else 1f,
-                        // grows with a calm spring, lets go with a bouncier one so it wobbles a little
-                        if (held) androidx.compose.animation.core.spring(dampingRatio = 0.75f, stiffness = 600f)
-                        else androidx.compose.animation.core.spring(dampingRatio = 0.32f, stiffness = 420f),
-                        label = "seek-thumb"
-                    )
                     val (startDp, endDp, centerDp, midDp) = with(density) {
                         listOf(start.toDp(), end.toDp(), center.toDp(), (h / 2f).toDp())
                     }
-                    val trackBody = lerp(cs.surfaceVariant, cs.outline, .25f)
-                    val trackPalette = SeaGlassPalette(
-                        trackBody, lerp(trackBody, ComposeColor.White, .35f), cs.onSurface
-                    )
-                    val fillPalette = SeaGlassPalette(
-                        cs.primary, lerp(cs.primary, ComposeColor.White, .35f), cs.onSurface
-                    )
-                    val thumbBody = lerp(cs.onPrimary, ComposeColor.White, .85f)
-                    val thumbPalette = SeaGlassPalette(
-                        thumbBody, lerp(thumbBody, ComposeColor.White, .35f), cs.onSurface
-                    )
-                    Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).alpha(if (on) 1f else 0.45f)) {
-                        SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
+
+                    if (style == UiStyle.EXPRESSIVE) {
+                        val trackH = 14.dp
+                        val handleW by animateDpAsState(
+                            targetValue = if (held) 4.dp else 6.dp,
+                            animationSpec = spring(dampingRatio = 0.6f, stiffness = 550f),
+                            label = "m3e-seek-w"
+                        )
+                        val handleH by animateDpAsState(
+                            targetValue = if (held) 32.dp else 26.dp,
+                            animationSpec = spring(dampingRatio = 0.55f, stiffness = 520f),
+                            label = "m3e-seek-h"
+                        )
+                        val gapHalf = 6.dp + handleW / 2
+                        val activeColor = if (bar.forceDark) ExpressivePalette.Overlay.sliderTrackActive else cs.primary
+                        val inactiveColor = if (bar.forceDark) ExpressivePalette.Overlay.sliderTrackInactive else cs.secondaryContainer
+                        val activeWidth = ((centerDp - gapHalf) - startDp).coerceAtLeast(0.dp)
+                        val inactiveStart = (centerDp + gapHalf).coerceAtLeast(startDp)
+                        val inactiveWidth = (endDp - inactiveStart).coerceAtLeast(0.dp)
+
+                        Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).alpha(if (on) 1f else 0.42f)) {
+                            // Left active track segment
+                            if (activeWidth > 1.dp) {
+                                Box(
+                                    Modifier
+                                        .align(Alignment.TopStart)
+                                        .offset(x = startDp, y = midDp - trackH / 2)
+                                        .width(activeWidth)
+                                        .height(trackH)
+                                        .clip(
+                                            RoundedCornerShape(
+                                                topStart = 7.dp,
+                                                bottomStart = 7.dp,
+                                                topEnd = 3.dp,
+                                                bottomEnd = 3.dp
+                                            )
+                                        )
+                                        .background(activeColor)
+                                )
+                            }
+                            // Right inactive track segment
+                            if (inactiveWidth > 1.dp) {
+                                Box(
+                                    Modifier
+                                        .align(Alignment.TopStart)
+                                        .offset(x = inactiveStart, y = midDp - trackH / 2)
+                                        .width(inactiveWidth)
+                                        .height(trackH)
+                                        .clip(
+                                            RoundedCornerShape(
+                                                topStart = 3.dp,
+                                                bottomStart = 3.dp,
+                                                topEnd = 7.dp,
+                                                bottomEnd = 7.dp
+                                            )
+                                        )
+                                        .background(inactiveColor)
+                                )
+                                // Stop dot indicator at track end
+                                if (inactiveWidth > 10.dp) {
+                                    Box(
+                                        Modifier
+                                            .align(Alignment.TopStart)
+                                            .offset(x = endDp - 7.dp, y = midDp - 2.dp)
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(activeColor.copy(alpha = 0.7f))
+                                    )
+                                }
+                            }
+                            // Expressive vertical pill handle
                             Box(
-                                Modifier.align(Alignment.TopStart)
-                                    .offset(x = startDp, y = midDp - trackH / 2)
-                                    .width((endDp - startDp).coerceAtLeast(0.dp))
-                                    .height(trackH)
+                                Modifier
+                                    .align(Alignment.TopStart)
+                                    .offset(x = centerDp - handleW / 2, y = midDp - handleH / 2)
+                                    .size(width = handleW, height = handleH)
                                     .clip(RoundedCornerShape(50))
-                                    .seaGlass(palette = trackPalette)
-                            )
-                            val fillW = (centerDp - startDp).coerceAtLeast(trackH)
-                            Box(
-                                Modifier.align(Alignment.TopStart)
-                                    .offset(x = startDp, y = midDp - trackH / 2)
-                                    .width(fillW)
-                                    .height(trackH)
-                                    .clip(RoundedCornerShape(50))
-                                    .seaGlass(palette = fillPalette)
+                                    .background(activeColor)
                             )
                         }
-                        SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Disc) {
-                            Box(
-                                Modifier.align(Alignment.TopStart)
-                                    .offset(x = centerDp - thumbD / 2, y = midDp - thumbD / 2)
-                                    .size(thumbD)
-                                    .graphicsLayer { scaleX = grow; scaleY = grow }
-                                    .clip(CircleShape)
-                                    .seaGlass(palette = thumbPalette)
-                            )
+                    } else {
+                        val trackH = GlassSeekBar.TRACK_DP.dp
+                        val thumbD = GlassSeekBar.THUMB_DP.dp
+                        val grow by animateFloatAsState(
+                            if (held) 1.15f else 1f,
+                            if (held) spring(dampingRatio = 0.75f, stiffness = 600f)
+                            else spring(dampingRatio = 0.32f, stiffness = 420f),
+                            label = "seek-thumb"
+                        )
+                        val trackBody = lerp(cs.surfaceVariant, cs.outline, .25f)
+                        val trackPalette = SeaGlassPalette(
+                            trackBody, lerp(trackBody, ComposeColor.White, .35f), cs.onSurface
+                        )
+                        val fillPalette = SeaGlassPalette(
+                            cs.primary, lerp(cs.primary, ComposeColor.White, .35f), cs.onSurface
+                        )
+                        val thumbBody = lerp(cs.onPrimary, ComposeColor.White, .85f)
+                        val thumbPalette = SeaGlassPalette(
+                            thumbBody, lerp(thumbBody, ComposeColor.White, .35f), cs.onSurface
+                        )
+                        Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).alpha(if (on) 1f else 0.45f)) {
+                            SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
+                                Box(
+                                    Modifier.align(Alignment.TopStart)
+                                        .offset(x = startDp, y = midDp - trackH / 2)
+                                        .width((endDp - startDp).coerceAtLeast(0.dp))
+                                        .height(trackH)
+                                        .clip(RoundedCornerShape(50))
+                                        .seaGlass(palette = trackPalette)
+                                )
+                                val fillW = (centerDp - startDp).coerceAtLeast(trackH)
+                                Box(
+                                    Modifier.align(Alignment.TopStart)
+                                        .offset(x = startDp, y = midDp - trackH / 2)
+                                        .width(fillW)
+                                        .height(trackH)
+                                        .clip(RoundedCornerShape(50))
+                                        .seaGlass(palette = fillPalette)
+                                )
+                            }
+                            SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Disc) {
+                                Box(
+                                    Modifier.align(Alignment.TopStart)
+                                        .offset(x = centerDp - thumbD / 2, y = midDp - thumbD / 2)
+                                        .size(thumbD)
+                                        .graphicsLayer { scaleX = grow; scaleY = grow }
+                                        .clip(CircleShape)
+                                        .seaGlass(palette = thumbPalette)
+                                )
+                            }
                         }
                     }
                 }
@@ -260,12 +347,11 @@ class GlassSeekFrame internal constructor(
                 LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             )
             bar.framed = true
-            // A parent that clips its children cuts the glow and the grown thumb off at the frame's edge.
             var up: android.view.ViewParent? = frame.parent
             var levels = 0
             while (up is ViewGroup && levels < 4) {
                 up.clipChildren = false
-                up.clipToPadding = false // the glow reaches into the parent's padding
+                up.clipToPadding = false
                 up = up.parent
                 levels++
             }

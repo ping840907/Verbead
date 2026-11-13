@@ -49,6 +49,8 @@ class BubblePulseController(
                 viewPulseWave = findViewById(R.id.view_bubble_pulse_wave)
             }
         }
+        com.ping.verbead.ui.style.UiStyleManager.current(context)
+            .stylePulseViews(viewPulseRing, viewPulseWave)
         val view = pulseView ?: return
         val density = context.resources.displayMetrics.density
 

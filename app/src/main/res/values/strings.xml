@@ -512,5 +512,8 @@ Final: %2$s</string>
     <string name="settings_theme_system">Follow system</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_style_title">Visual style</string>
+    <string name="settings_theme_style_expressive" translatable="false">Material 3 Expressive</string>
+    <string name="settings_theme_style_sea_glass" translatable="false">SeaGlass</string>
     <string name="common_undo">Undo</string>
 </resources>

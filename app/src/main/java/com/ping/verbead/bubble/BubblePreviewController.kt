@@ -95,6 +95,12 @@ class BubblePreviewController(
         windowManager.addView(previewView, previewLayoutParams)
     }
 
+    fun refreshStyle() {
+        if (::cardBubblePreview.isInitialized) {
+            (cardBubblePreview as? com.ping.verbead.ui.GlassFrameLayout)?.refreshPanelStyle()
+        }
+    }
+
     fun updatePosition(
         anchorY: Int,
         isDockedOnRight: Boolean,

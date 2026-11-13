@@ -150,6 +150,8 @@ class CapsuleMenuController(
             }
         }
         val menu = capsuleMenuView ?: return
+        val styleModule = com.ping.verbead.ui.style.UiStyleManager.current(context)
+        modeIndicatorViews.values.forEach { styleModule.styleCapsuleIndicator(it) }
         val pill = menu.findViewById<LinearLayout>(R.id.layout_capsule_pill) ?: return
 
         // Dynamically populate enabled modes in the user's custom order

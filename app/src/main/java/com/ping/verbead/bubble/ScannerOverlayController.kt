@@ -121,6 +121,7 @@ class ScannerOverlayController(
             scannerView?.let { com.ping.verbead.ui.GlassStage.skin(it) }
         }
         val scanner = scannerView ?: return
+        (scanner.findViewById<View>(R.id.layout_scanner_root) as? com.ping.verbead.ui.GlassLinearLayout)?.refreshPanelStyle()
 
         currentAnchorY = anchorY
         currentIsDockedOnRight = isDockedOnRight

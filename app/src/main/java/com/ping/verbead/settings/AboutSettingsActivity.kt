@@ -43,6 +43,13 @@ class AboutSettingsActivity : AppCompatActivity() {
             showThemeDialog()
         }
 
+        val themeStyleValue = findViewById<TextView>(R.id.text_theme_style_value)
+        themeStyleValue.text = styleLabel(AppTheme.getStyle(this))
+        findViewById<View>(R.id.row_theme_style).setOnClickListener {
+            HapticUtil.click(this)
+            showThemeStyleDialog(themeStyleValue)
+        }
+
         fun openWebUrl(url: String) {
             HapticUtil.click(this)
             try {
@@ -107,6 +114,27 @@ class AboutSettingsActivity : AppCompatActivity() {
             .setSingleChoiceItems(modes.map(::themeLabel).toTypedArray(), current) { dialog, which ->
                 dialog.dismiss()
                 if (which != current) AppTheme.set(this, modes[which])
+            }
+            .show()
+    }
+
+    private fun styleLabel(style: String): String = when (style) {
+        AppTheme.STYLE_SEA_GLASS -> getString(R.string.settings_theme_style_sea_glass)
+        else -> getString(R.string.settings_theme_style_expressive)
+    }
+
+    private fun showThemeStyleDialog(valueView: TextView) {
+        val styles = AppTheme.STYLES
+        val current = styles.indexOf(AppTheme.getStyle(this)).coerceAtLeast(0)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.settings_theme_style_title)
+            .setSingleChoiceItems(styles.map(::styleLabel).toTypedArray(), current) { dialog, which ->
+                dialog.dismiss()
+                if (which != current) {
+                    AppTheme.setStyle(this, styles[which])
+                    valueView.text = styleLabel(styles[which])
+                    recreate()
+                }
             }
             .show()
     }

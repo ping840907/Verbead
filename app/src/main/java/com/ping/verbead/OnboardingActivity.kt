@@ -134,16 +134,14 @@ class OnboardingActivity : AppCompatActivity() {
         // Indicator dots
         val activeWidth = (20 * resources.displayMetrics.density).toInt()
         val inactiveWidth = (6 * resources.displayMetrics.density).toInt()
+        val styleModule = com.ping.verbead.ui.style.UiStyleManager.current(this)
+        val dark = com.ping.verbead.ui.style.UiStyleManager.isDark(this)
         for (i in dots.indices) {
             val dot = dots[i]
             val params = dot.layoutParams
-            if (i == position) {
-                params.width = activeWidth
-                dot.setBackgroundResource(R.drawable.bg_indicator_dot_active)
-            } else {
-                params.width = inactiveWidth
-                dot.setBackgroundResource(R.drawable.bg_indicator_dot_inactive)
-            }
+            val isActive = i == position
+            params.width = if (isActive) activeWidth else inactiveWidth
+            styleModule.styleIndicatorDot(dot, isActive, dark)
             dot.layoutParams = params
         }
     }

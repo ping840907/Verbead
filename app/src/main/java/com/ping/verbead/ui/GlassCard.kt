@@ -1,14 +1,15 @@
 package com.ping.verbead.ui
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.LayerDrawable
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.FrameLayout
-import com.ping.verbead.R
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -17,12 +18,18 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.widget.NestedScrollView
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
+import com.ping.verbead.R
+import com.ping.verbead.ui.style.ExpressivePalette
+import com.ping.verbead.ui.style.UiStyle
+import com.ping.verbead.ui.style.UiStyleManager
+import com.ping.verbead.util.AppTheme
 
 /**
- * Frosted tonal card. Fill and edge colours come from the current Material theme, so they follow
- * the wallpaper (Material You). Deliberately quiet: a translucent tonal fill, a faint top-light
- * sheen and a hairline edge, so the soft backdrop shows through without bevels or heavy rims.
+ * Container card whose fill, corner geometry and border are driven by the active [UiStyleManager]
+ * module ([com.ping.verbead.ui.style.ExpressiveStyleModule] or
+ * [com.ping.verbead.ui.style.SeaGlassStyleModule]).
  */
 class GlassCard @JvmOverloads constructor(
     context: Context,
@@ -34,85 +41,39 @@ class GlassCard @JvmOverloads constructor(
         applyThemeTint()
     }
 
-    /** Re-reads the theme colours; call after a theme or night-mode change. */
+    /** Re-reads the theme colours and active UI style; call after a theme or style change. */
     fun applyThemeTint() {
-        val container = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY
-        )
-        val surface = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorSurface, Color.WHITE
-        )
-        val onSurface = MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorOnSurface, Color.BLACK
-        )
-        val radius = 24f * resources.displayMetrics.density
-        val stroke = (1f * resources.displayMetrics.density).toInt().coerceAtLeast(1)
-
-        val fill = GradientDrawable().apply {
-            cornerRadius = radius
-            setColor(ColorUtils.setAlphaComponent(ColorUtils.blendARGB(surface, container, 0.35f), 0xD6))
-            setStroke(stroke, ColorUtils.setAlphaComponent(onSurface, 0x1F))
-        }
-        val sheen = GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(ColorUtils.setAlphaComponent(Color.WHITE, 0x1A), Color.TRANSPARENT)
-        ).apply { cornerRadius = radius }
-        background = LayerDrawable(arrayOf(fill, sheen))
-        clipToOutline = true
-        outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+        UiStyleManager.current(context).styleCard(this, UiStyleManager.isDark(context))
     }
 
-    /** Kept for call-site compatibility; the tonal card needs no backdrop binding. */
+    /** Kept for call-site compatibility; tonal/expressive cards need no backdrop binding. */
     fun bindBackdropTarget(@Suppress("UNUSED_PARAMETER") target: View?) = Unit
 }
 
-/** Soft wallpaper-accent gradient that the glass cards refract and blur. */
+/** Screen backdrop drawn by the active [UiStyleManager] module. */
 class GlassBackdropView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-
     override fun onDraw(canvas: android.graphics.Canvas) {
-        val w = width.toFloat()
-        val h = height.toFloat()
-        if (w <= 0f || h <= 0f) return
-        val bg = themeColor(com.google.android.material.R.attr.colorSurface, Color.WHITE)
-        val a = themeColor(androidx.appcompat.R.attr.colorPrimary, Color.BLUE)
-        val b = themeColor(com.google.android.material.R.attr.colorTertiary, a)
-        canvas.drawColor(bg)
-        blob(canvas, w * 0.1f, h * 0.1f, w * 0.9f, a, 0.40f)
-        blob(canvas, w * 0.95f, h * 0.5f, w * 0.9f, b, 0.30f)
-        blob(canvas, w * 0.1f, h * 0.95f, w * 0.8f, a, 0.28f)
+        if (width <= 0 || height <= 0) return
+        UiStyleManager.current(context)
+            .drawBackdrop(this, canvas, width, height, UiStyleManager.isDark(context))
     }
-
-    private fun blob(c: android.graphics.Canvas, x: Float, y: Float, r: Float, color: Int, alpha: Float) {
-        paint.shader = android.graphics.RadialGradient(
-            x, y, r,
-            ColorUtils.setAlphaComponent(color, (alpha * 255).toInt()),
-            Color.TRANSPARENT,
-            android.graphics.Shader.TileMode.CLAMP
-        )
-        c.drawCircle(x, y, r, paint)
-    }
-
-    private fun themeColor(attr: Int, fallback: Int) = MaterialColors.getColor(this, attr, fallback)
 }
 
 object GlassStage {
     /**
-     * Call right after setContentView. Puts a [GlassBackdropView] behind the screen content and
-     * binds every [GlassCard] to it. The content's own opaque background is cleared so the
-     * backdrop shows through.
+     * Call right after setContentView. Puts a [GlassBackdropView] behind the screen content,
+     * skins all UI components with the active style module, and automatically recreates back-stacked
+     * activities if the user switches theme styles.
      */
-    fun install(activity: android.app.Activity) {
+    fun install(activity: Activity) {
         val content = activity.findViewById<ViewGroup>(android.R.id.content)
         val root = content.getChildAt(0) ?: return
         content.removeView(root)
 
-        // Edge to edge: the backdrop fills the whole window, behind the status bar, the toolbar
-        // and the navigation bar. System bars become transparent and the content is inset.
         val window = activity.window
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
@@ -121,13 +82,15 @@ object GlassStage {
             window.isStatusBarContrastEnforced = false
             window.isNavigationBarContrastEnforced = false
         }
-        val night = (activity.resources.configuration.uiMode and
-            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val night = UiStyleManager.isDark(activity)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             isAppearanceLightStatusBars = !night
             isAppearanceLightNavigationBars = !night
         }
+
+        val installedStyle = UiStyleManager.syncFromPrefs(activity)
+        window.decorView.setTag(R.id.glass_installed_style, installedStyle.key)
+        attachStyleSyncListener(activity)
 
         val backdrop = GlassBackdropView(activity)
         val stage = FrameLayout(activity)
@@ -139,8 +102,6 @@ object GlassStage {
         stage.addView(inset, FrameLayout.LayoutParams(-1, -1))
         content.addView(stage, ViewGroup.LayoutParams(-1, -1))
 
-        // Top and sides are padded by the window; the bottom inset goes onto the scrolling
-        // list so its content can still scroll underneath the transparent navigation bar.
         val scroller = findScroller(root)
         val scrollBottom = scroller?.paddingBottom ?: 0
         scroller?.clipToPadding = false
@@ -158,34 +119,29 @@ object GlassStage {
         ViewCompat.requestApplyInsets(stage)
 
         bind(root, backdrop)
-        val buttons = ArrayList<GlassMaterialButton>()
-        collectButtons(root, buttons)
-        buttons.forEach { GlassButtonFrame.wrap(it) }
-        val plates = ArrayList<View>()
-        collectPlates(root, plates)
-        plates.forEach { v ->
-            (v as? GlassPlateHost)?.let { GlassPlateFrame.wrap(it, v) }
-            (v as? GlassSeekBar)?.let { GlassSeekFrame.wrap(it) }
-            if (v is GlassChipGroup || v is GlassChip) GlassChipFrame.wrap(v)
-        }
-
-        // Motion: cards rise in one after another, rows give a little under the finger.
-        val density = activity.resources.displayMetrics.density
-        val cards = ArrayList<View>()
-        collectCards(root, cards)
-        GlassMotion.staggerIn(cards.filter { it.visibility == View.VISIBLE }.take(8), rise = 26 * density)
-        val rows = ArrayList<View>()
-        GlassMotion.clickableRows(root, rows)
-        rows.forEach { row ->
-            var p: android.view.ViewParent? = row.parent
-            while (p != null && p !is GlassCard) p = p.parent
-            (p as? View)?.let { GlassMotion.press(row, it, 0.985f) }
-        }
+        skin(root)
+        UiStyleManager.current(activity).installEntranceAndPressMotion(root as? ViewGroup ?: stage)
     }
 
-    private fun collectCards(v: View, out: MutableList<View>) {
-        if (v is GlassCard) out.add(v)
-        if (v is ViewGroup) for (i in 0 until v.childCount) collectCards(v.getChildAt(i), out)
+    private fun attachStyleSyncListener(activity: Activity) {
+        val decor = activity.window.decorView
+        val key = "glass_focus_listener_attached"
+        if (decor.getTag(R.id.glass_tint) == key) return
+        decor.setTag(R.id.glass_tint, key)
+        decor.viewTreeObserver.addOnWindowFocusChangeListener(
+            ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
+                if (!hasFocus || activity.isFinishing || activity.isDestroyed) return@OnWindowFocusChangeListener
+                val installed = decor.getTag(R.id.glass_installed_style) as? String ?: return@OnWindowFocusChangeListener
+                val current = AppTheme.getStyle(activity)
+                if (installed != current) {
+                    decor.post {
+                        if (!activity.isFinishing && !activity.isDestroyed) {
+                            activity.recreate()
+                        }
+                    }
+                }
+            }
+        )
     }
 
     /** Toolbars and app bars paint their own opaque colour; let the backdrop show instead. */
@@ -205,8 +161,7 @@ object GlassStage {
         return null
     }
 
-
-    /** Skins views that are inflated after the screen was set up (list rows, dialogs). */
+    /** Skins views that are inflated after the screen was set up (list rows, dialogs, overlays). */
     fun skin(root: View) {
         val buttons = ArrayList<GlassMaterialButton>()
         collectButtons(root, buttons)
@@ -218,32 +173,77 @@ object GlassStage {
             (v as? GlassSeekBar)?.let { GlassSeekFrame.wrap(it) }
             if (v is GlassChipGroup || v is GlassChip) GlassChipFrame.wrap(v)
         }
+        if (UiStyleManager.currentStyle(root.context) == UiStyle.EXPRESSIVE) {
+            skinAuxiliaryDrawables(root)
+        }
     }
 
-    /** Gives a MaterialCardView the same frosted look as [GlassCard]. */
-    fun frost(card: com.google.android.material.card.MaterialCardView) {
-        val ctx = card.context
-        val container = MaterialColors.getColor(card, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY)
-        val surface = MaterialColors.getColor(card, com.google.android.material.R.attr.colorSurface, Color.WHITE)
-        card.setCardBackgroundColor(
-            ColorUtils.setAlphaComponent(ColorUtils.blendARGB(surface, container, 0.35f), 0xC4)
-        )
-        card.radius = 24f * ctx.resources.displayMetrics.density
-        // Same faint top-light sheen as GlassCard, laid over the card so it follows the radius.
-        if (card.getTag(R.id.glass_tint) == null) {
-            val sheen = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(ColorUtils.setAlphaComponent(Color.WHITE, 0x24), Color.TRANSPARENT)
-            ).apply { cornerRadius = card.radius }
-            card.overlay.add(sheen)
-            card.addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
-                sheen.setBounds(0, 0, r - l, b - t)
+    private fun skinAuxiliaryDrawables(root: View) {
+        val ctx = root.context
+        val dark = UiStyleManager.isDark(ctx)
+        val scheme = ExpressivePalette.resolve(root, dark)
+        val d = ctx.resources.displayMetrics.density
+
+        val infoState = ContextCompat.getDrawable(ctx, R.drawable.bg_info_neutral)?.constantState
+        val mockScreenState = ContextCompat.getDrawable(ctx, R.drawable.bg_mockup_screen)?.constantState
+        val testInputState = ContextCompat.getDrawable(ctx, R.drawable.bg_test_input)?.constantState
+        val shutterState = ContextCompat.getDrawable(ctx, R.drawable.bg_shutter_btn)?.constantState
+        val capsuleIndState = ContextCompat.getDrawable(ctx, R.drawable.bg_capsule_indicator)?.constantState
+        val pillBtnState = ContextCompat.getDrawable(ctx, R.drawable.bg_ocr_pill_btn)?.constantState
+
+        fun walk(v: View) {
+            val bgState = v.background?.constantState
+            if (bgState != null) {
+                when (bgState) {
+                    infoState -> {
+                        v.background = GradientDrawable().apply {
+                            cornerRadius = 18f * d
+                            setColor(ColorUtils.blendARGB(scheme.surfaceContainer, scheme.secondaryContainer, 0.55f))
+                            setStroke((1f * d).toInt().coerceAtLeast(1), ColorUtils.setAlphaComponent(scheme.outlineVariant, 0x80))
+                        }
+                    }
+                    mockScreenState -> {
+                        v.background = GradientDrawable().apply {
+                            cornerRadius = 26f * d
+                            setColor(scheme.surfaceContainerLowest)
+                            setStroke((1.5f * d).toInt().coerceAtLeast(1), ColorUtils.setAlphaComponent(scheme.outlineVariant, 0xA0))
+                        }
+                    }
+                    testInputState -> {
+                        v.background = GradientDrawable().apply {
+                            cornerRadius = 14f * d
+                            setColor(scheme.surface)
+                            setStroke((1.5f * d).toInt().coerceAtLeast(1), ColorUtils.setAlphaComponent(scheme.outlineVariant, 0xAA))
+                        }
+                    }
+                    shutterState -> {
+                        v.background = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = 18f * d
+                            setColor(0xFFFFFFFF.toInt())
+                            setStroke((3f * d).toInt().coerceAtLeast(1), 0xFF9ECAFF.toInt())
+                        }
+                    }
+                    capsuleIndState -> UiStyleManager.current(ctx).styleCapsuleIndicator(v)
+                    pillBtnState -> {
+                        v.background = GradientDrawable().apply {
+                            cornerRadius = 14f * d
+                            setColor(scheme.secondaryContainer)
+                            setStroke((1f * d).toInt().coerceAtLeast(1), ColorUtils.setAlphaComponent(scheme.outlineVariant, 0x88))
+                        }
+                    }
+                }
             }
-            card.setTag(R.id.glass_tint, sheen)
+            if (v is ViewGroup) {
+                for (i in 0 until v.childCount) walk(v.getChildAt(i))
+            }
         }
-        card.strokeColor = hairline(ctx)
-        if (card.strokeWidth == 0) card.strokeWidth = (1f * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(1)
-        card.cardElevation = 0f
+        walk(root)
+    }
+
+    /** Gives a MaterialCardView the same surface style as [GlassCard]. */
+    fun frost(card: MaterialCardView) {
+        UiStyleManager.current(card.context).frostCard(card, UiStyleManager.isDark(card.context))
     }
 
     fun hairline(context: Context): Int {

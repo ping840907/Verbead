@@ -102,7 +102,8 @@ class BubbleDeleteZoneController(
             alpha = 1f
             scaleX = 1f
             scaleY = 1f
-            setBackgroundResource(R.drawable.bg_bubble_delete_zone)
+            com.ping.verbead.ui.style.UiStyleManager.current(context)
+                .styleDeleteZoneBackground(this, active = false)
         }
 
         view.alpha = 0f
@@ -165,7 +166,8 @@ class BubbleDeleteZoneController(
                 alpha = 1f
                 scaleX = 1f
                 scaleY = 1f
-                setBackgroundResource(R.drawable.bg_bubble_delete_zone)
+                com.ping.verbead.ui.style.UiStyleManager.current(context)
+                    .styleDeleteZoneBackground(this, active = false)
             }
             view = current
         } else {
@@ -212,7 +214,8 @@ class BubbleDeleteZoneController(
                 isAttracted = true
                 HapticUtil.click(context)
                 containerTarget?.apply {
-                    setBackgroundResource(R.drawable.bg_bubble_delete_zone_active)
+                    com.ping.verbead.ui.style.UiStyleManager.current(context)
+                        .styleDeleteZoneBackground(this, active = true)
                     animate().setListener(null).cancel()
                     animate().scaleX(1.18f).scaleY(1.18f).setDuration(160L).start()
                 }
@@ -244,7 +247,8 @@ class BubbleDeleteZoneController(
                 isLocked = false
                 HapticUtil.tick(context)
                 containerTarget?.apply {
-                    setBackgroundResource(R.drawable.bg_bubble_delete_zone)
+                    com.ping.verbead.ui.style.UiStyleManager.current(context)
+                        .styleDeleteZoneBackground(this, active = false)
                     animate().setListener(null).cancel()
                     animate().scaleX(1f).scaleY(1f).setDuration(160L).start()
                 }
