@@ -210,7 +210,7 @@ object ExpressiveStyleModule : UiStyleModule {
         val makeDrawable = {
             GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = 32f * d
+                cornerRadius = 16f * d
                 setColor(0x2EE53935)
                 setStroke((2.5f * d).toInt().coerceAtLeast(1), 0xD9FF8A80.toInt())
             }

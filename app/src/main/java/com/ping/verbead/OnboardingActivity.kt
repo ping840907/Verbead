@@ -177,6 +177,7 @@ class OnboardingActivity : AppCompatActivity() {
         val bubbleIcon = view.findViewById<ImageView>(R.id.iv_mock_bubble_icon)
         val finger = view.findViewById<View>(R.id.view_mock_voice_finger)
         val rippleView = view.findViewById<View>(R.id.view_mock_bubble_ripple)
+        com.ping.verbead.ui.style.UiStyleManager.current(this).stylePulseViews(rippleView, null)
         val previewPill = view.findViewById<View>(R.id.layout_mock_preview_pill)
         val wave1 = view.findViewById<View>(R.id.mock_wave_1)
         val wave2 = view.findViewById<View>(R.id.mock_wave_2)
