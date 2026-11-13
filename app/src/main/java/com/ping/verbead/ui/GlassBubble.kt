@@ -36,7 +36,6 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ping.verbead.R
-import com.ping.verbead.ui.style.ExpressivePalette
 import com.ping.verbead.ui.style.UiStyle
 import com.ping.verbead.ui.style.UiStyleManager
 import dev.mttmcknn.seaglass.SeaGlassMaterialTheme
@@ -102,21 +101,16 @@ class GlassBubbleLayout @JvmOverloads constructor(
                             animationSpec = spring(dampingRatio = 0.52f, stiffness = 380f),
                             label = "m3e-bubble-corner"
                         )
-                        val startColor = lerp(
-                            lerp(cs.primary, ExpressivePalette.Overlay.bubbleIdleStart, 0.35f),
-                            ExpressivePalette.Overlay.bubbleActiveStart,
-                            mix.value
-                        )
-                        val endColor = lerp(
-                            lerp(cs.primaryContainer, ExpressivePalette.Overlay.bubbleIdleEnd, 0.55f),
-                            ExpressivePalette.Overlay.bubbleActiveEnd,
-                            mix.value
-                        )
-                        val outerRim = lerp(
-                            ExpressivePalette.Overlay.bubbleIdleRing,
-                            ExpressivePalette.Overlay.bubbleActiveRing,
-                            mix.value
-                        )
+                        val idleStart = if (dark) lerp(cs.primaryContainer, cs.primary, 0.35f) else lerp(cs.primary, cs.primaryContainer, 0.18f)
+                        val idleEnd = if (dark) lerp(cs.primaryContainer, Color.Black, 0.22f) else lerp(cs.primary, Color.Black, 0.16f)
+                        val idleRim = if (dark) cs.primary.copy(alpha = 0.55f) else cs.primaryContainer.copy(alpha = 0.72f)
+                        val activeStart = if (dark) Color(0xFFD32F2F) else Color(0xFFE53935)
+                        val activeEnd = if (dark) Color(0xFF8E1B1B) else Color(0xFFB3261E)
+                        val activeRim = Color(0xFFFF8A80).copy(alpha = 0.68f)
+
+                        val startColor = lerp(idleStart, activeStart, mix.value)
+                        val endColor = lerp(idleEnd, activeEnd, mix.value)
+                        val outerRim = lerp(idleRim, activeRim, mix.value)
                         val outerShape = RoundedCornerShape(corner)
                         val innerShape = RoundedCornerShape((corner - 4.dp).coerceAtLeast(10.dp))
                         androidx.compose.runtime.key(generation) {

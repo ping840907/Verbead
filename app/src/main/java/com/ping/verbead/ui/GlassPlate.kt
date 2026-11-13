@@ -32,7 +32,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import com.google.android.material.color.MaterialColors
 import com.ping.verbead.R
-import com.ping.verbead.ui.style.ExpressivePalette
 import com.ping.verbead.ui.style.UiStyle
 import com.ping.verbead.ui.style.UiStyleManager
 import dev.mttmcknn.seaglass.SeaGlassMaterialTheme
@@ -104,16 +103,16 @@ class GlassPlateFrame internal constructor(
                                 )
                                 val containerShape = RoundedCornerShape(percent = cornerPct)
                                 val fill = when {
-                                    followBubble && accent -> ComposeColor(ExpressivePalette.Overlay.iconAccentSurface)
-                                    followBubble -> ComposeColor(ExpressivePalette.Overlay.iconSurface)
+                                    followBubble && accent -> lerp(cs.primary, ComposeColor.Black, if (dark) 0.28f else 0.14f)
+                                    followBubble -> if (dark) lerp(cs.primaryContainer, cs.surface, 0.32f) else lerp(cs.primaryContainer, cs.primary, 0.28f)
                                     else -> {
                                         val base = ComposeColor(tint or (0xFF shl 24))
                                         if (dark) lerp(base, cs.primaryContainer, 0.25f) else base
                                     }
                                 }
                                 val stroke = when {
-                                    followBubble && accent -> ComposeColor(0x809ECAFF)
-                                    followBubble -> ComposeColor(0x47FFFFFF)
+                                    followBubble && accent -> cs.primary.copy(alpha = 0.62f)
+                                    followBubble -> cs.primary.copy(alpha = 0.38f)
                                     else -> cs.primary.copy(alpha = 0.22f)
                                 }
                                 Box(
@@ -128,13 +127,13 @@ class GlassPlateFrame internal constructor(
                                 val cornerDp = if (pressed) 8.dp else 11.dp
                                 val pillShape = RoundedCornerShape(cornerDp)
                                 val fill = when {
-                                    followBubble && accent -> ComposeColor(ExpressivePalette.Overlay.iconAccentSurface)
-                                    followBubble -> ComposeColor(ExpressivePalette.Overlay.tagSurface)
+                                    followBubble && accent -> lerp(cs.primary, ComposeColor.Black, 0.25f)
+                                    followBubble -> lerp(cs.surface, cs.primaryContainer, 0.38f).copy(alpha = 0.90f)
                                     else -> ComposeColor(tint or (0xFF shl 24))
                                 }
                                 val stroke = when {
-                                    followBubble && accent -> ComposeColor(0x889ECAFF)
-                                    followBubble -> ComposeColor(0x4D9ECAFF)
+                                    followBubble && accent -> cs.primary.copy(alpha = 0.58f)
+                                    followBubble -> cs.primary.copy(alpha = 0.35f)
                                     else -> cs.outlineVariant.copy(alpha = 0.55f)
                                 }
                                 Box(

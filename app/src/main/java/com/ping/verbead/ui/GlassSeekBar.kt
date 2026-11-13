@@ -36,7 +36,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.ping.verbead.ui.style.ExpressivePalette
 import com.ping.verbead.ui.style.UiStyle
 import com.ping.verbead.ui.style.UiStyleManager
 import dev.mttmcknn.seaglass.SeaGlassMaterialTheme
@@ -173,8 +172,8 @@ class GlassSeekFrame internal constructor(
                             label = "m3e-seek-h"
                         )
                         val gapHalf = 6.dp + handleW / 2
-                        val activeColor = if (bar.forceDark) ExpressivePalette.Overlay.sliderTrackActive else cs.primary
-                        val inactiveColor = if (bar.forceDark) ExpressivePalette.Overlay.sliderTrackInactive else cs.secondaryContainer
+                        val activeColor = cs.primary
+                        val inactiveColor = cs.secondaryContainer
                         val activeWidth = ((centerDp - gapHalf) - startDp).coerceAtLeast(0.dp)
                         val inactiveStart = (centerDp + gapHalf).coerceAtLeast(startDp)
                         val inactiveWidth = (endDp - inactiveStart).coerceAtLeast(0.dp)

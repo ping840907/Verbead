@@ -1,10 +1,14 @@
 package com.ping.verbead.ui.style
 
+import android.content.Context
 import android.graphics.Color
+import android.os.Build
 import android.view.View
-import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.graphics.ColorUtils
+import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.MaterialColors
+import com.ping.verbead.R
 
 /**
  * Tonal palette tokens for the Material 3 Expressive theme across light, dark, and
@@ -87,29 +91,53 @@ object ExpressivePalette {
         errorContainer = 0xFF93000A.toInt()
     )
 
-    object Overlay {
-        val panelSurface = 0xF4161B26.toInt()
-        val panelHeaderTint = 0x2464B5F6.toInt()
-        val panelStroke = 0x4D9ECAFF.toInt()
-        val iconSurface = 0xEE232A3B.toInt()
-        val iconAccentSurface = 0xFF1565C0.toInt()
-        val tagSurface = 0xDD1E2636.toInt()
-        val bubbleIdleStart = ComposeColor(0xFF1976D2)
-        val bubbleIdleEnd = ComposeColor(0xFF0D47A1)
-        val bubbleIdleRing = ComposeColor(0x669ECAFF)
-        val bubbleActiveStart = ComposeColor(0xFFE53935)
-        val bubbleActiveEnd = ComposeColor(0xFFB71C1C)
-        val bubbleActiveRing = ComposeColor(0x99FF8A80)
-        val sliderTrackActive = ComposeColor(0xFF9ECAFF)
-        val sliderTrackInactive = ComposeColor(0xFF3B4858)
-        val phraseItemFill = 0x2B9ECAFF
-        val phraseItemStroke = 0x4D9ECAFF
-        val phraseItemDragFill = 0x521565C0
-        val phraseItemDragStroke = 0xCC9ECAFF.toInt()
-        val deleteZoneFill = 0xE6181E2B.toInt()
-        val deleteZoneStroke = 0x7A9ECAFF
-        val deleteZoneActiveFill = 0xF0C62828.toInt()
-        val deleteZoneActiveStroke = 0xFFFF8A80.toInt()
+    data class OverlayScheme(
+        val panelSurface: Int,
+        val panelHeaderTint: Int,
+        val panelStroke: Int,
+        val phraseItemFill: Int,
+        val phraseItemStroke: Int,
+        val phraseItemDragFill: Int,
+        val phraseItemDragStroke: Int,
+        val capsuleIndicatorFill: Int,
+        val capsuleIndicatorStroke: Int,
+        val deleteZoneFill: Int,
+        val deleteZoneStroke: Int,
+        val deleteZoneActiveFill: Int = 0xF0C62828.toInt(),
+        val deleteZoneActiveStroke: Int = 0xFFFF8A80.toInt()
+    )
+
+    fun resolveOverlay(context: Context): OverlayScheme {
+        val accentLight: Int
+        val accentMid: Int
+        val accentDeep: Int
+        val neutralDark: Int
+        if (Build.VERSION.SDK_INT >= 31) {
+            accentLight = runCatching { context.getColor(android.R.color.system_accent1_200) }.getOrDefault(Dark.primary)
+            accentMid = runCatching { context.getColor(android.R.color.system_accent1_600) }.getOrDefault(Light.primary)
+            accentDeep = runCatching { context.getColor(android.R.color.system_accent1_900) }.getOrDefault(Dark.primaryContainer)
+            neutralDark = runCatching { context.getColor(android.R.color.system_neutral1_900) }.getOrDefault(Dark.surface)
+        } else {
+            val themed = DynamicColors.wrapContextIfAvailable(ContextThemeWrapper(context, R.style.Theme_Verbead))
+            accentLight = MaterialColors.getColor(themed, androidx.appcompat.R.attr.colorPrimary, Dark.primary)
+            accentMid = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorPrimaryContainer, Dark.primaryContainer)
+            accentDeep = ColorUtils.blendARGB(accentMid, Color.BLACK, 0.45f)
+            neutralDark = Dark.surface
+        }
+        val basePanel = ColorUtils.blendARGB(neutralDark, accentDeep, 0.32f)
+        return OverlayScheme(
+            panelSurface = ColorUtils.setAlphaComponent(basePanel, 0xF4),
+            panelHeaderTint = ColorUtils.setAlphaComponent(accentLight, 0x26),
+            panelStroke = ColorUtils.setAlphaComponent(accentLight, 0x52),
+            phraseItemFill = ColorUtils.setAlphaComponent(accentLight, 0x2B),
+            phraseItemStroke = ColorUtils.setAlphaComponent(accentLight, 0x52),
+            phraseItemDragFill = ColorUtils.setAlphaComponent(accentMid, 0x66),
+            phraseItemDragStroke = ColorUtils.setAlphaComponent(accentLight, 0xCC),
+            capsuleIndicatorFill = ColorUtils.setAlphaComponent(accentLight, 0x42),
+            capsuleIndicatorStroke = ColorUtils.setAlphaComponent(accentLight, 0x88),
+            deleteZoneFill = ColorUtils.setAlphaComponent(basePanel, 0xE8),
+            deleteZoneStroke = ColorUtils.setAlphaComponent(accentLight, 0x7A)
+        )
     }
 
     /** Resolves an expressive tonal scheme, incorporating dynamic Material colors from [view]. */

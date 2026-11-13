@@ -168,46 +168,41 @@ object ExpressiveStyleModule : UiStyleModule {
     }
 
     override fun stylePhraseItemBackground(view: View, dragging: Boolean) {
+        val ov = ExpressivePalette.resolveOverlay(view.context)
         val d = view.resources.displayMetrics.density
         view.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = (if (dragging) 18f else 16f) * d
-            setColor(
-                if (dragging) ExpressivePalette.Overlay.phraseItemDragFill
-                else ExpressivePalette.Overlay.phraseItemFill
-            )
+            setColor(if (dragging) ov.phraseItemDragFill else ov.phraseItemFill)
             setStroke(
                 ((if (dragging) 1.5f else 1f) * d).toInt().coerceAtLeast(1),
-                if (dragging) ExpressivePalette.Overlay.phraseItemDragStroke
-                else ExpressivePalette.Overlay.phraseItemStroke
+                if (dragging) ov.phraseItemDragStroke else ov.phraseItemStroke
             )
         }
     }
 
     override fun styleDeleteZoneBackground(view: View, active: Boolean) {
+        val ov = ExpressivePalette.resolveOverlay(view.context)
         val d = view.resources.displayMetrics.density
         view.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = (if (active) 22f else 28f) * d
-            setColor(
-                if (active) ExpressivePalette.Overlay.deleteZoneActiveFill
-                else ExpressivePalette.Overlay.deleteZoneFill
-            )
+            setColor(if (active) ov.deleteZoneActiveFill else ov.deleteZoneFill)
             setStroke(
                 ((if (active) 2.5f else 1.5f) * d).toInt().coerceAtLeast(1),
-                if (active) ExpressivePalette.Overlay.deleteZoneActiveStroke
-                else ExpressivePalette.Overlay.deleteZoneStroke
+                if (active) ov.deleteZoneActiveStroke else ov.deleteZoneStroke
             )
         }
     }
 
     override fun styleCapsuleIndicator(view: View) {
+        val ov = ExpressivePalette.resolveOverlay(view.context)
         val d = view.resources.displayMetrics.density
         view.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = 15f * d
-            setColor(0x409ECAFF)
-            setStroke((1.5f * d).toInt().coerceAtLeast(1), 0x809ECAFF.toInt())
+            setColor(ov.capsuleIndicatorFill)
+            setStroke((1.5f * d).toInt().coerceAtLeast(1), ov.capsuleIndicatorStroke)
         }
     }
 

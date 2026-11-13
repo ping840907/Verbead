@@ -54,9 +54,10 @@ private fun panelSurface(context: Context, radiusDp: Float): ComposeView = Compo
         MaterialTheme(colorScheme = colors) {
             val shape = RoundedCornerShape(radiusDp.dp)
             if (style == UiStyle.EXPRESSIVE) {
-                val base = Color(ExpressivePalette.Overlay.panelSurface)
-                val glow = Color(ExpressivePalette.Overlay.panelHeaderTint)
-                val stroke = Color(ExpressivePalette.Overlay.panelStroke)
+                val cs = MaterialTheme.colorScheme
+                val base = lerp(cs.surface, cs.primaryContainer, 0.24f).copy(alpha = 0.95f)
+                val glow = cs.primaryContainer.copy(alpha = 0.45f)
+                val stroke = cs.primary.copy(alpha = 0.38f)
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -102,14 +103,15 @@ private fun frostedOf(context: Context, attrs: AttributeSet?): Boolean {
 private fun frostedDrawable(context: Context, radiusDp: Float): Drawable {
     val d = context.resources.displayMetrics.density
     if (UiStyleManager.currentStyle(context) == UiStyle.EXPRESSIVE) {
+        val ov = ExpressivePalette.resolveOverlay(context)
         val fill = GradientDrawable().apply {
             cornerRadius = (radiusDp + 4f) * d
-            setColor(ExpressivePalette.Overlay.panelSurface)
-            setStroke((1.5f * d).toInt().coerceAtLeast(1), ExpressivePalette.Overlay.panelStroke)
+            setColor(ov.panelSurface)
+            setStroke((1.5f * d).toInt().coerceAtLeast(1), ov.panelStroke)
         }
         val glow = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(ExpressivePalette.Overlay.panelHeaderTint, 0x00000000)
+            intArrayOf(ov.panelHeaderTint, 0x00000000)
         ).apply { cornerRadius = (radiusDp + 4f) * d }
         return LayerDrawable(arrayOf(fill, glow))
     }
