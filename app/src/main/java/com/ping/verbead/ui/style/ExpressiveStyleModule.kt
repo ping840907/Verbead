@@ -109,10 +109,11 @@ object ExpressiveStyleModule : UiStyleModule {
         card.strokeWidth = (1f * d).toInt().coerceAtLeast(1)
         if (card is com.ping.verbead.ui.GlassMaterialCard) {
             // Top-level cards (speech model rows): same geometry, hairline and lift as styleCard.
-            card.setGlow(0, 28f * d)
-            card.radius = 28f * d
+            val nested = card.nested
+            card.setGlow(0, (if (nested) 20f else 28f) * d)
+            card.radius = (if (nested) 20f else 28f) * d
             card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x70 else 0x99)
-            card.cardElevation = 1.5f * d
+            card.cardElevation = if (nested) 0f else 1.5f * d
         } else {
             card.radius = 22f * d
             card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x66 else 0x80)

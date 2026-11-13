@@ -59,6 +59,7 @@
                         android:orientation="horizontal">
 
                         <com.ping.verbead.ui.GlassTagText
+                            android:id="@+id/tag_combo_live"
                             style="@style/Verbead.Text.Badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -86,6 +87,7 @@
                         android:orientation="horizontal">
 
                         <com.ping.verbead.ui.GlassTagText
+                            android:id="@+id/tag_combo_final"
                             style="@style/Verbead.Text.Badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -122,58 +124,74 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-            <!-- 2. 篩選：語言與是否已下載（一行） -->
-            <LinearLayout
+            <!-- 2-3. 篩選器與模型清單：包在同一個容器裡 -->
+            <com.ping.verbead.ui.GlassCard
+                android:id="@+id/card_asr_models"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:layout_marginBottom="12dp">
 
-                <com.ping.verbead.ui.GlassMaterialButton
-                    android:id="@+id/btn_asr_language_filter"
-                    style="@style/Verbead.Button.Outlined"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    app:icon="@drawable/ic_arrow_down"
-                    app:iconGravity="textEnd" />
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
-                <com.ping.verbead.ui.GlassChip
-                    android:id="@+id/chip_downloaded_only"
-                    style="@style/Verbead.Chip"
-                    android:layout_width="wrap_content"
+                <!-- 2. 篩選：語言與是否已下載（一行） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/asr_filter_downloaded" />
-            </LinearLayout>
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-            <!-- 3. 模型清單（依篩選動態產生） -->
-            <LinearLayout
-                android:id="@+id/layout_asr_models"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                    <com.ping.verbead.ui.GlassMaterialButton
+                        android:id="@+id/btn_asr_language_filter"
+                        style="@style/Verbead.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        app:icon="@drawable/ic_arrow_down"
+                        app:iconGravity="textEnd" />
 
-            <TextView
-                android:id="@+id/tv_asr_custom_problems"
-                style="@style/Verbead.Text.Caption"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:textColor="@color/status_warning_text"
-                android:visibility="gone" />
+                    <com.ping.verbead.ui.GlassChip
+                        android:id="@+id/chip_downloaded_only"
+                        style="@style/Verbead.Chip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="@string/asr_filter_downloaded" />
+                </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_asr_empty"
-                style="@style/Verbead.Text.Caption"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:gravity="center"
-                android:padding="16dp"
-                android:text="@string/asr_filter_empty"
-                android:visibility="gone" />
+                <!-- 3. 模型清單（依篩選動態產生） -->
+                <LinearLayout
+                    android:id="@+id/layout_asr_models"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tv_asr_custom_problems"
+                    style="@style/Verbead.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="@color/status_warning_text"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_asr_empty"
+                    style="@style/Verbead.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:text="@string/asr_filter_empty"
+                    android:visibility="gone" />
+
+                </LinearLayout>
+            </com.ping.verbead.ui.GlassCard>
 
             </LinearLayout>
 

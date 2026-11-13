@@ -87,16 +87,17 @@ object SeaGlassStyleModule : UiStyleModule {
         val container = MaterialColors.getColor(card, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY)
         val surface = MaterialColors.getColor(card, com.google.android.material.R.attr.colorSurface, Color.WHITE)
         // Top-level cards (speech model rows) match GlassCard exactly, glow included.
-        val topLevel = card is com.ping.verbead.ui.GlassMaterialCard
+        val nested = (card as? com.ping.verbead.ui.GlassMaterialCard)?.nested == true
+        val topLevel = card is com.ping.verbead.ui.GlassMaterialCard && !nested
         card.setCardBackgroundColor(
             ColorUtils.setAlphaComponent(
                 ColorUtils.blendARGB(surface, container, 0.35f), if (topLevel) 0xD6 else 0xC4
             )
         )
-        card.radius = 24f * ctx.resources.displayMetrics.density
+        card.radius = (if (nested) 18f else 24f) * ctx.resources.displayMetrics.density
         if (card is com.ping.verbead.ui.GlassMaterialCard) {
             val primary = MaterialColors.getColor(card, androidx.appcompat.R.attr.colorPrimary, container)
-            card.setGlow(ColorUtils.setAlphaComponent(primary, if (dark) 0x4D else 0x66), card.radius)
+            card.setGlow(if (nested) 0 else ColorUtils.setAlphaComponent(primary, if (dark) 0x4D else 0x66), card.radius)
         }
         if (card.getTag(R.id.glass_tint) == null) {
             val sheen = GradientDrawable(

@@ -92,6 +92,9 @@ class GlassMaterialCard @JvmOverloads constructor(
     // Null while the super constructor runs.
     private val glow: CardGlow? = CardGlow(this)
 
+    /** True for rows living inside another card: flatter, tighter corners, no glow of their own. */
+    var nested = false
+
     fun setGlow(color: Int, cornerRadius: Float) {
         glow?.set(color, cornerRadius)
         if (glow?.active != true) clipToOutline = true

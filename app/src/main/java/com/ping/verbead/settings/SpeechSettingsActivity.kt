@@ -154,6 +154,13 @@ class SpeechSettingsActivity : AppCompatActivity() {
 
         tvComboLive = findViewById(R.id.tv_combo_live)
         tvComboFinal = findViewById(R.id.tv_combo_final)
+        // The two tags of the combo card share the row tags' look.
+        (findViewById<TextView>(R.id.tag_combo_live))?.let {
+            styleRowTag(it, themeColor(it, androidx.appcompat.R.attr.colorPrimary, 0xFF3D6B4F.toInt()))
+        }
+        (findViewById<TextView>(R.id.tag_combo_final))?.let {
+            styleRowTag(it, themeColor(it, com.google.android.material.R.attr.colorTertiary, 0xFF5A6B8C.toInt()))
+        }
         tvAsrMemoryHint = findViewById(R.id.tv_asr_memory_hint)
         chipDownloadedOnly = findViewById(R.id.chip_downloaded_only)
         btnLanguageFilter = findViewById(R.id.btn_asr_language_filter)
@@ -422,6 +429,7 @@ class SpeechSettingsActivity : AppCompatActivity() {
             layoutModels.addView(sectionHeader("$title (${ofMode.size})"))
             for (variants in ofMode) {
                 val row = inflater.inflate(R.layout.item_asr_row, layoutModels, false) as MaterialCardView
+                (row as? com.ping.verbead.ui.GlassMaterialCard)?.nested = true
                 bindRow(row, variants, markRecommended && variants.any { it.id in recommended })
                 layoutModels.addView(row)
                 GlassStage.skin(row)
@@ -517,13 +525,34 @@ class SpeechSettingsActivity : AppCompatActivity() {
     }
 
     /** One row of the list: the name, what it costs, and where it stands. Details and actions are one tap away. */
+    private fun themeColor(view: View, attr: Int, fallback: Int): Int =
+        com.google.android.material.color.MaterialColors.getColor(view, attr, fallback)
+
+    /**
+     * One look for the small status tags of a model row (recommended / in use / ready): a solid
+     * pill whose text is picked from the pill's own lightness, so it stays readable on any theme.
+     * The solid colour is also what the glass plate behind the tag is tinted with.
+     */
+    private fun styleRowTag(tag: TextView, fill: Int) {
+        tag.background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(fill)
+            cornerRadius = 100f * resources.displayMetrics.density
+        }
+        tag.setTextColor(
+            if (androidx.core.graphics.ColorUtils.calculateLuminance(fill) > 0.5) 0xFF14181C.toInt() else 0xFFFFFFFF.toInt()
+        )
+    }
+
     private fun bindRow(row: MaterialCardView, variants: List<AsrModel>, recommended: Boolean) {
         val shown = chooseVariant(variants)
         val inUse = variants.any { ModelConfig.selectedAsrModel(this, it.mode)?.id == it.id }
         val onPhone = variants.any { ModelConfig.isModelReady(this, it) }
 
         row.findViewById<TextView>(R.id.tv_row_name).text = shown.group ?: shown.name
-        row.findViewById<View>(R.id.tv_row_recommended).visibility = if (recommended) View.VISIBLE else View.GONE
+        row.findViewById<TextView>(R.id.tv_row_recommended).apply {
+            visibility = if (recommended) View.VISIBLE else View.GONE
+            styleRowTag(this, themeColor(this, com.google.android.material.R.attr.colorTertiaryContainer, 0xFFB8D8C8.toInt()))
+        }
 
         val locale = Locale.getDefault()
         val languages = variants.flatMap { it.languages }.distinct()
@@ -540,22 +569,12 @@ class SpeechSettingsActivity : AppCompatActivity() {
                 inUse -> {
                     visibility = View.VISIBLE
                     text = getString(R.string.asr_rec_in_use)
-                    // tonal pair from the theme: readable on any light, dark or wallpaper-derived card
-                    setBackgroundResource(R.drawable.bg_status_badge_success)
-                    background?.mutate()?.setTint(
-                        com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorSecondaryContainer, 0xFFDDE5DB.toInt())
-                    )
-                    setTextColor(
-                        com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSecondaryContainer, 0xFF111111.toInt())
-                    )
+                    styleRowTag(this, themeColor(this, androidx.appcompat.R.attr.colorPrimary, 0xFF3D6B4F.toInt()))
                 }
                 onPhone -> {
                     visibility = View.VISIBLE
                     text = getString(R.string.common_ready)
-                    background = null
-                    setTextColor(
-                        com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF444444.toInt())
-                    )
+                    styleRowTag(this, themeColor(this, com.google.android.material.R.attr.colorSecondaryContainer, 0xFFDDE5DB.toInt()))
                 }
                 else -> visibility = View.GONE
             }
