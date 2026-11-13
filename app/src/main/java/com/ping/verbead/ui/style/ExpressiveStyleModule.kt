@@ -92,6 +92,7 @@ object ExpressiveStyleModule : UiStyleModule {
             setStroke(strokeWidth, strokeColor)
         }
         card.elevation = if (isHero) 3f * d else 1.5f * d
+        card.setGlow(0, radius)
         card.clipToOutline = true
         card.outlineProvider = ViewOutlineProvider.BACKGROUND
     }
@@ -105,10 +106,18 @@ object ExpressiveStyleModule : UiStyleModule {
             card.setTag(R.id.glass_tint, null)
         }
         card.setCardBackgroundColor(scheme.surfaceContainerLow)
-        card.radius = 22f * d
-        card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x66 else 0x80)
         card.strokeWidth = (1f * d).toInt().coerceAtLeast(1)
-        card.cardElevation = 0f
+        if (card is com.ping.verbead.ui.GlassMaterialCard) {
+            // Top-level cards (speech model rows): same geometry, hairline and lift as styleCard.
+            card.setGlow(0, 28f * d)
+            card.radius = 28f * d
+            card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x70 else 0x99)
+            card.cardElevation = 1.5f * d
+        } else {
+            card.radius = 22f * d
+            card.strokeColor = ColorUtils.setAlphaComponent(scheme.outlineVariant, if (dark) 0x66 else 0x80)
+            card.cardElevation = 0f
+        }
     }
 
     override fun styleSelectableCard(card: MaterialCardView, isSelected: Boolean, dark: Boolean) {

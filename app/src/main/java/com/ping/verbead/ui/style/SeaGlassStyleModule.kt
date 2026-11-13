@@ -75,22 +75,33 @@ object SeaGlassStyleModule : UiStyleModule {
         ).apply { cornerRadius = radius }
         card.background = LayerDrawable(arrayOf(fill, sheen))
         card.elevation = 0f
-        card.clipToOutline = true
         card.outlineProvider = ViewOutlineProvider.BACKGROUND
+        // Coloured shadow in the wallpaper's primary: a tinted shadow on light themes,
+        // a soft glow on dark ones (where primary is a light pastel).
+        val primary = MaterialColors.getColor(card, androidx.appcompat.R.attr.colorPrimary, container)
+        card.setGlow(ColorUtils.setAlphaComponent(primary, if (dark) 0x4D else 0x66), radius)
     }
 
     override fun frostCard(card: MaterialCardView, dark: Boolean) {
         val ctx = card.context
         val container = MaterialColors.getColor(card, com.google.android.material.R.attr.colorPrimaryContainer, Color.GRAY)
         val surface = MaterialColors.getColor(card, com.google.android.material.R.attr.colorSurface, Color.WHITE)
+        // Top-level cards (speech model rows) match GlassCard exactly, glow included.
+        val topLevel = card is com.ping.verbead.ui.GlassMaterialCard
         card.setCardBackgroundColor(
-            ColorUtils.setAlphaComponent(ColorUtils.blendARGB(surface, container, 0.35f), 0xC4)
+            ColorUtils.setAlphaComponent(
+                ColorUtils.blendARGB(surface, container, 0.35f), if (topLevel) 0xD6 else 0xC4
+            )
         )
         card.radius = 24f * ctx.resources.displayMetrics.density
+        if (card is com.ping.verbead.ui.GlassMaterialCard) {
+            val primary = MaterialColors.getColor(card, androidx.appcompat.R.attr.colorPrimary, container)
+            card.setGlow(ColorUtils.setAlphaComponent(primary, if (dark) 0x4D else 0x66), card.radius)
+        }
         if (card.getTag(R.id.glass_tint) == null) {
             val sheen = GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(ColorUtils.setAlphaComponent(Color.WHITE, 0x24), Color.TRANSPARENT)
+                intArrayOf(ColorUtils.setAlphaComponent(Color.WHITE, if (topLevel) 0x1A else 0x24), Color.TRANSPARENT)
             ).apply { cornerRadius = card.radius }
             card.overlay.add(sheen)
             card.addOnLayoutChangeListener { _, l, t, r, b, _, _, _, _ ->
@@ -108,7 +119,10 @@ object SeaGlassStyleModule : UiStyleModule {
     override fun styleSelectableCard(card: MaterialCardView, isSelected: Boolean, dark: Boolean) {
         val density = card.resources.displayMetrics.density
         if (isSelected) {
-            val primaryColor = ContextCompat.getColor(card.context, R.color.md_theme_light_primary)
+            val primaryColor = MaterialColors.getColor(
+                card, androidx.appcompat.R.attr.colorPrimary,
+                ContextCompat.getColor(card.context, R.color.md_theme_light_primary)
+            )
             card.strokeColor = primaryColor
             card.strokeWidth = (1.5f * density + 0.5f).toInt()
         } else {

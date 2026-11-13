@@ -13,7 +13,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
@@ -62,7 +61,6 @@ private fun panelSurface(context: Context, radiusDp: Float): ComposeView = Compo
                 val cs = MaterialTheme.colorScheme
                 val corner = (radiusDp * 0.58f).coerceIn(12f, 16f).dp
                 val outerShape = RoundedCornerShape(corner)
-                val innerShape = RoundedCornerShape((corner - 4.dp).coerceAtLeast(8.dp))
                 val startColor = if (dark) lerp(cs.primaryContainer, cs.primary, 0.35f) else lerp(cs.primary, cs.primaryContainer, 0.18f)
                 val endColor = if (dark) lerp(cs.primaryContainer, Color.Black, 0.22f) else lerp(cs.primary, Color.Black, 0.16f)
                 val outerRim = if (dark) cs.primary.copy(alpha = 0.55f) else cs.primaryContainer.copy(alpha = 0.72f)
@@ -76,8 +74,6 @@ private fun panelSurface(context: Context, radiusDp: Float): ComposeView = Compo
                             )
                         )
                         .border(1.5.dp, outerRim, outerShape)
-                        .padding(4.dp)
-                        .border(1.dp, Color.White.copy(alpha = 0.22f), innerShape)
                 )
             } else {
                 val shape = RoundedCornerShape(radiusDp.dp)

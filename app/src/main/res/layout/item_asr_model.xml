@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- One speech model: what it is, one button that does the next sensible thing, and a menu for the rare actions. -->
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.ping.verbead.ui.GlassMaterialCard xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     style="@style/Verbead.Card"
     android:layout_width="match_parent"
@@ -102,4 +102,4 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp" />
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView>
+</com.ping.verbead.ui.GlassMaterialCard>

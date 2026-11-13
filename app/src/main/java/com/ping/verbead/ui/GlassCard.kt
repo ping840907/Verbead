@@ -37,6 +37,9 @@ class GlassCard @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    // Declared before init: applyThemeTint() reaches setGlow() during construction.
+    private val glow = CardGlow(this)
+
     init {
         applyThemeTint()
     }
@@ -46,8 +49,145 @@ class GlassCard @JvmOverloads constructor(
         UiStyleManager.current(context).styleCard(this, UiStyleManager.isDark(context))
     }
 
+    /** Soft coloured shadow pooled under the card (Sea Glass). [color] 0 turns it off. */
+    fun setGlow(color: Int, cornerRadius: Float) = glow.set(color, cornerRadius)
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        glow.onAttached()
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        glow.rebuildShape()
+    }
+
+    /** Without a layer the glow outside the bounds fades in together with the card. */
+    override fun hasOverlappingRendering(): Boolean =
+        if (glow.active) false else super.hasOverlappingRendering()
+
+    override fun draw(canvas: android.graphics.Canvas) {
+        if (!glow.begin(canvas)) {
+            super.draw(canvas)
+            return
+        }
+        super.draw(canvas)
+        canvas.restore()
+    }
+
     /** Kept for call-site compatibility; tonal/expressive cards need no backdrop binding. */
     fun bindBackdropTarget(@Suppress("UNUSED_PARAMETER") target: View?) = Unit
+}
+
+/**
+ * MaterialCardView for top-level cards built in code (speech model rows). Styled through
+ * [GlassStage.frost] like any card, and able to carry the same coloured glow as [GlassCard].
+ */
+class GlassMaterialCard @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = com.google.android.material.R.attr.materialCardViewStyle
+) : MaterialCardView(context, attrs, defStyleAttr) {
+
+    // Null while the super constructor runs.
+    private val glow: CardGlow? = CardGlow(this)
+
+    fun setGlow(color: Int, cornerRadius: Float) {
+        glow?.set(color, cornerRadius)
+        if (glow?.active != true) clipToOutline = true
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        glow?.onAttached()
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        glow?.rebuildShape()
+    }
+
+    override fun hasOverlappingRendering(): Boolean =
+        if (glow?.active == true) false else super.hasOverlappingRendering()
+
+    override fun draw(canvas: android.graphics.Canvas) {
+        if (glow?.begin(canvas) != true) {
+            super.draw(canvas)
+            return
+        }
+        super.draw(canvas)
+        canvas.restore()
+    }
+}
+
+/**
+ * Draws a soft coloured shadow under a card and clips the card to its rounded shape itself
+ * (clipToOutline would cut the glow away).
+ */
+internal class CardGlow(private val host: View) {
+    private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+    private val rect = android.graphics.RectF()
+    private val shape = android.graphics.Path()
+    private var color = 0
+    private var corner = 0f
+
+    val active: Boolean get() = color != 0
+
+    fun set(color: Int, cornerRadius: Float) {
+        this.color = if (android.os.Build.VERSION.SDK_INT >= 28) color else 0
+        corner = cornerRadius
+        if (active) {
+            paint.color = this.color
+            paint.maskFilter = android.graphics.BlurMaskFilter(
+                14f * host.resources.displayMetrics.density, android.graphics.BlurMaskFilter.Blur.NORMAL
+            )
+            host.clipToOutline = false
+            if (host.isAttachedToWindow) onAttached()
+        }
+        rebuildShape()
+        host.invalidate()
+    }
+
+    fun rebuildShape() {
+        shape.reset()
+        if (host.width > 0 && host.height > 0) {
+            shape.addRoundRect(
+                0f, 0f, host.width.toFloat(), host.height.toFloat(), corner, corner,
+                android.graphics.Path.Direction.CW
+            )
+        }
+    }
+
+    /** Lets the glow spill past the card: un-clips the ancestors up to the scrolling container. */
+    fun onAttached() {
+        if (!active) return
+        var p = host.parent
+        var depth = 0
+        while (p is ViewGroup && depth < 4) {
+            if (p is androidx.core.view.ScrollingView || p is android.widget.ScrollView) break
+            p.clipChildren = false
+            p.clipToPadding = false
+            p = p.parent
+            depth++
+        }
+    }
+
+    /**
+     * Draws the glow and leaves the canvas clipped to the card shape. Returns false when the
+     * glow is off; otherwise the caller draws the card and then calls `canvas.restore()`.
+     */
+    fun begin(canvas: android.graphics.Canvas): Boolean {
+        if (!active || host.width <= 0 || host.height <= 0) return false
+        val d = host.resources.displayMetrics.density
+        canvas.save()
+        canvas.clipOutPath(shape)
+        rect.set(10f * d, 14f * d, host.width - 10f * d, host.height + 7f * d)
+        canvas.drawRoundRect(rect, corner, corner, paint)
+        canvas.restore()
+        canvas.save()
+        canvas.clipPath(shape)
+        return true
+    }
 }
 
 /** Screen backdrop drawn by the active [UiStyleManager] module. */
