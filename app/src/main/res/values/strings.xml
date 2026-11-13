@@ -532,4 +532,6 @@ Final: %2$s</string>
     <string name="settings_theme_style_expressive" translatable="false">Material 3 Expressive</string>
     <string name="settings_theme_style_sea_glass" translatable="false">SeaGlass</string>
     <string name="common_undo">Undo</string>
+    <string name="settings_speech_preload_title">Preload speech model</string>
+    <string name="settings_speech_preload_desc">Loads the chosen model in the background so recording starts right away; stops itself when memory is low</string>
 </resources>

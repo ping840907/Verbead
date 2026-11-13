@@ -280,6 +280,50 @@
                             android:layout_height="wrap_content" />
                     </LinearLayout>
 
+                    <!-- Preload the speech model in the background -->
+                    <LinearLayout
+                        android:id="@+id/layout_preload_toggle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_speech_preload_title"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                style="@style/Verbead.Text.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/settings_speech_preload_desc" />
+                        </LinearLayout>
+
+                        <com.ping.verbead.ui.GlassSwitch
+                            android:id="@+id/switch_preload_models"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
                     <!-- Prefer external audio -->
                     <LinearLayout
                         android:id="@+id/layout_prefer_external_audio_toggle"

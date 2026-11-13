@@ -191,6 +191,8 @@ object ModelConfig {
         if (!isDualModelEnabled(context)) {
             setAsrModel(context, if (model.mode == AsrMode.LIVE) AsrMode.FINAL else AsrMode.LIVE, null)
         }
+        // The bubble service (when it runs) starts loading the picked model in the background.
+        VoicePreloadPolicy.onUserWantsPreload?.invoke()
     }
 
     /** Puts a model that has just been downloaded to use when its slot is empty or its model is missing (or, with one slot, when nothing is). */

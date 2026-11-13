@@ -517,4 +517,6 @@
     <string name="settings_theme_dark">ダーク</string>
     <string name="settings_theme_style_title">ビジュアルスタイル</string>
     <string name="common_undo">元に戻す</string>
+    <string name="settings_speech_preload_title">音声モデルを事前に読み込む</string>
+    <string name="settings_speech_preload_desc">選んだモデルをバックグラウンドで読み込み、すぐに話し始められます。メモリ不足の時は自動で停止します</string>
 </resources>

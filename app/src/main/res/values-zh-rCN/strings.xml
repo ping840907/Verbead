@@ -517,4 +517,6 @@
     <string name="settings_theme_dark">深色</string>
     <string name="settings_theme_style_title">视觉风格</string>
     <string name="common_undo">撤销</string>
+    <string name="settings_speech_preload_title">预先加载语音模型</string>
+    <string name="settings_speech_preload_desc">选好模型后先在后台加载，点按悬浮球即可开始；内存紧张时会自动停用</string>
 </resources>

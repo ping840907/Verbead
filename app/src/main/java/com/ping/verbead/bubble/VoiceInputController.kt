@@ -19,6 +19,7 @@ import com.ping.verbead.engine.FinalEngine
 import com.ping.verbead.engine.Qwen3AsrEngine
 import com.ping.verbead.engine.FinalEngines
 import com.ping.verbead.engine.StreamingAsrEngine
+import com.ping.verbead.engine.VoicePreloadPolicy
 import com.ping.verbead.engine.lang.ScriptMode
 import com.ping.verbead.engine.lang.ZhTwProfile
 import com.ping.verbead.util.ToastUtil
@@ -60,6 +61,16 @@ class VoiceInputController(
     }
 
     private val recorder = AudioRecorder(context)
+
+    // ── Background preload (see VoicePreloadPolicy for what keeps it from ever looping) ──
+    enum class PreloadReason { USER_CHOSE, BUBBLE_SHOWN }
+
+    private val preloadPolicy = VoicePreloadPolicy(context)
+    private var preloadJob: Job? = null
+    private var lastShownCheck = 0L
+    /** A load the user started by tapping the bubble is running. */
+    @Volatile
+    private var userLoading = false
     /** The engines of the two slots; rebuilt when the user picks other models (see [syncEngines]). */
     private var liveEngine: StreamingAsrEngine? = null
     private var finalEngine: FinalEngine? = null
@@ -104,6 +115,76 @@ class VoiceInputController(
     fun abortTranscribing() {
         isAborted = true
         recordingJob?.cancel()
+    }
+
+    /**
+     * Loads the chosen models in the background so that the first tap does not have to wait. Called when the user
+     * picked a model (or turned the option on) and, at most once a minute, when the bubble comes into view.
+     * It only ever loads engines that are not loaded; a change of hot words is left for the next tap.
+     */
+    fun requestPreload(reason: PreloadReason) {
+        val userChose = reason == PreloadReason.USER_CHOSE
+        if (!userChose) {
+            val t = android.os.SystemClock.elapsedRealtime()
+            if (t - lastShownCheck < SHOWN_CHECK_INTERVAL_MS) return
+            lastShownCheck = t
+        }
+        if (isRecording || userLoading || preloadJob?.isActive == true) return
+
+        val liveModel = ModelConfig.readyAsrModel(context, AsrMode.LIVE)
+        val finalModel = ModelConfig.readyAsrModel(context, AsrMode.FINAL)?.takeIf { it.id != liveModel?.id }
+        if (liveModel == null && finalModel == null) return
+        syncEngines(liveModel, finalModel)
+        val live = liveEngine
+        val final = finalEngine
+        if (live?.isLoaded() != false && final?.isLoaded() != false) return // nothing to load
+
+        val required = (liveModel?.sizeMb ?: 0) + (finalModel?.sizeMb ?: 0)
+        val verdict = preloadPolicy.check(required, userChose)
+        if (verdict != VoicePreloadPolicy.Verdict.GO) {
+            Log.i(TAG, "no background load: $verdict")
+            return
+        }
+        preloadPolicy.markAttemptStarted()
+        preloadJob = scope.launch {
+            val ok = try {
+                withContext(Dispatchers.IO) {
+                val previous = android.os.Process.getThreadPriority(android.os.Process.myTid())
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                try {
+                    val liveOk = live?.let { it.isLoaded() || it.load().success } ?: true
+                    val finalOk = final?.let { it.isLoaded() || it.load(buildHotwords()).success } ?: true
+                    liveOk && finalOk
+                } catch (e: Throwable) {
+                    Log.w(TAG, "background load failed: ${e.message}")
+                    false
+                } finally {
+                    android.os.Process.setThreadPriority(previous)
+                }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                preloadPolicy.markAttemptAbandoned()
+                throw e
+            }
+            if (ok) preloadPolicy.markAttemptSucceeded() else preloadPolicy.markAttemptFailed()
+        }
+    }
+
+    /**
+     * The system wants memory back: let the models go (unless they are in use) and stop loading them on our own,
+     * so that the next load is the user's tap and nothing can cycle load and release.
+     */
+    fun onMemoryPressure() {
+        preloadPolicy.markEvicted()
+        preloadJob?.cancel()
+        if (isRecording || userLoading) return
+        if (!inferenceLock.tryLock()) return // a transcription is running: leave the engines alone
+        try {
+            runCatching { liveEngine?.release() }
+            runCatching { finalEngine?.release() }
+        } finally {
+            inferenceLock.unlock()
+        }
     }
 
     /** Service 結束時釋放所有資源 */
@@ -180,15 +261,22 @@ class VoiceInputController(
         host.showStatus(context.getString(if (dual) R.string.preview_loading_dual_models else R.string.preview_loading_models))
 
         val generation = ++loadGeneration
+        userLoading = true
         scope.launch {
-            val success = withContext(Dispatchers.IO) {
-                val liveOk = liveEngine?.let { it.isLoaded() || it.load().success } ?: true
-                val finalOk = finalEngine?.load(buildHotwords())?.success ?: true
-                liveOk && finalOk
+            val success = try {
+                withContext(Dispatchers.IO) {
+                    val liveOk = liveEngine?.let { it.isLoaded() || it.load().success } ?: true
+                    val finalOk = finalEngine?.load(buildHotwords())?.success ?: true
+                    liveOk && finalOk
+                }
+            } finally {
+                userLoading = false
             }
             // The user may have pressed X (or started over) while the models were loading.
             if (generation != loadGeneration) return@launch
             if (success) {
+                // A load the user asked for worked: the pauses of the background loading end here.
+                preloadPolicy.onUserLoadSucceeded()
                 beginRecording()
             } else {
                 host.hidePreview() // no stale \"listening\" / \"loading\" pill after a failed or empty run
@@ -533,6 +621,7 @@ class VoiceInputController(
     }
 
     companion object {
+        private const val SHOWN_CHECK_INTERVAL_MS = 60_000L
         private const val TAG = "VoiceInput"
     }
 }

@@ -213,6 +213,18 @@ class SpeechSettingsActivity : AppCompatActivity() {
         chipDownloadedOnly.setOnCheckedChangeListener { _, _ -> renderModels() }
         btnLanguageFilter.setOnClickListener { showLanguageFilterDialog() }
 
+        // Preload the speech model in the background
+        val preloadPolicy = com.ping.verbead.engine.VoicePreloadPolicy(this)
+        val layoutPreload = findViewById<View>(R.id.layout_preload_toggle)
+        val switchPreload = findViewById<GlassSwitch>(R.id.switch_preload_models)
+        switchPreload.isChecked = preloadPolicy.isEnabled
+        layoutPreload.setOnClickListener { switchPreload.toggle() }
+        switchPreload.setOnCheckedChangeListener { _, checked ->
+            HapticUtil.click(this)
+            preloadPolicy.isEnabled = checked
+            if (checked) com.ping.verbead.engine.VoicePreloadPolicy.onUserWantsPreload?.invoke()
+        }
+
         // External audio toggle
         layoutPreferExternalAudioToggle.setOnClickListener {
             switchPreferExternalAudio.toggle()

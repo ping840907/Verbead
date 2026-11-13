@@ -517,4 +517,6 @@
     <string name="settings_theme_dark">다크</string>
     <string name="settings_theme_style_title">비주얼 스타일</string>
     <string name="common_undo">실행 취소</string>
+    <string name="settings_speech_preload_title">음성 모델 미리 불러오기</string>
+    <string name="settings_speech_preload_desc">선택한 모델을 백그라운드에서 불러와 바로 말할 수 있습니다. 메모리가 부족하면 자동으로 중지됩니다</string>
 </resources>

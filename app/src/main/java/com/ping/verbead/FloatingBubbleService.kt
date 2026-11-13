@@ -392,6 +392,13 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
         instance = this
         isRunning = true
+        // Background preload of the speech models: look at how the last process ended, and let the model picker
+        // (in the settings screens) start a load as soon as the user has chosen.
+        com.ping.verbead.engine.VoicePreloadPolicy(this).onProcessStart()
+        com.ping.verbead.engine.VoicePreloadPolicy.onUserWantsPreload = {
+            mainHandler.post { voice.requestPreload(VoiceInputController.PreloadReason.USER_CHOSE) }
+        }
+        mainHandler.postDelayed({ voice.requestPreload(VoiceInputController.PreloadReason.BUBBLE_SHOWN) }, 4_000L)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
@@ -870,6 +877,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing)) {
             return
         }
+        var cameIntoView = false
         for (item in bubbleItems) {
             val v = item.view
             if (!v.isAttachedToWindow) continue
@@ -880,6 +888,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
             v.animate().cancel()
             if (visible) {
+                cameIntoView = true
                 v.visibility = View.VISIBLE
                 if (animate) {
                     v.animate().alpha(1f).setDuration(180).withEndAction {
@@ -904,6 +913,17 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     v.alpha = 0f
                 }
             }
+        }
+        // The bubble is in front of the user: check once that the speech models are loaded (throttled inside).
+        if (cameIntoView) voice.requestPreload(VoiceInputController.PreloadReason.BUBBLE_SHOWN)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // RUNNING_LOW (10), RUNNING_CRITICAL (15) and the background levels (40+) mean the system needs memory.
+        // UI_HIDDEN (20) is only "the app's screens are not visible" and says nothing about memory.
+        if (level == 10 || level == 15 || level >= 40) {
+            safely("trimMemory") { voice.onMemoryPressure() }
         }
     }
 
@@ -3101,6 +3121,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         super.onDestroy()
         try {
             if (instance === this) instance = null
+            com.ping.verbead.engine.VoicePreloadPolicy.onUserWantsPreload = null
             isRunning = false
             lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
