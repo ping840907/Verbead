@@ -161,10 +161,19 @@ class GlassPlateFrame internal constructor(
                             body, lerp(body, ComposeColor.White, .35f),
                             if (followBubble) ComposeColor.White else ComposeColor.Black
                         )
+                        // Icon discs and tags in the settings screens carry a soft shadow in their own colour.
+                        // Plates that follow the bubble, or live in an overlay window, have no room for one.
+                        val glowColour = if (!followBubble && !darkOverlay) body.copy(alpha = 0.5f) else ComposeColor.Transparent
                         androidx.compose.runtime.key(generation) {
                             SeaGlassMaterialTheme(style = if (followBubble) BubbleRecipe else SmallGlassRecipe, shape = shape) {
                                 val clipShape = if (shape == SeaGlassShape.Disc) CircleShape else RoundedCornerShape(50)
-                                Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).clip(clipShape).seaGlass(palette = palette))
+                                Box(
+                                    Modifier.fillMaxSize()
+                                        .controlGlow(glowColour, GLOW_DP.dp)
+                                        .padding(GLOW_DP.dp)
+                                        .clip(clipShape)
+                                        .seaGlass(palette = palette)
+                                )
                             }
                         }
                     }
@@ -188,6 +197,7 @@ class GlassPlateFrame internal constructor(
         ensureOverlayOwners(this)
         super.onAttachedToWindow()
         glassView.visibility = VISIBLE
+        ControlGlow.unclipAncestors(this)
     }
 
     override fun onDetachedFromWindow() {
@@ -229,7 +239,7 @@ class GlassPlateFrame internal constructor(
     }
 
     internal companion object {
-        const val GLOW_DP = 2
+        const val GLOW_DP = ControlGlow.MARGIN_DP
 
         fun wrap(host: GlassPlateHost, view: View) {
             val parent = view.parent as? ViewGroup ?: return

@@ -8,6 +8,7 @@ import android.util.AttributeSet
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.widget.AppCompatSeekBar
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -258,6 +259,13 @@ class GlassSeekFrame internal constructor(
                         val thumbPalette = SeaGlassPalette(
                             thumbBody, lerp(thumbBody, ComposeColor.White, .35f), cs.onSurface
                         )
+                        // The filled part of the track and the thumb glow in the accent colour: steady while
+                        // enabled, stronger while held, none when disabled.
+                        val glowColor by animateColorAsState(
+                            targetValue = cs.primary.copy(alpha = if (!on) 0f else if (held) 0.9f else 0.55f),
+                            animationSpec = spring(stiffness = 500f),
+                            label = "sea-seek-glow"
+                        )
                         Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).alpha(if (on) 1f else 0.45f)) {
                             SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
                                 Box(
@@ -274,6 +282,7 @@ class GlassSeekFrame internal constructor(
                                         .offset(x = startDp, y = midDp - trackH / 2)
                                         .width(fillW)
                                         .height(trackH)
+                                        .controlGlow(glowColor, 0.dp)
                                         .clip(RoundedCornerShape(50))
                                         .seaGlass(palette = fillPalette)
                                 )
@@ -284,6 +293,7 @@ class GlassSeekFrame internal constructor(
                                         .offset(x = centerDp - thumbD / 2, y = midDp - thumbD / 2)
                                         .size(thumbD)
                                         .graphicsLayer { scaleX = grow; scaleY = grow }
+                                        .controlGlow(glowColor, 0.dp)
                                         .clip(CircleShape)
                                         .seaGlass(palette = thumbPalette)
                                 )
@@ -305,6 +315,7 @@ class GlassSeekFrame internal constructor(
         ensureOverlayOwners(this)
         super.onAttachedToWindow()
         glassView.visibility = VISIBLE
+        ControlGlow.unclipAncestors(this)
     }
 
     override fun onDetachedFromWindow() {
@@ -330,7 +341,7 @@ class GlassSeekFrame internal constructor(
     }
 
     internal companion object {
-        const val GLOW_DP = 7
+        const val GLOW_DP = ControlGlow.MARGIN_DP
 
         fun wrap(bar: GlassSeekBar) {
             if (bar.framed) return

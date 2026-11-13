@@ -87,7 +87,18 @@ class GlassBubbleLayout @JvmOverloads constructor(
 
     /** ARGB of the coloured shadow Sea Glass puts under the ball, 0 when the style has none. */
     var glowColor: Int = 0
-        private set
+        private set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
+    /**
+     * The real bubble gets its shadow from a separate window (see [BubbleGlowWindow]). A bubble shown inside a
+     * screen, like the ones in the tour, has no such window and draws the same shadow itself.
+     */
+    private var drawsOwnGlow = false
+    private var ownGlowPaint: android.graphics.Paint? = null
     /** Bumped when the screen orientation, UI style, or size changes. */
     private val rebuild = androidx.compose.runtime.mutableIntStateOf(0)
 
@@ -186,8 +197,24 @@ class GlassBubbleLayout @JvmOverloads constructor(
         }
     }
 
+    override fun dispatchDraw(canvas: android.graphics.Canvas) {
+        if (drawsOwnGlow && glowColor != 0 && android.os.Build.VERSION.SDK_INT >= 28) {
+            val d = resources.displayMetrics.density
+            val paint = ownGlowPaint ?: android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).also {
+                it.maskFilter = android.graphics.BlurMaskFilter(7f * d, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                ownGlowPaint = it
+            }
+            paint.color = glowColor
+            canvas.drawCircle(width / 2f, height / 2f + 2.5f * d, minOf(width, height) / 2f, paint)
+        }
+        super.dispatchDraw(canvas)
+    }
+
     override fun onAttachedToWindow() {
         val root = rootView
+        val overlayType = (root.layoutParams as? android.view.WindowManager.LayoutParams)?.type
+        drawsOwnGlow = overlayType != android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        if (drawsOwnGlow) ControlGlow.unclipAncestors(this)
         if (root.getTag(androidx.lifecycle.runtime.R.id.view_tree_lifecycle_owner) == null) {
             root.setViewTreeLifecycleOwner(OverlayOwner)
         }

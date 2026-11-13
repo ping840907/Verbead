@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.ping.verbead.ui.ControlGlow.MARGIN_DP
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.ping.verbead.ui.style.UiStyle
@@ -87,7 +89,7 @@ class GlassChipFrame internal constructor(
                     val cs = MaterialTheme.colorScheme
                     val density = LocalDensity.current
                     val list by spots
-                    Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize().padding(MARGIN_DP.dp)) {
                         for (s in list) {
                             if (style == UiStyle.EXPRESSIVE) {
                                 val corner by animateDpAsState(
@@ -125,6 +127,13 @@ class GlassChipFrame internal constructor(
                                 val palette = SeaGlassPalette(
                                     body, lerp(body, ComposeColor.White, .35f), cs.onSurface
                                 )
+                                // A chosen chip glows in the accent colour; an unchosen or disabled one has no glow.
+                                val glowColor by animateColorAsState(
+                                    targetValue = if (s.checked && s.enabled) cs.primary.copy(alpha = 0.75f)
+                                    else ComposeColor.Transparent,
+                                    animationSpec = spring(stiffness = 500f),
+                                    label = "sea-chip-glow"
+                                )
                                 SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
                                     Box(
                                         Modifier.align(Alignment.TopStart)
@@ -135,6 +144,7 @@ class GlassChipFrame internal constructor(
                                             .width(with(density) { s.width.toDp() })
                                             .height(with(density) { s.height.toDp() })
                                             .alpha(if (s.enabled) 1f else 0.45f)
+                                            .controlGlow(glowColor, 0.dp)
                                             .clip(RoundedCornerShape(50))
                                             .seaGlass(palette = palette)
                                             .border(1.dp, rim, RoundedCornerShape(50))
@@ -146,7 +156,11 @@ class GlassChipFrame internal constructor(
                 }
             }
         }
-        addView(glassView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        val m = (MARGIN_DP * resources.displayMetrics.density).toInt()
+        addView(
+            glassView,
+            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT).apply { setMargins(-m, -m, -m, -m) }
+        )
         viewTreeObserver.addOnPreDrawListener {
             refreshSpots()
             true
@@ -185,10 +199,16 @@ class GlassChipFrame internal constructor(
         val w = resolveSize(child.measuredWidth, widthMeasureSpec)
         val h = resolveSize(child.measuredHeight, heightMeasureSpec)
         setMeasuredDimension(w, h)
+        val m = (MARGIN_DP * resources.displayMetrics.density).toInt()
         glassView.measure(
-            MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
+            MeasureSpec.makeMeasureSpec(w + 2 * m, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(h + 2 * m, MeasureSpec.EXACTLY)
         )
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        ControlGlow.unclipAncestors(this)
     }
 
     internal companion object {

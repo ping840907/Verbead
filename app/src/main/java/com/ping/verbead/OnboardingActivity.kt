@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
@@ -434,8 +435,13 @@ class OnboardingActivity : AppCompatActivity() {
     private fun startTuckAndKeyboardAnimation(view: View) {
         val bubble = view.findViewById<View>(R.id.layout_mock_tuck_bubble) ?: return
         val cloneBubble = view.findViewById<View>(R.id.layout_mock_clone_bubble)
-        val keyboard = view.findViewById<View>(R.id.layout_mock_keyboard) ?: return
+        val keyboard = view.findViewById<View>(R.id.view_mock_keyboard) ?: return
         val tuckArrow = view.findViewById<View>(R.id.iv_mock_tuck_arrow)
+        val input = view.findViewById<View>(R.id.layout_mock_input)
+        val caret = view.findViewById<View>(R.id.view_mock_caret)
+        val badge = view.findViewById<ImageView>(R.id.iv_mock_kbd_badge)
+        val tap = view.findViewById<View>(R.id.view_mock_kbd_tap)
+        val screen = view.findViewById<View>(R.id.frame_mock_phone_screen)
         val tvTitle = view.findViewById<TextView>(R.id.tv_mock_tuck_status_title)
         val tvDesc = view.findViewById<TextView>(R.id.tv_mock_tuck_status_desc)
 
@@ -443,72 +449,144 @@ class OnboardingActivity : AppCompatActivity() {
         // Bubble marginEnd is 12dp inside screen. Bubble width is 52dp.
         // Translating right by (12dp + 36dp) = 48dp pushes 36dp (70%) outside and leaves 16dp (30%) visible!
         val tuckHiddenX = 48f * density
-        val keyboardHeightPx = 90f * density
+        val keyboardHeightPx = 124f * density
         val shakeOffsetPx = 22f * density
         val cloneOffsetYPx = -62f * density
+        val inputLiftPx = -(keyboardHeightPx + 4f * density)
+
+        val primary = com.google.android.material.color.MaterialColors.getColor(
+            view, androidx.appcompat.R.attr.colorPrimary, android.graphics.Color.GREEN
+        )
+        val onPrimary = com.google.android.material.color.MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorOnPrimary, android.graphics.Color.WHITE
+        )
+        val badgeOffBg = com.google.android.material.color.MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorSurfaceVariant, android.graphics.Color.LTGRAY
+        )
+        val badgeOffFg = com.google.android.material.color.MaterialColors.getColor(
+            view, com.google.android.material.R.attr.colorOnSurfaceVariant, android.graphics.Color.DKGRAY
+        )
+
+        fun setBadge(on: Boolean) {
+            badge?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (on) primary else badgeOffBg)
+            badge?.imageTintList = android.content.res.ColorStateList.valueOf(if (on) onPrimary else badgeOffFg)
+            if (on) {
+                badge?.animate()?.cancel()
+                badge?.scaleX = 0.7f
+                badge?.scaleY = 0.7f
+                badge?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(300)
+                    ?.setInterpolator(OvershootInterpolator(3f))?.start()
+            }
+        }
 
         currentAnimJob = activityScope.launch {
+            // The text field's caret blinks while the keyboard is away.
+            launch {
+                while (isActive) {
+                    caret?.alpha = if ((caret?.alpha ?: 0f) > 0.5f) 0f else 1f
+                    delay(520)
+                }
+            }
             while (isActive) {
-                // Phase 1: Edge Tuck (70% outside, 30% visible)
-                tvTitle?.text = getString(R.string.onboarding_gesture_edge_title)
-                tvDesc?.text = getString(R.string.onboarding_gesture_edge_desc)
-
+                // Reset to the resting state: no keyboard, bubble on the edge.
+                keyboard.animate().cancel()
+                keyboard.translationY = keyboardHeightPx
+                input?.animate()?.cancel()
+                input?.translationY = 0f
+                tap?.alpha = 0f
+                setBadge(false)
                 cloneBubble?.alpha = 0f
                 cloneBubble?.translationX = 0f
                 cloneBubble?.translationY = 0f
-                keyboard.translationY = keyboardHeightPx
+                bubble.animate().cancel()
+                bubble.scaleX = 1f
+                bubble.scaleY = 1f
+                bubble.translationY = 0f
+                bubble.translationX = 0f
+                tuckArrow?.animate()?.cancel()
+                tuckArrow?.alpha = 0f
+
+                // Phase 1: Edge Tuck (70% outside, 30% visible)
+                tvTitle?.text = getString(R.string.onboarding_gesture_edge_title)
+                tvDesc?.text = getString(R.string.onboarding_gesture_edge_desc)
                 bubble.alpha = 1.0f
                 bubble.animate()
                     .translationX(tuckHiddenX)
-                    .translationY(0f)
                     .setDuration(700)
                     .setInterpolator(AccelerateDecelerateInterpolator())
                     .start()
-                // The arrow appears once the ball has settled at the edge, like the real bubble.
-                tuckArrow?.animate()?.cancel()
-                tuckArrow?.alpha = 0f
+                // The pull-out arrow appears once the ball has settled at the edge, like on the real bubble.
                 tuckArrow?.animate()?.alpha(0.9f)?.setStartDelay(550)?.setDuration(180)?.start()
 
                 delay(2400)
                 if (!isActive) break
 
-                // Phase 2: Keyboard Linkage (Bubble fades in above keyboard)
+                // Phase 2: Keyboard Linkage. The bubble is hidden while there is no keyboard; tapping the text field
+                // opens the keyboard, the field rides up on it, and the bubble pops in right above both.
                 tvTitle?.text = getString(R.string.onboarding_gesture_keyboard_title)
                 tvDesc?.text = getString(R.string.onboarding_gesture_keyboard_desc)
 
-                // Untuck and prepare above keyboard
+                bubble.animate().cancel()
                 tuckArrow?.animate()?.cancel()
                 tuckArrow?.alpha = 0f
-                bubble.translationX = 0f
-                bubble.translationY = -keyboardHeightPx / 2f
                 bubble.alpha = 0f
+                bubble.translationX = 0f
+                bubble.scaleX = 0.6f
+                bubble.scaleY = 0.6f
+                // Parked just above the keyboard-lifted text field, on the right.
+                val screenH = (screen?.height ?: 0).toFloat()
+                val padPx = 16f * density
+                val bubbleH = 52f * density
+                val baseTop = padPx + ((screenH - 2 * padPx) - bubbleH) / 2f
+                val inputTop = screenH - padPx - 4f * density - 40f * density + inputLiftPx
+                val bubbleTop = inputTop - 10f * density - bubbleH
+                bubble.translationY = if (screenH > 0f) bubbleTop - baseTop else -keyboardHeightPx / 2f
 
-                // Keyboard slides up, bubble fades in
-                keyboard.animate()
-                    .translationY(0f)
-                    .setDuration(350)
-                    .setInterpolator(AccelerateDecelerateInterpolator())
-                    .start()
-
-                bubble.animate()
-                    .alpha(1.0f)
-                    .setDuration(350)
-                    .start()
-
-                delay(2200)
+                delay(500)
                 if (!isActive) break
 
-                // Keyboard slides down
-                keyboard.animate()
-                    .translationY(keyboardHeightPx)
-                    .setDuration(300)
-                    .start()
-                delay(350)
+                // The tap on the text field.
+                tap?.scaleX = 0.5f
+                tap?.scaleY = 0.5f
+                tap?.animate()?.alpha(0.85f)?.scaleX(1f)?.scaleY(1f)?.setDuration(220)?.start()
+                delay(420)
+                tap?.animate()?.alpha(0f)?.setDuration(260)?.start()
+
+                // Keyboard slides up, the field rides up with it, the state badge lights up.
+                keyboard.animate().translationY(0f).setDuration(420)
+                    .setInterpolator(OvershootInterpolator(0.9f)).start()
+                input?.animate()?.translationY(inputLiftPx)?.setDuration(420)
+                    ?.setInterpolator(OvershootInterpolator(0.9f))?.start()
+                setBadge(true)
+                caret?.alpha = 1f
+
+                // The bubble fades in with a little pop once the keyboard is up.
+                delay(260)
+                bubble.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(380)
+                    .setInterpolator(OvershootInterpolator(2.2f)).start()
+
+                delay(2300)
+                if (!isActive) break
+
+                // Keyboard goes away again and the bubble goes with it.
+                keyboard.animate().translationY(keyboardHeightPx).setDuration(320)
+                    .setInterpolator(AccelerateDecelerateInterpolator()).start()
+                input?.animate()?.translationY(0f)?.setDuration(320)
+                    ?.setInterpolator(AccelerateDecelerateInterpolator())?.start()
+                bubble.animate().alpha(0f).scaleX(0.6f).scaleY(0.6f).setDuration(220).start()
+                setBadge(false)
+                delay(1000)
                 if (!isActive) break
 
                 // Phase 3: Shake to Duplicate Multi-Bubble
                 tvTitle?.text = getString(R.string.onboarding_gesture_shake_title)
                 tvDesc?.text = getString(R.string.onboarding_gesture_shake_desc)
+
+                bubble.translationY = 0f
+                bubble.translationX = 0f
+                bubble.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(220).start()
+                delay(300)
+                if (!isActive) break
 
                 bubble.animate()
                     .translationX(-shakeOffsetPx)

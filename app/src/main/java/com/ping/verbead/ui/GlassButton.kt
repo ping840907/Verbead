@@ -208,10 +208,26 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
                         else lerp(base, ComposeColor.White, 0.28f)
                         val palette = SeaGlassPalette(body, lerp(body, ComposeColor.White, .35f), ComposeColor.Black)
                         val rim = if (light) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f) else ComposeColor.Transparent
+                        // Coloured shadow that tells the state: strongest while pressed or selected, softer for an
+                        // ordinary enabled button, faint for a plain outlined one, none when disabled.
+                        val hasFillColour = Color.alpha(tint) > 0
+                        val glowTarget = when {
+                            !on -> ComposeColor.Transparent
+                            pressed -> (if (hasFillColour) body else colors.primary).copy(alpha = 0.95f)
+                            selected -> (if (hasFillColour) body else colors.primary).copy(alpha = 0.8f)
+                            hasFillColour -> body.copy(alpha = 0.5f)
+                            else -> colors.primary.copy(alpha = 0.2f)
+                        }
+                        val glowColor by animateColorAsState(
+                            targetValue = glowTarget,
+                            animationSpec = spring(stiffness = 500f),
+                            label = "sea-btn-glow"
+                        )
                         SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
                             Box(
                                 Modifier.fillMaxSize()
                                     .alpha(if (on) 1f else 0.45f)
+                                    .controlGlow(glowColor, GLOW_DP.dp)
                                     .padding(GLOW_DP.dp)
                                     .clip(RoundedCornerShape(50))
                                     .seaGlass(palette = palette)
@@ -234,6 +250,11 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
         selectedState.value = button.isSelected
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        ControlGlow.unclipAncestors(this)
+    }
+
     internal fun onTintChanged(tint: Int) {
         tintState.intValue = tint
     }
@@ -251,7 +272,7 @@ class GlassButtonFrame(context: Context, private val button: GlassMaterialButton
     }
 
     companion object {
-        const val GLOW_DP = 2
+        const val GLOW_DP = ControlGlow.MARGIN_DP
 
         /** Replaces [button] in its parent by a frame that holds the themed background and the button. */
         fun wrap(button: GlassMaterialButton) {

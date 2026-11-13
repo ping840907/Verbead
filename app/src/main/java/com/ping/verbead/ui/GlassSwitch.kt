@@ -217,7 +217,14 @@ class GlassSwitch @JvmOverloads constructor(
                         val thumbPalette = SeaGlassPalette(
                             thumbBody, lerp(thumbBody, Color.White, .35f), cs.onSurface
                         )
-                        Box(Modifier.fillMaxSize().padding(GLOW_DP.dp).alpha(if (on) 1f else 0.45f)) {
+                        // The track glows in the accent colour as the switch turns on; off or disabled has none.
+                        val glowColor = cs.primary.copy(alpha = if (on) 0.8f * p.coerceIn(0f, 1f) else 0f)
+                        Box(
+                            Modifier.fillMaxSize()
+                                .alpha(if (on) 1f else 0.45f)
+                                .controlGlow(glowColor, GLOW_DP.dp)
+                                .padding(GLOW_DP.dp)
+                        ) {
                             SeaGlassMaterialTheme(style = SmallGlassRecipe, shape = SeaGlassShape.Capsule) {
                                 Box(
                                     Modifier.fillMaxSize().clip(RoundedCornerShape(50)).seaGlass(palette = trackPalette)
@@ -262,6 +269,11 @@ class GlassSwitch @JvmOverloads constructor(
             MeasureSpec.makeMeasureSpec(w + 2 * g, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(h + 2 * g, MeasureSpec.EXACTLY)
         )
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        ControlGlow.unclipAncestors(this)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -329,6 +341,6 @@ class GlassSwitch @JvmOverloads constructor(
         const val TRACK_H_DP = 32
         const val THUMB_DP = 24
         const val INSET_DP = 4
-        const val GLOW_DP = 4
+        const val GLOW_DP = ControlGlow.MARGIN_DP
     }
 }

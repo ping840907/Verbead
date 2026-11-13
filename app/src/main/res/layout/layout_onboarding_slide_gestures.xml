@@ -9,7 +9,7 @@
     android:paddingEnd="24dp"
     android:paddingBottom="24dp">
 
-    <!-- Mockup Animation Card (Screen boundary clips children) -->
+    <!-- Mockup Animation Card (the screen boundary clips what slides in and out of it) -->
     <FrameLayout
         android:id="@+id/frame_mock_phone_screen"
         android:layout_width="match_parent"
@@ -18,21 +18,21 @@
         android:background="@drawable/bg_mockup_screen"
         android:clipChildren="true"
         android:clipToPadding="true"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:tag="keepClip">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- Simulated App Top Bar -->
+            <!-- Simulated App Top Bar: title and the keyboard state badge -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingBottom="12dp">
-
 
                 <TextView
                     style="@style/Verbead.Text.Caption"
@@ -42,6 +42,16 @@
                     android:text="@string/onboarding_gestures_title"
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
+                <ImageView
+                    android:id="@+id/iv_mock_kbd_badge"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="@drawable/bg_icon_circle"
+                    android:backgroundTint="?attr/colorSurfaceVariant"
+                    android:importantForAccessibility="no"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_keyboard"
+                    app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
 
             <!-- Guide Explanation Card inside mockup -->
@@ -87,64 +97,66 @@
                 android:layout_weight="1" />
         </LinearLayout>
 
-        <!-- Simulated Software Keyboard (Slides up and down at bottom) -->
+        <!-- The app's text field: it rides up on top of the keyboard when the keyboard opens -->
         <LinearLayout
-            android:id="@+id/layout_mock_keyboard"
+            android:id="@+id/layout_mock_input"
             android:layout_width="match_parent"
-            android:layout_height="90dp"
+            android:layout_height="40dp"
             android:layout_gravity="bottom"
-            android:background="@drawable/bg_info_neutral"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="8dp"
-            android:translationY="90dp">
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/bg_test_input"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="14dp"
-                android:layout_marginBottom="6dp"
-                android:gravity="center"
-                android:orientation="horizontal">
+            <View
+                android:layout_width="96dp"
+                android:layout_height="8dp"
+                android:background="@drawable/bg_mock_line" />
 
-                <View
-                    android:layout_width="22dp"
-                    android:layout_height="12dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:background="@drawable/bg_test_input" />
-
-                <View
-                    android:layout_width="22dp"
-                    android:layout_height="12dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:background="@drawable/bg_test_input" />
-
-                <View
-                    android:layout_width="22dp"
-                    android:layout_height="12dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:background="@drawable/bg_test_input" />
-
-                <View
-                    android:layout_width="22dp"
-                    android:layout_height="12dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:background="@drawable/bg_test_input" />
-
-                <View
-                    android:layout_width="22dp"
-                    android:layout_height="12dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:background="@drawable/bg_test_input" />
-            </LinearLayout>
-
-            <TextView
-                style="@style/Verbead.Text.Caption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/onboarding_gestures_mock_keyboard"
-                android:textColor="?attr/colorOnSecondaryContainer"
-                android:textSize="10sp" />
+            <View
+                android:id="@+id/view_mock_caret"
+                android:layout_width="2dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="6dp"
+                android:background="?attr/colorPrimary" />
         </LinearLayout>
+
+        <!-- Soft keyboard: slides up from, and back down behind, the bottom edge of the screen -->
+        <FrameLayout
+            android:id="@+id/holder_mock_keyboard"
+            android:layout_width="match_parent"
+            android:layout_height="124dp"
+            android:layout_gravity="bottom"
+            android:clipChildren="true">
+
+            <com.ping.verbead.ui.MockKeyboardView
+                android:id="@+id/view_mock_keyboard"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:translationY="124dp" />
+        </FrameLayout>
+
+        <!-- Finger tap that opens the keyboard -->
+        <View
+            android:id="@+id/view_mock_kbd_tap"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="52dp"
+            android:layout_marginBottom="11dp"
+            android:alpha="0"
+            android:background="@drawable/bg_icon_circle"
+            android:backgroundTint="?attr/colorPrimary" />
+
+        <!-- The bubbles live in a layer that does not clip them to their own bounds, so their glow can spill;
+             the screen frame around it still cuts everything at the screen edge. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
         <!-- Secondary Clone Floating Bubble (for Phase 3 shake-to-duplicate demo) -->
         <com.ping.verbead.ui.GlassBubbleLayout
@@ -193,6 +205,7 @@
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_tuck_arrow" />
         </com.ping.verbead.ui.GlassBubbleLayout>
+        </FrameLayout>
 
     </FrameLayout>
 

@@ -39,6 +39,7 @@ class GlassCard @JvmOverloads constructor(
 
     // Declared before init: applyThemeTint() reaches setGlow() during construction.
     private val glow = CardGlow(this)
+    private var appliedStyle: UiStyle? = null
 
     init {
         applyThemeTint()
@@ -46,6 +47,7 @@ class GlassCard @JvmOverloads constructor(
 
     /** Re-reads the theme colours and active UI style; call after a theme or style change. */
     fun applyThemeTint() {
+        appliedStyle = UiStyleManager.currentStyle(context)
         UiStyleManager.current(context).styleCard(this, UiStyleManager.isDark(context))
     }
 
@@ -67,6 +69,9 @@ class GlassCard @JvmOverloads constructor(
         if (glow.active) false else super.hasOverlappingRendering()
 
     override fun draw(canvas: android.graphics.Canvas) {
+        // The style can be switched while this card is alive (screens in the back stack are not rebuilt right
+        // away). The controls follow the switch live, so the card must too, or it keeps the previous style's look.
+        if (appliedStyle != UiStyleManager.styleState) applyThemeTint()
         if (!glow.begin(canvas)) {
             super.draw(canvas)
             return
