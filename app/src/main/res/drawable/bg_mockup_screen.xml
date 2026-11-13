@@ -3,8 +3,8 @@
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="24dp" />
-            <solid android:color="@color/glass_mock_fill" />
-            <stroke android:width="1dp" android:color="@color/glass_hairline" />
+            <solid android:color="?attr/colorSurfaceContainerHigh" />
+            <stroke android:width="1dp" android:color="?attr/colorOutlineVariant" />
         </shape>
     </item>
     <!-- faint top light, same as the frosted cards -->

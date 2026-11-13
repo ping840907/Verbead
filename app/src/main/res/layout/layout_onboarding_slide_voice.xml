@@ -38,7 +38,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/onboarding_voice_title"
-                    android:textColor="@color/text_tertiary" />
+                    android:textColor="?attr/colorOnSurfaceVariant" />
 
             </LinearLayout>
 
@@ -57,6 +57,7 @@
                     style="@style/Verbead.Text.Body"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:textColor="?attr/colorOnSecondaryContainer"
                     android:text="@string/onboarding_voice_mock_question"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -82,7 +83,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:hint="@string/onboarding_voice_mock_hint"
-                    android:textColor="@color/text_primary"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="13sp" />
 
                 <!-- Cursor view -->
@@ -90,7 +91,7 @@
                     android:id="@+id/view_mock_cursor"
                     android:layout_width="2dp"
                     android:layout_height="16dp"
-                    android:background="@color/md_theme_light_primary"
+                    android:background="?attr/colorPrimary"
                     android:visibility="visible" />
             </LinearLayout>
         </LinearLayout>
@@ -137,7 +138,7 @@
                 android:layout_gravity="center"
                 android:alpha="0"
                 android:background="@drawable/bg_icon_circle"
-                android:backgroundTint="@color/md_theme_light_primary"
+                android:backgroundTint="?attr/colorPrimary"
                 android:elevation="12dp" />
 
             <!-- Floating Preview Pill above bubble -->
@@ -192,7 +193,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/onboarding_voice_listening"
-                    android:textColor="@color/md_theme_light_primary"
+                    android:textColor="?attr/colorOnSecondaryContainer"
                     android:textStyle="bold" />
             </LinearLayout>
         </FrameLayout>
@@ -234,6 +235,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/onboarding_page1_tip"
-            android:textColor="@color/md_theme_light_primary" />
+            android:textColor="?attr/colorOnSecondaryContainer" />
     </LinearLayout>
 </LinearLayout>

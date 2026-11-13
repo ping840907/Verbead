@@ -389,10 +389,10 @@
     <string name="onboarding_gestures_mock_keyboard">시스템 키보드 (Gboard)</string>
     <string name="onboarding_privacy_title" formatted="false">개인정보 보호 · 100% 온디바이스 처리</string>
     <string name="onboarding_privacy_subtitle">클라우드 전송 없음</string>
-    <string name="onboarding_privacy_chip_dual">듀얼 엔진 오프라인 음성</string>
-    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 인식</string>
-    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 오프라인 인식</string>
-    <string name="onboarding_privacy_chip_zero_upload">업로드 없음</string>
+    <string name="onboarding_privacy_chip_dual">비행기 모드에서도 사용</string>
+    <string name="onboarding_privacy_chip_ocr">탭할 때만 녹음</string>
+    <string name="onboarding_privacy_chip_qwen">모델 선택·삭제 자유</string>
+    <string name="onboarding_privacy_chip_zero_upload">한 곳에서 관리</string>
     <string name="onboarding_undo_title">즉시 취소 · 위의 ↶ 키를 탭해 되돌리기</string>
     <string name="onboarding_undo_mock_question">발표 자료 파일이 어디에 있나요?</string>
     <string name="onboarding_undo_mock_hint">버블을 탭해서 입력...</string>

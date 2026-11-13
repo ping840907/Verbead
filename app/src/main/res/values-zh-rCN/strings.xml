@@ -389,10 +389,10 @@
     <string name="onboarding_gestures_mock_keyboard">系统软键盘 (Gboard / 拼音)</string>
     <string name="onboarding_privacy_title">隐私安全 · 100% 离线端侧运算</string>
     <string name="onboarding_privacy_subtitle">零云端传输</string>
-    <string name="onboarding_privacy_chip_dual">双引擎离线语音</string>
-    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 识别</string>
-    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 离线识别</string>
-    <string name="onboarding_privacy_chip_zero_upload">零上传</string>
+    <string name="onboarding_privacy_chip_dual">飞行模式可用</string>
+    <string name="onboarding_privacy_chip_ocr">点击才收音</string>
+    <string name="onboarding_privacy_chip_qwen">模型自选可删</string>
+    <string name="onboarding_privacy_chip_zero_upload">一处管理</string>
     <string name="onboarding_undo_title">实时恢复 · 点击上方 ↶ 键撤回</string>
     <string name="onboarding_undo_mock_question">请问演示文稿在哪里？</string>
     <string name="onboarding_undo_mock_hint">点击悬浮球输入...</string>

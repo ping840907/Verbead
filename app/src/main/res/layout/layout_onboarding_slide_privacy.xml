@@ -42,7 +42,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/onboarding_privacy_title"
-                    android:textColor="@color/text_tertiary" />
+                    android:textColor="?attr/colorOnSurfaceVariant" />
 
             </LinearLayout>
 
@@ -66,7 +66,7 @@
                     android:layout_gravity="center"
                     android:alpha="0.3"
                     android:background="@drawable/bg_icon_circle"
-                    android:backgroundTint="@color/md_theme_light_primaryContainer" />
+                    android:backgroundTint="?attr/colorPrimaryContainer" />
 
                 <!-- Main Shield Badge -->
                 <FrameLayout
@@ -82,7 +82,7 @@
                         android:layout_height="38dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_security"
-                        app:tint="@color/md_theme_light_primary" />
+                        app:tint="?attr/colorPrimary" />
                 </FrameLayout>
             </FrameLayout>
 
@@ -94,7 +94,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="@string/onboarding_privacy_subtitle"
-                android:textColor="@color/md_theme_light_primary"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="14sp" />
 
             <!-- Feature Tags Grid -->
@@ -145,7 +145,7 @@
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
                     android:text="@string/onboarding_privacy_chip_qwen"
-                    android:textColor="@color/md_theme_light_primary"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="11sp" />
 
                 <com.ping.verbead.ui.GlassTagText
@@ -156,7 +156,7 @@
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="5dp"
                     android:text="@string/onboarding_privacy_chip_zero_upload"
-                    android:textColor="@color/md_theme_light_primary"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="11sp" />
             </LinearLayout>
 
@@ -203,6 +203,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/onboarding_page5_tip"
-            android:textColor="@color/md_theme_light_primary" />
+            android:textColor="?attr/colorOnSecondaryContainer" />
     </LinearLayout>
 </LinearLayout>

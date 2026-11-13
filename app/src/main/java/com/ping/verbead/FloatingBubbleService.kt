@@ -1279,6 +1279,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                     longPressHandler.removeCallbacks(longPressRunnable)
                     bubbleDeleteZoneController.discardPrewarm()
                     if (isLongPressTriggered || isCapsuleMenuShowing) {
+                        // The press-in shrink from ACTION_DOWN must be undone here too, like on a plain tap,
+                        // or a bubble switched through the capsule stays smaller than one that was only tapped.
+                        com.ping.verbead.ui.GlassMotion.springBack(item.btnBubble)
                         capsuleMenuController.finishDrag(event.rawX, event.rawY)
                         isLongPressTriggered = false
                         item.isBubbleMoving = false

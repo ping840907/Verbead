@@ -389,10 +389,10 @@
     <string name="onboarding_gestures_mock_keyboard">システムキーボード（Gboard）</string>
     <string name="onboarding_privacy_title" formatted="false">プライバシー重視 · 100% オンデバイス処理</string>
     <string name="onboarding_privacy_subtitle">クラウド送信なし</string>
-    <string name="onboarding_privacy_chip_dual">デュアルエンジン オフライン音声</string>
-    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 認識</string>
-    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR オフライン認識</string>
-    <string name="onboarding_privacy_chip_zero_upload">アップロードなし</string>
+    <string name="onboarding_privacy_chip_dual">機内モードで使える</string>
+    <string name="onboarding_privacy_chip_ocr">タップした時だけ録音</string>
+    <string name="onboarding_privacy_chip_qwen">モデルは選択・削除自由</string>
+    <string name="onboarding_privacy_chip_zero_upload">設定は一か所で管理</string>
     <string name="onboarding_undo_title">すぐに元に戻す · 上の ↶ キーをタップして取り消し</string>
     <string name="onboarding_undo_mock_question">プレゼンのファイルはどこにありますか？</string>
     <string name="onboarding_undo_mock_hint">バブルをタップして入力...</string>

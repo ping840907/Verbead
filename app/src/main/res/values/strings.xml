@@ -402,10 +402,10 @@
     <string name="onboarding_gestures_mock_keyboard">System keyboard (Gboard)</string>
     <string name="onboarding_privacy_title" formatted="false">Private · 100% on-device processing</string>
     <string name="onboarding_privacy_subtitle">Nothing sent to the cloud</string>
-    <string name="onboarding_privacy_chip_dual">Dual-engine offline voice</string>
-    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 recognition</string>
-    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR offline recognition</string>
-    <string name="onboarding_privacy_chip_zero_upload">No uploads</string>
+    <string name="onboarding_privacy_chip_dual">Works in airplane mode</string>
+    <string name="onboarding_privacy_chip_ocr">Records only on tap</string>
+    <string name="onboarding_privacy_chip_qwen">Pick or delete models</string>
+    <string name="onboarding_privacy_chip_zero_upload">Managed in one place</string>
     <string name="onboarding_undo_title">Instant undo · Tap the ↶ above to take it back</string>
     <string name="onboarding_undo_mock_question">Where is the presentation file?</string>
     <string name="onboarding_undo_mock_hint">Tap the bubble to type...</string>

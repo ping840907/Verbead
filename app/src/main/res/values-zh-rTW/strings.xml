@@ -389,10 +389,10 @@
     <string name="onboarding_gestures_mock_keyboard">系統軟體鍵盤 (Gboard / 注音)</string>
     <string name="onboarding_privacy_title">隱私安全 · 100% 離線端側運算</string>
     <string name="onboarding_privacy_subtitle">零雲端傳輸</string>
-    <string name="onboarding_privacy_chip_dual">雙引擎離線語音</string>
-    <string name="onboarding_privacy_chip_ocr">PP-OCRv6 辨識</string>
-    <string name="onboarding_privacy_chip_qwen">Qwen3-ASR 離線辨識</string>
-    <string name="onboarding_privacy_chip_zero_upload">零上傳</string>
+    <string name="onboarding_privacy_chip_dual">飛航模式可用</string>
+    <string name="onboarding_privacy_chip_ocr">點擊才收音</string>
+    <string name="onboarding_privacy_chip_qwen">模型自選可刪</string>
+    <string name="onboarding_privacy_chip_zero_upload">一處管理</string>
     <string name="onboarding_undo_title">即時復原 · 點擊上方 ↶ 鍵撤回</string>
     <string name="onboarding_undo_mock_question">請問簡報檔案在哪裡？</string>
     <string name="onboarding_undo_mock_hint">點擊懸浮球輸入...</string>

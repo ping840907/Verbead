@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -110,6 +111,7 @@ class GlassPlateFrame internal constructor(
                                         if (dark) lerp(base, cs.primaryContainer, 0.25f) else base
                                     }
                                 }
+                                if (followBubble) SideEffect { applyContentTint(fill) }
                                 val stroke = when {
                                     followBubble && accent -> cs.primary.copy(alpha = 0.62f)
                                     followBubble -> cs.primary.copy(alpha = 0.38f)
@@ -131,6 +133,7 @@ class GlassPlateFrame internal constructor(
                                     followBubble -> lerp(cs.surface, cs.primaryContainer, 0.38f).copy(alpha = 0.90f)
                                     else -> ComposeColor(tint or (0xFF shl 24))
                                 }
+                                if (followBubble) SideEffect { applyContentTint(fill) }
                                 val stroke = when {
                                     followBubble && accent -> cs.primary.copy(alpha = 0.58f)
                                     followBubble -> cs.primary.copy(alpha = 0.35f)
@@ -153,6 +156,7 @@ class GlassPlateFrame internal constructor(
                         } else {
                             lerp(ComposeColor(tint or (0xFF shl 24)), ComposeColor.White, 0.06f)
                         }
+                        if (followBubble) SideEffect { applyContentTint(body) }
                         val palette = SeaGlassPalette(
                             body, lerp(body, ComposeColor.White, .35f),
                             if (followBubble) ComposeColor.White else ComposeColor.Black
@@ -201,6 +205,15 @@ class GlassPlateFrame internal constructor(
             MeasureSpec.makeMeasureSpec(w + 2 * glow, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(h + 2 * glow, MeasureSpec.EXACTLY)
         )
+    }
+
+    /** Content on a plate that follows the bubble: dark on a light body, white on a dark one. */
+    private fun applyContentTint(body: ComposeColor) {
+        val tint = panelContentTint(body)
+        when (child) {
+            is android.widget.ImageView -> child.imageTintList = tint
+            is android.widget.TextView -> child.setTextColor(tint.defaultColor)
+        }
     }
 
     internal fun setTint(argb: Int) {

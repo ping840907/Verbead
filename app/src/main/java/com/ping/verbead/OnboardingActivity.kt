@@ -435,6 +435,7 @@ class OnboardingActivity : AppCompatActivity() {
         val bubble = view.findViewById<View>(R.id.layout_mock_tuck_bubble) ?: return
         val cloneBubble = view.findViewById<View>(R.id.layout_mock_clone_bubble)
         val keyboard = view.findViewById<View>(R.id.layout_mock_keyboard) ?: return
+        val tuckArrow = view.findViewById<View>(R.id.iv_mock_tuck_arrow)
         val tvTitle = view.findViewById<TextView>(R.id.tv_mock_tuck_status_title)
         val tvDesc = view.findViewById<TextView>(R.id.tv_mock_tuck_status_desc)
 
@@ -463,6 +464,10 @@ class OnboardingActivity : AppCompatActivity() {
                     .setDuration(700)
                     .setInterpolator(AccelerateDecelerateInterpolator())
                     .start()
+                // The arrow appears once the ball has settled at the edge, like the real bubble.
+                tuckArrow?.animate()?.cancel()
+                tuckArrow?.alpha = 0f
+                tuckArrow?.animate()?.alpha(0.9f)?.setStartDelay(550)?.setDuration(180)?.start()
 
                 delay(2400)
                 if (!isActive) break
@@ -472,6 +477,8 @@ class OnboardingActivity : AppCompatActivity() {
                 tvDesc?.text = getString(R.string.onboarding_gesture_keyboard_desc)
 
                 // Untuck and prepare above keyboard
+                tuckArrow?.animate()?.cancel()
+                tuckArrow?.alpha = 0f
                 bubble.translationX = 0f
                 bubble.translationY = -keyboardHeightPx / 2f
                 bubble.alpha = 0f
