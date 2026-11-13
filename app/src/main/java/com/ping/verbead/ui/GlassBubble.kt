@@ -24,9 +24,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -82,6 +84,10 @@ class GlassBubbleLayout @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val activeState = mutableStateOf(false)
+
+    /** ARGB of the coloured shadow Sea Glass puts under the ball, 0 when the style has none. */
+    var glowColor: Int = 0
+        private set
     /** Bumped when the screen orientation, UI style, or size changes. */
     private val rebuild = androidx.compose.runtime.mutableIntStateOf(0)
 
@@ -122,7 +128,7 @@ class GlassBubbleLayout @JvmOverloads constructor(
                         // Judge by the resting colour, not the one mid-fade, or leaving the
                         // listening state flashes white before the dark icon settles.
                         val idleBody = lerp(idleStart, idleEnd, 0.5f)
-                        SideEffect { applyIconTint(idleBody, active) }
+                        SideEffect { applyIconTint(idleBody, active); glowColor = 0 }
                         val outerShape = RoundedCornerShape(corner)
                         val innerShape = RoundedCornerShape((corner - 4.dp).coerceAtLeast(10.dp))
                         androidx.compose.runtime.key(generation) {
@@ -142,6 +148,10 @@ class GlassBubbleLayout @JvmOverloads constructor(
                         val body = lerp(idle, listening, mix.value)
                         val palette = SeaGlassPalette(body, lerp(body, Color.White, .35f), Color.White)
                         SideEffect { applyIconTint(idle, active) }
+                        // The coloured shadow lives in its own, larger overlay window (see BubbleGlowWindow);
+                        // the layout only reports which colour it should have.
+                        val glow = body.copy(alpha = if (dark) 0.75f else 0.9f)
+                        SideEffect { glowColor = glow.toArgb() }
                         androidx.compose.runtime.key(generation) {
                             SeaGlassMaterialTheme(style = BubbleRecipe, shape = SeaGlassShape.Disc) {
                                 Box(Modifier.fillMaxSize().clip(CircleShape).seaGlass(palette = palette))

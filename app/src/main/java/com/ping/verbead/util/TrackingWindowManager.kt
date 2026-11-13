@@ -13,6 +13,8 @@ import androidx.annotation.RequiresApi
 class TrackingWindowManager(private val base: WindowManager) : WindowManager by base {
     private val tracked = LinkedHashSet<View>()
     private val savedVisibility = HashMap<View, Int>()
+    /** Sea Glass coloured shadow windows, one behind each bubble window. */
+    private val glows = HashMap<View, com.ping.verbead.ui.BubbleGlowWindow>()
     var isHidden: Boolean = false
         private set
 
@@ -44,7 +46,16 @@ class TrackingWindowManager(private val base: WindowManager) : WindowManager by 
         base.removeCrossWindowBlurEnabledListener(listener)
 
 
+    private fun isBubbleRoot(view: View) = view.id == com.ping.verbead.R.id.layout_bubble_root
+
     override fun addView(view: View, params: ViewGroup.LayoutParams) {
+        // The glow window goes in first so it sits behind the bubble's own window.
+        if (isBubbleRoot(view) && params is WindowManager.LayoutParams) {
+            val glow = com.ping.verbead.ui.BubbleGlowWindow(base, view)
+            glow.add(params)
+            glows[view] = glow
+            trackGlow(glow)
+        }
         base.addView(view, params)
         tracked.add(view)
         if (isHidden) {
@@ -53,16 +64,38 @@ class TrackingWindowManager(private val base: WindowManager) : WindowManager by 
         }
     }
 
+    override fun updateViewLayout(view: View, params: ViewGroup.LayoutParams) {
+        base.updateViewLayout(view, params)
+        if (params is WindowManager.LayoutParams) glows[view]?.move(params)
+    }
+
     override fun removeView(view: View) {
+        removeGlow(view)
         tracked.remove(view)
         savedVisibility.remove(view)
         base.removeView(view)
     }
 
     override fun removeViewImmediate(view: View) {
+        removeGlow(view)
         tracked.remove(view)
         savedVisibility.remove(view)
         base.removeViewImmediate(view)
+    }
+
+    private fun trackGlow(glow: com.ping.verbead.ui.BubbleGlowWindow) {
+        tracked.add(glow.view)
+        if (isHidden) {
+            savedVisibility[glow.view] = glow.view.visibility
+            glow.view.visibility = View.INVISIBLE
+        }
+    }
+
+    private fun removeGlow(bubble: View) {
+        val glow = glows.remove(bubble) ?: return
+        tracked.remove(glow.view)
+        savedVisibility.remove(glow.view)
+        glow.remove()
     }
 
     /** 隱藏所有已追蹤的懸浮視窗（只改可見度，不移除視窗）。 */
