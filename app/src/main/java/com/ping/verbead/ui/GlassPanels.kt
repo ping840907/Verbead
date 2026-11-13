@@ -6,6 +6,7 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.util.AttributeSet
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.compose.foundation.background
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -48,7 +50,7 @@ internal fun ensureOverlayOwners(view: View) {
     }
 }
 
-private fun panelSurface(context: Context, radiusDp: Float): ComposeView = ComposeView(context).apply {
+private fun panelSurface(context: Context, radiusDp: Float, onBody: (Color) -> Unit): ComposeView = ComposeView(context).apply {
     setContent {
         val style = UiStyleManager.currentStyle(context)
         val dark = isSystemInDarkTheme()
@@ -64,6 +66,8 @@ private fun panelSurface(context: Context, radiusDp: Float): ComposeView = Compo
                 val startColor = if (dark) lerp(cs.primaryContainer, cs.primary, 0.35f) else lerp(cs.primary, cs.primaryContainer, 0.18f)
                 val endColor = if (dark) lerp(cs.primaryContainer, Color.Black, 0.22f) else lerp(cs.primary, Color.Black, 0.16f)
                 val outerRim = if (dark) cs.primary.copy(alpha = 0.55f) else cs.primaryContainer.copy(alpha = 0.72f)
+                val body = lerp(startColor, endColor, 0.5f)
+                SideEffect { onBody(body) }
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -80,12 +84,34 @@ private fun panelSurface(context: Context, radiusDp: Float): ComposeView = Compo
                 val cs = MaterialTheme.colorScheme
                 val body = lerp(cs.primaryContainer, Color.Black, 0.25f)
                 val palette = SeaGlassPalette(body, lerp(body, Color.White, .3f), Color.White)
+                SideEffect { onBody(body) }
                 SeaGlassMaterialTheme(style = PanelRecipe, shape = SeaGlassShape.Capsule) {
                     Box(Modifier.fillMaxSize().clip(shape).seaGlass(palette = palette))
                 }
             }
         }
     }
+}
+
+/**
+ * Floating capsule menu / preview text follow the panel body: dark content on a light body,
+ * white on a dark one. (Frosted popup windows keep their own fixed colours.)
+ */
+private fun tintPanelContent(root: ViewGroup, body: Color) {
+    val tint = panelContentTint(body)
+    fun walk(v: View) {
+        if (v is ComposeView) return
+        when (v) {
+            is android.widget.TextView -> v.setTextColor(tint.defaultColor)
+            is android.widget.ImageView -> v.imageTintList = tint
+            else -> {
+                val name = if (v.id != View.NO_ID) runCatching { v.resources.getResourceEntryName(v.id) }.getOrNull() else null
+                if (name?.startsWith("indicator_capsule") == true) v.backgroundTintList = tint
+            }
+        }
+        if (v is ViewGroup) for (i in 0 until v.childCount) walk(v.getChildAt(i))
+    }
+    for (i in 0 until root.childCount) walk(root.getChildAt(i))
 }
 
 private fun radiusOf(context: Context, attrs: AttributeSet?, fallbackDp: Float): Float {
@@ -149,7 +175,7 @@ class GlassFrameLayout @JvmOverloads constructor(
 
     private val radiusDp = radiusOf(context, attrs, 18f)
     private val frosted = frostedOf(context, attrs)
-    private val glass: ComposeView = panelSurface(context, radiusDp)
+    private val glass: ComposeView = panelSurface(context, radiusDp) { body -> tintPanelContent(this, body) }
 
     init {
         clipChildren = false
@@ -203,7 +229,7 @@ class GlassLinearLayout @JvmOverloads constructor(
 
     private val radiusDp = radiusOf(context, attrs, 20f)
     private val frosted = frostedOf(context, attrs)
-    private val glass: ComposeView = panelSurface(context, radiusDp)
+    private val glass: ComposeView = panelSurface(context, radiusDp) { body -> tintPanelContent(this, body) }
 
     init {
         clipChildren = false

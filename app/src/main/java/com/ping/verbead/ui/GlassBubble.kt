@@ -49,6 +49,12 @@ import dev.mttmcknn.seaglass.seaGlass
 /** Small, tight glow so it fits inside the bubble's small overlay window. */
 internal val BubbleRecipe = SmallGlassRecipe.copy(thickness = 2.dp, frost = 0.25f, bulge = 0.25f)
 
+/** Content colour for a glass body: near-black on a light body, white on a dark one. */
+internal fun panelContentTint(body: Color): android.content.res.ColorStateList =
+    android.content.res.ColorStateList.valueOf(
+        if (body.luminance() > 0.5f) 0xFF14181C.toInt() else 0xFFFFFFFF.toInt()
+    )
+
 internal object OverlayOwner : LifecycleOwner, SavedStateRegistryOwner {
     private val registry = LifecycleRegistry(this)
     private val controller = SavedStateRegistryController.create(this)
@@ -113,7 +119,10 @@ class GlassBubbleLayout @JvmOverloads constructor(
                         val startColor = lerp(idleStart, activeStart, mix.value)
                         val endColor = lerp(idleEnd, activeEnd, mix.value)
                         val outerRim = lerp(idleRim, activeRim, mix.value)
-                        SideEffect { applyIconTint(lerp(startColor, endColor, 0.5f), active) }
+                        // Judge by the resting colour, not the one mid-fade, or leaving the
+                        // listening state flashes white before the dark icon settles.
+                        val idleBody = lerp(idleStart, idleEnd, 0.5f)
+                        SideEffect { applyIconTint(idleBody, active) }
                         val outerShape = RoundedCornerShape(corner)
                         val innerShape = RoundedCornerShape((corner - 4.dp).coerceAtLeast(10.dp))
                         androidx.compose.runtime.key(generation) {
@@ -132,7 +141,7 @@ class GlassBubbleLayout @JvmOverloads constructor(
                         val listening = if (dark) Color(0xFF8E1B1B) else Color(0xFFB3261E)
                         val body = lerp(idle, listening, mix.value)
                         val palette = SeaGlassPalette(body, lerp(body, Color.White, .35f), Color.White)
-                        SideEffect { applyIconTint(body, active) }
+                        SideEffect { applyIconTint(idle, active) }
                         androidx.compose.runtime.key(generation) {
                             SeaGlassMaterialTheme(style = BubbleRecipe, shape = SeaGlassShape.Disc) {
                                 Box(Modifier.fillMaxSize().clip(CircleShape).seaGlass(palette = palette))
@@ -149,14 +158,21 @@ class GlassBubbleLayout @JvmOverloads constructor(
      * Icons follow the bubble's body colour: white on a dark body, near-black on a light one.
      * While listening the red microphone keeps its own colour.
      */
-    private fun applyIconTint(body: Color, listening: Boolean) {
-        val tint = when {
-            listening -> null
-            body.luminance() > 0.5f -> android.content.res.ColorStateList.valueOf(0xFF14181C.toInt())
-            else -> android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
-        }
+    private fun applyIconTint(idleBody: Color, listening: Boolean) {
+        val tint = if (listening) null else panelContentTint(idleBody)
+        idleTint = panelContentTint(idleBody)
+        setIconTint(tint)
+    }
+
+    private var idleTint: android.content.res.ColorStateList? = null
+
+    private fun setIconTint(tint: android.content.res.ColorStateList?) {
         for (i in 0 until childCount) {
-            (getChildAt(i) as? android.widget.ImageView)?.imageTintList = tint
+            val child = getChildAt(i)
+            (child as? android.widget.ImageView)?.imageTintList = tint
+            // The loading spinner sits on the idle body, the transcribing one on the red body.
+            (child as? android.widget.ProgressBar)?.indeterminateTintList =
+                tint ?: android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
         }
     }
 
@@ -187,6 +203,10 @@ class GlassBubbleLayout @JvmOverloads constructor(
     }
 
     override fun setBackgroundResource(resid: Int) {
-        activeState.value = resid == R.drawable.bubble_background_active
+        val active = resid == R.drawable.bubble_background_active
+        activeState.value = active
+        // Apply right away instead of waiting for the next composition frame, so the icon
+        // never shows the old tint for a moment when the state flips.
+        setIconTint(if (active) null else idleTint)
     }
 }
