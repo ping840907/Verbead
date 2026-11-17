@@ -37,7 +37,7 @@ class VoicePreloadPolicy(private val context: Context, private val now: () -> Lo
         if (!isEnabled) return Verdict.DISABLED
         val t = now()
         if (!userInitiated && t < prefs.getLong(KEY_EVICTED_UNTIL, 0L)) return Verdict.EVICTED
-        if (t < prefs.getLong(KEY_BLOCKED_UNTIL, 0L)) return Verdict.STRUCK_OUT
+        if (!userInitiated && t < prefs.getLong(KEY_BLOCKED_UNTIL, 0L)) return Verdict.STRUCK_OUT
         if (!userInitiated && t - prefs.getLong(KEY_LAST_ATTEMPT, 0L) < MIN_INTERVAL_MS) return Verdict.TOO_SOON
 
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
@@ -108,11 +108,15 @@ class VoicePreloadPolicy(private val context: Context, private val now: () -> Lo
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return
-            val recentlyKilled = runCatching {
-                am.getHistoricalProcessExitReasons(context.packageName, 0, 5).any {
-                    it.reason == ApplicationExitInfo.REASON_LOW_MEMORY && now() - it.timestamp < KILLED_WINDOW_MS
-                }
-            }.getOrDefault(false)
+            val seen = prefs.getLong(KEY_KILL_SEEN, 0L)
+            val newestKill = runCatching {
+                am.getHistoricalProcessExitReasons(context.packageName, 0, 5)
+                    .filter { it.reason == ApplicationExitInfo.REASON_LOW_MEMORY && now() - it.timestamp < KILLED_WINDOW_MS }
+                    .maxOfOrNull { it.timestamp } ?: 0L
+            }.getOrDefault(0L)
+            // Each kill counts once: otherwise every restart inside the window would extend the pause again.
+            val recentlyKilled = newestKill > seen
+            if (recentlyKilled) prefs.edit().putLong(KEY_KILL_SEEN, newestKill).apply()
             if (recentlyKilled) {
                 Log.w(TAG, "the system recently killed this app for memory")
                 markEvicted()
@@ -129,6 +133,7 @@ class VoicePreloadPolicy(private val context: Context, private val now: () -> Lo
         private const val KEY_LAST_ATTEMPT = "last_attempt"
         private const val KEY_IN_PROGRESS = "in_progress"
         private const val KEY_STRIKES = "strikes"
+        private const val KEY_KILL_SEEN = "kill_seen"
 
         private const val MIN_INTERVAL_MS = 10 * 60_000L
         private const val SHORT_PAUSE_MS = 60 * 60_000L

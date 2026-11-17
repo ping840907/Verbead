@@ -176,7 +176,17 @@ class VoiceInputController(
      */
     fun onMemoryPressure() {
         preloadPolicy.markEvicted()
-        preloadJob?.cancel()
+        val loading = preloadJob?.takeIf { it.isActive }
+        if (loading != null) {
+            // A blocking load cannot be interrupted: let it end, then give the memory back.
+            loading.cancel()
+            loading.invokeOnCompletion { scope.launch { releaseIdleEngines() } }
+            return
+        }
+        releaseIdleEngines()
+    }
+
+    private fun releaseIdleEngines() {
         if (isRecording || userLoading) return
         if (!inferenceLock.tryLock()) return // a transcription is running: leave the engines alone
         try {
@@ -264,9 +274,11 @@ class VoiceInputController(
         userLoading = true
         scope.launch {
             val success = try {
+                // A background preload may still be loading these same engines: wait for it instead of loading twice.
+                preloadJob?.join()
                 withContext(Dispatchers.IO) {
                     val liveOk = liveEngine?.let { it.isLoaded() || it.load().success } ?: true
-                    val finalOk = finalEngine?.load(buildHotwords())?.success ?: true
+                    val finalOk = finalEngine?.let { !finalNeedsLoad() || it.load(buildHotwords()).success } ?: true
                     liveOk && finalOk
                 }
             } finally {
