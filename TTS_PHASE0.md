@@ -88,6 +88,36 @@ adb logcat -s TtsProbe
 | 遊戲、Flutter / Canvas | 任一款 |
 | 自己的 App | 確認懸浮球節點是否會被讀進去 |
 
+### 手機實測結果（A：SherpaTtsBenchReceiver，8 核心裝置，Android 17／sdk 37）
+
+| 模型 | 執行緒 | 載入 | PSS 增量 | RTF（短句 / 長句） | 首音 |
+|---|---|---|---|---|---|
+| Melo（44.1 kHz，單聲） | 4 | 1.1 s | +289 MB | 0.43–0.46 / 0.46 | 0.5–0.6 s（短句，中文） |
+| Melo | 2 | 1.2 s | +236 MB | 0.39 / 0.40 | 0.46 s |
+| Kokoro（24 kHz，103 聲） | 4 | 0.9 s | +495 MB | 0.58–0.66 / 0.59 | 1.0–1.2 s（中文） |
+| Kokoro | 2 | 0.9 s | +476 MB | 0.45–0.49 / 0.47 | 0.8–1.3 s |
+
+- 兩個模型 RTF 都低於 0.7 的門檻，可逐句串流。**threads=2 反而比 4 快**（大小核心排程），預設用 2。
+- Melo 比 Kokoro 輕且快，但單一聲音；Kokoro 多聲音但記憶體約 +480 MB。
+- 繁體與簡體輸入音長相同（2.82 s / 2.82 s），與雲端結果一致。
+- 「mixed」句（含 GPU、4090）與英文句的首音等於整句時間：該句沒有分段回呼，只回呼一次。
+- 發音品質尚待人耳試聽：`C:\new v\tts-models\wav\bench_*.wav`。「ASR 同時載入」的記憶體測試尚未做。
+
+**閃退根因（已解決）**：`generateWithCallback` 傳入 Kotlin lambda 會讓 App 閃退。sherpa-onnx 的 JNI 層會在回呼物件上直接用名稱查找 `invoke([F)Ljava/lang/Integer;`，而 D8 編出的合成 lambda 類別沒有這個簽名，ART 報 `JNI DETECTED ERROR ... NoSuchMethodError` 後中止行程（logcat 只剩 SIGABRT，真正訊息在 tag `g.verbead.debug`）。
+**正式功能務必**用 `object : (FloatArray) -> Int { override fun invoke(...) }` 或具名類別當回呼，不要用 lambda；並注意 R8 在 release 版不可混淆／移除該類別的 `invoke`。
+
+### 手機實測結果（B：TtsSourceProbeReceiver）
+
+| 情境 | 反白 | ACTION_COPY | 節點樹 | OCR |
+|---|---|---|---|---|
+| Firefox 網頁（WebView） | **讀不到** | 未測（無選取節點） | 29 文字節點／422 字，覆蓋率 96% | 27 框／246 字，約 3.3 s |
+| 聯絡人（原生 EditText） | **讀得到**（range 0..5，含文字） | performAction=true，但剪貼簿**讀不到**（背景讀剪貼簿被擋） | 77 文字節點／256 字，覆蓋率 56% | 89 框／118 字，約 3.1 s |
+
+- 原生 App 可直接由節點取子字串；網頁不行，視為已知限制（改走畫面文字或 OCR 區塊選取）。
+- `ACTION_COPY` + 讀剪貼簿在此裝置不可行（Android 10+ 背景 App 無法讀剪貼簿），備案可放棄。
+- 兩個畫面都有 6 個自家懸浮視窗節點被讀進來，必須過濾。
+- OCR 字數都少於節點樹，OCR 只適合當保底。
+
 ## 三、判斷標準與決策
 
 | 項目 | 通過 | 若不通過 |

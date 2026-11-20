@@ -124,7 +124,7 @@ class TtsSourceProbeReceiver : BroadcastReceiver() {
         val ordered = items.sortedWith(compareBy({ it.rect.top / 40 }, { it.rect.left }))
         val chars = ordered.sumOf { it.text.length }
         ordered.take(30).forEachIndexed { i, item ->
-            Log.i(TAG, "  [$i] ${item.rect.flattenToShortString()} ${item.cls.substringAfterLast('.')} \"${item.text.take(40)}\"")
+            Log.i(TAG, "  [$i] ${item.rect.toShortString()} ${item.cls.substringAfterLast('.')} \"${item.text.take(40)}\"")
         }
         Log.i(TAG, "SUMMARY nodes=$nodes textNodes=${ordered.size} chars=$chars coverage=$coverage% bigImageNodes=$bigImages " +
             "webView=$webViews passwordSkipped=$skippedPassword ownOverlayNodes=$ownOverlayNodes " +

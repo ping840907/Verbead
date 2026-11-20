@@ -100,10 +100,15 @@ class SherpaTtsBenchReceiver : BroadcastReceiver() {
         for ((name, text) in texts) {
             var firstMs = -1.0
             t = System.nanoTime()
-            val audio = tts.generateWithCallback(text) { _ ->
-                if (firstMs < 0) firstMs = (System.nanoTime() - t) / 1e6
-                1 // keep going
+            // Must be a real class with invoke([F)Ljava/lang/Integer; — the JNI side looks that method up
+            // by name, and a Kotlin lambda (D8 synthetic class) does not have it → NoSuchMethodError → abort.
+            val cb = object : (FloatArray) -> Int {
+                override fun invoke(samples: FloatArray): Int {
+                    if (firstMs < 0) firstMs = (System.nanoTime() - t) / 1e6
+                    return 1 // keep going
+                }
             }
+            val audio = tts.generateWithCallback(text, callback = cb)
             val synthMs = (System.nanoTime() - t) / 1e6
             val sec = audio.samples.size.toDouble() / audio.sampleRate
             Log.i(TAG, "%-12s chars=%3d audio=%.2fs synth=%.0fms RTF=%.3f ttfa=%.0fms".format(
