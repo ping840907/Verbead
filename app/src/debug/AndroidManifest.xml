@@ -28,6 +28,9 @@
             android:name=".OcrFallbackTestActivity"
             android:exported="true" />
         <receiver
+            android:name=".ScrollProbeReceiver"
+            android:exported="true" />
+        <receiver
             android:name=".SherpaTtsBenchReceiver"
             android:exported="true" />
         <receiver

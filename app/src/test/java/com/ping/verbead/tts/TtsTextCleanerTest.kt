@@ -38,4 +38,23 @@ class TtsTextCleanerTest {
     fun blankInputGivesEmpty() {
         assertEquals("", TtsTextCleaner.clean(" \n\t "))
     }
+
+    @Test
+    fun removesCitationMarks() {
+        assertEquals("臺北市是直轄市，及首都。", TtsTextCleaner.clean("臺北市是直轄市[4]，及首都[註 2][5]。"))
+        assertEquals("人口密度最高的建制市。", TtsTextCleaner.clean("人口密度最高[ 註 4 ]的建制市[ 3 ]。"))
+        assertEquals("a note", TtsTextCleaner.clean("a[note 2] note[a]"))
+        assertEquals("歷史", TtsTextCleaner.clean("歷史[編輯]"))
+    }
+
+    @Test
+    fun aLineOfNothingButCitationMarksBecomesEmpty() {
+        assertEquals("", TtsTextCleaner.clean("[註 3] [註 4] [3]"))
+    }
+
+    @Test
+    fun otherBracketsAreKept() {
+        assertEquals("請見[臺北]條目", TtsTextCleaner.clean("請見[臺北]條目"))
+        assertEquals("範圍 [1, 2]", TtsTextCleaner.clean("範圍 [1, 2]"))
+    }
 }

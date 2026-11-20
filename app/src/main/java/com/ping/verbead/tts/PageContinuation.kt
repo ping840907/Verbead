@@ -28,14 +28,29 @@ object PageContinuation {
     private const val LOOK_AHEAD = 3
 
     /**
+     * The share (0..1) of the sentences of [next] that were not read before: how much of a scrolled page is new.
+     * An app that scrolls a whole page at a time gives close to 1; one that moves a quarter of a page at a step
+     * gives close to 0.25, which is the sign to scroll on. A page with no sentences counts as all new.
+     */
+    fun freshShare(read: List<String>, next: List<Sentence>): Float {
+        if (next.isEmpty()) return 1f
+        val old = read.filter { TextSimilarity.letterCount(it) >= MIN_CHARS }
+        val fresh = next.count { !isSeen(it.text, old) }
+        return fresh.toFloat() / next.size
+    }
+
+    private fun isSeen(text: String, old: List<String>): Boolean =
+        TextSimilarity.letterCount(text) >= MIN_CHARS &&
+            old.any { sameNumbers(text, it) && TextSimilarity.containment(text, it) >= SEEN }
+
+    /**
      * The index in [next] to start from, or null when [next] holds nothing that was not read already (the end of
      * the content: scrolling no longer brings anything new). [read] are the sentences of the page before.
      */
     fun firstNew(read: List<String>, next: List<Sentence>): Int? {
         if (next.isEmpty()) return null
         val old = read.filter { TextSimilarity.letterCount(it) >= MIN_CHARS }
-        fun seen(text: String) = TextSimilarity.letterCount(text) >= MIN_CHARS &&
-            old.any { sameNumbers(text, it) && TextSimilarity.containment(text, it) >= SEEN }
+        fun seen(text: String) = isSeen(text, old)
 
         var lastSeen = -1
         var misses = 0

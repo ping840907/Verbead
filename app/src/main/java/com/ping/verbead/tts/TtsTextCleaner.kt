@@ -10,12 +10,24 @@ object TtsTextCleaner {
     private val URL = Regex("""(?i)\b(?:https?://|www\.)\S+""")
     private val INVISIBLE = Regex("[\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u2064\\uFEFF\\u00AD]")
     private val CONTROL = Regex("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]")
+    /**
+     * Citation marks such as [1], [note 2], [a] and the "[edit]" of a section: written for the eye, read as noise.
+     * The Chinese words are written as escapes (note: U+8A3B or U+6CE8; edit: U+7DE8 U+8F2F or U+7F16 U+8F91) so no
+     * Chinese text is hard-coded in the source.
+     */
+    private val CITATION = Regex(
+        """\[\s*(?:(?:\u8A3B|\u6CE8|note|n|fn)\s*)?\d{1,3}\s*\]""" +
+            """|\[\s*[a-z]\s*\]""" +
+            """|\[\s*(?:\u7DE8\u8F2F|\u7F16\u8F91|edit)\s*\]""",
+        RegexOption.IGNORE_CASE
+    )
     private val BLANKS = Regex("[ \\t\\u00A0\\u3000]+")
     private val EMPTY_LINES = Regex("\\n(?:[ \\t]*\\n)+")
 
     fun clean(text: String): String {
         var s = text.replace("\r\n", "\n").replace('\r', '\n')
         s = URL.replace(s, " ")
+        s = CITATION.replace(s, "")
         s = INVISIBLE.replace(s, "")
         s = CONTROL.replace(s, "")
         s = stripPictographs(s)

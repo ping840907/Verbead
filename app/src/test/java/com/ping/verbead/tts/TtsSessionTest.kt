@@ -288,4 +288,91 @@ class TtsSessionTest {
         assertEquals(1, s.index)
         assertEquals(emptyList<String>(), e.calls) // c was already queued behind b
     }
+
+    // ── a reading that goes on to the next page ─────────────────────────
+
+    @Test
+    fun appendedSentencesAreQueuedBehindTheLastOneSoThereIsNoGap() {
+        val e = QueueingEngine()
+        val r = Recorder()
+        val s = TtsSession(e, r)
+        s.start(sentences("a", "b"))                    // a speaking, b queued
+        e.calls.clear()
+        s.append(sentences("c", "d"))
+        assertEquals(listOf("queue:c"), e.calls)        // depth 2: b is already queued, c joins it
+        s.onDone(e.spokenId)                            // a is over: b is playing, d joins the queue
+        assertEquals(listOf("queue:c", "queue:d"), e.calls)
+        assertEquals(4, s.sentences.size)
+    }
+
+    @Test
+    fun theReadingRunsStraightThroughTheJoinAndFinishesAtTheEnd() {
+        val e = QueueingEngine()
+        val s = TtsSession(e, Recorder())
+        s.start(sentences("a"))
+        s.append(sentences("b"))
+        val b = e.queuedIds[0]
+        s.onDone(e.spokenId)                            // a over, b playing
+        assertEquals(1, s.index)
+        s.onDone(b)
+        assertEquals(TtsSession.State.FINISHED, s.state)
+    }
+
+    @Test
+    fun appendingAfterTheReadingFinishedPicksUpAtTheFirstNewSentence() {
+        val e = QueueingEngine()
+        val r = Recorder()
+        val s = TtsSession(e, r)
+        s.start(sentences("a", "b"))
+        s.onDone(e.spokenId)
+        s.onDone(e.queuedIds.first())
+        assertEquals(TtsSession.State.FINISHED, s.state)
+        e.calls.clear()
+        s.append(sentences("c", "d"))
+        assertEquals(TtsSession.State.SPEAKING, s.state)
+        assertEquals(2, s.index)
+        assertEquals(listOf("speak:c", "queue:d"), e.calls)
+        assertEquals(2, r.indexes.last())
+    }
+
+    @Test
+    fun appendingWhilePausedOnlyMakesTheReadingLonger() {
+        val e = QueueingEngine()
+        val s = TtsSession(e, Recorder())
+        s.start(sentences("a", "b"))
+        s.pause()
+        e.calls.clear()
+        s.append(sentences("c"))
+        assertEquals(emptyList<String>(), e.calls)
+        assertEquals(3, s.sentences.size)
+        s.resume()
+        assertEquals(listOf("speak:a", "queue:b", "queue:c"), e.calls)
+    }
+
+    @Test
+    fun appendingNothingOrToAStoppedSessionDoesNothing() {
+        val e = QueueingEngine()
+        val s = TtsSession(e, Recorder())
+        s.append(sentences("a"))
+        assertEquals(0, s.sentences.size)
+        s.start(sentences("a"))
+        e.calls.clear()
+        s.append(emptyList())
+        assertEquals(emptyList<String>(), e.calls)
+        s.stop()
+        s.append(sentences("b"))
+        assertEquals(0, s.sentences.size)
+    }
+
+    @Test
+    fun anEngineThatCannotQueueSpeaksTheAppendedSentenceWhenTheLastOneIsDone() {
+        val e = QueueingEngine(canQueue = false)
+        val s = TtsSession(e, Recorder())
+        s.start(sentences("a"))
+        s.append(sentences("b"))
+        e.calls.clear()
+        s.onDone(e.spokenId)
+        assertEquals(listOf("speak:b"), e.calls)
+        assertEquals(1, s.index)
+    }
 }

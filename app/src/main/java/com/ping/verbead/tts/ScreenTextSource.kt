@@ -2,6 +2,8 @@ package com.ping.verbead.tts
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
+import android.graphics.RectF
+import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 
@@ -62,7 +64,7 @@ class ScreenTextSource(private val ownPackage: String) {
     }
 
     /** Stops a pathological tree (or a loop in a broken one) from running forever. */
-    private class Budget(var nodes: Int = MAX_NODES) {
+    private class Budget(var nodes: Int = MAX_NODES, var charCalls: Int = MAX_CHAR_CALLS) {
         fun take(): Boolean = nodes-- > 0
     }
 
@@ -102,15 +104,46 @@ class ScreenTextSource(private val ownPackage: String) {
             // Text always counts; a description only on a leaf (containers repeat what their children say).
             val label = node.text?.toString()?.takeIf { it.isNotBlank() }
                 ?: if (node.childCount == 0) node.contentDescription?.toString().orEmpty() else ""
-            if (label.isNotBlank() && !rect.isEmpty && seen.add("${rect.flattenToString()}|$label")) {
-                out += ScreenTextItem(rect.left, rect.top, rect.right, rect.bottom, label)
+            if (label.isNotBlank() && !rect.isEmpty) {
+                // a node that wraps over several lines is cut into its lines, so it lines up with the pieces beside it
+                val lines = if (!node.text.isNullOrBlank() && budget.charCalls > 0 &&
+                    LineSplitter.looksMultiLine(label, rect.width(), rect.height())
+                ) {
+                    budget.charCalls--
+                    splitByCharacterBoxes(node, label)
+                } else null
+                if (lines != null) {
+                    for (item in lines) if (seen.add("${item.left},${item.top},${item.right},${item.bottom}|${item.text}")) out += item
+                } else if (seen.add("${rect.flattenToString()}|$label")) {
+                    out += ScreenTextItem(rect.left, rect.top, rect.right, rect.bottom, label)
+                }
             }
         }
         for (i in 0 until node.childCount) collect(node.getChild(i), depth + 1, out, seen, budget, ownWindow)
     }
 
+    /** The lines [node] is drawn in, from where the screen says each character is; null when it cannot say (or it is one line). */
+    @Suppress("DEPRECATION")
+    private fun splitByCharacterBoxes(node: AccessibilityNodeInfo, text: String): List<ScreenTextItem>? {
+        val n = text.length.coerceAtMost(MAX_SPLIT_CHARS)
+        val args = Bundle().apply {
+            putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, 0)
+            putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, n)
+        }
+        if (!node.refreshWithExtraData(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY, args)) return null
+        val raw = node.extras.getParcelableArray(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY) ?: return null
+        val boxes = raw.map { r ->
+            (r as? RectF)?.let { CharBox(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) }
+        }
+        return LineSplitter.split(text.substring(0, n), boxes)
+    }
+
     private companion object {
         const val MAX_DEPTH = 60
         const val MAX_NODES = 6000
+
+        /** How many nodes per reading may be asked for their character boxes (each is a round trip to the app). */
+        const val MAX_CHAR_CALLS = 60
+        const val MAX_SPLIT_CHARS = 1500
     }
 }

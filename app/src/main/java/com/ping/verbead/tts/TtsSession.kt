@@ -59,6 +59,29 @@ class TtsSession(
         speakCurrent()
     }
 
+    /**
+     * Adds [more] after the sentences already in the session, for a reading that goes on to the next page: while
+     * the last sentences of one page are still being spoken, the first ones of the next are queued behind them,
+     * so the voice does not stop between the pages. If the reading has already finished (the next page was not
+     * ready in time) it picks up at the first new sentence.
+     */
+    fun append(more: List<Sentence>) {
+        if (more.isEmpty() || state == State.IDLE) return
+        val first = sentences.size
+        sentences = sentences + more
+        when (state) {
+            State.SPEAKING -> fillQueue()
+            State.FINISHED -> {
+                index = first
+                consecutiveErrors = 0
+                listener.onSentenceChanged(index)
+                setState(State.SPEAKING)
+                speakCurrent()
+            }
+            else -> Unit // paused (or failed): the reading is just longer
+        }
+    }
+
     fun pause() {
         if (state != State.SPEAKING) return
         currentUtterance = -1

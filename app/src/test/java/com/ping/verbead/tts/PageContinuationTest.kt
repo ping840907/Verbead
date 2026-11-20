@@ -88,4 +88,20 @@ class PageContinuationTest {
         val old = listOf("2024年3月15日發布的第12號公告內容如下。")
         assertEquals(1, PageContinuation.firstNew(old, s("第12號公告內容如下。", "接著是新的一句話在這裡。")))
     }
+
+    @Test
+    fun freshShareSaysHowMuchOfTheScrolledPageIsNew() {
+        val old = (1..8).map { "這是第${it}個很長很長的句子內容。" }
+        // a quarter of a page: 6 of the 8 are repeats
+        val quarter = (3..10).map { Sentence("這是第${it}個很長很長的句子內容。", 0, 10) }
+        assertEquals(0.25f, PageContinuation.freshShare(old, quarter), 0.001f)
+        // a whole page: nothing repeated
+        val whole = (9..16).map { Sentence("這是第${it}個很長很長的句子內容。", 0, 10) }
+        assertEquals(1f, PageContinuation.freshShare(old, whole), 0.001f)
+        // nothing moved
+        assertEquals(0f, PageContinuation.freshShare(old, old.map { Sentence(it, 0, 10) }), 0.001f)
+    }
+
+    @Test
+    fun freshShareOfAnEmptyPageIsAllNew() = assertEquals(1f, PageContinuation.freshShare(page1, emptyList()), 0f)
 }
