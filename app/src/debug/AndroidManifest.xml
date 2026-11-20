@@ -22,5 +22,12 @@
         <receiver
             android:name=".PendingTextDebugReceiver"
             android:exported="true" />
+        <!-- Debug only: read-aloud phase 0 — TTS speed benchmark and "what can the screen reader see" probe -->
+        <receiver
+            android:name=".SherpaTtsBenchReceiver"
+            android:exported="true" />
+        <receiver
+            android:name=".TtsSourceProbeReceiver"
+            android:exported="true" />
     </application>
 </manifest>
