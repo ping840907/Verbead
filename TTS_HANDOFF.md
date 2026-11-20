@@ -1,0 +1,200 @@
+# 朗讀（TTS）功能交接文件
+
+給接手的本地 Claude Code。這份文件自成一體，不需要看過先前的雲端對話。
+配套文件：`TTS_PHASE0.md`（第 0 階段驗證數據與手機測試步驟）。
+
+- 分支：`ccr-47e9f1e4-6t2t0m`（已推送，尚未開 PR）
+- 本機開始前：`git fetch origin ccr-47e9f1e4-6t2t0m && git checkout ccr-47e9f1e4-6t2t0m`
+
+---
+
+## 1. 需求（使用者原話整理）
+
+為「珠璣（Verbead）」新增朗讀功能：
+
+1. 載入社群編譯的 tflite TTS 模型（參考 Google AI Edge Gallery / litert-community），
+2. 比照 ASR 功能，提供使用者明確的**屬性標籤**（語言、聲音、大小、速度等），
+3. 按下**懸浮球**後變成**播放介面**，手機用 TTS 唸出畫面上的內容；**若有反白就唸反白範圍**，
+4. **OCR 要如何在這個功能中發揮用途**還在構思（見第 5 節的建議）。
+
+主要使用者在台灣，**中文（繁體）是必要的**。
+
+## 2. 目前狀態
+
+| 項目 | 狀態 |
+|---|---|
+| 功能規劃（模型層、播放流程、UI、來源、OCR 角色、階段） | 已完成，濃縮於本文 |
+| 第 0 階段：雲端可做的驗證 | 已完成（見 `TTS_PHASE0.md`） |
+| 第 0 階段：手機實測（RTF、記憶體、反白可讀性、OCR 對照） | **未做，需在實機執行** |
+| 兩支 debug 探針 | 已寫、已推送，**未經編譯**（雲端沒有 Android SDK，只做過 tree-sitter 語法檢查） |
+| 正式功能程式碼 | **尚未開始** |
+
+## 3. 已確定的關鍵結論
+
+1. **社群 tflite 目前沒有「即時且支援中文」的 TTS。**
+   KittenTTS（英文，RTF 約 0.22–0.29）、Matcha（英文，約 0.8）、Qwen3-TTS（含中文但 RTF 約 6.7，不能即時）。
+   速度為範例作者在 Pixel 8a 的自述，未重測。來源：`github.com/google-ai-edge/litert-samples` 的
+   `samples/litert/text_to_speech`、`text_to_speech_streaming`、`text_to_speech_lm`。
+2. **App 已內建 sherpa-onnx 2.0.1，其 Kotlin API（`OfflineTts`）可做中文 TTS 與串流**
+   （`generateWithCallback`）。雲端實測 `vits-melo-tts-zh_en`（183 MB，RTF 0.20–0.25）與
+   `kokoro-multi-lang-v1_1`（409 MB，103 聲音，RTF 0.26–0.34）。
+3. **繁體字輸入可直接使用**（與簡體音長一致，回頭辨識內容一致）。
+4. **Kokoro 會丟掉大寫英文縮寫**（`OOV word skipped: 'GPU'`），需要文字正規化；Melo 沒有此問題。
+5. 專案的 LiteRT 2.3.2 已使用 `CompiledModel`（見 `PpOcrEngine`），範例用 2.3.0，不需升級。
+6. Gallery 內建 TTS 是 `.litertlm`，與社群 `.tflite` 不通用。
+7. 兩個 Android 端待查：
+   - Kotlin API 把 `dictDir` 標為「unused」，Melo 在手機上的分詞是否與 Python 測試一致；
+   - 反白選取在 Chrome / WebView 是否讀得到（備案：`ACTION_COPY` 讀剪貼簿，且要還原剪貼簿）。
+
+## 4. 建議的架構決策（使用者尚未逐項確認，請在動工前確認或沿用預設）
+
+使用者尚未回答的三個問題，我的預設是：
+
+1. 第一版語言重心：**中文**（英文是附帶）。
+2. 系統 `TextToSpeech` 作為**保底引擎**：採用。沒有模型時也能朗讀。
+3. OCR 優先順序：保底來源 → 點選區塊起唸 → 同步高亮。
+
+據此的調整後規劃：
+
+- **引擎**：`SYSTEM`（保底）、`SHERPA_TTS`（中文主力，Melo / Kokoro）、`LITERT`（第二階段，先做英文 KittenTTS，作為「社群 tflite」示範）。
+- **模型清單**：比照 `AsrCatalog`＋`app/src/main/resources/asr_models.json`，新增 `TtsCatalog` 與 `tts_models.json`，支援自訂 manifest。
+- **下載 / 匯入**：重用 `ModelDownloader`、`ModelDownloadSpec.forEngine`、`ModelZipInstaller`、`ModelDownloadService`（需擴充白名單與 `forEngine`）。
+
+### 屬性標籤（比照 ASR 的 `AsrMode / AsrTier / languages / description`）
+
+語言（BCP-47，規則同 `supportsLanguage`）、聲音（男/女/中性、說話者清單）、等級（輕巧/均衡/最佳）、
+速度（實測 RTF 與 GPU/CPU）、是否可逐句串流、大小（MB）與取樣率、授權、來源（官方/社群/自訂，自訂顯示警示）。
+
+### 合成與播放
+
+```
+來源文字 → 正規化 → 切句 → 語言判斷 → 文字前端 → 聲學模型 → 聲碼器 → 播放佇列
+```
+
+- 正規化：網址、emoji、數字與單位、**大寫縮寫拆字母**（Kokoro 必要）、中英混排停頓。
+- 切句後「播放第 N 句、背景合成第 N+1 句」，用 `AudioTrack` 串接。
+- 處理 AudioFocus（來電、其他媒體）、拔耳機暫停。
+- 記憶體：ASR / OCR / TTS 不要同時常駐，TTS 閒置後卸載。可仿 `AsrMemoryBenchReceiver` 做量測。
+
+### UI 與狀態
+
+- 膠囊選單新增第 5 個模式「朗讀」（`BubbleModeConfigAdapter`、`CapsuleMenuController`）。
+- 點球進入**播放器面板**：新增 `TtsPlayerController`，註冊進 `OverlayCoordinator`（新增 `Kind.TTS`，一次只開一個）。
+- `BubbleState` 新增 `SPEAKING`，並更新 `BubbleStateMachine` 轉換規則。球外圈沿用錄音脈衝圈但換色。
+- ✕ 鍵：朗讀中 = 停止並關閉面板（符合現有情境感知）。朗讀不改動輸入框，不需復原。
+- 面板：來源標籤（選取文字 / 畫面文字 / OCR）、目前句子逐字稿高亮、播放暫停、上一句/下一句、語速、句子進度。
+- 設定頁 `TtsSettingsActivity`：模型卡片（含上述標籤）、下載與匯入、各語言預設聲音、語速、來源策略、過濾規則（網址/emoji）、高亮與自動滾動開關。
+- 新增字串需補齊 5 種語系（繁中、簡中、English、日本語、한국어），請檢查 `app/src/main/res/values*/`。
+
+## 5. 文字來源與 OCR 的角色
+
+來源優先順序：**① 反白 → ② 畫面文字（節點樹）→ ③ OCR**。
+
+- **反白**：走訪各視窗節點，找 `textSelectionStart != textSelectionEnd` 的節點取子字串。
+  限制：Chrome/WebView 與部分 App 不暴露。備案 `ACTION_COPY` + 讀剪貼簿，預設關閉，且必須備份並還原使用者剪貼簿。
+- **畫面文字**：只取 `isVisibleToUser`；略過密碼欄、自家懸浮視窗、狀態列/導覽列；父子重複去重；
+  依 bounds 重排閱讀順序（可借用 `TextStitcher` 的幾何規則）。
+  無障礙設定已有 `flagRetrieveInteractiveWindows` 與 `canTakeScreenshot`（`res/xml/accessibility_service_config.xml`）。
+- **OCR 的用途（按價值排序）**：
+  1. **保底來源**：節點樹文字不足時自動改用 OCR（遊戲、圖片、截圖、掃描 PDF、無語意的 Flutter/Canvas）。
+     判斷：文字節點覆蓋面積比例＋字數門檻（門檻用第 0 階段實測定）。擷取用 `VoiceAccessibilityService.captureScreen`，辨識用 `PpOcrEngine`。
+  2. **點選要唸的區塊（最推薦）**：重用現有 OCR 的方框偵測、點選編號、框選、全選（`OcrOverlayController`）。
+     補足「無法反白」的畫面；新增「從這裡開始唸」。
+  3. **同步高亮**：朗讀到哪句，就在畫面對應位置畫框（OCR 方框與節點 bounds 都有座標）。
+  4. 混合來源（第二階段）：節點樹讀文字，只對沒文字的大圖片節點裁切 OCR，再依座標插回順序。
+  5. 相機朗讀：現有相機 OCR 視窗，拍照後唸（書、藥品說明、路牌）。
+  6. 語言分流：OCR 依文字系統分段（參考 `KoreanFallback` 思路），各段選對應引擎。
+  7. 品質過濾：丟棄低信心結果，避免唸出雜訊。
+  - 自動連續閱讀（第二階段）：唸完執行 `ACTION_SCROLL_FORWARD` 再抓下一頁。
+  - `TextStitcher` 的智慧折行拼接對 TTS 特別有用，可避免在自然折行處停頓。
+
+## 6. 專案內重要位置（本次實際讀過）
+
+| 位置 | 備註 |
+|---|---|
+| `app/src/main/java/com/ping/verbead/FloatingBubbleService.kt` | 3177 行，懸浮球本體與各模式協調 |
+| `.../bubble/OverlayCoordinator.kt` | 條碼/OCR/常用語視窗的開關與定位（`Kind` 列舉） |
+| `.../bubble/BubbleStateMachine.kt` | `BubbleState` 與轉換規則 |
+| `.../bubble/BubbleModeConfigAdapter.kt`、`CapsuleMenuController.kt` | 模式清單與膠囊選單 |
+| `.../bubble/OcrOverlayController.kt`、`.../ocr/PpOcrEngine.kt`、`TextStitcher.kt` | OCR UI 與引擎、折行拼接 |
+| `.../VoiceAccessibilityService.kt` | `captureScreen`、焦點節點、文字填入；單例 `instance` |
+| `.../engine/AsrCatalog.kt`、`resources/asr_models.json` | 資料驅動的模型清單（TTS 目錄照此做） |
+| `.../engine/ModelDownloadSpec.kt`、`ModelDownloader.kt`、`ModelZipInstaller.kt` | 下載、驗證、匯入 |
+| `.../engine/ModelConfig.kt` | 設定與偏好儲存（941 行） |
+| `app/src/debug/` | debug 專用接收器（含本次新增兩支）與 `AndroidManifest.xml` |
+| `APP_SPECIFICATION.md` | 產品規格（做完需新增朗讀章節；README 致謝表也要補） |
+
+注意：
+
+- `app/libs/*.aar`、`*.onnx`、`/ocr/` 等被 `.gitignore` 排除。sherpa-onnx AAR 需自行放入 `app/libs/sherpa-onnx-2.0.1.aar`（雲端沒有此檔）。
+- `docs/` 與 `tools/` 也被忽略（本機專用），所以交接與報告放在根目錄。
+- 建置指令：`./gradlew testDebugUnitTest`、`./gradlew assembleDebug`（見 `README.md`）。
+
+## 7. 接手後的步驟
+
+### 步驟 A：編譯並跑第 0 階段手機實測（先做）
+
+1. 取得專案並放入 sherpa AAR，執行 `./gradlew assembleDebug`；若兩支新探針報錯，先修編譯問題。
+2. 依 `TTS_PHASE0.md` 第二節，在實機跑 `SherpaTtsBenchReceiver`（Melo、Kokoro、threads 2/4，並在 ASR 模型已載入時再跑一次看記憶體）與 `TtsSourceProbeReceiver`（建議測試矩陣見該文件）。
+3. 用耳朵聽 `bench_*.wav`，判斷中文發音品質。
+4. 把數字回填到 `TTS_PHASE0.md`，並依其「判斷標準」決定模型與門檻：
+   - 中文 TTS RTF ≤ 0.7 才適合逐句串流；
+   - 若 Melo 分詞異常，評估改用 Kokoro 或預先分詞（`GenerationConfig.tokens`）。
+
+### 步驟 B：第 1 階段（系統 TTS 版，無需模型即可用）
+
+1. 新增朗讀模式、`SPEAKING` 狀態、`TtsPlayerController` 與 `OverlayCoordinator` 的 `Kind.TTS`。
+2. 文字來源：反白 → 節點樹（含閱讀順序、過濾規則）。
+3. 引擎介面（建議 `TtsEngine`）＋ 系統 `TextToSpeech` 實作；切句、播放佇列、AudioFocus。
+4. 單元測試：正規化、切句、來源判斷、閱讀順序排序（照 `AsrCatalog` 既有測試風格）。
+
+### 步驟 C：第 2 階段（模型）
+
+`TtsCatalog`＋`tts_models.json`、`SHERPA_TTS` 載入器（`OfflineTts` + 串流）、下載/匯入、`TtsSettingsActivity`。
+
+### 步驟 D：第 3 階段（OCR 整合）
+
+保底自動切換、點選區塊起唸、同步高亮。
+
+### 步驟 E：第 4 階段（進階）
+
+混合來源、連續閱讀、相機朗讀、語言分流、`LITERT` 載入器（KittenTTS）。
+
+## 8. 風險與注意
+
+- **中文發音品質與手機 RTF 未驗證**，這是最大的未知；請先做步驟 A 再決定模型。
+- 記憶體：ASR、OCR、TTS 並存可能被系統殺掉，需閒置卸載。
+- 隱私：畫面文字可能敏感，不連網、略過密碼欄、尊重 `FLAG_SECURE`、OCR 擷取失敗要明確提示。
+- 自訂 manifest 的社群模型要顯示來源與授權提醒，下載驗證 SHA-256。
+- 授權：Melo、Kokoro、sherpa-onnx 的授權與致謝需補進 README 表格（依各模型頁面為準，本次未逐一核對授權條款）。
+- 本次所有模型下載都來自 `github.com/k2-fsa/sherpa-onnx/releases`；Hugging Face 在雲端環境無法連線，所以 litert-community 的模型頁內容我沒有讀到，只讀了 `litert-samples` 原始碼。
+
+## 9. 可直接貼給本地 Claude Code 的開場提示
+
+```
+請先讀 TTS_HANDOFF.md 與 TTS_PHASE0.md，我們在分支 ccr-47e9f1e4-6t2t0m 上接手「朗讀（TTS）」功能。
+目前只完成規劃與雲端驗證，正式功能尚未開始。
+
+請先做第 7 節的步驟 A：
+1. 確認專案能編譯（app/libs 需要 sherpa-onnx-2.0.1.aar，我會提供或請你告訴我放哪裡），
+   修好兩支 debug 探針 SherpaTtsBenchReceiver、TtsSourceProbeReceiver 的編譯問題；
+2. 指引我在手機上執行它們並回收日誌，把數字寫回 TTS_PHASE0.md。
+
+之後再進入第 1 階段。動工前請先確認第 4 節三個預設假設（中文優先、系統 TTS 保底、OCR 優先順序）。
+不要自行開 PR。
+```
+
+## 附錄：雲端 bench 的重現方式
+
+```bash
+python3 -m venv v && ./v/bin/pip install sherpa-onnx numpy
+# 下載並解壓：
+#   https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-melo-tts-zh_en.tar.bz2
+#   https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_1.tar.bz2
+# 回頭辨識用 SenseVoice：
+#   https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2
+```
+
+測試句（簡體、繁體、台灣用詞、中英混排、英文、長句）與模型設定寫在
+`app/src/debug/java/com/ping/verbead/SherpaTtsBenchReceiver.kt`，Python 版的參數與其一一對應
+（Melo：`vits` + `dict_dir` + 四個 fst；Kokoro：`lexicon-us-en.txt,lexicon-zh.txt` + 三個 fst）。
