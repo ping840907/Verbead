@@ -21,6 +21,13 @@ class ScreenScroller(private val ownPackage: String) {
         return target.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
     }
 
+    /** The bounds (l, t, r, b) of the area that [scrollForward] would scroll in the window under [root], or null. */
+    fun scrollAreaBounds(root: AccessibilityNodeInfo, ownWindow: Boolean): IntArray? {
+        val node = largestScrollable(root, ownWindow) ?: return null
+        val r = Rect().also { node.getBoundsInScreen(it) }
+        return intArrayOf(r.left, r.top, r.right, r.bottom)
+    }
+
     private class Best(var node: AccessibilityNodeInfo? = null, var area: Long = 0)
 
     private fun largestScrollable(root: AccessibilityNodeInfo, ownWindow: Boolean): AccessibilityNodeInfo? {

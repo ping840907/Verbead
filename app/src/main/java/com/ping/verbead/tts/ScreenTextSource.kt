@@ -16,6 +16,8 @@ import android.view.accessibility.AccessibilityWindowInfo
  */
 class ScreenTextSource(private val ownPackage: String) {
 
+    private val scroller = ScreenScroller(ownPackage)
+
     enum class Kind { SELECTION, SCREEN, EMPTY }
 
     /**
@@ -51,9 +53,17 @@ class ScreenTextSource(private val ownPackage: String) {
         var pkg = ""
         for (w in targets) {
             val root = w.root ?: continue
-            val before = items.size
-            collect(root, 0, items, HashSet(), Budget(), ownWindow = w.isActive)
-            if (items.size > before && pkg.isEmpty()) pkg = root.packageName?.toString() ?: ""
+            val found = ArrayList<ScreenTextItem>()
+            collect(root, 0, found, HashSet(), Budget(), ownWindow = w.isActive)
+            // what is read is the area that scrolls (what the reader scrolls too); the app's chrome around it is not
+            val bounds = Rect().also { w.getBoundsInScreen(it) }
+            val region = ReadingRegion.of(
+                scroller.scrollAreaBounds(root, ownWindow = w.isActive),
+                intArrayOf(bounds.left, bounds.top, bounds.right, bounds.bottom)
+            )
+            val kept = region?.filter(found) ?: found
+            items += kept
+            if (kept.isNotEmpty() && pkg.isEmpty()) pkg = root.packageName?.toString() ?: ""
         }
         val lines = ReadingOrder.toLines(items)
         val text = lines.joinToString("\n") { it.text }
