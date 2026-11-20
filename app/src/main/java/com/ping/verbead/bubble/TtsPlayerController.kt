@@ -10,6 +10,7 @@ import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -30,6 +31,7 @@ import com.ping.verbead.tts.PageContinuation
 import com.ping.verbead.tts.ReadingOrder
 import com.ping.verbead.tts.ReadingPlan
 import com.ping.verbead.tts.ScreenScroller
+import com.ping.verbead.tts.ScrollSettle
 import com.ping.verbead.tts.ScreenTextSource
 import com.ping.verbead.tts.SherpaTtsEngine
 import com.ping.verbead.tts.SpeechAudioFocus
@@ -381,36 +383,50 @@ class TtsPlayerController(
             endReached = true
             return
         }
-        scrollStep(service, previous, gen, step = 0)
+        scrollStep(service, previous, gen, step = 0, before = readSource().text)
     }
 
     /**
-     * One scroll, then a look at the screen. Apps differ in how far one scroll goes (a list moves a whole page, a
-     * browser about a quarter of one), so it goes on while most of what is on the screen was read already.
+     * One scroll, then a look at the screen once it has come to rest ([ScrollSettle]). Apps differ in how far one
+     * scroll goes (a list moves a whole page, a browser about a quarter of one), so it goes on while most of what
+     * is on the screen was read already. A scroll that changes nothing is the end of the page.
      */
-    private fun scrollStep(service: VoiceAccessibilityService, previous: List<String>, gen: Int, step: Int) {
+    private fun scrollStep(service: VoiceAccessibilityService, previous: List<String>, gen: Int, step: Int, before: String) {
         val scrolled = scroller.scrollForward(service)
         Log.i(TAG, "page ${pagesRead + 1}: scroll step ${step + 1} ${if (scrolled) "asked" else "not possible"}")
         if (!scrolled) {
-            if (step == 0) {
-                prefetching = false
-                endReached = true
-            } else {
-                gatherNextPage(previous, gen) // it moved before: read what is there
-            }
+            if (step == 0) endOfPage() else gatherNextPage(previous, gen) // it moved before: read what is there
             return
         }
-        // let the scroll come to rest before the screen is read
-        mainHandler.postDelayed({
-            if (gen != prefetchGen || !isActive) return@postDelayed
-            val fresh = PageContinuation.freshShare(previous, ReadingPlan.fromLines(readSource().lines).sentences)
-            Log.i(TAG, "page ${pagesRead + 1}: after step ${step + 1} ${"%.0f".format(fresh * 100)}% of the screen is new")
-            if (fresh < FRESH_ENOUGH && step + 1 < MAX_SCROLL_STEPS) {
-                scrollStep(service, previous, gen, step + 1)
-            } else {
-                gatherNextPage(previous, gen)
+        val settle = ScrollSettle(before)
+        val started = SystemClock.uptimeMillis()
+        lateinit var poll: Runnable
+        poll = Runnable {
+            if (gen != prefetchGen || !isActive) return@Runnable
+            val now = readSource()
+            when (settle.onSample(now.text, SystemClock.uptimeMillis() - started)) {
+                ScrollSettle.Verdict.WAIT -> mainHandler.postDelayed(poll, ScrollSettle.POLL_MS)
+                ScrollSettle.Verdict.UNCHANGED -> {
+                    Log.i(TAG, "page ${pagesRead + 1}: step ${step + 1} changed nothing")
+                    if (step == 0) endOfPage() else gatherNextPage(previous, gen)
+                }
+                ScrollSettle.Verdict.SETTLED -> {
+                    val fresh = PageContinuation.freshShare(previous, ReadingPlan.fromLines(now.lines).sentences)
+                    Log.i(TAG, "page ${pagesRead + 1}: after step ${step + 1} ${"%.0f".format(fresh * 100)}% of the screen is new")
+                    if (fresh < FRESH_ENOUGH && step + 1 < MAX_SCROLL_STEPS) {
+                        scrollStep(service, previous, gen, step + 1, before = now.text)
+                    } else {
+                        gatherNextPage(previous, gen)
+                    }
+                }
             }
-        }, if (step == 0) SETTLE_MS else STEP_SETTLE_MS)
+        }
+        mainHandler.postDelayed(poll, ScrollSettle.POLL_MS)
+    }
+
+    private fun endOfPage() {
+        prefetching = false
+        endReached = true
     }
 
     private fun gatherNextPage(previous: List<String>, gen: Int) {
@@ -808,6 +824,5 @@ class TtsPlayerController(
 
         /** ...but never more than this many steps. */
         const val MAX_SCROLL_STEPS = 4
-        const val STEP_SETTLE_MS = 1000L
     }
 }
