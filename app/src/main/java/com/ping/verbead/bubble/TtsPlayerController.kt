@@ -8,6 +8,8 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -23,8 +25,10 @@ import com.ping.verbead.engine.TtsCatalog
 import com.ping.verbead.tts.HybridMerger
 import com.ping.verbead.tts.OcrFallbackPolicy
 import com.ping.verbead.tts.OcrTextSource
+import com.ping.verbead.tts.PageContinuation
 import com.ping.verbead.tts.ReadingOrder
 import com.ping.verbead.tts.ReadingPlan
+import com.ping.verbead.tts.ScreenScroller
 import com.ping.verbead.tts.ScreenTextSource
 import com.ping.verbead.tts.SherpaTtsEngine
 import com.ping.verbead.tts.SpeechAudioFocus
@@ -57,6 +61,9 @@ class TtsPlayerController(
         fun onPlayerClosed(hideX: Boolean)
         fun onShowXButton()
         fun onHideXButton()
+
+        /** The voice is speaking (true) or not (false); the bubble shows it. */
+        fun onSpeakingChanged(speaking: Boolean) = Unit
     }
 
     var isActive: Boolean = false
@@ -74,6 +81,16 @@ class TtsPlayerController(
     private var plan: ReadingPlan = ReadingPlan.EMPTY
     private val source = ScreenTextSource(context.packageName)
     private val highlight = TtsHighlightOverlay(context, windowManager)
+    private val scroller = ScreenScroller(context.packageName)
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** What the plan was made from; only a page of the screen (not a selection) can go on to the next page. */
+    private var planKind = ScreenTextSource.Kind.EMPTY
+    private var pagesRead = 0
+
+    /** Set while the next page is being read: the sentences of the page before, to skip what the new one repeats. */
+    private var continuationFrom: List<String>? = null
+    private var speakingShown = false
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var ocrJob: Job? = null
 
@@ -167,8 +184,10 @@ class TtsPlayerController(
         if (!isActive) return
         isActive = false
         ocrJob?.cancel()
+        mainHandler.removeCallbacksAndMessages(null)
         highlight.detach()
         releaseSpeech()
+        setSpeaking(false)
         if (hideX) listener.onHideXButton()
         val root = view ?: return
         val density = context.resources.displayMetrics.density
@@ -190,8 +209,10 @@ class TtsPlayerController(
         isActive = false
         opening = false
         scope.cancel()
+        mainHandler.removeCallbacksAndMessages(null)
         highlight.detach()
         releaseSpeech()
+        setSpeaking(false)
         view?.let { v ->
             if (windowManager.isViewAdded(v)) runCatching { windowManager.removeView(v) }
         }
@@ -235,6 +256,7 @@ class TtsPlayerController(
      * background and its text replaces the tree's if it holds more.
      */
     private fun onSource(result: ScreenTextSource.Result, shot: Bitmap?) {
+        planKind = result.kind
         val treePlan = when (result.kind) {
             ScreenTextSource.Kind.SELECTION -> ReadingPlan.fromText(result.text)
             ScreenTextSource.Kind.SCREEN -> ReadingPlan.fromLines(result.lines)
@@ -268,11 +290,17 @@ class TtsPlayerController(
                         val merged = HybridMerger.merge(result.items, outcome.items)
                         Log.i(TAG, "hybrid: tree=${result.items.size} ocr=${outcome.items.size} matched=${merged.matched} inserted=${merged.inserted}")
                         val plan = ReadingPlan.fromLines(ReadingOrder.toLines(merged.items))
+                        planKind = ScreenTextSource.Kind.SCREEN
                         use(plan, if (merged.inserted > 0) R.string.tts_source_hybrid else treeLabel, emptyStatus(plan))
                     } else {
                         val ocrPlan = ReadingPlan.fromLines(outcome.lines)
                         val better = ocrPlan.text.count { !it.isWhitespace() } > result.chars
-                        if (better) use(ocrPlan, R.string.tts_source_ocr, null) else use(treePlan, treeLabel, emptyStatus(treePlan))
+                        if (better) {
+                            planKind = ScreenTextSource.Kind.SCREEN
+                            use(ocrPlan, R.string.tts_source_ocr, null)
+                        } else {
+                            use(treePlan, treeLabel, emptyStatus(treePlan))
+                        }
                     }
                 }
                 OcrTextSource.Outcome.NoModel ->
@@ -299,7 +327,51 @@ class TtsPlayerController(
     private fun use(p: ReadingPlan, labelRes: Int, status: Int?) {
         showPlan(p, labelRes)
         if (status != null) setStatus(status) else setStatus(null)
-        if (!p.isEmpty) startSpeaking()
+        val previous = continuationFrom
+        continuationFrom = null
+        if (p.isEmpty) {
+            setSpeaking(false)
+            return
+        }
+        if (previous == null) {
+            startSpeaking()
+            return
+        }
+        // reached by scrolling on: start after what the top of this page repeats from the last one
+        val from = PageContinuation.firstNew(previous, p.sentences)
+        if (from == null) {
+            setStatus(R.string.tts_end_of_page)
+            setSpeaking(false)
+        } else {
+            startSpeaking(from)
+        }
+    }
+
+    private fun setSpeaking(speaking: Boolean) {
+        if (speakingShown == speaking) return
+        speakingShown = speaking
+        listener.onSpeakingChanged(speaking)
+    }
+
+    /** Continuous reading goes on only when asked for, from a page of the screen, and within a sane number of pages. */
+    private fun shouldContinue(): Boolean =
+        isActive && ModelConfig.isTtsContinuousEnabled(context) && planKind == ScreenTextSource.Kind.SCREEN &&
+            pagesRead < MAX_PAGES && VoiceAccessibilityService.instance != null
+
+    /** Scrolls the screen on by a page and reads what comes into view (what repeats from this page is skipped). */
+    private fun nextPage() {
+        val service = VoiceAccessibilityService.instance
+        val previous = plan.sentences.map { it.text }
+        highlight.highlight(emptyList())
+        if (service == null || !scroller.scrollForward(service)) {
+            setStatus(R.string.tts_end_of_page)
+            setSpeaking(false)
+            return
+        }
+        pagesRead++
+        setStatus(R.string.tts_next_page)
+        // let the scroll come to rest before the screen is read
+        mainHandler.postDelayed({ if (isActive) refresh(previous) }, SETTLE_MS)
     }
 
     private fun showPlan(p: ReadingPlan, labelRes: Int) {
@@ -339,7 +411,7 @@ class TtsPlayerController(
         val eng: TtsEngine = if (model != null) {
             SherpaTtsEngine(model, ModelConfig.ttsModelDir(context, model), sidFor = { lang ->
                 ModelConfig.ttsVoiceSid(context, model.id) ?: model.defaultSidFor(lang.code)
-            })
+            }, pauseScale = { ModelConfig.ttsPauseScale(context) })
         } else {
             SystemTtsEngine(context)
         }
@@ -381,10 +453,21 @@ class TtsPlayerController(
         override fun onStateChanged(state: TtsSession.State) {
             updatePlayIcon(state)
             when (state) {
-                TtsSession.State.FINISHED -> { setStatus(R.string.tts_finished); focus?.release(); highlight.highlight(emptyList()) }
-                TtsSession.State.ERROR -> { setStatus(R.string.tts_unavailable); focus?.release(); highlight.highlight(emptyList()) }
-                TtsSession.State.SPEAKING -> { showProgress(session?.index ?: 0); focus?.acquire() }
-                else -> Unit
+                TtsSession.State.FINISHED -> {
+                    focus?.release()
+                    if (shouldContinue()) {
+                        nextPage() // the bubble keeps showing that it is reading
+                    } else {
+                        setStatus(R.string.tts_finished)
+                        highlight.highlight(emptyList())
+                        setSpeaking(false)
+                    }
+                }
+                TtsSession.State.ERROR -> {
+                    setStatus(R.string.tts_unavailable); focus?.release(); highlight.highlight(emptyList()); setSpeaking(false)
+                }
+                TtsSession.State.SPEAKING -> { showProgress(session?.index ?: 0); focus?.acquire(); setSpeaking(true) }
+                TtsSession.State.PAUSED, TtsSession.State.IDLE -> setSpeaking(false)
             }
         }
 
@@ -440,10 +523,20 @@ class TtsPlayerController(
         }
     }
 
-    /** Reads the screen again, for when the selection or the page changed. The panel stays in place. */
     private fun reload() {
+        pagesRead = 0
+        refresh(null)
+    }
+
+    /**
+     * Reads the screen again, for when the selection or the page changed. The panel stays in place. With
+     * [previous] (the sentences of the page before) it is the next page of a continuous reading.
+     */
+    private fun refresh(previous: List<String>?) {
         ocrJob?.cancel()
-        session?.stop()
+        mainHandler.removeCallbacksAndMessages(null)
+        continuationFrom = previous
+        if (previous == null) session?.stop()
         highlight.stopPick()
         highlight.setLines(emptyList())
         val result = readSource()
@@ -531,5 +624,11 @@ class TtsPlayerController(
 
     private companion object {
         const val TAG = "TtsPlayerController"
+
+        /** How long a scroll is given to come to rest before the new page is read. */
+        const val SETTLE_MS = 900L
+
+        /** A stop for a list that never ends (a feed): this many pages in one reading. */
+        const val MAX_PAGES = 40
     }
 }

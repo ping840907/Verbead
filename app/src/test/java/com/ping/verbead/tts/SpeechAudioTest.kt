@@ -91,4 +91,13 @@ class SpeechAudioTest {
         assertEquals(SpeechAudio.PAUSE_OTHER_MS, SpeechAudio.pauseMs(""))
         assertTrue(SpeechAudio.PAUSE_SENTENCE_MS > SpeechAudio.PAUSE_CLAUSE_MS && SpeechAudio.PAUSE_CLAUSE_MS > SpeechAudio.PAUSE_OTHER_MS)
     }
+
+    @Test
+    fun theUsersPauseChoiceScalesThePause() {
+        assertEquals(90, SpeechAudio.pauseMs("好。", 0.5f))
+        assertEquals(180, SpeechAudio.pauseMs("好。", 1f))
+        assertEquals(306, SpeechAudio.pauseMs("好。", 1.7f))
+        assertEquals(45, SpeechAudio.pauseMs("好", 0.5f))
+        assertEquals(0, SpeechAudio.pauseMs("好。", 0f))
+    }
 }

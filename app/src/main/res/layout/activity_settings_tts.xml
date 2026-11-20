@@ -81,6 +81,117 @@
                 </LinearLayout>
             </com.ping.verbead.ui.GlassCard>
 
+            <!-- Continuous reading: scroll on and read the next page -->
+            <com.ping.verbead.ui.GlassCard
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:id="@+id/layout_tts_continuous_toggle"
+                    style="@style/Verbead.Row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_tts_continuous_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_tts_continuous_desc" />
+                    </LinearLayout>
+
+                    <com.ping.verbead.ui.GlassSwitch
+                        android:id="@+id/switch_tts_continuous"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.ping.verbead.ui.GlassCard>
+
+            <!-- Pause between sentences -->
+            <com.ping.verbead.ui.GlassCard
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_tts_gap_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/Verbead.Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/settings_tts_gap_desc" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.ping.verbead.ui.GlassMaterialButton
+                            android:id="@+id/btn_tts_gap_short"
+                            style="@style/Verbead.Button.Choice"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:text="@string/tts_gap_short" />
+
+                        <com.ping.verbead.ui.GlassMaterialButton
+                            android:id="@+id/btn_tts_gap_normal"
+                            style="@style/Verbead.Button.Choice"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:text="@string/tts_gap_normal" />
+
+                        <com.ping.verbead.ui.GlassMaterialButton
+                            android:id="@+id/btn_tts_gap_long"
+                            style="@style/Verbead.Button.Choice"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/tts_gap_long" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.ping.verbead.ui.GlassCard>
+
             <!-- One card for the system voice, then one per downloadable model; added by TtsSettingsActivity -->
             <LinearLayout
                 android:id="@+id/container_tts_models"

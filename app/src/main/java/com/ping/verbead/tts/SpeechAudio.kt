@@ -3,6 +3,7 @@ package com.ping.verbead.tts
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * Shapes synthesized speech for sentence-to-sentence playback.
@@ -34,7 +35,10 @@ object SpeechAudio {
     /** ...and after anything else (a line of a list, a heading with no punctuation). */
     const val PAUSE_OTHER_MS = 90
 
-    fun pauseMs(text: String): Int {
+    /** The pause after [text], by how it ends, times [scale] (the user's choice: shorter or longer than standard). */
+    fun pauseMs(text: String, scale: Float = 1f): Int = (baseMs(text) * scale).roundToInt()
+
+    private fun baseMs(text: String): Int {
         val last = text.trimEnd().lastOrNull { !it.isWhitespace() && it !in CLOSERS } ?: return PAUSE_OTHER_MS
         return when (last) {
             '。', '！', '？', '.', '!', '?', '…' -> PAUSE_SENTENCE_MS

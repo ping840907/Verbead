@@ -30,6 +30,7 @@ import com.ping.verbead.tts.SherpaTtsEngine
 import com.ping.verbead.tts.SpeechLang
 import com.ping.verbead.tts.TtsEngine
 import com.ping.verbead.ui.GlassSwitch
+import com.ping.verbead.util.ChoiceButtonUtil
 import com.ping.verbead.util.HapticUtil
 import com.ping.verbead.util.label
 import kotlinx.coroutines.Dispatchers
@@ -79,8 +80,42 @@ class TtsSettingsActivity : AppCompatActivity() {
             finish()
         }
         setupHybridSwitch()
+        setupContinuousSwitch()
+        setupPauseChoice()
         buildCards()
         observeDownloadState()
+    }
+
+    private fun setupContinuousSwitch() {
+        val toggle = findViewById<View>(R.id.layout_tts_continuous_toggle)
+        val switch = findViewById<GlassSwitch>(R.id.switch_tts_continuous)
+        toggle.setOnClickListener { switch.toggle() }
+        switch.isChecked = ModelConfig.isTtsContinuousEnabled(this)
+        switch.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setTtsContinuousEnabled(this, isChecked)
+        }
+    }
+
+    /** Short, standard or long pause between sentences; it applies to the downloaded voices. */
+    private fun setupPauseChoice() {
+        val buttons = listOf(
+            ModelConfig.TTS_PAUSE_SHORT to findViewById<MaterialButton>(R.id.btn_tts_gap_short),
+            ModelConfig.TTS_PAUSE_NORMAL to findViewById<MaterialButton>(R.id.btn_tts_gap_normal),
+            ModelConfig.TTS_PAUSE_LONG to findViewById<MaterialButton>(R.id.btn_tts_gap_long),
+        )
+        fun refreshChoice() {
+            val level = ModelConfig.getTtsPauseLevel(this)
+            for ((l, b) in buttons) ChoiceButtonUtil.applyChoiceState(b, l == level)
+        }
+        for ((level, button) in buttons) {
+            button.setOnClickListener {
+                HapticUtil.click(this)
+                ModelConfig.setTtsPauseLevel(this, level)
+                refreshChoice()
+            }
+        }
+        refreshChoice()
     }
 
     private fun setupHybridSwitch() {

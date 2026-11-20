@@ -1,7 +1,9 @@
 package com.ping.verbead.bubble
 
 import com.ping.verbead.util.isViewAdded
+import android.animation.ValueAnimator
 import android.content.Context
+import android.content.res.ColorStateList
 import com.ping.verbead.util.allowDisplayCutout
 import android.graphics.PixelFormat
 import android.os.Handler
@@ -26,6 +28,9 @@ class BubblePulseController(
 ) {
     companion object {
         private const val TAG = "BubblePulseCtrl"
+
+        /** A calm light blue: a recording's ring is red, so the two are told apart at a glance. */
+        private const val SPEAKING_COLOR = 0xFF4FC3F7.toInt()
     }
 
     private var pulseView: View? = null
@@ -35,6 +40,37 @@ class BubblePulseController(
     var isShowing: Boolean = false
         private set
     private var lastWaveTime = 0L
+    private var breathing: ValueAnimator? = null
+
+    /**
+     * The ring while the read-aloud voice is speaking: another colour than a recording's, and a slow steady
+     * breathing instead of following the microphone.
+     */
+    fun showSpeaking(anchorX: Int, anchorY: Int) {
+        show(anchorX, anchorY)
+        val ring = viewPulseRing ?: return
+        ring.backgroundTintList = ColorStateList.valueOf(SPEAKING_COLOR)
+        viewPulseWave?.alpha = 0f
+        if (breathing != null) return
+        breathing = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 1500
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            addUpdateListener { a ->
+                val f = a.animatedValue as Float
+                val scale = 1.02f + 0.26f * f
+                ring.scaleX = scale
+                ring.scaleY = scale
+                ring.alpha = 0.50f + 0.40f * (1f - f)
+            }
+            start()
+        }
+    }
+
+    private fun stopBreathing() {
+        breathing?.cancel()
+        breathing = null
+    }
 
     fun show(anchorX: Int, anchorY: Int) {
         if (isShowing) {
@@ -42,6 +78,9 @@ class BubblePulseController(
             return
         }
         isShowing = true
+        // a recording's ring is the style's own colour; only the speaking ring is tinted
+        stopBreathing()
+        viewPulseRing?.backgroundTintList = null
 
         if (pulseView == null) {
             pulseView = LayoutInflater.from(themedCtx).inflate(R.layout.layout_bubble_pulse, null).apply {
@@ -125,6 +164,7 @@ class BubblePulseController(
     fun hide() {
         if (!isShowing) return
         isShowing = false
+        stopBreathing()
         val view = pulseView ?: return
         viewPulseRing?.animate()?.cancel()
         viewPulseWave?.animate()?.cancel()

@@ -459,6 +459,15 @@
     <string name="tts_ocr_no_model">이 화면에는 읽을 글자가 없고 문자 인식 모델도 내려받지 않았습니다. OCR 설정에서 내려받으세요.</string>
     <string name="tts_pick_desc">탭한 줄부터 읽기</string>
     <string name="tts_pick_hint">화면의 줄을 탭하면 거기서부터 읽습니다</string>
+    <string name="settings_tts_continuous_title">연속 읽기</string>
+    <string name="settings_tts_continuous_desc">한 페이지를 다 읽으면 자동으로 스크롤해 다음 페이지를 읽습니다. 새 페이지에서 반복되는 부분은 건너뜁니다. 내용의 끝이나 일시정지·플레이어 닫기에서 멈춥니다.</string>
+    <string name="settings_tts_gap_title">문장 사이 간격</string>
+    <string name="settings_tts_gap_desc">목소리가 문장 사이에서 기다리는 길이입니다. 내려받은 목소리에 적용되며 시스템 음성은 자체 리듬을 따릅니다.</string>
+    <string name="tts_gap_short">짧게</string>
+    <string name="tts_gap_normal">표준</string>
+    <string name="tts_gap_long">길게</string>
+    <string name="tts_next_page">다음 페이지로 스크롤 중…</string>
+    <string name="tts_end_of_page">끝까지 읽었습니다</string>
     <string name="settings_tts_hybrid_title">하이브리드 소스(접근성 + 문자 인식)</string>
     <string name="settings_tts_hybrid_desc">화면의 글자를 가져오면서 스크린샷도 문자 인식합니다. 화면이 글자를 제공하는 부분은 그 정확한 글자를 쓰고(인식 오류 대체), 가져올 수 없는 이미지 속 글자를 추가합니다. 문자 인식 모델이 필요하며 읽기 시작이 조금 늦어집니다.</string>
     <string name="tts_source_hybrid">화면 + 이미지 글자</string>

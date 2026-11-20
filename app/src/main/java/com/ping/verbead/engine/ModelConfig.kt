@@ -799,6 +799,35 @@ object ModelConfig {
     private const val KEY_TTS_SID_PREFIX = "tts_sid_"
     private const val KEY_TTS_RATE = "tts_rate"
     private const val KEY_TTS_HYBRID = "tts_hybrid"
+    private const val KEY_TTS_PAUSE = "tts_pause_level"
+    private const val KEY_TTS_CONTINUOUS = "tts_continuous"
+
+    const val TTS_PAUSE_SHORT = 0
+    const val TTS_PAUSE_NORMAL = 1
+    const val TTS_PAUSE_LONG = 2
+
+    /** How much of the standard pause between sentences each level leaves (see SpeechAudio). */
+    val TTS_PAUSE_SCALES = floatArrayOf(0.5f, 1.0f, 1.7f)
+
+    fun getTtsPauseLevel(context: Context): Int =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getInt(KEY_TTS_PAUSE, TTS_PAUSE_NORMAL).coerceIn(TTS_PAUSE_SHORT, TTS_PAUSE_LONG)
+
+    fun setTtsPauseLevel(context: Context, level: Int) {
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_TTS_PAUSE, level.coerceIn(TTS_PAUSE_SHORT, TTS_PAUSE_LONG)).apply()
+    }
+
+    fun ttsPauseScale(context: Context): Float = TTS_PAUSE_SCALES[getTtsPauseLevel(context)]
+
+    /** Continuous reading: when a page has been read, scroll on and read the next one. Off by default. */
+    fun isTtsContinuousEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE).getBoolean(KEY_TTS_CONTINUOUS, false)
+
+    fun setTtsContinuousEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_TTS_CONTINUOUS, enabled).apply()
+    }
 
     /** Hybrid source: read the accessibility tree and the recognized screen together (see HybridMerger). Off by default. */
     fun isTtsHybridEnabled(context: Context): Boolean =

@@ -44,6 +44,8 @@ class SherpaTtsEngine(
     private val root: File,
     private val sidFor: (SpeechLang) -> Int,
     private val threads: Int = 2,
+    /** How much of the standard pause between sentences to leave (read for every sentence, so a change is heard at once). */
+    private val pauseScale: () -> Float = { 1f },
 ) : TtsEngine {
 
     private val main = Handler(Looper.getMainLooper())
@@ -61,7 +63,7 @@ class SherpaTtsEngine(
     /** Bumped when synthesis that is already running is no longer wanted: the synth callback returns 0. */
     private val epoch = AtomicInteger()
 
-    private data class Key(val text: String, val sid: Int, val rate: Float)
+    private data class Key(val text: String, val sid: Int, val rate: Float, val pause: Float)
 
     /** One sentence waiting to be played (or being played). */
     private class Item(val id: Int, val gen: Int, val text: String, val future: Future<FloatArray?>)
@@ -110,14 +112,14 @@ class SherpaTtsEngine(
         val gen = playGen.incrementAndGet()
         items.clear()
         // a sentence not heard before: cut short any synthesis still running for something else
-        val future = obtain(Key(text, sidFor(lang), rate), cancelOthers = true)
+        val future = obtain(Key(text, sidFor(lang), rate, pauseScale()), cancelOthers = true)
         items.put(Item(utteranceId, gen, text, future))
         cut()
     }
 
     override fun queue(utteranceId: Int, text: String, lang: SpeechLang, rate: Float): Boolean {
         if (closed || tts == null) return false
-        val future = obtain(Key(text, sidFor(lang), rate), cancelOthers = false)
+        val future = obtain(Key(text, sidFor(lang), rate, pauseScale()), cancelOthers = false)
         items.put(Item(utteranceId, playGen.get(), text, future))
         return true
     }
@@ -218,7 +220,7 @@ class SherpaTtsEngine(
         return try {
             val audio = engine.generateWithCallback(key.text, sid = key.sid, speed = key.rate, callback = keepGoing)
             if (closed || epoch.get() != myEpoch) null
-            else SpeechAudio.shape(audio.samples, engine.sampleRate(), SpeechAudio.pauseMs(key.text))
+            else SpeechAudio.shape(audio.samples, engine.sampleRate(), SpeechAudio.pauseMs(key.text, key.pause))
         } catch (t: Throwable) {
             Log.e(TAG, "synthesis failed", t)
             null

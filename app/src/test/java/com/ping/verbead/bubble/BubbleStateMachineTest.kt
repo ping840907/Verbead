@@ -67,4 +67,24 @@ class BubbleStateMachineTest {
         assertTrue(sm.transitionTo(BubbleState.PASTED))
         assertEquals(BubbleState.PASTED, sm.state)
     }
+
+    @Test
+    fun testSpeakingIsReachableFromIdleAndLeavesToAnything() {
+        val sm = BubbleStateMachine()
+        assertTrue(sm.canTransitionTo(BubbleState.SPEAKING))
+        assertTrue(sm.transitionTo(BubbleState.SPEAKING))
+        // reading aloud does not make the bubble busy: the user can still start a recording or a scan
+        assertFalse(sm.isBusy)
+        assertTrue(sm.canTransitionTo(BubbleState.RECORDING))
+        assertTrue(sm.canTransitionTo(BubbleState.SCANNING))
+        assertTrue(sm.transitionTo(BubbleState.IDLE))
+        assertEquals(BubbleState.IDLE, sm.state)
+    }
+
+    @Test
+    fun testSpeakingCannotBeEnteredFromARecording() {
+        val sm = BubbleStateMachine()
+        sm.transitionTo(BubbleState.RECORDING)
+        assertFalse(sm.canTransitionTo(BubbleState.SPEAKING))
+    }
 }

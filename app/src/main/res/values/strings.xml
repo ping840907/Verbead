@@ -472,6 +472,15 @@
     <string name="tts_ocr_no_model">This screen shows no text, and the text recognition model is not downloaded. Download it in the OCR settings.</string>
     <string name="tts_pick_desc">Start from a line you tap</string>
     <string name="tts_pick_hint">Tap a line on the screen to start reading from there</string>
+    <string name="settings_tts_continuous_title">Continuous reading</string>
+    <string name="settings_tts_continuous_desc">When a page is read, scroll on and read the next one, skipping what the new page repeats. Stops at the end of the content, or when you pause or close the player.</string>
+    <string name="settings_tts_gap_title">Pause between sentences</string>
+    <string name="settings_tts_gap_desc">How long the voice waits between sentences. It applies to the downloaded voices; the system voice sets its own.</string>
+    <string name="tts_gap_short">Short</string>
+    <string name="tts_gap_normal">Standard</string>
+    <string name="tts_gap_long">Long</string>
+    <string name="tts_next_page">Scrolling to the next page…</string>
+    <string name="tts_end_of_page">Reached the end of the page</string>
     <string name="settings_tts_hybrid_title">Hybrid source (accessibility + text recognition)</string>
     <string name="settings_tts_hybrid_desc">Reads the screen text and recognizes it from a screenshot at the same time. Where the screen provides the text, that exact text is used (fixing recognition mistakes); text inside pictures that the screen cannot provide is added. Needs the text recognition model, and starts a little later.</string>
     <string name="tts_source_hybrid">Screen + pictures</string>

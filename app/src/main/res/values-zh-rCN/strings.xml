@@ -459,6 +459,15 @@
     <string name="tts_ocr_no_model">这个屏幕没有可读的文字，而且尚未下载文字识别模型。请到文字识别设置下载。</string>
     <string name="tts_pick_desc">点选要从哪一行开始读</string>
     <string name="tts_pick_hint">点一下屏幕上的文字行，从那里开始朗读</string>
+    <string name="settings_tts_continuous_title">连续阅读</string>
+    <string name="settings_tts_continuous_desc">读完一页后自动滚动并读下一页，跳过新页面重复的内容。读到内容尽头、或你暂停／关闭播放器时停止。</string>
+    <string name="settings_tts_gap_title">句间停顿</string>
+    <string name="settings_tts_gap_desc">声音在句子之间等待的长短。只适用于下载的声音；系统语音有它自己的节奏。</string>
+    <string name="tts_gap_short">短</string>
+    <string name="tts_gap_normal">标准</string>
+    <string name="tts_gap_long">长</string>
+    <string name="tts_next_page">正在滚动到下一页…</string>
+    <string name="tts_end_of_page">已读到最后</string>
     <string name="settings_tts_hybrid_title">混合来源（无障碍 + 文字识别）</string>
     <string name="settings_tts_hybrid_desc">同时读取屏幕文字并对屏幕截图做文字识别。屏幕提供了文字的地方，以精确的原文为准（替换识别错字）；屏幕读不到的图片文字则补进来。需要已下载文字识别模型，开始朗读会慢一点。</string>
     <string name="tts_source_hybrid">屏幕＋图片文字</string>

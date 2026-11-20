@@ -9,7 +9,10 @@ enum class BubbleState {
     RECORDING,
     TRANSCRIBING,
     PASTED,
-    SCANNING
+    SCANNING,
+
+    /** The read-aloud player is speaking: the voice is going, the bubble shows it; nothing else is blocked by it. */
+    SPEAKING
 }
 
 /**
@@ -39,6 +42,7 @@ class BubbleStateMachine(initialState: BubbleState = BubbleState.IDLE) {
             BubbleState.RECORDING -> target in listOf(BubbleState.TRANSCRIBING, BubbleState.IDLE, BubbleState.PASTED)
             BubbleState.TRANSCRIBING -> target in listOf(BubbleState.PASTED, BubbleState.IDLE)
             BubbleState.PASTED -> true
+            BubbleState.SPEAKING -> true
             BubbleState.SCANNING -> target in listOf(BubbleState.IDLE, BubbleState.PASTED, BubbleState.RECORDING)
         }
     }

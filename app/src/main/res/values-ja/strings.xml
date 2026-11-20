@@ -459,6 +459,15 @@
     <string name="tts_ocr_no_model">この画面には読める文字がなく、文字認識モデルもダウンロードされていません。OCR 設定でダウンロードしてください。</string>
     <string name="tts_pick_desc">タップした行から読み始める</string>
     <string name="tts_pick_hint">画面の行をタップすると、そこから読み上げます</string>
+    <string name="settings_tts_continuous_title">連続読み上げ</string>
+    <string name="settings_tts_continuous_desc">1ページを読み終えたら自動でスクロールして次のページを読みます。新しいページで繰り返される部分は飛ばします。内容の終わり、または一時停止・プレーヤーを閉じると止まります。</string>
+    <string name="settings_tts_gap_title">文の間の間隔</string>
+    <string name="settings_tts_gap_desc">声が文と文の間で待つ長さ。ダウンロードした声に適用されます。システム音声は独自のリズムです。</string>
+    <string name="tts_gap_short">短い</string>
+    <string name="tts_gap_normal">標準</string>
+    <string name="tts_gap_long">長い</string>
+    <string name="tts_next_page">次のページへスクロール中…</string>
+    <string name="tts_end_of_page">最後まで読みました</string>
     <string name="settings_tts_hybrid_title">ハイブリッド取得（ユーザー補助 + 文字認識）</string>
     <string name="settings_tts_hybrid_desc">画面の文字を取得しつつ、スクリーンショットも文字認識します。画面が文字を提供している部分はその正確な文字を使い（認識ミスを置き換え）、取得できない画像内の文字を追加します。文字認識モデルが必要で、読み上げ開始が少し遅くなります。</string>
     <string name="tts_source_hybrid">画面＋画像の文字</string>

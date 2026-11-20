@@ -469,6 +469,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 override fun onHideXButton() {
                     if (state != State.PASTED) hideXButton()
                 }
+                override fun onSpeakingChanged(speaking: Boolean) {
+                    if (speaking) {
+                        // only from a calm bubble: a recording or a scan in progress keeps its own look
+                        if (state == State.IDLE || state == State.PASTED) setState(State.SPEAKING)
+                    } else if (state == State.SPEAKING) {
+                        setState(State.IDLE)
+                    }
+                }
             }
         )
         scannerOverlayController = ScannerOverlayController(
@@ -1961,7 +1969,8 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         hidePreviewText()
                         setState(State.TRANSCRIBING)
                     }
-                    State.IDLE, State.PASTED -> {
+                    State.IDLE, State.PASTED, State.SPEAKING -> {
+                        // closeAll() above already closed the read-aloud player, so a speaking bubble is calm again
                         voice.start()
                     }
                     State.LOADING, State.TRANSCRIBING -> {
@@ -2511,12 +2520,12 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         bubblePulseController.updatePosition(anchorX, anchorY)
     }
 
-    private fun showPulseView() {
+    private fun showPulseView(speaking: Boolean = false) {
         if (!::bubblePulseController.isInitialized) return
         val anchor = activeAnchorBubble ?: currentAnchorBubble
         val anchorX = anchor?.windowLayoutParams?.x ?: windowLayoutParams.x
         val anchorY = anchor?.windowLayoutParams?.y ?: windowLayoutParams.y
-        bubblePulseController.show(anchorX, anchorY)
+        if (speaking) bubblePulseController.showSpeaking(anchorX, anchorY) else bubblePulseController.show(anchorX, anchorY)
     }
 
     private fun hidePulseView() {
@@ -2828,10 +2837,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     internal fun setState(s: State) {
         stateMachine.transitionTo(s)
         refreshXButtonIcon()
-        if (state == State.RECORDING) {
-            showPulseView()
-        } else {
-            hidePulseView()
+        when (state) {
+            State.RECORDING -> showPulseView()
+            State.SPEAKING -> showPulseView(speaking = true)
+            else -> hidePulseView()
         }
         if (!::btnBubbleMic.isInitialized) return
 
@@ -2847,6 +2856,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (bubbleItems.isEmpty()) {
             when (state) {
                 State.IDLE, State.PASTED, State.SCANNING -> {
+                    btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
+                    val (iconRes, desc) = getIconAndDescForMode(currentMode)
+                    ivBubbleIcon.setImageResource(iconRes)
+                    ivBubbleIcon.contentDescription = desc
+                    ivBubbleIcon.visibility = View.VISIBLE
+                    progressBubble.visibility = View.GONE
+                }
+                State.SPEAKING -> {
+                    // the bubble keeps its own look (the active one is red, like a recording); the ring tells it is speaking
                     btnBubbleMic.setBackgroundResource(R.drawable.bubble_background)
                     val (iconRes, desc) = getIconAndDescForMode(currentMode)
                     ivBubbleIcon.setImageResource(iconRes)
@@ -2878,6 +2896,14 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (item == activeTargetBubble) {
                 when (state) {
                     State.IDLE, State.PASTED, State.SCANNING -> {
+                        item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
+                        val (iconRes, desc) = getIconAndDescForMode(item.mode)
+                        item.ivIcon.setImageResource(iconRes)
+                        item.ivIcon.contentDescription = desc
+                        item.ivIcon.visibility = View.VISIBLE
+                        item.progress.visibility = View.GONE
+                    }
+                    State.SPEAKING -> {
                         item.btnBubble.setBackgroundResource(R.drawable.bubble_background)
                         val (iconRes, desc) = getIconAndDescForMode(item.mode)
                         item.ivIcon.setImageResource(iconRes)
