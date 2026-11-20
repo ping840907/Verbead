@@ -35,6 +35,52 @@
                 android:layout_marginBottom="16dp"
                 android:text="@string/settings_tts_intro" />
 
+            <!-- Hybrid source: the accessibility tree and text recognition together -->
+            <com.ping.verbead.ui.GlassCard
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:id="@+id/layout_tts_hybrid_toggle"
+                    style="@style/Verbead.Row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_tts_hybrid_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            style="@style/Verbead.Text.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_tts_hybrid_desc" />
+                    </LinearLayout>
+
+                    <com.ping.verbead.ui.GlassSwitch
+                        android:id="@+id/switch_tts_hybrid"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.ping.verbead.ui.GlassCard>
+
             <!-- One card for the system voice, then one per downloadable model; added by TtsSettingsActivity -->
             <LinearLayout
                 android:id="@+id/container_tts_models"

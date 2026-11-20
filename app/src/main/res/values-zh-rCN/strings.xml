@@ -459,6 +459,9 @@
     <string name="tts_ocr_no_model">这个屏幕没有可读的文字，而且尚未下载文字识别模型。请到文字识别设置下载。</string>
     <string name="tts_pick_desc">点选要从哪一行开始读</string>
     <string name="tts_pick_hint">点一下屏幕上的文字行，从那里开始朗读</string>
+    <string name="settings_tts_hybrid_title">混合来源（无障碍 + 文字识别）</string>
+    <string name="settings_tts_hybrid_desc">同时读取屏幕文字并对屏幕截图做文字识别。屏幕提供了文字的地方，以精确的原文为准（替换识别错字）；屏幕读不到的图片文字则补进来。需要已下载文字识别模型，开始朗读会慢一点。</string>
+    <string name="tts_source_hybrid">屏幕＋图片文字</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 高精度离线语音</string>
     <string name="model_label_xasr_detail">X-ASR 极速实时流式语音</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small 高精版) 文字识别</string>

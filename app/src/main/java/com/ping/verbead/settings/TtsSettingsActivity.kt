@@ -29,6 +29,7 @@ import com.ping.verbead.tts.LanguageGuess
 import com.ping.verbead.tts.SherpaTtsEngine
 import com.ping.verbead.tts.SpeechLang
 import com.ping.verbead.tts.TtsEngine
+import com.ping.verbead.ui.GlassSwitch
 import com.ping.verbead.util.HapticUtil
 import com.ping.verbead.util.label
 import kotlinx.coroutines.Dispatchers
@@ -77,8 +78,20 @@ class TtsSettingsActivity : AppCompatActivity() {
             HapticUtil.click(this)
             finish()
         }
+        setupHybridSwitch()
         buildCards()
         observeDownloadState()
+    }
+
+    private fun setupHybridSwitch() {
+        val toggle = findViewById<View>(R.id.layout_tts_hybrid_toggle)
+        val switch = findViewById<GlassSwitch>(R.id.switch_tts_hybrid)
+        toggle.setOnClickListener { switch.toggle() }
+        switch.isChecked = ModelConfig.isTtsHybridEnabled(this)
+        switch.setOnCheckedChangeListener { _, isChecked ->
+            HapticUtil.click(this)
+            ModelConfig.setTtsHybridEnabled(this, isChecked)
+        }
     }
 
     override fun onResume() {

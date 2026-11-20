@@ -459,6 +459,9 @@
     <string name="tts_ocr_no_model">この画面には読める文字がなく、文字認識モデルもダウンロードされていません。OCR 設定でダウンロードしてください。</string>
     <string name="tts_pick_desc">タップした行から読み始める</string>
     <string name="tts_pick_hint">画面の行をタップすると、そこから読み上げます</string>
+    <string name="settings_tts_hybrid_title">ハイブリッド取得（ユーザー補助 + 文字認識）</string>
+    <string name="settings_tts_hybrid_desc">画面の文字を取得しつつ、スクリーンショットも文字認識します。画面が文字を提供している部分はその正確な文字を使い（認識ミスを置き換え）、取得できない画像内の文字を追加します。文字認識モデルが必要で、読み上げ開始が少し遅くなります。</string>
+    <string name="tts_source_hybrid">画面＋画像の文字</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 高精度オフライン音声</string>
     <string name="model_label_xasr_detail">X-ASR 高速リアルタイムストリーミング音声</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6（Small・高精度版）文字認識</string>

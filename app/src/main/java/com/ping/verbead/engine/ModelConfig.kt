@@ -798,6 +798,16 @@ object ModelConfig {
     private const val KEY_TTS_ENGINE = "tts_engine"
     private const val KEY_TTS_SID_PREFIX = "tts_sid_"
     private const val KEY_TTS_RATE = "tts_rate"
+    private const val KEY_TTS_HYBRID = "tts_hybrid"
+
+    /** Hybrid source: read the accessibility tree and the recognized screen together (see HybridMerger). Off by default. */
+    fun isTtsHybridEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE).getBoolean(KEY_TTS_HYBRID, false)
+
+    fun setTtsHybridEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_TTS_HYBRID, enabled).apply()
+    }
 
     fun ttsModelDir(context: Context, model: TtsModel): File = File(File(modelsDir(context), TTS_DIR), model.dir)
 

@@ -15,8 +15,8 @@ import kotlin.coroutines.coroutineContext
 class OcrTextSource(private val context: Context) {
 
     sealed class Outcome {
-        /** Text found, in reading order, in screen pixels. */
-        class Lines(val lines: List<ScreenLine>) : Outcome()
+        /** Text found: in reading order as [lines], and as the separate [items] they were made from, in screen pixels. */
+        class Lines(val lines: List<ScreenLine>, val items: List<ScreenTextItem>) : Outcome()
 
         /** The recognizer's files are not downloaded (or would not load). */
         object NoModel : Outcome()
@@ -54,7 +54,7 @@ class OcrTextSource(private val context: Context) {
                 )
             }
             val lines = ReadingOrder.toLines(items)
-            return if (lines.isEmpty()) Outcome.Empty else Outcome.Lines(lines)
+            return if (lines.isEmpty()) Outcome.Empty else Outcome.Lines(lines, items)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (t: Throwable) {

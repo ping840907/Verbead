@@ -20,8 +20,10 @@ import com.ping.verbead.R
 import com.ping.verbead.VoiceAccessibilityService
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.TtsCatalog
+import com.ping.verbead.tts.HybridMerger
 import com.ping.verbead.tts.OcrFallbackPolicy
 import com.ping.verbead.tts.OcrTextSource
+import com.ping.verbead.tts.ReadingOrder
 import com.ping.verbead.tts.ReadingPlan
 import com.ping.verbead.tts.ScreenTextSource
 import com.ping.verbead.tts.SherpaTtsEngine
@@ -220,10 +222,13 @@ class TtsPlayerController(
 
     private fun ocrModelReady(): Boolean = ModelConfig.isOcrTinyReady(context) || ModelConfig.isOcrSmallReady(context)
 
-    /** A selection is always read as it is; otherwise recognize the screen when the tree gave too little. */
+    /**
+     * A selection is always read as it is. Otherwise the screen is recognized when the hybrid source is on
+     * (always, to combine it with the tree), or when the tree gave too little.
+     */
     private fun wantsOcr(result: ScreenTextSource.Result): Boolean =
-        result.kind != ScreenTextSource.Kind.SELECTION &&
-            OcrFallbackPolicy.needsOcr(result.chars, result.coverage) && ocrModelReady()
+        result.kind != ScreenTextSource.Kind.SELECTION && ocrModelReady() &&
+            (ModelConfig.isTtsHybridEnabled(context) || OcrFallbackPolicy.needsOcr(result.chars, result.coverage))
 
     /**
      * Takes what [result] holds into the panel. When [shot] is there, the screen is recognized in the
@@ -259,9 +264,17 @@ class TtsPlayerController(
             if (!this@TtsPlayerController.isActive) return@launch
             when (outcome) {
                 is OcrTextSource.Outcome.Lines -> {
-                    val ocrPlan = ReadingPlan.fromLines(outcome.lines)
-                    val better = ocrPlan.text.count { !it.isWhitespace() } > result.chars
-                    if (better) use(ocrPlan, R.string.tts_source_ocr, null) else use(treePlan, treeLabel, emptyStatus(treePlan))
+                    if (ModelConfig.isTtsHybridEnabled(context)) {
+                        // tree text where the tree has it, recognized text only where it does not
+                        val merged = HybridMerger.merge(result.items, outcome.items)
+                        Log.i(TAG, "hybrid: tree=${result.items.size} ocr=${outcome.items.size} matched=${merged.matched} inserted=${merged.inserted}")
+                        val plan = ReadingPlan.fromLines(ReadingOrder.toLines(merged.items))
+                        use(plan, if (merged.inserted > 0) R.string.tts_source_hybrid else treeLabel, emptyStatus(plan))
+                    } else {
+                        val ocrPlan = ReadingPlan.fromLines(outcome.lines)
+                        val better = ocrPlan.text.count { !it.isWhitespace() } > result.chars
+                        if (better) use(ocrPlan, R.string.tts_source_ocr, null) else use(treePlan, treeLabel, emptyStatus(treePlan))
+                    }
                 }
                 OcrTextSource.Outcome.NoModel ->
                     use(treePlan, treeLabel, if (treePlan.isEmpty) R.string.tts_ocr_no_model else null)

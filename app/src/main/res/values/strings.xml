@@ -472,6 +472,9 @@
     <string name="tts_ocr_no_model">This screen shows no text, and the text recognition model is not downloaded. Download it in the OCR settings.</string>
     <string name="tts_pick_desc">Start from a line you tap</string>
     <string name="tts_pick_hint">Tap a line on the screen to start reading from there</string>
+    <string name="settings_tts_hybrid_title">Hybrid source (accessibility + text recognition)</string>
+    <string name="settings_tts_hybrid_desc">Reads the screen text and recognizes it from a screenshot at the same time. Where the screen provides the text, that exact text is used (fixing recognition mistakes); text inside pictures that the screen cannot provide is added. Needs the text recognition model, and starts a little later.</string>
+    <string name="tts_source_hybrid">Screen + pictures</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR high-accuracy offline speech</string>
     <string name="model_label_xasr_detail">X-ASR fast live streaming speech</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small, high accuracy) text recognition</string>

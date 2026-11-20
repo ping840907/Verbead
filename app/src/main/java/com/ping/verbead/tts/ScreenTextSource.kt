@@ -28,6 +28,8 @@ class ScreenTextSource(private val ownPackage: String) {
         val lines: List<ScreenLine> = emptyList(),
         val chars: Int = text.count { !it.isWhitespace() },
         val coverage: Float = 0f,
+        /** The same text as separate items with their boxes (before they are put into lines), for merging with recognized text */
+        val items: List<ScreenTextItem> = emptyList(),
     )
 
     fun read(service: AccessibilityService): Result {
@@ -56,7 +58,7 @@ class ScreenTextSource(private val ownPackage: String) {
         val dm = service.resources.displayMetrics
         val coverage = OcrFallbackPolicy.coverage(items, dm.widthPixels, dm.heightPixels)
         return if (text.isBlank()) Result(Kind.EMPTY, "", coverage = 0f)
-        else Result(Kind.SCREEN, text, pkg, lines = lines, coverage = coverage)
+        else Result(Kind.SCREEN, text, pkg, lines = lines, coverage = coverage, items = items)
     }
 
     /** Stops a pathological tree (or a loop in a broken one) from running forever. */
