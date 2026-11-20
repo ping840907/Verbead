@@ -106,6 +106,7 @@ class TtsSession(
         val sentence = sentences.getOrNull(index) ?: return
         currentUtterance = ++utteranceCounter
         engine.speak(currentUtterance, sentence.text, LanguageGuess.of(sentence.text), rate)
+        sentences.getOrNull(index + 1)?.let { engine.prefetch(it.text, LanguageGuess.of(it.text), rate) }
     }
 
     private fun finish() {

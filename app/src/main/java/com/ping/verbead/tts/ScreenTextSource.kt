@@ -25,7 +25,7 @@ class ScreenTextSource(private val ownPackage: String) {
         // 1. A selection in any app window.
         for (w in windows) {
             val root = w.root ?: continue
-            val sel = findSelection(root, 0, Budget())
+            val sel = findSelection(root, 0, Budget(), ownWindow = w.isActive)
             if (sel != null) return Result(Kind.SELECTION, sel.first, sel.second)
         }
 
@@ -36,7 +36,7 @@ class ScreenTextSource(private val ownPackage: String) {
         for (w in targets) {
             val root = w.root ?: continue
             val before = items.size
-            collect(root, 0, items, HashSet(), Budget())
+            collect(root, 0, items, HashSet(), Budget(), ownWindow = w.isActive)
             if (items.size > before && pkg.isEmpty()) pkg = root.packageName?.toString() ?: ""
         }
         val text = ReadingOrder.toText(items)
@@ -48,10 +48,10 @@ class ScreenTextSource(private val ownPackage: String) {
         fun take(): Boolean = nodes-- > 0
     }
 
-    private fun findSelection(node: AccessibilityNodeInfo?, depth: Int, budget: Budget): Pair<String, String>? {
+    private fun findSelection(node: AccessibilityNodeInfo?, depth: Int, budget: Budget, ownWindow: Boolean): Pair<String, String>? {
         if (node == null || depth > MAX_DEPTH || !budget.take()) return null
         val pkg = node.packageName?.toString() ?: ""
-        if (pkg != ownPackage && !node.isPassword) {
+        if ((pkg != ownPackage || ownWindow) && !node.isPassword) {
             val s = node.textSelectionStart
             val e = node.textSelectionEnd
             val text = node.text?.toString().orEmpty()
@@ -62,7 +62,7 @@ class ScreenTextSource(private val ownPackage: String) {
             }
         }
         for (i in 0 until node.childCount) {
-            findSelection(node.getChild(i), depth + 1, budget)?.let { return it }
+            findSelection(node.getChild(i), depth + 1, budget, ownWindow)?.let { return it }
         }
         return null
     }
@@ -72,11 +72,13 @@ class ScreenTextSource(private val ownPackage: String) {
         depth: Int,
         out: MutableList<ScreenTextItem>,
         seen: MutableSet<String>,
-        budget: Budget
+        budget: Budget,
+        ownWindow: Boolean
     ) {
         if (node == null || depth > MAX_DEPTH || !budget.take()) return
         val pkg = node.packageName?.toString() ?: ""
-        if (node.isPassword || pkg == ownPackage) return
+        // our own overlays (the bubble, this player) are never read; our own app is, when the user is looking at it
+        if (node.isPassword || (pkg == ownPackage && !ownWindow)) return
         if (node.isVisibleToUser) {
             val rect = Rect().also { node.getBoundsInScreen(it) }
             // Text always counts; a description only on a leaf (containers repeat what their children say).
@@ -86,7 +88,7 @@ class ScreenTextSource(private val ownPackage: String) {
                 out += ScreenTextItem(rect.left, rect.top, rect.right, rect.bottom, label)
             }
         }
-        for (i in 0 until node.childCount) collect(node.getChild(i), depth + 1, out, seen, budget)
+        for (i in 0 until node.childCount) collect(node.getChild(i), depth + 1, out, seen, budget, ownWindow)
     }
 
     private companion object {

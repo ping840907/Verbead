@@ -1,0 +1,59 @@
+{
+  "models": [
+    {
+      "id": "tts_melo_zh_en",
+      "name": "MeloTTS 中英",
+      "kind": "vits_melo",
+      "dir": "vits-melo-tts-zh_en",
+      "languages": ["zh", "en"],
+      "tier": "light",
+      "voices": 1,
+      "sampleRate": 44100,
+      "sizeMb": 159,
+      "ramMb": 290,
+      "rtf": 0.4,
+      "license": "MIT",
+      "source": "official",
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-melo-tts-zh_en.tar.bz2",
+        "sha256": "e58351ed7149f290a54534538badd4077cdbe6fddc964b24d0bee870415d1514"
+      },
+      "requiredFiles": ["model.onnx", "lexicon.txt", "tokens.txt", "dict/"],
+      "description": {
+        "en": "Light and fast. One female voice that reads Chinese and English in the same sentence.",
+        "zh-TW": "輕巧快速。單一女聲，同一句裡的中文與英文都能讀。",
+        "zh-CN": "轻巧快速。单一女声，同一句里的中文与英文都能读。",
+        "ja": "軽くて高速。中国語と英語を一文の中で読める女性の声が1つ。",
+        "ko": "가볍고 빠릅니다. 한 문장 안의 중국어와 영어를 함께 읽는 여성 목소리 1개."
+      }
+    },
+    {
+      "id": "tts_kokoro_multi",
+      "name": "Kokoro 多聲音",
+      "kind": "kokoro",
+      "dir": "kokoro-multi-lang-v1_1",
+      "languages": ["zh", "en"],
+      "tier": "balanced",
+      "voices": 103,
+      "sampleRate": 24000,
+      "sizeMb": 348,
+      "ramMb": 480,
+      "rtf": 0.47,
+      "license": "Apache-2.0",
+      "source": "official",
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_1.tar.bz2",
+        "sha256": "b78e1ac42b852e839cceaafbe88f66806bf5860992d1d7b9a3f2ad1198427aed"
+      },
+      "defaultSid": { "zh": 3, "en": 0 },
+      "requiredFiles": ["model.onnx", "voices.bin", "tokens.txt", "lexicon-us-en.txt", "lexicon-zh.txt", "espeak-ng-data/", "dict/"],
+      "description": {
+        "en": "103 voices to choose from. Larger and slower than Melo; skips capital-letter abbreviations such as GPU.",
+        "zh-TW": "103 種聲音可選。比 Melo 大、稍慢；大寫英文縮寫（如 GPU）會被略過。",
+        "zh-CN": "103 种声音可选。比 Melo 大、稍慢；大写英文缩写（如 GPU）会被略过。",
+        "ja": "103 種類の声から選べます。Melo より大きくやや遅く、GPU などの大文字略語は読み飛ばします。",
+        "ko": "103가지 목소리 중에서 선택할 수 있습니다. Melo보다 크고 느리며 GPU 같은 대문자 약어는 건너뜁니다."
+      }
+    }
+  ]
+}

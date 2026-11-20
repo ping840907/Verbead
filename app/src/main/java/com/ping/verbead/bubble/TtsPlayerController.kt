@@ -18,9 +18,11 @@ import android.widget.TextView
 import com.ping.verbead.R
 import com.ping.verbead.VoiceAccessibilityService
 import com.ping.verbead.engine.ModelConfig
+import com.ping.verbead.engine.TtsCatalog
 import com.ping.verbead.tts.ScreenTextSource
 import com.ping.verbead.tts.Sentence
 import com.ping.verbead.tts.SentenceSplitter
+import com.ping.verbead.tts.SherpaTtsEngine
 import com.ping.verbead.tts.SpeechAudioFocus
 import com.ping.verbead.tts.SystemTtsEngine
 import com.ping.verbead.tts.TtsEngine
@@ -211,14 +213,37 @@ class TtsPlayerController(
             return
         }
         setStatus(R.string.tts_preparing)
-        val eng = SystemTtsEngine(context)
+        startEngine(preferModel = true)
+    }
+
+    /**
+     * Starts the engine the user chose: a downloaded model, or the system voice. When the model cannot be
+     * loaded (damaged files, not enough memory) the system voice takes over so the reading still happens.
+     */
+    private fun startEngine(preferModel: Boolean) {
+        val model = if (preferModel) TtsCatalog.byId(ModelConfig.selectedTtsEngine(context)) else null
+        val eng: TtsEngine = if (model != null) {
+            SherpaTtsEngine(model, ModelConfig.ttsModelDir(context, model), sidFor = { lang ->
+                ModelConfig.ttsVoiceSid(context, model.id) ?: model.defaultSidFor(lang.code)
+            })
+        } else {
+            SystemTtsEngine(context)
+        }
         engine = eng
         val s = TtsSession(eng, sessionListener)
         session = s
         eng.init(s) { ok ->
-            if (!isActive) return@init
+            if (!isActive || session !== s) return@init
             if (!ok) {
-                setStatus(R.string.tts_unavailable)
+                eng.shutdown()
+                engine = null
+                session = null
+                if (model != null) {
+                    setStatus(R.string.tts_model_failed)
+                    startEngine(preferModel = false)
+                } else {
+                    setStatus(R.string.tts_unavailable)
+                }
                 return@init
             }
             engineReady = true

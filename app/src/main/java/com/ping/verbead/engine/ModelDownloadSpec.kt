@@ -55,7 +55,14 @@ object ModelDownloadSpec {
         files = if (model.archiveUrl == null) model.files else emptyList(),
     )
 
+    fun forTts(model: TtsModel): DownloadTarget = DownloadTarget(
+        engine = model.id,
+        archiveUrl = model.archiveUrl,
+        archiveSha256 = model.archiveSha256,
+    )
+
     fun forEngine(engine: String): DownloadTarget {
+        TtsCatalog.byId(engine)?.let { return forTts(it) }
         val model = AsrCatalog.byId(engine)
         return when {
             engine == ModelConfig.OCR_MODEL_KOREAN -> ocrKorean()

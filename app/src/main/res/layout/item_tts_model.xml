@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.ping.verbead.ui.GlassCard xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Name and state -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_tts_model_name"
+                style="@style/Verbead.Text.Title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_tts_model_state"
+                style="@style/Verbead.Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- The attribute tags: languages, voices, size, memory, speed, licence -->
+        <TextView
+            android:id="@+id/tv_tts_model_tags"
+            style="@style/Verbead.Text.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:lineSpacingExtra="2dp" />
+
+        <TextView
+            android:id="@+id/tv_tts_model_desc"
+            style="@style/Verbead.Text.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="2dp" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progress_tts_model"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:indicatorColor="@color/md_theme_light_primary"
+            app:trackColor="@color/md_theme_light_primaryContainer"
+            app:trackCornerRadius="4dp"
+            app:trackThickness="6dp" />
+
+        <TextView
+            android:id="@+id/tv_tts_model_progress"
+            style="@style/Verbead.Text.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
+        <!-- Voice choice (only for models with more than one voice) -->
+        <LinearLayout
+            android:id="@+id/layout_tts_voice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_tts_voice"
+                style="@style/Verbead.Text.Caption"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <com.ping.verbead.ui.GlassMaterialButton
+                android:id="@+id/btn_tts_voice_prev"
+                style="@style/Verbead.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48dp"
+                android:contentDescription="@string/tts_prev_desc"
+                android:text="−" />
+
+            <com.ping.verbead.ui.GlassMaterialButton
+                android:id="@+id/btn_tts_voice_next"
+                style="@style/Verbead.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:minWidth="48dp"
+                android:contentDescription="@string/tts_next_desc"
+                android:text="+" />
+
+            <com.ping.verbead.ui.GlassMaterialButton
+                android:id="@+id/btn_tts_voice_preview"
+                style="@style/Verbead.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/tts_btn_preview" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <com.ping.verbead.ui.GlassMaterialButton
+                android:id="@+id/btn_tts_model_download"
+                style="@style/Verbead.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/common_download_model" />
+
+            <com.ping.verbead.ui.GlassMaterialButton
+                android:id="@+id/btn_tts_model_use"
+                style="@style/Verbead.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/tts_btn_use" />
+
+            <com.ping.verbead.ui.GlassMaterialButton
+                android:id="@+id/btn_tts_model_delete"
+                style="@style/Verbead.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/tts_btn_delete" />
+        </LinearLayout>
+    </LinearLayout>
+</com.ping.verbead.ui.GlassCard>

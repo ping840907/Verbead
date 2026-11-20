@@ -18,6 +18,12 @@ interface TtsEngine {
     /** Queues [text] for speaking; replaces anything still playing. [rate] 1.0 is normal speed. */
     fun speak(utteranceId: Int, text: String, lang: SpeechLang, rate: Float)
 
+    /**
+     * Hints that [text] will be spoken next, so an engine that needs time to prepare speech can do it while the
+     * current sentence is still playing. Optional: the default does nothing.
+     */
+    fun prefetch(text: String, lang: SpeechLang, rate: Float) = Unit
+
     /** Stops speaking at once. The engine may still report the stopped utterance as done or failed. */
     fun stop()
 

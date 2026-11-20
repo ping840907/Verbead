@@ -31,6 +31,7 @@ import com.ping.verbead.engine.ModelZipInstaller
 import com.ping.verbead.settings.AboutSettingsActivity
 import com.ping.verbead.settings.BubbleSettingsActivity
 import com.ping.verbead.settings.OcrSettingsActivity
+import com.ping.verbead.settings.TtsSettingsActivity
 import com.ping.verbead.settings.SpeechSettingsActivity
 import com.ping.verbead.util.HapticUtil
 import kotlinx.coroutines.launch
@@ -97,6 +98,7 @@ class ImeSettingsActivity : AppCompatActivity() {
     private lateinit var tvCatSpeechSummary: TextView
 
     private lateinit var cardCatOcr: View
+    private lateinit var cardCatTts: View
     private lateinit var tvCatOcrSummary: TextView
 
 
@@ -249,6 +251,7 @@ class ImeSettingsActivity : AppCompatActivity() {
         tvCatSpeechSummary = findViewById(R.id.tv_cat_speech_summary)
 
         cardCatOcr = findViewById(R.id.card_cat_ocr)
+        cardCatTts = findViewById(R.id.card_cat_tts)
         tvCatOcrSummary = findViewById(R.id.tv_cat_ocr_summary)
 
 
@@ -343,6 +346,11 @@ class ImeSettingsActivity : AppCompatActivity() {
         cardCatOcr.setOnClickListener {
             HapticUtil.click(this)
             startActivity(Intent(this, OcrSettingsActivity::class.java))
+        }
+
+        cardCatTts.setOnClickListener {
+            HapticUtil.click(this)
+            startActivity(Intent(this, TtsSettingsActivity::class.java))
         }
 
         // Inline Offline Model Package Import Listeners

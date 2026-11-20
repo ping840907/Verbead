@@ -74,6 +74,9 @@ class ModelDownloader(private val context: Context? = null) {
                 }
                 archiveFile.delete()
                 AsrCatalog.byId(target.engine)?.let { verifyCatalogFiles(it, stagingDir) }
+                TtsCatalog.byId(target.engine)?.let { m ->
+                    if (!m.isInstalled(stagingDir)) throw IOException("Model files incomplete or corrupt (${m.name}); re-download required")
+                }
 
                 dir.deleteRecursively()
                 if (!stagingDir.renameTo(dir)) throw IOException("Failed to install extracted model into $dir")
@@ -132,6 +135,7 @@ class ModelDownloader(private val context: Context? = null) {
 
     private fun engineDir(engine: String): File {
         val ctx = context ?: throw IllegalStateException("Context is required for model installation")
+        TtsCatalog.byId(engine)?.let { return ModelConfig.ttsModelDir(ctx, it) }
         val model = AsrCatalog.byId(engine)
         return when {
             engine == ModelConfig.OCR_MODEL_TINY || engine == ModelConfig.OCR_MODEL_SMALL ||

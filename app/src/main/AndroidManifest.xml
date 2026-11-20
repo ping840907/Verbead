@@ -75,6 +75,12 @@
             android:parentActivityName=".ImeSettingsActivity" />
 
         <activity
+            android:name=".settings.TtsSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_cat_tts_title"
+            android:parentActivityName=".ImeSettingsActivity" />
+
+        <activity
             android:name=".settings.AboutSettingsActivity"
             android:exported="false"
             android:label="@string/settings_cat_about_title"

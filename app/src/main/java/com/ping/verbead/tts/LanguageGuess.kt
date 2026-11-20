@@ -1,7 +1,12 @@
 package com.ping.verbead.tts
 
 /** Which language a piece of text should be spoken in; decided from the writing system. */
-enum class SpeechLang { ZH, JA, KO, OTHER }
+enum class SpeechLang(
+    /** The language code used in model manifests ("zh", "en" ...); text in no CJK script counts as English */
+    val code: String
+) {
+    ZH("zh"), JA("ja"), KO("ko"), OTHER("en")
+}
 
 object LanguageGuess {
 

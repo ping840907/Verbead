@@ -66,7 +66,8 @@ object ModelConfig {
 
     /** A models folder that already holds at least one model (OCR or any speech model). */
     private fun holdsModels(base: File?): Boolean =
-        base != null && (File(base, OCR_DIR).exists() || AsrCatalog.models.any { File(base, it.dir).exists() })
+        base != null && (File(base, OCR_DIR).exists() || AsrCatalog.models.any { File(base, it.dir).exists() } ||
+            TtsCatalog.models.any { File(base, "$TTS_DIR/${it.dir}").exists() })
 
     fun modelsDir(context: Context): String {
         val primary = context.getExternalFilesDir("models")
@@ -793,7 +794,49 @@ object ModelConfig {
     )
 
     // ── Read aloud ────────────────────────────────────────────────────────────
+    const val TTS_DIR = "tts"
+    private const val KEY_TTS_ENGINE = "tts_engine"
+    private const val KEY_TTS_SID_PREFIX = "tts_sid_"
     private const val KEY_TTS_RATE = "tts_rate"
+
+    fun ttsModelDir(context: Context, model: TtsModel): File = File(File(modelsDir(context), TTS_DIR), model.dir)
+
+    fun isTtsModelReady(context: Context, model: TtsModel): Boolean = model.isInstalled(ttsModelDir(context, model))
+
+    /** The chosen read-aloud voice engine: a catalog model id, or [TtsCatalog.SYSTEM]. Falls back to the system engine when the model is gone. */
+    fun selectedTtsEngine(context: Context): String {
+        val stored = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getString(KEY_TTS_ENGINE, null) ?: return TtsCatalog.SYSTEM
+        val model = TtsCatalog.byId(stored) ?: return TtsCatalog.SYSTEM
+        return if (isTtsModelReady(context, model)) stored else TtsCatalog.SYSTEM
+    }
+
+    fun setSelectedTtsEngine(context: Context, id: String) {
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_TTS_ENGINE, id).apply()
+    }
+
+    /** A model that has just been downloaded becomes the voice engine, unless the user has already made a choice. */
+    fun useTtsModelIfNoneChosen(context: Context, model: TtsModel) {
+        val prefs = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+        if (!prefs.contains(KEY_TTS_ENGINE)) prefs.edit().putString(KEY_TTS_ENGINE, model.id).apply()
+    }
+
+    /** The voice (speaker id) the user picked for [modelId], or null to use the model's default for the language. */
+    fun ttsVoiceSid(context: Context, modelId: String): Int? =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getInt(KEY_TTS_SID_PREFIX + modelId, -1).takeIf { it >= 0 }
+
+    fun setTtsVoiceSid(context: Context, modelId: String, sid: Int?) {
+        val e = context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE).edit()
+        if (sid == null) e.remove(KEY_TTS_SID_PREFIX + modelId) else e.putInt(KEY_TTS_SID_PREFIX + modelId, sid.coerceAtLeast(0))
+        e.apply()
+    }
+
+    fun deleteTtsModel(context: Context, model: TtsModel) {
+        ttsModelDir(context, model).deleteRecursively()
+    }
+
     const val TTS_RATE_DEFAULT = 1.0f
     val TTS_RATE_STEPS = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
 

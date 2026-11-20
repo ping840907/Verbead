@@ -16,6 +16,7 @@ import com.ping.verbead.engine.ModelDownloadSpec
 import com.ping.verbead.engine.ModelDownloadState
 import com.ping.verbead.util.label
 import com.ping.verbead.engine.ModelDownloader
+import com.ping.verbead.engine.TtsCatalog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -72,7 +73,7 @@ class ModelDownloadService : Service() {
             engine == ModelConfig.OCR_MODEL_TINY -> "PP-OCRv6 Tiny"
             engine == ModelConfig.OCR_MODEL_SMALL -> "PP-OCRv6 Small"
             engine == ModelConfig.OCR_MODEL_KOREAN -> "PP-OCRv5 Korean"
-            else -> AsrCatalog.byId(engine)?.name ?: "Qwen3-ASR"
+            else -> TtsCatalog.byId(engine)?.name ?: AsrCatalog.byId(engine)?.name ?: "Qwen3-ASR"
         }
         startForeground(NOTIF_ID, buildNotification(getString(R.string.notif_download_preparing, engineLabel), -1))
         acquireWakeLock()
@@ -84,6 +85,7 @@ class ModelDownloadService : Service() {
             }
             // a freshly downloaded speech model goes into its slot when that slot is empty
             if (result.isSuccess) AsrCatalog.byId(engine)?.let { ModelConfig.useIfSlotEmpty(this@ModelDownloadService, it) }
+            if (result.isSuccess) TtsCatalog.byId(engine)?.let { ModelConfig.useTtsModelIfNoneChosen(this@ModelDownloadService, it) }
             ModelDownloadState.clear()
             ModelDownloadState.results.tryEmit(engine to result)
             releaseWakeLock()
