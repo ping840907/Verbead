@@ -411,6 +411,25 @@
     <string name="bubble_mode_meta_ocr_short">OCR</string>
     <string name="bubble_mode_meta_ocr_desc">화면의 글자를 가져옵니다. 세로쓰기 중국어 지원</string>
     <string name="bubble_mode_meta_phrases_desc">자주 쓰는 문구와 최근 기록을 빠르게 선택</string>
+    <!-- Read aloud -->
+    <string name="tts_mode_title">소리 내어 읽기</string>
+    <string name="bubble_mode_meta_tts_short">읽기</string>
+    <string name="bubble_mode_meta_tts_desc">선택한 글자 또는 화면의 글자를 소리 내어 읽습니다</string>
+    <string name="tts_source_selection">선택한 글자를 읽는 중</string>
+    <string name="tts_source_screen">화면 글자를 읽는 중</string>
+    <string name="tts_no_text">읽을 글자가 없습니다. 글자를 선택하거나 글자가 있는 페이지를 여세요.</string>
+    <string name="tts_no_service">화면을 읽으려면 접근성 서비스를 켜 주세요</string>
+    <string name="tts_unavailable">음성 엔진을 사용할 수 없습니다</string>
+    <string name="tts_preparing">음성을 준비하는 중…</string>
+    <string name="tts_finished">읽기 완료</string>
+    <string name="tts_progress">%1$d / %2$d</string>
+    <string name="tts_close_desc">플레이어 닫기</string>
+    <string name="tts_reload_desc">화면 다시 읽어오기</string>
+    <string name="tts_speed_desc">읽기 속도</string>
+    <string name="tts_prev_desc">이전 문장</string>
+    <string name="tts_next_desc">다음 문장</string>
+    <string name="tts_play_desc">재생</string>
+    <string name="tts_pause_desc">일시정지</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 고정밀 오프라인 음성</string>
     <string name="model_label_xasr_detail">X-ASR 초고속 실시간 스트리밍 음성</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small, 고정밀) 문자 인식</string>

@@ -738,6 +738,8 @@ object ModelConfig {
     const val BUBBLE_MODE_OCR = 1
     const val BUBBLE_MODE_BARCODE = 2
     const val BUBBLE_MODE_PHRASES = 3
+    // 4 was a mode that has since been removed; old stored orders may still contain it, so it is not reused
+    const val BUBBLE_MODE_TTS = 5
 
     const val KEY_BUBBLE_MODE_ORDER = "bubble_mode_order"
     const val KEY_BUBBLE_DISABLED_MODES = "bubble_disabled_modes"
@@ -746,7 +748,8 @@ object ModelConfig {
         BUBBLE_MODE_VOICE,
         BUBBLE_MODE_BARCODE,
         BUBBLE_MODE_OCR,
-        BUBBLE_MODE_PHRASES
+        BUBBLE_MODE_PHRASES,
+        BUBBLE_MODE_TTS
     )
 
     data class BubbleModeMeta(
@@ -780,8 +783,34 @@ object ModelConfig {
             titleRes = R.string.capsule_phrases_drawer_desc,
             shortNameRes = R.string.common_quick_phrases,
             descriptionRes = R.string.bubble_mode_meta_phrases_desc
+        ),
+        BUBBLE_MODE_TTS to BubbleModeMeta(
+            mode = BUBBLE_MODE_TTS,
+            titleRes = R.string.tts_mode_title,
+            shortNameRes = R.string.bubble_mode_meta_tts_short,
+            descriptionRes = R.string.bubble_mode_meta_tts_desc
         )
     )
+
+    // ── Read aloud ────────────────────────────────────────────────────────────
+    private const val KEY_TTS_RATE = "tts_rate"
+    const val TTS_RATE_DEFAULT = 1.0f
+    val TTS_RATE_STEPS = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+
+    fun getTtsRate(context: Context): Float =
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .getFloat(KEY_TTS_RATE, TTS_RATE_DEFAULT)
+
+    fun setTtsRate(context: Context, rate: Float) {
+        context.getSharedPreferences(PREF_BUBBLE_SETTINGS, Context.MODE_PRIVATE)
+            .edit().putFloat(KEY_TTS_RATE, rate).apply()
+    }
+
+    /** The speed that follows [current] in [TTS_RATE_STEPS], wrapping around. */
+    fun nextTtsRate(current: Float): Float {
+        val i = TTS_RATE_STEPS.indexOfFirst { kotlin.math.abs(it - current) < 0.01f }
+        return TTS_RATE_STEPS[(i + 1) % TTS_RATE_STEPS.size]
+    }
 
     fun getBubbleModeMeta(mode: Int): BubbleModeMeta =
         BUBBLE_MODE_METADATA[mode] ?: BUBBLE_MODE_METADATA.getValue(BUBBLE_MODE_VOICE)

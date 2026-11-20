@@ -424,6 +424,25 @@
     <string name="bubble_mode_meta_ocr_short">OCR</string>
     <string name="bubble_mode_meta_ocr_desc">Capture on-screen text, including vertical Chinese</string>
     <string name="bubble_mode_meta_phrases_desc">Tap custom phrases and recent history</string>
+    <!-- Read aloud -->
+    <string name="tts_mode_title">Read aloud</string>
+    <string name="bubble_mode_meta_tts_short">Read</string>
+    <string name="bubble_mode_meta_tts_desc">Read the selected text, or the screen, aloud</string>
+    <string name="tts_source_selection">Reading the selection</string>
+    <string name="tts_source_screen">Reading the screen</string>
+    <string name="tts_no_text">Nothing to read here. Select some text or open a page with text.</string>
+    <string name="tts_no_service">Turn on the accessibility service to read the screen</string>
+    <string name="tts_unavailable">Speech engine is not available</string>
+    <string name="tts_preparing">Preparing voice…</string>
+    <string name="tts_finished">Finished</string>
+    <string name="tts_progress">%1$d / %2$d</string>
+    <string name="tts_close_desc">Close the player</string>
+    <string name="tts_reload_desc">Read the screen again</string>
+    <string name="tts_speed_desc">Reading speed</string>
+    <string name="tts_prev_desc">Previous sentence</string>
+    <string name="tts_next_desc">Next sentence</string>
+    <string name="tts_play_desc">Play</string>
+    <string name="tts_pause_desc">Pause</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR high-accuracy offline speech</string>
     <string name="model_label_xasr_detail">X-ASR fast live streaming speech</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small, high accuracy) text recognition</string>

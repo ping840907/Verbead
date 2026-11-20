@@ -52,6 +52,7 @@ import com.ping.verbead.bubble.OverlayCoordinator
 import com.ping.verbead.bubble.VoiceInputController
 import com.ping.verbead.bubble.CapsuleMenuController
 import com.ping.verbead.bubble.PhrasesDrawerController
+import com.ping.verbead.bubble.TtsPlayerController
 import com.ping.verbead.bubble.ScannerOverlayController
 import com.ping.verbead.bubble.OcrOverlayController
 import com.ping.verbead.bubble.BubblePulseController
@@ -130,6 +131,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         const val MODE_OCR = 1
         const val MODE_BARCODE = 2
         const val MODE_PHRASES = 3
+        const val MODE_TTS = 5
         private const val PREF_BUBBLE_MODE = "bubble_mode_pref"
         private const val KEY_MODE = "current_mode"
 
@@ -302,6 +304,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
     private val isPhrasesDrawerActive: Boolean
         get() = ::phrasesDrawerController.isInitialized && phrasesDrawerController.isActive
 
+        // Read-aloud player
+    private lateinit var ttsPlayerController: TtsPlayerController
+    private val isTtsPlayerActive: Boolean
+        get() = ::ttsPlayerController.isInitialized && ttsPlayerController.isActive
+
     // Touch sampling & screen-space velocity tracking
     private data class TouchPoint(val time: Long, val rawX: Float, val rawY: Float)
     private val recentTouchSamples = ArrayList<TouchPoint>()
@@ -449,6 +456,21 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
             }
         )
+        ttsPlayerController = TtsPlayerController(
+            context = themedCtx,
+            windowManager = windowManager,
+            listener = object : TtsPlayerController.Listener {
+                override fun onPlayerClosed(hideX: Boolean) {
+                    checkAndHideBubbleIfKeyboardClosed(animate = true)
+                }
+                override fun onShowXButton() {
+                    showXButton()
+                }
+                override fun onHideXButton() {
+                    if (state != State.PASTED) hideXButton()
+                }
+            }
+        )
         scannerOverlayController = ScannerOverlayController(
             context = themedCtx,
             lifecycleOwner = this,
@@ -533,6 +555,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             scanner = scannerOverlayController,
             ocr = ocrOverlayController,
             phrases = phrasesDrawerController,
+            tts = ttsPlayerController,
             host = object : OverlayCoordinator.Host {
                 override val anchorY: Int get() = currentAnchorBubble?.windowLayoutParams?.y ?: windowLayoutParams.y
                 override val isDockedOnRight: Boolean get() = currentAnchorBubble?.isDockedOnRight ?: this@FloatingBubbleService.isDockedOnRight
@@ -874,7 +897,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
 
     fun setBubbleVisible(visible: Boolean, animate: Boolean = true) {
         if (!::bubbleView.isInitialized) return
-        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isCapsuleMenuShowing)) {
+        if (!visible && (state == State.RECORDING || state == State.TRANSCRIBING || state == State.PASTED || isScannerModeActive || isOcrModeActive || isOcrSnapshotActive || isPhrasesDrawerActive || isTtsPlayerActive || isCapsuleMenuShowing)) {
             return
         }
         var cameIntoView = false
@@ -902,7 +925,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 if (item.id == 0) hideXButtonImmediately()
                 if (animate) {
                     v.animate().alpha(0f).setDuration(180).withEndAction {
-                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive) {
+                        if (state != State.RECORDING && state != State.TRANSCRIBING && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isTtsPlayerActive) {
                             v.visibility = View.GONE
                         } else {
                             v.alpha = 1f
@@ -943,7 +966,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             return
         }
         val isKeyboardOpen = VoiceAccessibilityService.instance?.checkKeyboardState()?.isVisible == true
-        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
+        if (!isKeyboardOpen && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isTtsPlayerActive && state != State.PASTED && state != State.RECORDING && state != State.TRANSCRIBING && !isCapsuleMenuShowing) {
             setBubbleVisible(false, animate = animate)
         }
     }
@@ -1394,6 +1417,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         if (MODE_PHRASES !in enabledModes && isPhrasesDrawerActive) {
             overlays.closePhrases()
         }
+        if (MODE_TTS !in enabledModes && isTtsPlayerActive) {
+            overlays.closeTts()
+        }
         coerceCurrentModeToEnabled(enabledModes)
 
         val usedModes = mutableSetOf<Int>()
@@ -1743,6 +1769,9 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             if (isPhrasesDrawerActive) {
                 overlays.closePhrases()
             }
+            if (isTtsPlayerActive) {
+                overlays.closeTts()
+            }
             if (state == State.RECORDING) {
                 voice.abortRecording()
                 hidePreviewText()
@@ -1971,6 +2000,15 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                 }
                 overlays.togglePhrases()
             }
+            MODE_TTS -> {
+                if (state == State.RECORDING) {
+                    // the dictation still finishes and is filled in, so the state must say TRANSCRIBING (not IDLE)
+                    voice.stopEarly()
+                    hidePreviewText()
+                    setState(State.TRANSCRIBING)
+                }
+                overlays.toggleTts()
+            }
         }
     }
 
@@ -2059,7 +2097,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         val hiddenWidthPx = getHiddenWidthPx().toFloat()
 
         val isMultiBubble = ModelConfig.isMultiBubbleEnabled(this)
-        val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive
+        val allowTuck = (state == State.IDLE || state == State.SCANNING) && !isScannerModeActive && !isOcrModeActive && !isOcrSnapshotActive && !isPhrasesDrawerActive && !isTtsPlayerActive
         val shouldTuck = if (!allowTuck) {
             false
         } else {
@@ -2209,7 +2247,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
         }
 
         // 2. Facebook Messenger / AOSP Damped Harmonic Oscillator (Spring) Physics
-        val isOverlayOpen = isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive
+        val isOverlayOpen = isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive || isTtsPlayerActive
         val omegaN = 16.0f
         val zeta = 0.82f
         val gamma = zeta * omegaN
@@ -2317,7 +2355,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
                         windowLayoutParams.y = finalY
                         updatePulsePosition()
                         updateSystemGestureExclusion()
-                        if (!item.isTucked && (isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive || state == State.PASTED || state == State.RECORDING || state == State.TRANSCRIBING)) {
+                        if (!item.isTucked && (isScannerModeActive || isOcrModeActive || isPhrasesDrawerActive || isTtsPlayerActive || state == State.PASTED || state == State.RECORDING || state == State.TRANSCRIBING)) {
                             showXButton()
                         }
                     }
@@ -2357,6 +2395,11 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             isPhrasesDrawerActive -> {
                 // 關閉常用語抽屜視窗
                 overlays.closePhrases()
+                hideXButton()
+            }
+            isTtsPlayerActive -> {
+                // 朗讀中：停止朗讀並關閉播放器
+                overlays.closeTts()
                 hideXButton()
             }
             isOcrSnapshotActive -> {
@@ -2423,7 +2466,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
      * While something is recording, loading or open it cancels that instead.
      */
     private fun isUndoMode(): Boolean {
-        val nothingActive = !isPhrasesDrawerActive && !isOcrSnapshotActive && !isOcrModeActive &&
+        val nothingActive = !isPhrasesDrawerActive && !isTtsPlayerActive && !isOcrSnapshotActive && !isOcrModeActive &&
             !isScannerModeActive && state != State.RECORDING && state != State.TRANSCRIBING && state != State.LOADING
         return state == State.PASTED || (nothingActive && VoiceAccessibilityService.instance?.hasValidSnapshot() == true)
     }
@@ -2879,6 +2922,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             MODE_OCR -> R.drawable.ic_ocr to getString(R.string.floating_ocr_desc)
             MODE_BARCODE -> R.drawable.ic_barcode to getString(R.string.floating_barcode_desc)
             MODE_PHRASES -> R.drawable.ic_quick_phrases to getString(R.string.capsule_phrases_drawer_desc)
+            MODE_TTS -> R.drawable.ic_tts to getString(R.string.tts_mode_title)
             else -> R.drawable.ic_mic to getString(R.string.floating_voice_desc)
         }
     }
@@ -3001,6 +3045,10 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             MODE_PHRASES -> {
                 setState(State.IDLE)
                 overlays.openPhrases()
+            }
+            MODE_TTS -> {
+                setState(State.IDLE)
+                overlays.openTts()
             }
         }
     }
@@ -3129,6 +3177,7 @@ class FloatingBubbleService : Service(), LifecycleOwner {
             safely("scanner") { if (::scannerOverlayController.isInitialized) scannerOverlayController.destroy() }
             safely("ocr") { if (::ocrOverlayController.isInitialized) ocrOverlayController.destroy() }
             safely("phrasesDrawer") { if (::phrasesDrawerController.isInitialized) phrasesDrawerController.destroy() }
+            safely("ttsPlayer") { if (::ttsPlayerController.isInitialized) ttsPlayerController.destroy() }
             safely("capsule") { if (::capsuleMenuController.isInitialized) capsuleMenuController.destroy() }
             safely("deleteZone") { if (::bubbleDeleteZoneController.isInitialized) bubbleDeleteZoneController.hide(animated = false) }
                                     

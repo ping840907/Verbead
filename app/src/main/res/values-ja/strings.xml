@@ -411,6 +411,25 @@
     <string name="bubble_mode_meta_ocr_short">OCR</string>
     <string name="bubble_mode_meta_ocr_desc">画面の文字を取得。縦書き中国語に対応</string>
     <string name="bubble_mode_meta_phrases_desc">定型文と最近の認識履歴をすばやく選択</string>
+    <!-- Read aloud -->
+    <string name="tts_mode_title">読み上げ</string>
+    <string name="bubble_mode_meta_tts_short">読み上げ</string>
+    <string name="bubble_mode_meta_tts_desc">選択した文字、または画面の文字を読み上げます</string>
+    <string name="tts_source_selection">選択した文字を読み上げ中</string>
+    <string name="tts_source_screen">画面の文字を読み上げ中</string>
+    <string name="tts_no_text">読み上げる文字がありません。文字を選択するか、文字のあるページを開いてください。</string>
+    <string name="tts_no_service">画面を読み上げるにはユーザー補助サービスをオンにしてください</string>
+    <string name="tts_unavailable">音声エンジンを利用できません</string>
+    <string name="tts_preparing">音声を準備中…</string>
+    <string name="tts_finished">読み上げ完了</string>
+    <string name="tts_progress">%1$d / %2$d</string>
+    <string name="tts_close_desc">プレーヤーを閉じる</string>
+    <string name="tts_reload_desc">画面を読み込み直す</string>
+    <string name="tts_speed_desc">読み上げ速度</string>
+    <string name="tts_prev_desc">前の文</string>
+    <string name="tts_next_desc">次の文</string>
+    <string name="tts_play_desc">再生</string>
+    <string name="tts_pause_desc">一時停止</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 高精度オフライン音声</string>
     <string name="model_label_xasr_detail">X-ASR 高速リアルタイムストリーミング音声</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6（Small・高精度版）文字認識</string>

@@ -120,5 +120,30 @@
                 android:contentDescription="@string/capsule_phrases_drawer_desc" />
         </FrameLayout>
 
+        <!-- Item 4: Read aloud (朗讀) -->
+        <FrameLayout
+            android:id="@+id/item_capsule_tts"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:id="@+id/indicator_capsule_tts"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_capsule_indicator"
+                android:alpha="0" />
+
+            <ImageView
+                android:id="@+id/iv_capsule_tts"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_tts"
+                android:contentDescription="@string/tts_mode_title" />
+        </FrameLayout>
+
     </com.ping.verbead.ui.GlassLinearLayout>
 </FrameLayout>

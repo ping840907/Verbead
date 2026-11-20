@@ -411,6 +411,25 @@
     <string name="bubble_mode_meta_ocr_short">辨識</string>
     <string name="bubble_mode_meta_ocr_desc">懸浮相機擷取畫面文字，支援直排中文與多區塊順序拼接</string>
     <string name="bubble_mode_meta_phrases_desc">快速點選自訂常用片語與近期辨識歷史紀錄</string>
+    <!-- Read aloud -->
+    <string name="tts_mode_title">朗讀</string>
+    <string name="bubble_mode_meta_tts_short">朗讀</string>
+    <string name="bubble_mode_meta_tts_desc">朗讀反白的文字；沒有反白就朗讀畫面上的文字</string>
+    <string name="tts_source_selection">朗讀選取的文字</string>
+    <string name="tts_source_screen">朗讀畫面文字</string>
+    <string name="tts_no_text">這裡沒有可朗讀的文字。請先選取文字，或開啟有文字的頁面。</string>
+    <string name="tts_no_service">請先開啟無障礙服務，才能朗讀畫面</string>
+    <string name="tts_unavailable">語音引擎無法使用</string>
+    <string name="tts_preparing">正在準備語音…</string>
+    <string name="tts_finished">朗讀完畢</string>
+    <string name="tts_progress">%1$d / %2$d</string>
+    <string name="tts_close_desc">關閉播放器</string>
+    <string name="tts_reload_desc">重新讀取畫面</string>
+    <string name="tts_speed_desc">朗讀速度</string>
+    <string name="tts_prev_desc">上一句</string>
+    <string name="tts_next_desc">下一句</string>
+    <string name="tts_play_desc">播放</string>
+    <string name="tts_pause_desc">暫停</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 高精度離線語音</string>
     <string name="model_label_xasr_detail">X-ASR 極速即時串流語音</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small 高精版) 文字辨識</string>

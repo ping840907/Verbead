@@ -28,20 +28,20 @@ class CapsuleMenuControllerTest {
 
     @Test
     fun testItemCount() {
-        assertEquals(4, CapsuleMenuController.ITEM_COUNT)
+        assertEquals(5, CapsuleMenuController.ITEM_COUNT)
     }
 
     @Test
     fun testCapsuleDimensionsAndExtent() {
-        assertEquals(224, CapsuleMenuController.CAPSULE_MENU_HEIGHT_DP)
-        assertEquals(248, CapsuleMenuController.CAPSULE_WINDOW_HEIGHT_DP)
-        assertEquals(178, CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP)
+        assertEquals(280, CapsuleMenuController.CAPSULE_MENU_HEIGHT_DP)
+        assertEquals(304, CapsuleMenuController.CAPSULE_WINDOW_HEIGHT_DP)
+        assertEquals(234, CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP)
 
         // Verify upward and downward extent symmetry
-        // Window height = 248dp, bubble radius/half = 30dp
-        // Last item (index 3) center: 12 + 28 + 3 * 56 = 208dp. Upward extent = 208 - 30 = 178dp.
-        // Voice (index 0) center: 12 + 28 = 40dp. Downward extent = (248 - 40) - 30 = 178dp.
-        val lastItemCenterY = 12 + 28 + 3 * CapsuleMenuController.ITEM_HEIGHT_DP
+        // Window height = 304dp, bubble radius/half = 30dp
+        // Last item (index 4) center: 12 + 28 + 4 * 56 = 264dp. Upward extent = 264 - 30 = 234dp.
+        // Voice (index 0) center: 12 + 28 = 40dp. Downward extent = (304 - 40) - 30 = 234dp.
+        val lastItemCenterY = 12 + 28 + 4 * CapsuleMenuController.ITEM_HEIGHT_DP
         val upwardExtent = lastItemCenterY - 30
         assertEquals(CapsuleMenuController.CAPSULE_MENU_MAX_EXTENT_DP, upwardExtent)
 
@@ -59,7 +59,8 @@ class CapsuleMenuControllerTest {
                 CapsuleMenuController.MODE_OCR,
                 CapsuleMenuController.MODE_VOICE,
                 CapsuleMenuController.MODE_BARCODE,
-                CapsuleMenuController.MODE_PHRASES
+                CapsuleMenuController.MODE_PHRASES,
+                CapsuleMenuController.MODE_TTS
             ),
             order
         )
@@ -70,13 +71,14 @@ class CapsuleMenuControllerTest {
     @Test
     fun testCustomModeOrderAndDynamicEnableMapping() {
         val customOrder = com.ping.verbead.engine.ModelConfig.parseModeOrder("3,1,0")
-        // Missing mode (2) should be appended automatically in default order
+        // Missing modes (2 and 5) should be appended automatically in default order
         assertEquals(
             listOf(
                 CapsuleMenuController.MODE_PHRASES,
                 CapsuleMenuController.MODE_OCR,
                 CapsuleMenuController.MODE_VOICE,
-                CapsuleMenuController.MODE_BARCODE
+                CapsuleMenuController.MODE_BARCODE,
+                CapsuleMenuController.MODE_TTS
             ),
             customOrder
         )
@@ -88,13 +90,14 @@ class CapsuleMenuControllerTest {
                 CapsuleMenuController.MODE_OCR,
                 CapsuleMenuController.MODE_VOICE,
                 CapsuleMenuController.MODE_PHRASES,
-                CapsuleMenuController.MODE_BARCODE
+                CapsuleMenuController.MODE_BARCODE,
+                CapsuleMenuController.MODE_TTS
             ),
             movedOrder
         )
 
         // Filter disabled modes
-        val disabled = com.ping.verbead.engine.ModelConfig.parseDisabledModes("2,3", movedOrder)
+        val disabled = com.ping.verbead.engine.ModelConfig.parseDisabledModes("2,3,5", movedOrder)
         val enabledModes = com.ping.verbead.engine.ModelConfig.computeEnabledModes(movedOrder, disabled)
         assertEquals(
             listOf(
@@ -111,7 +114,7 @@ class CapsuleMenuControllerTest {
         assertEquals(2 * 56 + 24, CapsuleMenuController.computeCapsuleWindowHeightDp(enabledModes.size))
 
         // Guardrail: disabling all modes must preserve at least the first mode in currentOrder
-        val allDisabledAttempt = com.ping.verbead.engine.ModelConfig.parseDisabledModes("0,1,2,3", movedOrder)
+        val allDisabledAttempt = com.ping.verbead.engine.ModelConfig.parseDisabledModes("0,1,2,3,5", movedOrder)
         val fallbackEnabled = com.ping.verbead.engine.ModelConfig.computeEnabledModes(movedOrder, allDisabledAttempt)
         assertEquals(listOf(CapsuleMenuController.MODE_OCR), fallbackEnabled)
     }
