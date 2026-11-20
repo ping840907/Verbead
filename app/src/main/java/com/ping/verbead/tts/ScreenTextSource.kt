@@ -16,7 +16,19 @@ class ScreenTextSource(private val ownPackage: String) {
 
     enum class Kind { SELECTION, SCREEN, EMPTY }
 
-    data class Result(val kind: Kind, val text: String, val pkg: String = "")
+    /**
+     * [lines] are the visible text in reading order with their positions (empty for a selection or no text);
+     * [chars] and [coverage] say how much text there is and how much of the screen it covers, which is what
+     * decides whether the screen should be recognized as an image instead.
+     */
+    data class Result(
+        val kind: Kind,
+        val text: String,
+        val pkg: String = "",
+        val lines: List<ScreenLine> = emptyList(),
+        val chars: Int = text.count { !it.isWhitespace() },
+        val coverage: Float = 0f,
+    )
 
     fun read(service: AccessibilityService): Result {
         val windows = runCatching { service.windows }.getOrNull().orEmpty()
@@ -39,8 +51,12 @@ class ScreenTextSource(private val ownPackage: String) {
             collect(root, 0, items, HashSet(), Budget(), ownWindow = w.isActive)
             if (items.size > before && pkg.isEmpty()) pkg = root.packageName?.toString() ?: ""
         }
-        val text = ReadingOrder.toText(items)
-        return if (text.isBlank()) Result(Kind.EMPTY, "") else Result(Kind.SCREEN, text, pkg)
+        val lines = ReadingOrder.toLines(items)
+        val text = lines.joinToString("\n") { it.text }
+        val dm = service.resources.displayMetrics
+        val coverage = OcrFallbackPolicy.coverage(items, dm.widthPixels, dm.heightPixels)
+        return if (text.isBlank()) Result(Kind.EMPTY, "", coverage = 0f)
+        else Result(Kind.SCREEN, text, pkg, lines = lines, coverage = coverage)
     }
 
     /** Stops a pathological tree (or a loop in a broken one) from running forever. */

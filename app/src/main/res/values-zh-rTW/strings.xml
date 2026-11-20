@@ -454,6 +454,11 @@
     <string name="tts_delete_title">刪除 %s？</string>
     <string name="tts_delete_message">下載的檔案會從手機移除，朗讀會改用系統語音。</string>
     <string name="tts_model_failed">無法載入下載的聲音，已改用系統語音。</string>
+    <string name="tts_source_ocr">朗讀辨識文字</string>
+    <string name="tts_ocr_running">正在辨識畫面上的文字…</string>
+    <string name="tts_ocr_no_model">這個畫面沒有可讀的文字，而且尚未下載文字辨識模型。請到文字辨識設定下載。</string>
+    <string name="tts_pick_desc">點選要從哪一行開始唸</string>
+    <string name="tts_pick_hint">點一下畫面上的文字行，從那裡開始朗讀</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 高精度離線語音</string>
     <string name="model_label_xasr_detail">X-ASR 極速即時串流語音</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small 高精版) 文字辨識</string>

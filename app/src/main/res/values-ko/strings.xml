@@ -454,6 +454,11 @@
     <string name="tts_delete_title">%s을(를) 삭제할까요?</string>
     <string name="tts_delete_message">내려받은 파일이 기기에서 삭제되고 시스템 음성으로 돌아갑니다.</string>
     <string name="tts_model_failed">내려받은 목소리를 불러오지 못해 시스템 음성을 사용합니다.</string>
+    <string name="tts_source_ocr">화면 읽기(OCR)</string>
+    <string name="tts_ocr_running">화면의 글자를 인식하는 중…</string>
+    <string name="tts_ocr_no_model">이 화면에는 읽을 글자가 없고 문자 인식 모델도 내려받지 않았습니다. OCR 설정에서 내려받으세요.</string>
+    <string name="tts_pick_desc">탭한 줄부터 읽기</string>
+    <string name="tts_pick_hint">화면의 줄을 탭하면 거기서부터 읽습니다</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 고정밀 오프라인 음성</string>
     <string name="model_label_xasr_detail">X-ASR 초고속 실시간 스트리밍 음성</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small, 고정밀) 문자 인식</string>

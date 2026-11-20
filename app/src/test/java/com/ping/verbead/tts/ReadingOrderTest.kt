@@ -41,6 +41,16 @@ class ReadingOrderTest {
     }
 
     @Test
+    fun linesCarryTheirBoundingBox() {
+        val lines = ReadingOrder.toLines(
+            listOf(item(300, 112, 500, 152, "B"), item(0, 100, 200, 140, "A"), item(0, 300, 400, 340, "C"))
+        )
+        assertEquals(2, lines.size)
+        assertEquals(ScreenLine(0, 100, 500, 152, "A B"), lines[0])
+        assertEquals(ScreenLine(0, 300, 400, 340, "C"), lines[1])
+    }
+
+    @Test
     fun textIsTrimmed() {
         assertEquals("a b", ReadingOrder.toText(listOf(item(0, 0, 10, 10, " a "), item(20, 0, 30, 10, "b "))))
     }

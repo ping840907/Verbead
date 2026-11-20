@@ -6,6 +6,9 @@ data class ScreenTextItem(val left: Int, val top: Int, val right: Int, val botto
     val height: Int get() = (bottom - top).coerceAtLeast(1)
 }
 
+/** One line of reading: the text of its items joined, and the box that holds them. */
+data class ScreenLine(val left: Int, val top: Int, val right: Int, val bottom: Int, val text: String)
+
 /**
  * Puts text nodes into reading order. The accessibility tree order is the view hierarchy, not what
  * the eye follows; this groups items into lines by vertical position and orders each line left to
@@ -32,7 +35,17 @@ object ReadingOrder {
         return lines.map { line -> line.sortedBy { it.left } }
     }
 
+    /** The lines in reading order, each with its text (items joined by a space) and bounding box. */
+    fun toLines(items: List<ScreenTextItem>): List<ScreenLine> = sort(items).map { line ->
+        ScreenLine(
+            left = line.minOf { it.left },
+            top = line.minOf { it.top },
+            right = line.maxOf { it.right },
+            bottom = line.maxOf { it.bottom },
+            text = line.joinToString(" ") { it.text.trim() },
+        )
+    }
+
     /** Lines joined with a line break, items on one line with a space. */
-    fun toText(items: List<ScreenTextItem>): String =
-        sort(items).joinToString("\n") { line -> line.joinToString(" ") { it.text.trim() } }
+    fun toText(items: List<ScreenTextItem>): String = toLines(items).joinToString("\n") { it.text }
 }

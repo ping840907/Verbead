@@ -454,6 +454,11 @@
     <string name="tts_delete_title">%s を削除しますか？</string>
     <string name="tts_delete_message">ダウンロードしたファイルが端末から削除され、システム音声に戻ります。</string>
     <string name="tts_model_failed">ダウンロードした声を読み込めなかったため、システム音声を使います。</string>
+    <string name="tts_source_ocr">画面を読む（OCR）</string>
+    <string name="tts_ocr_running">画面の文字を認識しています…</string>
+    <string name="tts_ocr_no_model">この画面には読める文字がなく、文字認識モデルもダウンロードされていません。OCR 設定でダウンロードしてください。</string>
+    <string name="tts_pick_desc">タップした行から読み始める</string>
+    <string name="tts_pick_hint">画面の行をタップすると、そこから読み上げます</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR 高精度オフライン音声</string>
     <string name="model_label_xasr_detail">X-ASR 高速リアルタイムストリーミング音声</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6（Small・高精度版）文字認識</string>

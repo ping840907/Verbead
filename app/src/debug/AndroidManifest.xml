@@ -23,6 +23,10 @@
             android:name=".PendingTextDebugReceiver"
             android:exported="true" />
         <!-- Debug only: read-aloud phase 0 — TTS speed benchmark and "what can the screen reader see" probe -->
+        <!-- Debug only: a screen with a picture and no text, for the read-aloud OCR fallback -->
+        <activity
+            android:name=".OcrFallbackTestActivity"
+            android:exported="true" />
         <receiver
             android:name=".SherpaTtsBenchReceiver"
             android:exported="true" />

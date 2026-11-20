@@ -1,12 +1,13 @@
 package com.ping.verbead.bubble
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
-import android.content.Context
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -19,23 +20,30 @@ import com.ping.verbead.R
 import com.ping.verbead.VoiceAccessibilityService
 import com.ping.verbead.engine.ModelConfig
 import com.ping.verbead.engine.TtsCatalog
+import com.ping.verbead.tts.OcrFallbackPolicy
+import com.ping.verbead.tts.OcrTextSource
+import com.ping.verbead.tts.ReadingPlan
 import com.ping.verbead.tts.ScreenTextSource
-import com.ping.verbead.tts.Sentence
-import com.ping.verbead.tts.SentenceSplitter
 import com.ping.verbead.tts.SherpaTtsEngine
 import com.ping.verbead.tts.SpeechAudioFocus
 import com.ping.verbead.tts.SystemTtsEngine
 import com.ping.verbead.tts.TtsEngine
 import com.ping.verbead.tts.TtsSession
-import com.ping.verbead.tts.TtsTextCleaner
 import com.ping.verbead.util.HapticUtil
 import com.ping.verbead.util.allowDisplayCutout
 import com.ping.verbead.util.isViewAdded
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
- * The read-aloud player: a panel beside the bubble that reads the selection (or the visible screen
- * text) with the system speech engine, highlights the sentence being spoken, and offers
- * play/pause, previous/next sentence, speed and reload.
+ * The read-aloud player: a panel beside the bubble that reads the selection, or the text on the screen
+ * (recognized from a screenshot when the screen does not expose its text), with the chosen voice. It
+ * shows the sentence being spoken, marks its line on the screen, and offers play/pause, previous/next
+ * sentence, speed, reload, and "start from here" (tap a line of the screen).
  */
 class TtsPlayerController(
     private val context: Context,
@@ -52,26 +60,52 @@ class TtsPlayerController(
     var isActive: Boolean = false
         private set
 
+    /** True between the tap on the bubble and the panel appearing (a screenshot may be on its way). */
+    private var opening = false
+
     private var view: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var engine: TtsEngine? = null
     private var session: TtsSession? = null
     private var focus: SpeechAudioFocus? = null
     private var engineReady = false
-    private var fullText = ""
-    private var sentences: List<Sentence> = emptyList()
+    private var plan: ReadingPlan = ReadingPlan.EMPTY
     private val source = ScreenTextSource(context.packageName)
+    private val highlight = TtsHighlightOverlay(context, windowManager)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var ocrJob: Job? = null
 
     private var tvSource: TextView? = null
     private var tvText: TextView? = null
     private var tvStatus: TextView? = null
     private var btnPlay: ImageView? = null
     private var btnSpeed: TextView? = null
+    private var btnPick: View? = null
 
     // ── Open / close ────────────────────────────────────────────────────
 
     fun open(anchorY: Int, isDockedOnRight: Boolean, screenWidth: Int, safeBottom: Int) {
-        if (isActive) return
+        if (isActive || opening) return
+        opening = true
+        // Read the screen before the panel exists: the panel's own text must never end up in what is read.
+        val result = readSource()
+        val service = VoiceAccessibilityService.instance
+        if (service != null && wantsOcr(result)) {
+            service.captureScreen { shot ->
+                opening = false
+                show(anchorY, isDockedOnRight, screenWidth, safeBottom, result, shot)
+            }
+        } else {
+            opening = false
+            show(anchorY, isDockedOnRight, screenWidth, safeBottom, result, null)
+        }
+    }
+
+    private fun show(
+        anchorY: Int, isDockedOnRight: Boolean, screenWidth: Int, safeBottom: Int,
+        result: ScreenTextSource.Result, shot: Bitmap?
+    ) {
+        if (isActive) { shot?.recycle(); return }
         val root = view ?: LayoutInflater.from(context).inflate(R.layout.layout_floating_tts_player, null).also {
             com.ping.verbead.ui.GlassStage.skin(it)
             view = it
@@ -83,9 +117,6 @@ class TtsPlayerController(
         val bubbleWidthPx = (60 * density).toInt()
         val gap = (10 * density).toInt()
         val width = (280 * density).toInt().coerceAtMost(screenWidth - bubbleWidthPx - gap - (12 * density).toInt())
-
-        // Read the screen before the panel exists: the panel's own text must never end up in what is read.
-        val result = readSource()
 
         layoutParams = WindowManager.LayoutParams(
             width,
@@ -99,7 +130,6 @@ class TtsPlayerController(
             x = bubbleWidthPx + gap
             y = anchorY.coerceAtLeast(0)
         }
-        showText(result)
         root.measure(
             View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
@@ -114,10 +144,13 @@ class TtsPlayerController(
         root.scaleX = 0.6f
         root.scaleY = 0.6f
 
+        highlight.attach() // before the panel, so the panel is above it
         try {
             windowManager.addView(root, layoutParams)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to add TTS player view", e)
+            highlight.detach()
+            shot?.recycle()
             return
         }
         isActive = true
@@ -125,12 +158,14 @@ class TtsPlayerController(
         root.animate().alpha(1f).translationX(0f).scaleX(1f).scaleY(1f)
             .setDuration(240).setInterpolator(DecelerateInterpolator(1.5f)).start()
 
-        if (sentences.isNotEmpty()) startSpeaking()
+        onSource(result, shot)
     }
 
     fun close(hideX: Boolean = true, anchorY: Int = 0, isDockedOnRight: Boolean = false) {
         if (!isActive) return
         isActive = false
+        ocrJob?.cancel()
+        highlight.detach()
         releaseSpeech()
         if (hideX) listener.onHideXButton()
         val root = view ?: return
@@ -148,9 +183,12 @@ class TtsPlayerController(
             .start()
     }
 
-    /** Removes the window at once, without animation (service shutdown). */
+    /** Removes the windows at once, without animation (service shutdown). */
     fun destroy() {
         isActive = false
+        opening = false
+        scope.cancel()
+        highlight.detach()
         releaseSpeech()
         view?.let { v ->
             if (windowManager.isViewAdded(v)) runCatching { windowManager.removeView(v) }
@@ -172,7 +210,7 @@ class TtsPlayerController(
         if (windowManager.isViewAdded(root)) runCatching { windowManager.updateViewLayout(root, lp) }
     }
 
-    // ── Source and speech ───────────────────────────────────────────────
+    // ── Source ──────────────────────────────────────────────────────────
 
     private fun readSource(): ScreenTextSource.Result {
         val service = VoiceAccessibilityService.instance
@@ -180,28 +218,92 @@ class TtsPlayerController(
         return source.read(service)
     }
 
-    /** Puts [result] into the panel and prepares the sentence list; speaking starts separately. */
-    private fun showText(result: ScreenTextSource.Result) {
-        fullText = TtsTextCleaner.clean(result.text)
-        sentences = SentenceSplitter.split(fullText)
-        renderWindow(0)
-        when {
-            VoiceAccessibilityService.instance == null -> setStatus(R.string.tts_no_service)
-            sentences.isEmpty() -> setStatus(R.string.tts_no_text)
-            else -> setStatus(null)
+    private fun ocrModelReady(): Boolean = ModelConfig.isOcrTinyReady(context) || ModelConfig.isOcrSmallReady(context)
+
+    /** A selection is always read as it is; otherwise recognize the screen when the tree gave too little. */
+    private fun wantsOcr(result: ScreenTextSource.Result): Boolean =
+        result.kind != ScreenTextSource.Kind.SELECTION &&
+            OcrFallbackPolicy.needsOcr(result.chars, result.coverage) && ocrModelReady()
+
+    /**
+     * Takes what [result] holds into the panel. When [shot] is there, the screen is recognized in the
+     * background and its text replaces the tree's if it holds more.
+     */
+    private fun onSource(result: ScreenTextSource.Result, shot: Bitmap?) {
+        val treePlan = when (result.kind) {
+            ScreenTextSource.Kind.SELECTION -> ReadingPlan.fromText(result.text)
+            ScreenTextSource.Kind.SCREEN -> ReadingPlan.fromLines(result.lines)
+            ScreenTextSource.Kind.EMPTY -> ReadingPlan.EMPTY
         }
-        tvSource?.setText(
-            when (result.kind) {
-                ScreenTextSource.Kind.SELECTION -> R.string.tts_source_selection
-                ScreenTextSource.Kind.SCREEN -> R.string.tts_source_screen
-                ScreenTextSource.Kind.EMPTY -> R.string.tts_mode_title
+        val treeLabel = when (result.kind) {
+            ScreenTextSource.Kind.SELECTION -> R.string.tts_source_selection
+            ScreenTextSource.Kind.SCREEN -> R.string.tts_source_screen
+            ScreenTextSource.Kind.EMPTY -> R.string.tts_mode_title
+        }
+        if (shot == null) {
+            use(treePlan, treeLabel, emptyStatus(treePlan))
+            return
+        }
+
+        // keep the tree's text on show while the recognizer works, but do not start speaking yet
+        showPlan(treePlan, treeLabel)
+        setStatus(R.string.tts_ocr_running)
+        ocrJob?.cancel()
+        ocrJob = scope.launch {
+            val dm = context.resources.displayMetrics
+            val outcome = OcrTextSource(context).read(
+                shot, dm.widthPixels, dm.heightPixels,
+                ignoreTop = systemBarHeight("status_bar_height"), ignoreBottom = systemBarHeight("navigation_bar_height")
+            )
+            shot.recycle()
+            if (!this@TtsPlayerController.isActive) return@launch
+            when (outcome) {
+                is OcrTextSource.Outcome.Lines -> {
+                    val ocrPlan = ReadingPlan.fromLines(outcome.lines)
+                    val better = ocrPlan.text.count { !it.isWhitespace() } > result.chars
+                    if (better) use(ocrPlan, R.string.tts_source_ocr, null) else use(treePlan, treeLabel, emptyStatus(treePlan))
+                }
+                OcrTextSource.Outcome.NoModel ->
+                    use(treePlan, treeLabel, if (treePlan.isEmpty) R.string.tts_ocr_no_model else null)
+                OcrTextSource.Outcome.Empty, OcrTextSource.Outcome.Failed ->
+                    use(treePlan, treeLabel, emptyStatus(treePlan))
             }
-        )
+        }
+    }
+
+    /** Height of a system bar in pixels, from the framework's own dimension; 0 when the device does not say. */
+    private fun systemBarHeight(name: String): Int {
+        val id = context.resources.getIdentifier(name, "dimen", "android")
+        return if (id > 0) context.resources.getDimensionPixelSize(id) else 0
+    }
+
+    private fun emptyStatus(p: ReadingPlan): Int? = when {
+        VoiceAccessibilityService.instance == null -> R.string.tts_no_service
+        p.isEmpty -> R.string.tts_no_text
+        else -> null
+    }
+
+    /** Shows [p] and starts reading it. [status] replaces the status line (null: leave it to the player). */
+    private fun use(p: ReadingPlan, labelRes: Int, status: Int?) {
+        showPlan(p, labelRes)
+        if (status != null) setStatus(status) else setStatus(null)
+        if (!p.isEmpty) startSpeaking()
+    }
+
+    private fun showPlan(p: ReadingPlan, labelRes: Int) {
+        plan = p
+        renderWindow(0)
+        tvSource?.setText(labelRes)
+        btnPick?.visibility = if (p.hasPositions) View.VISIBLE else View.GONE
+        highlight.setLines(p.lines)
+        highlight.highlight(null)
         updatePlayIcon(TtsSession.State.IDLE)
     }
 
-    private fun startSpeaking() {
-        val list = sentences
+    // ── Speech ──────────────────────────────────────────────────────────
+
+    private fun startSpeaking(from: Int = 0) {
+        val list = plan.sentences
         if (list.isEmpty()) return
         if (focus == null) focus = SpeechAudioFocus(context) { session?.pause() }
         focus?.acquire()
@@ -209,18 +311,18 @@ class TtsPlayerController(
         val existing = session
         if (existing != null && engineReady) {
             existing.rate = ModelConfig.getTtsRate(context)
-            existing.start(list)
+            existing.start(list, from)
             return
         }
         setStatus(R.string.tts_preparing)
-        startEngine(preferModel = true)
+        startEngine(preferModel = true, from = from)
     }
 
     /**
      * Starts the engine the user chose: a downloaded model, or the system voice. When the model cannot be
      * loaded (damaged files, not enough memory) the system voice takes over so the reading still happens.
      */
-    private fun startEngine(preferModel: Boolean) {
+    private fun startEngine(preferModel: Boolean, from: Int) {
         val model = if (preferModel) TtsCatalog.byId(ModelConfig.selectedTtsEngine(context)) else null
         val eng: TtsEngine = if (model != null) {
             SherpaTtsEngine(model, ModelConfig.ttsModelDir(context, model), sidFor = { lang ->
@@ -240,7 +342,7 @@ class TtsPlayerController(
                 session = null
                 if (model != null) {
                     setStatus(R.string.tts_model_failed)
-                    startEngine(preferModel = false)
+                    startEngine(preferModel = false, from = from)
                 } else {
                     setStatus(R.string.tts_unavailable)
                 }
@@ -249,7 +351,7 @@ class TtsPlayerController(
             engineReady = true
             setStatus(null)
             s.rate = ModelConfig.getTtsRate(context)
-            s.start(sentences)
+            s.start(plan.sentences, from)
         }
     }
 
@@ -267,8 +369,8 @@ class TtsPlayerController(
         override fun onStateChanged(state: TtsSession.State) {
             updatePlayIcon(state)
             when (state) {
-                TtsSession.State.FINISHED -> { setStatus(R.string.tts_finished); focus?.release() }
-                TtsSession.State.ERROR -> { setStatus(R.string.tts_unavailable); focus?.release() }
+                TtsSession.State.FINISHED -> { setStatus(R.string.tts_finished); focus?.release(); highlight.highlight(null) }
+                TtsSession.State.ERROR -> { setStatus(R.string.tts_unavailable); focus?.release(); highlight.highlight(null) }
                 TtsSession.State.SPEAKING -> { showProgress(session?.index ?: 0); focus?.acquire() }
                 else -> Unit
             }
@@ -277,6 +379,7 @@ class TtsPlayerController(
         override fun onSentenceChanged(index: Int) {
             renderWindow(index)
             showProgress(index)
+            highlight.highlight(plan.lineOf(index))
         }
     }
 
@@ -288,6 +391,7 @@ class TtsPlayerController(
         tvStatus = root.findViewById(R.id.tv_tts_status)
         btnPlay = root.findViewById(R.id.btn_tts_play)
         btnSpeed = root.findViewById(R.id.btn_tts_speed)
+        btnPick = root.findViewById(R.id.btn_tts_pick)
         btnSpeed?.text = formatRate(ModelConfig.getTtsRate(context))
 
         root.findViewById<View>(R.id.btn_tts_close).setOnClickListener {
@@ -297,6 +401,10 @@ class TtsPlayerController(
         root.findViewById<View>(R.id.btn_tts_reload).setOnClickListener {
             HapticUtil.click(context)
             reload()
+        }
+        btnPick?.setOnClickListener {
+            HapticUtil.click(context)
+            togglePick()
         }
         btnPlay?.setOnClickListener {
             HapticUtil.click(context)
@@ -322,10 +430,45 @@ class TtsPlayerController(
 
     /** Reads the screen again, for when the selection or the page changed. The panel stays in place. */
     private fun reload() {
+        ocrJob?.cancel()
         session?.stop()
-        // the panel is an overlay of this app, so it is skipped by the source and does not need to be hidden
-        showText(readSource())
-        if (sentences.isNotEmpty()) startSpeaking()
+        highlight.stopPick()
+        highlight.setLines(emptyList())
+        val result = readSource()
+        val service = VoiceAccessibilityService.instance
+        if (service != null && wantsOcr(result)) {
+            // keep the panel out of the screenshot; the cleared highlight needs a frame to disappear
+            view?.visibility = View.INVISIBLE
+            view?.postDelayed({
+                service.captureScreen { shot ->
+                    view?.visibility = View.VISIBLE
+                    if (isActive) onSource(result, shot) else shot?.recycle()
+                }
+            }, 120)
+        } else {
+            onSource(result, null)
+        }
+    }
+
+    /** Outlines the lines of the screen; a tap on one starts the reading there. */
+    private fun togglePick() {
+        if (highlight.isPicking) {
+            highlight.stopPick()
+            setStatus(null)
+            session?.let { showProgress(it.index) }
+            return
+        }
+        if (!plan.hasPositions) return
+        setStatus(R.string.tts_pick_hint)
+        highlight.startPick(
+            onPick = { lineIndex ->
+                plan.firstSentenceOfLine(lineIndex)?.let { startSpeaking(it) }
+            },
+            onCancel = {
+                setStatus(null)
+                session?.let { showProgress(it.index) }
+            }
+        )
     }
 
     /**
@@ -335,6 +478,7 @@ class TtsPlayerController(
      */
     private fun renderWindow(current: Int) {
         val tv = tvText ?: return
+        val sentences = plan.sentences
         if (sentences.isEmpty()) { tv.text = ""; return }
         val cur = current.coerceIn(0, sentences.lastIndex)
         val from = (cur - 1).coerceAtLeast(0)
@@ -349,8 +493,7 @@ class TtsPlayerController(
             if (i == cur) hlEnd = sb.length
         }
         val spannable = SpannableString(sb.toString())
-        val dim = ForegroundColorSpan(Color.argb(140, 255, 255, 255))
-        spannable.setSpan(dim, 0, spannable.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannable.setSpan(ForegroundColorSpan(Color.argb(140, 255, 255, 255)), 0, spannable.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         spannable.setSpan(ForegroundColorSpan(Color.WHITE), hlStart, hlEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         spannable.setSpan(BackgroundColorSpan(Color.argb(110, 255, 255, 255)), hlStart, hlEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         tv.text = spannable
@@ -364,7 +507,7 @@ class TtsPlayerController(
 
     /** "3 / 12" under the text; nothing when there is only one sentence. */
     private fun showProgress(index: Int) {
-        val total = sentences.size
+        val total = plan.sentences.size
         tvStatus?.text = if (total > 1) context.getString(R.string.tts_progress, index + 1, total) else ""
     }
 

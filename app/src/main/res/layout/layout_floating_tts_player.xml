@@ -43,6 +43,19 @@
             android:textStyle="bold" />
 
         <com.ping.verbead.ui.GlassIconView
+            android:id="@+id/btn_tts_pick"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:contentDescription="@string/tts_pick_desc"
+            android:padding="6dp"
+            android:src="@drawable/ic_touch"
+            android:visibility="gone"
+            app:tint="#FFFFFFFF"
+            android:clickable="true"
+            android:focusable="true"
+            app:glassFollowBubble="true" />
+
+        <com.ping.verbead.ui.GlassIconView
             android:id="@+id/btn_tts_reload"
             android:layout_width="32dp"
             android:layout_height="32dp"

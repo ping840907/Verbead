@@ -467,6 +467,11 @@
     <string name="tts_delete_title">Delete %s?</string>
     <string name="tts_delete_message">The downloaded files are removed from this phone. Reading falls back to the system voice.</string>
     <string name="tts_model_failed">The downloaded voice could not be loaded; using the system voice instead.</string>
+    <string name="tts_source_ocr">Screen (OCR)</string>
+    <string name="tts_ocr_running">Recognizing the text on the screen…</string>
+    <string name="tts_ocr_no_model">This screen shows no text, and the text recognition model is not downloaded. Download it in the OCR settings.</string>
+    <string name="tts_pick_desc">Start from a line you tap</string>
+    <string name="tts_pick_hint">Tap a line on the screen to start reading from there</string>
     <string name="model_label_qwen3_detail">Qwen3-ASR high-accuracy offline speech</string>
     <string name="model_label_xasr_detail">X-ASR fast live streaming speech</string>
     <string name="model_label_ocr_small_detail">PP-OCRv6 (Small, high accuracy) text recognition</string>
