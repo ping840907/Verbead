@@ -15,9 +15,11 @@ import com.ping.verbead.engine.TtsKind
 import com.ping.verbead.engine.TtsModel
 import java.io.File
 import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -26,9 +28,13 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * A downloaded read-aloud model (Melo or Kokoro) run by sherpa-onnx.
  *
- * Two threads: one synthesizes, one plays. The sentence after the current one is synthesized while the current
- * one is still playing (see [prefetch]), so the gap between sentences is mostly gone. Callbacks reach the
- * [TtsEngine.Callback] on the main thread, like every engine.
+ * Two threads: one synthesizes, one plays. Sentences the caller queues ([queue]) are synthesized while the current
+ * one is still playing and written to one audio track right behind it, so the next sentence starts the moment
+ * the last one ends. The silence the model puts around each sentence is cut off and replaced by a pause of a
+ * chosen length ([SpeechAudio]), so the gap between sentences is the one wanted, not the model's.
+ *
+ * Synthesized sentences are kept (the last few), so pausing and continuing, or stepping back a sentence, is
+ * instant. Callbacks reach the [TtsEngine.Callback] on the main thread, like every engine.
  *
  * [sidFor] says which voice (speaker id) to use for a language. [threads] defaults to 2: measured on the
  * target phone, two threads were faster than four.
@@ -49,16 +55,34 @@ class SherpaTtsEngine(
     @Volatile private var track: AudioTrack? = null
     private var callback: TtsEngine.Callback? = null
 
-    /** Bumped whenever playback must stop (a new sentence, a stop): the play thread checks it between writes. */
+    /** Bumped by [speak] and [stop]: everything queued before is dropped and the audio track is started afresh. */
     private val playGen = AtomicInteger()
 
     /** Bumped when synthesis that is already running is no longer wanted: the synth callback returns 0. */
     private val epoch = AtomicInteger()
 
     private data class Key(val text: String, val sid: Int, val rate: Float)
-    private class Pending(val key: Key, val future: Future<FloatArray?>)
 
-    private var prefetched: Pending? = null // main thread only
+    /** One sentence waiting to be played (or being played). */
+    private class Item(val id: Int, val gen: Int, val text: String, val future: Future<FloatArray?>)
+
+    /** A sentence whose audio is all in the track; it is done when the track has played up to [endFrame]. */
+    private class Pending(val id: Int, val gen: Int, val endFrame: Long)
+
+    private val items = LinkedBlockingQueue<Item>()
+    private val pending = ConcurrentLinkedQueue<Pending>()
+
+    /** The last few synthesized sentences by what they say; main thread only. */
+    private val cache = object : LinkedHashMap<Key, Future<FloatArray?>>(8, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, Future<FloatArray?>>?): Boolean = size > CACHE_SIZE
+    }
+
+    // play thread only
+    private var trackGen = -1
+    private var framesWritten = 0L
+
+    // main thread only
+    private var checking = false
 
     // ── TtsEngine ───────────────────────────────────────────────────────
 
@@ -76,30 +100,32 @@ class SherpaTtsEngine(
                 return@execute
             }
             tts = loaded
+            if (loaded != null) playPool.execute { playLoop() }
             main.post { if (!closed) onReady(loaded != null) }
         }
     }
 
     override fun speak(utteranceId: Int, text: String, lang: SpeechLang, rate: Float) {
         if (closed || tts == null) return
-        val key = Key(text, sidFor(lang), rate)
         val gen = playGen.incrementAndGet()
-        val cached = prefetched?.takeIf { it.key == key }
-        prefetched = null
-        val future = cached?.future ?: submit(key, epoch.incrementAndGet()) // a different sentence: drop stale work
-        playPool.execute { play(utteranceId, gen, future) }
+        items.clear()
+        // a sentence not heard before: cut short any synthesis still running for something else
+        val future = obtain(Key(text, sidFor(lang), rate), cancelOthers = true)
+        items.put(Item(utteranceId, gen, text, future))
+        cut()
     }
 
-    override fun prefetch(text: String, lang: SpeechLang, rate: Float) {
-        if (closed || tts == null) return
-        val key = Key(text, sidFor(lang), rate)
-        if (prefetched?.key == key) return
-        prefetched = Pending(key, submit(key, epoch.get()))
+    override fun queue(utteranceId: Int, text: String, lang: SpeechLang, rate: Float): Boolean {
+        if (closed || tts == null) return false
+        val future = obtain(Key(text, sidFor(lang), rate), cancelOthers = false)
+        items.put(Item(utteranceId, playGen.get(), text, future))
+        return true
     }
 
     override fun stop() {
         playGen.incrementAndGet()
-        track?.let { runCatching { it.pause(); it.flush() } }
+        items.clear()
+        cut()
     }
 
     override fun shutdown() {
@@ -107,7 +133,9 @@ class SherpaTtsEngine(
         closed = true
         playGen.incrementAndGet()
         epoch.incrementAndGet()
-        prefetched = null
+        items.clear()
+        pending.clear()
+        cache.clear()
         callback = null
         playPool.shutdownNow()
         // release on the synth thread, after any synthesis in progress has noticed `closed` and returned
@@ -116,6 +144,11 @@ class SherpaTtsEngine(
             tts = null
         }
         synthPool.shutdown()
+    }
+
+    /** Silences what is playing now. The play thread starts a new track for whatever comes next. */
+    private fun cut() {
+        track?.let { runCatching { it.pause(); it.flush() } }
     }
 
     // ── Loading ─────────────────────────────────────────────────────────
@@ -153,6 +186,22 @@ class SherpaTtsEngine(
 
     // ── Synthesis ───────────────────────────────────────────────────────
 
+    /**
+     * The audio for [key]: the one already synthesized (or being synthesized), else a new request. A request that
+     * was cut short, or failed, is not reused.
+     */
+    private fun obtain(key: Key, cancelOthers: Boolean): Future<FloatArray?> {
+        cache[key]?.let { hit ->
+            val spoiled = hit.isDone && runCatching { hit.get() }.getOrNull() == null
+            if (!spoiled) return hit
+            cache.remove(key)
+        }
+        val e = if (cancelOthers) epoch.incrementAndGet() else epoch.get()
+        val f = submit(key, e)
+        cache[key] = f
+        return f
+    }
+
     private fun submit(key: Key, myEpoch: Int): Future<FloatArray?> = try {
         synthPool.submit(Callable { synthesize(key, myEpoch) })
     } catch (e: Exception) {
@@ -168,7 +217,8 @@ class SherpaTtsEngine(
         }
         return try {
             val audio = engine.generateWithCallback(key.text, sid = key.sid, speed = key.rate, callback = keepGoing)
-            if (closed || epoch.get() != myEpoch) null else audio.samples
+            if (closed || epoch.get() != myEpoch) null
+            else SpeechAudio.shape(audio.samples, engine.sampleRate(), SpeechAudio.pauseMs(key.text))
         } catch (t: Throwable) {
             Log.e(TAG, "synthesis failed", t)
             null
@@ -177,63 +227,104 @@ class SherpaTtsEngine(
 
     // ── Playback (play thread) ──────────────────────────────────────────
 
-    private fun play(id: Int, gen: Int, future: Future<FloatArray?>) {
-        val samples = awaitSamples(id, gen, future) ?: return
-        if (gen != playGen.get() || closed) return
-        val rate = tts?.sampleRate() ?: return
-        val at = createTrack(rate, samples.size)
-        track = at
+    private fun playLoop() {
         try {
-            at.play()
-            var off = 0
-            while (off < samples.size) {
-                if (gen != playGen.get() || closed) return
-                val n = at.write(samples, off, minOf(CHUNK, samples.size - off), AudioTrack.WRITE_BLOCKING)
-                if (n < 0) { fail(id, gen); return }
-                off += n
+            while (!closed) {
+                val item = items.poll(100, TimeUnit.MILLISECONDS) ?: continue
+                if (item.gen != playGen.get()) continue
+                val samples = awaitSamples(item) ?: continue
+                write(item, samples)
             }
-            at.stop() // a stream track keeps playing what it has buffered, then stops
-            val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(samples.size * 1000L / rate + 1500)
-            while (at.playbackHeadPosition < samples.size && System.nanoTime() < deadline) {
-                if (gen != playGen.get() || closed) return
-                Thread.sleep(15)
-            }
-            if (gen == playGen.get() && !closed) main.post { if (gen == playGen.get()) callback?.onDone(id) }
         } catch (e: InterruptedException) {
             // shutdown
         } finally {
-            if (track === at) track = null
-            runCatching { at.release() }
+            track?.let { runCatching { it.pause(); it.flush(); it.release() } }
+            track = null
         }
     }
 
-    /** Waits for the synthesized audio without ever blocking a stop for long. Null means nothing to play (already reported). */
-    private fun awaitSamples(id: Int, gen: Int, future: Future<FloatArray?>): FloatArray? {
+    /** Waits for [item]'s audio without ever blocking a stop for long. Null means nothing to play (already reported). */
+    private fun awaitSamples(item: Item): FloatArray? {
         while (true) {
-            if (gen != playGen.get() || closed) return null
+            if (item.gen != playGen.get() || closed) return null
             try {
-                val samples = future.get(40, TimeUnit.MILLISECONDS)
-                if (samples == null || samples.isEmpty()) { fail(id, gen); return null }
+                val samples = item.future.get(40, TimeUnit.MILLISECONDS)
+                if (samples == null || samples.isEmpty()) { fail(item); return null }
                 return samples
             } catch (e: TimeoutException) {
                 continue
             } catch (e: ExecutionException) {
-                fail(id, gen)
+                fail(item)
                 return null
             } catch (e: InterruptedException) {
-                return null
+                throw e
             }
         }
     }
 
-    private fun fail(id: Int, gen: Int) {
-        if (gen == playGen.get() && !closed) main.post { if (gen == playGen.get()) callback?.onError(id) }
+    /** Writes [item]'s audio into the track right behind what is already there. */
+    private fun write(item: Item, samples: FloatArray) {
+        val rate = tts?.sampleRate() ?: return
+        var at = track
+        if (at == null || trackGen != item.gen) {
+            at?.let { runCatching { it.pause(); it.flush(); it.release() } }
+            at = createTrack(rate)
+            track = at
+            trackGen = item.gen
+            framesWritten = 0
+            at.play()
+        }
+        val head = at.playbackHeadPosition.toLong() and 0xFFFFFFFFL
+        Log.d(TAG, "SENTENCE id=${item.id} starts with %.0fms still buffered (negative = a gap)".format(
+            (framesWritten - head) * 1000.0 / rate))
+
+        var off = 0
+        while (off < samples.size) {
+            if (item.gen != playGen.get() || closed) return
+            val n = at.write(samples, off, minOf(CHUNK, samples.size - off), AudioTrack.WRITE_NON_BLOCKING)
+            if (n < 0) { fail(item); return }
+            if (n == 0) Thread.sleep(4) else off += n
+        }
+        framesWritten += samples.size
+        pending.add(Pending(item.id, item.gen, framesWritten))
+        main.post { ensureChecking() }
     }
 
-    private fun createTrack(sampleRate: Int, frames: Int): AudioTrack {
+    // ── Reporting (main thread) ─────────────────────────────────────────
+
+    private fun ensureChecking() {
+        if (checking || closed) return
+        checking = true
+        main.post(checker)
+    }
+
+    /** Reports each sentence as done when the track has played to the end of it. */
+    private val checker = object : Runnable {
+        override fun run() {
+            if (closed) { checking = false; return }
+            val at = track
+            val gen = playGen.get()
+            val head = if (at != null) at.playbackHeadPosition.toLong() and 0xFFFFFFFFL else 0L
+            while (true) {
+                val p = pending.peek() ?: break
+                if (p.gen != gen) { pending.poll(); continue } // cut off
+                if (at != null && head >= p.endFrame) {
+                    pending.poll()
+                    callback?.onDone(p.id)
+                } else break
+            }
+            if (pending.isNotEmpty()) main.postDelayed(this, 15) else checking = false
+        }
+    }
+
+    private fun fail(item: Item) {
+        main.post { if (!closed && item.gen == playGen.get()) callback?.onError(item.id) }
+    }
+
+    private fun createTrack(sampleRate: Int): AudioTrack {
         val minBytes = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT)
-        // about half a second of buffer, never less than the minimum, never more than the whole sentence needs
-        val bytes = maxOf(minBytes, minOf(sampleRate * 2, frames * 4))
+        // about half a second of buffer: enough to ride over the moment between one sentence and the next
+        val bytes = maxOf(minBytes, sampleRate * 2)
         return AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -258,5 +349,6 @@ class SherpaTtsEngine(
     private companion object {
         const val TAG = "SherpaTtsEngine"
         const val CHUNK = 4096
+        const val CACHE_SIZE = 6
     }
 }

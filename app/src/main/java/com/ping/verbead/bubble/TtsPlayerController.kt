@@ -255,9 +255,8 @@ class TtsPlayerController(
         setStatus(R.string.tts_ocr_running)
         ocrJob?.cancel()
         ocrJob = scope.launch {
-            val dm = context.resources.displayMetrics
             val outcome = OcrTextSource(context).read(
-                shot, dm.widthPixels, dm.heightPixels,
+                shot,
                 ignoreTop = systemBarHeight("status_bar_height"), ignoreBottom = systemBarHeight("navigation_bar_height")
             )
             shot.recycle()
@@ -309,7 +308,7 @@ class TtsPlayerController(
         tvSource?.setText(labelRes)
         btnPick?.visibility = if (p.hasPositions) View.VISIBLE else View.GONE
         highlight.setLines(p.lines)
-        highlight.highlight(null)
+        highlight.highlight(emptyList())
         updatePlayIcon(TtsSession.State.IDLE)
     }
 
@@ -382,8 +381,8 @@ class TtsPlayerController(
         override fun onStateChanged(state: TtsSession.State) {
             updatePlayIcon(state)
             when (state) {
-                TtsSession.State.FINISHED -> { setStatus(R.string.tts_finished); focus?.release(); highlight.highlight(null) }
-                TtsSession.State.ERROR -> { setStatus(R.string.tts_unavailable); focus?.release(); highlight.highlight(null) }
+                TtsSession.State.FINISHED -> { setStatus(R.string.tts_finished); focus?.release(); highlight.highlight(emptyList()) }
+                TtsSession.State.ERROR -> { setStatus(R.string.tts_unavailable); focus?.release(); highlight.highlight(emptyList()) }
                 TtsSession.State.SPEAKING -> { showProgress(session?.index ?: 0); focus?.acquire() }
                 else -> Unit
             }
@@ -392,7 +391,7 @@ class TtsPlayerController(
         override fun onSentenceChanged(index: Int) {
             renderWindow(index)
             showProgress(index)
-            highlight.highlight(plan.lineOf(index))
+            highlight.highlight(plan.linesOf(index))
         }
     }
 

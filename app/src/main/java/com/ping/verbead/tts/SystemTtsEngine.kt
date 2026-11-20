@@ -19,6 +19,7 @@ class SystemTtsEngine(context: Context) : TtsEngine {
     private var callback: TtsEngine.Callback? = null
     private var ready = false
     private var lastLang: SpeechLang? = null
+    private var lastRate = -1f
 
     override fun init(callback: TtsEngine.Callback, onReady: (Boolean) -> Unit) {
         this.callback = callback
@@ -60,8 +61,19 @@ class SystemTtsEngine(context: Context) : TtsEngine {
             lastLang = lang
         }
         engine.setSpeechRate(rate)
+        lastRate = rate
         val result = engine.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), utteranceId.toString())
         if (result != TextToSpeech.SUCCESS) main.post { callback?.onError(utteranceId) }
+    }
+
+    /**
+     * The engine queue plays the next sentence straight after this one. The language and the speed are set on
+     * the engine as a whole, so only a sentence that needs the same ones can be queued behind the current one.
+     */
+    override fun queue(utteranceId: Int, text: String, lang: SpeechLang, rate: Float): Boolean {
+        val engine = tts ?: return false
+        if (!ready || lang != lastLang || rate != lastRate) return false
+        return engine.speak(text, TextToSpeech.QUEUE_ADD, Bundle(), utteranceId.toString()) == TextToSpeech.SUCCESS
     }
 
     override fun stop() {

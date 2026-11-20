@@ -4,9 +4,11 @@ package com.ping.verbead.tts
  * Plays a list of sentences through a [TtsEngine], one after another, and keeps track of where it is.
  * Pure Kotlin (no Android types) so it can be unit tested with a fake engine. Use from the main thread.
  *
- * The system engine cannot pause, so pausing stops the current sentence and resuming speaks it again
- * from its start. Every speak call gets a fresh utterance id and callbacks for older ids are ignored,
- * which is how a skip or a stop silences the sentence that was cut off.
+ * While a sentence plays, the next ones are handed to the engine to queue ([TtsEngine.queue]), so an engine that
+ * can play them back to back leaves no gap; when it cannot, the next sentence is spoken as soon as the current
+ * one is done. The system engine cannot pause, so pausing stops the current sentence and resuming speaks it
+ * again from its start. Every utterance gets a fresh id and callbacks for ids that are no longer wanted are
+ * ignored, which is how a skip or a stop silences the sentence that was cut off.
  */
 class TtsSession(
     private val engine: TtsEngine,
@@ -36,11 +38,15 @@ class TtsSession(
 
     private var utteranceCounter = 0
     private var currentUtterance = -1
+
+    /** Ids of the sentences after [index] that the engine already holds, in order. */
+    private val queued = ArrayDeque<Int>()
     private var consecutiveErrors = 0
 
     /** Loads [list] and starts speaking at [from]. */
     fun start(list: List<Sentence>, from: Int = 0) {
         engine.stop()
+        queued.clear()
         sentences = list
         if (list.isEmpty()) {
             setState(State.FINISHED)
@@ -56,6 +62,7 @@ class TtsSession(
     fun pause() {
         if (state != State.SPEAKING) return
         currentUtterance = -1
+        queued.clear()
         engine.stop()
         setState(State.PAUSED)
     }
@@ -96,6 +103,7 @@ class TtsSession(
 
     fun stop() {
         currentUtterance = -1
+        queued.clear()
         engine.stop()
         sentences = emptyList()
         index = 0
@@ -104,13 +112,29 @@ class TtsSession(
 
     private fun speakCurrent() {
         val sentence = sentences.getOrNull(index) ?: return
+        queued.clear()
         currentUtterance = ++utteranceCounter
         engine.speak(currentUtterance, sentence.text, LanguageGuess.of(sentence.text), rate)
-        sentences.getOrNull(index + 1)?.let { engine.prefetch(it.text, LanguageGuess.of(it.text), rate) }
+        fillQueue()
+    }
+
+    /** Hands the engine the next sentences to hold; when it cannot queue, gives it a hint for the next one instead. */
+    private fun fillQueue() {
+        while (queued.size < QUEUE_DEPTH) {
+            val at = index + 1 + queued.size
+            val s = sentences.getOrNull(at) ?: return
+            val id = ++utteranceCounter
+            if (!engine.queue(id, s.text, LanguageGuess.of(s.text), rate)) {
+                if (queued.isEmpty()) engine.prefetch(s.text, LanguageGuess.of(s.text), rate)
+                return
+            }
+            queued.addLast(id)
+        }
     }
 
     private fun finish() {
         currentUtterance = -1
+        queued.clear()
         engine.stop()
         setState(State.FINISHED)
     }
@@ -132,10 +156,17 @@ class TtsSession(
     }
 
     override fun onError(utteranceId: Int) {
-        if (utteranceId != currentUtterance || state != State.SPEAKING) return
+        if (state != State.SPEAKING) return
+        if (utteranceId != currentUtterance) {
+            // a queued sentence failed: the engine goes on with the ones after it, so drop it and what followed
+            val at = queued.indexOf(utteranceId)
+            if (at >= 0) while (queued.size > at) queued.removeLast()
+            return
+        }
         // one bad sentence is skipped; a run of them means the engine itself is broken
         if (++consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
             currentUtterance = -1
+            queued.clear()
             engine.stop()
             setState(State.ERROR)
             return
@@ -146,9 +177,16 @@ class TtsSession(
     private fun advance() {
         if (index >= sentences.lastIndex) {
             finish()
+            return
+        }
+        index++
+        listener.onSentenceChanged(index)
+        val held = queued.removeFirstOrNull()
+        if (held != null) {
+            // the engine is already playing it: nothing to speak, only to keep the next ones coming
+            currentUtterance = held
+            fillQueue()
         } else {
-            index++
-            listener.onSentenceChanged(index)
             speakCurrent()
         }
     }
@@ -157,5 +195,8 @@ class TtsSession(
         const val MIN_RATE = 0.5f
         const val MAX_RATE = 2.5f
         private const val MAX_CONSECUTIVE_ERRORS = 3
+
+        /** How many sentences ahead the engine holds: enough that a short sentence before a long one still leaves no gap. */
+        private const val QUEUE_DEPTH = 2
     }
 }

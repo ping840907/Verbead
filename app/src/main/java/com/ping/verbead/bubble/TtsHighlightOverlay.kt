@@ -69,10 +69,12 @@ class TtsHighlightOverlay(
         v.invalidate()
     }
 
-    /** Marks [line] as the one being read; null clears the mark. */
-    fun highlight(line: ScreenLine?) {
+    /** Marks the lines of the sentence being read, as one box around them; none clears the mark. */
+    fun highlight(lines: List<ScreenLine>) {
         val v = view ?: return
-        v.current = line
+        v.current = if (lines.isEmpty()) null else ScreenLine(
+            lines.minOf { it.left }, lines.minOf { it.top }, lines.maxOf { it.right }, lines.maxOf { it.bottom }, ""
+        )
         v.invalidate()
     }
 
